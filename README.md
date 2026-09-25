@@ -3,6 +3,8 @@
 A self-written web player for learning piano pieces: open a MIDI file, watch the notes fall onto
 the keyboard, slow it down, loop the hard bars, practice one hand at a time.
 
+**Try it:** https://gnklv.github.io/claviano/
+
 The core (parsing, playback, audio, canvas) is written from scratch in plain TypeScript;
 the UI shell is Vue 3. Notes are named in fixed-do solfège (Do, Re, Mi, Fa, Sol, La, Si)
 with scientific octave numbers: `pitch('Do', 4)` is middle Do (MIDI 60).
@@ -13,6 +15,9 @@ npm run dev     # http://localhost:5173
 npm test
 npm run build
 ```
+
+Every push to `master` runs the tests, builds and deploys to GitHub Pages
+(`.github/workflows/deploy.yml`).
 
 ## Controls
 
