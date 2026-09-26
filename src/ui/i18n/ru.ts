@@ -2,6 +2,10 @@ import type { Dictionary } from './en';
 
 export const ru: Dictionary = {
   appTitle: 'Claviano',
+  viewMode: 'Вид',
+  viewStaff: 'Ноты',
+  viewKeys: 'Клавиши',
+  viewBoth: 'Вместе',
   language: 'Язык',
 
   openMidi: 'Открыть MIDI',

@@ -46,6 +46,7 @@ src/
     audio/             WebAudioSynth — additive synth with a piano-like envelope.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + 88-key keyboard on Canvas 2D.
+                       SvgStaff — grand staff as a tape scrolling under a fixed cursor.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
@@ -65,4 +66,5 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] Sustain pedal from MIDI CC 64
 - [ ] Web MIDI input and "wait mode"
 - [ ] MusicXML parser
-- [ ] Own staff notation renderer (SVG + Bravura/SMuFL)
+- [x] View modes: staff / falling notes / both
+- [ ] Notes on the staff (SVG + Bravura/SMuFL)

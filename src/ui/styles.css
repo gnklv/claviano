@@ -1,3 +1,11 @@
+/* Bravura: the SMuFL music font by Steinberg, SIL Open Font License (public/fonts/Bravura-LICENSE.txt). */
+@font-face {
+  font-family: 'Bravura';
+  src: url('/fonts/Bravura.woff2') format('woff2');
+  /* Music symbols have no sensible fallback: wait for the font instead of flashing other glyphs. */
+  font-display: block;
+}
+
 :root {
   --bg: #0f1116;
   --panel: #1a1d25;

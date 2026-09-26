@@ -4,8 +4,11 @@ import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/Sc
 import { barAt, type Score } from '../domain/score';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import PianoRoll from './components/PianoRoll.vue';
+import StaffView from './components/StaffView.vue';
 import TransportBar from './components/TransportBar.vue';
+import ViewModeSwitch from './components/ViewModeSwitch.vue';
 import { usePlaybackState } from './composables/usePlaybackState';
+import { useViewMode } from './composables/useViewMode';
 import { useDeps } from './deps';
 import type { MessageKey } from './i18n/en';
 import { useI18n } from './i18n/useI18n';
@@ -19,6 +22,7 @@ const ERROR_MESSAGES: Record<ScoreLoadErrorCode, MessageKey> = {
 const { playback, loadScore, demoScore } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
+const viewMode = useViewMode();
 const dragging = ref(false);
 
 /** The demo's title comes from the dictionary, so it follows a language switch too. */
@@ -122,11 +126,13 @@ onUnmounted(() => {
       </label>
       <button class="button" @click="openDemo">{{ t('demo') }}</button>
       <span class="title">{{ title }}</span>
+      <ViewModeSwitch />
       <LanguageSwitch />
     </header>
 
-    <main class="stage" :class="{ dragging }" :data-drop-hint="t('dropHint')">
-      <PianoRoll />
+    <main class="stage" :class="[`view-${viewMode}`, { dragging }]" :data-drop-hint="t('dropHint')">
+      <StaffView v-if="viewMode !== 'keys'" class="view staff" />
+      <PianoRoll v-if="viewMode !== 'staff'" class="view" />
     </main>
 
     <TransportBar />
@@ -161,6 +167,20 @@ onUnmounted(() => {
 .stage {
   position: relative;
   min-height: 0;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.stage.view-both {
+  grid-template-rows: minmax(160px, 38%) 1fr;
+}
+
+.view {
+  min-height: 0;
+}
+
+.view-both .staff {
+  border-bottom: 1px solid var(--border);
 }
 
 .stage.dragging::after {

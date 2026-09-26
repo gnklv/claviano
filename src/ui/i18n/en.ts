@@ -8,6 +8,10 @@ export interface PluralMessage extends Partial<Record<Intl.LDMLPluralRule, strin
 /** The English dictionary defines the set of keys; every other language must provide all of them. */
 export const en = {
   appTitle: 'Claviano',
+  viewMode: 'View',
+  viewStaff: 'Notes',
+  viewKeys: 'Keys',
+  viewBoth: 'Both',
   language: 'Language',
 
   openMidi: 'Open MIDI',

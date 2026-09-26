@@ -6,6 +6,7 @@ import { odeToJoy } from './demo/odeToJoy';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
+import { SvgStaff } from './infrastructure/render/SvgStaff';
 import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
 import App from './ui/App.vue';
 import { depsKey } from './ui/deps';
@@ -19,6 +20,7 @@ createApp(App)
     playback,
     loadScore: new LoadScore([new MidiFileParser()]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
+    createStaff: (container) => new SvgStaff(container),
     demoScore: (title) => odeToJoy(title),
   })
   .mount('#app');
