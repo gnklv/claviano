@@ -1,9 +1,9 @@
 import type { Score } from '../../domain/score';
-import type { ScoreParser } from '../ports/ScoreParser';
+import { ScoreLoadError, type ScoreParser } from '../ports/ScoreParser';
 
-export class UnsupportedFormatError extends Error {
+export class UnsupportedFormatError extends ScoreLoadError {
   constructor(fileName: string) {
-    super(`Unsupported file format: ${fileName}`);
+    super('unsupported-format', `Unsupported file format: ${fileName}`);
     this.name = 'UnsupportedFormatError';
   }
 }

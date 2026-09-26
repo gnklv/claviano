@@ -5,10 +5,13 @@ import { barAt, barRange } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
+import type { MessageKey } from '../i18n/en';
+import { useI18n } from '../i18n/useI18n';
 
 const SEEK_STEPS = 1000;
 
 const { playback } = useDeps();
+const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
 const barCount = computed(() => state.value.score?.bars.length ?? 0);
@@ -18,14 +21,20 @@ const tempoPercent = computed({
   set: (percent: number) => playback.setTempo(percent / 100),
 });
 
-const hands: { hand: Hand; label: string }[] = [
-  { hand: 'right', label: 'Правая' },
-  { hand: 'left', label: 'Левая' },
+const hands: { hand: Hand; label: MessageKey }[] = [
+  { hand: 'right', label: 'rightHand' },
+  { hand: 'left', label: 'leftHand' },
 ];
 
 // --- Position readouts: updated from the animation frame, only when they actually change. ---
 
-const barLabel = ref('Такт –');
+/** Current bar, zero-based; null until a score is loaded. */
+const currentBar = ref<number | null>(null);
+const barLabel = computed(() =>
+  currentBar.value === null
+    ? t('barPositionEmpty')
+    : t('barPosition', { current: currentBar.value + 1, total: barCount.value }),
+);
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
 
@@ -33,8 +42,8 @@ useAnimationFrame(() => {
   const score = playback.score;
   if (!score) return;
   const position = playback.position;
-  const label = `Такт ${barAt(score, position) + 1} / ${score.bars.length}`;
-  if (label !== barLabel.value) barLabel.value = label;
+  const bar = barAt(score, position);
+  if (bar !== currentBar.value) currentBar.value = bar;
   if (!seeking && seekInput.value && score.duration > 0) {
     seekInput.value.value = String(Math.round((position / score.duration) * SEEK_STEPS));
   }
@@ -76,10 +85,18 @@ function togglePlay(): void {
 
 <template>
   <footer class="bar">
-    <button class="button primary" :disabled="!loaded" title="Пробел" @click="togglePlay">
+    <button
+      class="button primary"
+      :disabled="!loaded"
+      :title="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
+      :aria-label="t(state.playing ? 'pause' : 'play')"
+      @click="togglePlay"
+    >
       {{ state.playing ? '❚❚' : '▶' }}
     </button>
-    <button class="button" :disabled="!loaded" title="В начало" @click="playback.stop()">■</button>
+    <button class="button" :disabled="!loaded" :title="t('stop')" :aria-label="t('stop')" @click="playback.stop()">
+      ■
+    </button>
     <span class="readout">{{ barLabel }}</span>
     <input
       ref="seek"
@@ -94,7 +111,7 @@ function togglePlay(): void {
     />
 
     <label class="group">
-      Темп
+      {{ t('tempo') }}
       <input v-model.number="tempoPercent" type="range" min="25" max="150" step="5" />
       <output class="readout">{{ tempoPercent }}%</output>
     </label>
@@ -105,11 +122,11 @@ function togglePlay(): void {
         :checked="state.hands[hand]"
         @change="playback.setHandEnabled(hand, ($event.target as HTMLInputElement).checked)"
       />
-      {{ label }}
+      {{ t(label) }}
     </label>
 
     <span class="group">
-      <label><input v-model="loopEnabled" type="checkbox" :disabled="!loaded" /> Цикл тактов</label>
+      <label><input v-model="loopEnabled" type="checkbox" :disabled="!loaded" /> {{ t('loopBars') }}</label>
       <input v-model.number="loopFrom" class="number" type="number" min="1" :max="barCount" />
       –
       <input v-model.number="loopTo" class="number" type="number" min="1" :max="barCount" />

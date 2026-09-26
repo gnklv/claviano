@@ -59,12 +59,12 @@ function chords(bars: readonly Part[], hand: Hand, secondsPerBeat: number): Note
 }
 
 /** Beethoven, "Ode to Joy" — a simple two-hand arrangement to try the player without a file. */
-export function odeToJoy(bpm = 100): Score {
+export function odeToJoy(title: string, bpm = 100): Score {
   const secondsPerBeat = 60 / bpm;
   const barCount = 8;
   const bars = Array.from({ length: barCount }, (_, i) => i * 4 * secondsPerBeat);
   return createScore(
-    'Ode to Joy (demo)',
+    title,
     [...sequence(melody, 'right', secondsPerBeat), ...chords(bass, 'left', secondsPerBeat)],
     bars,
   );

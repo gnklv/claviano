@@ -1,5 +1,5 @@
 import { noteEnd, type Hand } from '../../domain/note';
-import { HIGHEST_KEY, LOWEST_KEY, isBlackKey, pitchName } from '../../domain/pitch';
+import { HIGHEST_KEY, LOWEST_KEY, isBlackKey } from '../../domain/pitch';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 
 export interface RollFrame {
@@ -7,6 +7,8 @@ export interface RollFrame {
   readonly position: number;
   readonly loop: TimeRange | null;
   readonly isHandEnabled: (hand: Hand) => boolean;
+  /** How to label a key on screen; the UI supplies it in the current language. */
+  readonly noteLabel: (midi: number) => string;
 }
 
 interface KeyRect {
@@ -74,7 +76,7 @@ export class CanvasPianoRoll {
     this.drawLoop(frame, yOf, rollHeight);
     this.drawBars(frame, yOf, rollHeight);
     const active = this.drawNotes(frame, yOf, rollHeight);
-    this.drawKeyboard(rollHeight, keyboardHeight, active);
+    this.drawKeyboard(rollHeight, keyboardHeight, active, frame.noteLabel);
 
     ctx.fillStyle = COLORS.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
@@ -142,7 +144,12 @@ export class CanvasPianoRoll {
     return active;
   }
 
-  private drawKeyboard(top: number, height: number, active: Map<number, Hand>): void {
+  private drawKeyboard(
+    top: number,
+    height: number,
+    active: Map<number, Hand>,
+    noteLabel: (midi: number) => string,
+  ): void {
     const { ctx } = this;
     const blackHeight = height * 0.62;
     for (const black of [false, true]) {
@@ -158,11 +165,11 @@ export class CanvasPianoRoll {
         }
       }
     }
-    this.drawDoLabels(top + height);
+    this.drawDoLabels(top + height, noteLabel);
   }
 
-  /** Every Do is labelled (Do1…Do8) as a landmark for finding your place on the keyboard. */
-  private drawDoLabels(bottom: number): void {
+  /** Every Do is labelled as a landmark for finding your place on the keyboard. */
+  private drawDoLabels(bottom: number, noteLabel: (midi: number) => string): void {
     const { ctx } = this;
     const fontSize = Math.max(7, Math.min(11, this.width / 110));
     ctx.font = `${fontSize}px system-ui, sans-serif`;
@@ -170,7 +177,7 @@ export class CanvasPianoRoll {
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = COLORS.keyLabel;
     for (const [midi, key] of this.keys) {
-      if (midi % 12 === 0) ctx.fillText(pitchName(midi), key.x + key.width / 2, bottom - 4);
+      if (midi % 12 === 0) ctx.fillText(noteLabel(midi), key.x + key.width / 2, bottom - 4);
     }
     ctx.textAlign = 'start';
   }

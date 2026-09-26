@@ -48,6 +48,9 @@ src/
     render/            CanvasPianoRoll — falling notes + 88-key keyboard on Canvas 2D.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
+    i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
+                       (checked by TypeScript). Plurals via Intl.PluralRules. Note labels:
+                       C4 in English, До1 in Russian (Russian octave numbering).
   demo/              Built-in "Ode to Joy" for trying the player without a file.
   main.ts            Composition root.
 tests/               Use cases tested with fake audio/ticker; parser tested with hand-built MIDI.

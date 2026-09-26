@@ -9,7 +9,7 @@ export interface AppDeps {
   readonly playback: Playback;
   readonly loadScore: LoadScore;
   readonly createRoll: (canvas: HTMLCanvasElement) => CanvasPianoRoll;
-  readonly demoScore: () => Score;
+  readonly demoScore: (title: string) => Score;
 }
 
 export const depsKey: InjectionKey<AppDeps> = Symbol('deps');

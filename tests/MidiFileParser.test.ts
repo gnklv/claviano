@@ -128,6 +128,14 @@ describe('MidiFileParser', () => {
   });
 
   it('rejects files that are not MIDI', () => {
-    expect(() => parser.parse(new Uint8Array(ascii('hello, world!!')).buffer, 'x')).toThrow(InvalidMidiError);
+    const parse = () => parser.parse(new Uint8Array(ascii('hello, world!!')).buffer, 'x');
+    expect(parse).toThrow(InvalidMidiError);
+    expect(parse).toThrow(expect.objectContaining({ code: 'invalid-file' }));
+  });
+
+  it('reports SMPTE timing as an unsupported feature', () => {
+    const smpte = new Uint8Array(midiFile(480, [track([])]));
+    smpte[12] = 0xe7; // division with the high bit set = SMPTE frames
+    expect(() => parser.parse(smpte.buffer, 'x')).toThrow(expect.objectContaining({ code: 'unsupported-feature' }));
   });
 });

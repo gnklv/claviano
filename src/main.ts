@@ -19,6 +19,6 @@ createApp(App)
     playback,
     loadScore: new LoadScore([new MidiFileParser()]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
-    demoScore: () => odeToJoy(),
+    demoScore: (title) => odeToJoy(title),
   })
   .mount('#app');

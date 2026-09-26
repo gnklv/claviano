@@ -1,0 +1,32 @@
+import type { Dictionary } from './en';
+
+export const ru: Dictionary = {
+  appTitle: 'Claviano',
+  language: 'Язык',
+
+  openMidi: 'Открыть MIDI',
+  demo: 'Демо',
+  demoTitle: 'Ода к радости (демо)',
+  emptyHint: 'Перетащите .mid файл в окно или нажмите «Демо»',
+  dropHint: 'Отпустите, чтобы открыть',
+  scoreSummary: '{title} · {bars} · {notes}',
+  barsCount: { one: '{count} такт', few: '{count} такта', many: '{count} тактов', other: '{count} такта' },
+  notesCount: { one: '{count} нота', few: '{count} ноты', many: '{count} нот', other: '{count} ноты' },
+
+  play: 'Играть',
+  pause: 'Пауза',
+  playHint: 'Пробел',
+  stop: 'В начало',
+  barPosition: 'Такт {current} / {total}',
+  barPositionEmpty: 'Такт –',
+  tempo: 'Темп',
+  rightHand: 'Правая',
+  leftHand: 'Левая',
+  loopBars: 'Цикл тактов',
+
+  openError: 'Не удалось открыть «{file}»: {reason}',
+  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите .mid или .midi',
+  errorInvalidFile: 'файл повреждён или это не MIDI',
+  errorUnsupportedFeature: 'такой вид MIDI-файлов пока не поддерживается',
+  errorUnknown: 'непредвиденная ошибка',
+};

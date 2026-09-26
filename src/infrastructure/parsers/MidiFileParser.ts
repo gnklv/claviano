@@ -1,10 +1,10 @@
-import type { ScoreParser } from '../../application/ports/ScoreParser';
+import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
 import { createScore, type Score } from '../../domain/score';
 
-export class InvalidMidiError extends Error {
-  constructor(message: string) {
-    super(message);
+export class InvalidMidiError extends ScoreLoadError {
+  constructor(message: string, code: ScoreLoadErrorCode = 'invalid-file') {
+    super(code, message);
     this.name = 'InvalidMidiError';
   }
 }
@@ -130,7 +130,7 @@ function readMidi(reader: ByteReader): MidiData {
   reader.u16(); // format: 0 and 1 are read the same way, 2 is rare enough to ignore
   const trackCount = reader.u16();
   const division = reader.u16();
-  if (division & 0x8000) throw new InvalidMidiError('SMPTE time division is not supported');
+  if (division & 0x8000) throw new InvalidMidiError('SMPTE time division is not supported', 'unsupported-feature');
   reader.pos = headerEnd;
 
   const data: MidiData = {
