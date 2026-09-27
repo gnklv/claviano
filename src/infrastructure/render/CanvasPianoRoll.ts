@@ -1,6 +1,7 @@
 import { noteEnd, type Hand } from '../../domain/note';
-import { HIGHEST_KEY, LOWEST_KEY, isBlackKey } from '../../domain/pitch';
+import { isBlackKey } from '../../domain/pitch';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
+import { keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
 
 export interface RollFrame {
   readonly score: Score;
@@ -45,15 +46,20 @@ const DEFAULT_COLORS: RollColors = {
   hand: { right: '#4f9dff', left: '#ff9f43' },
 };
 
-const WHITE_KEY_COUNT = 52;
 const MUTED_ALPHA = 0.25;
 
-/** Falling notes above an 88-key keyboard, drawn from scratch on a 2D canvas. */
+/**
+ * Falling notes above a piano keyboard, drawn from scratch on a 2D canvas.
+ * Only the part of the keyboard the piece uses is shown (see keyboardRange).
+ */
 export class CanvasPianoRoll {
   private readonly ctx: CanvasRenderingContext2D;
   private width = 0;
   private height = 0;
   private keys = new Map<number, KeyRect>();
+  /** What the current key layout was computed for; it is redone when either changes. */
+  private keysScore: Score | null = null;
+  private keysWidth = -1;
   private colors: RollColors = DEFAULT_COLORS;
   private cachedScore: Score | null = null;
   private longestNote = 0;
@@ -80,7 +86,6 @@ export class CanvasPianoRoll {
     this.canvas.width = Math.round(this.width * dpr);
     this.canvas.height = Math.round(this.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.keys = layoutKeys(this.width);
   }
 
   render(frame: RollFrame): void {
@@ -89,6 +94,12 @@ export class CanvasPianoRoll {
     const rollHeight = height - keyboardHeight;
     const pxPerSecond = rollHeight / this.secondsVisible;
     const yOf = (time: number) => rollHeight - (time - frame.position) * pxPerSecond;
+
+    if (frame.score !== this.keysScore || width !== this.keysWidth) {
+      this.keys = layoutKeys(width, keyboardRange(frame.score, width));
+      this.keysScore = frame.score;
+      this.keysWidth = width;
+    }
 
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
@@ -203,12 +214,12 @@ export class CanvasPianoRoll {
   }
 }
 
-function layoutKeys(width: number): Map<number, KeyRect> {
-  const whiteWidth = width / WHITE_KEY_COUNT;
+function layoutKeys(width: number, range: KeyRange): Map<number, KeyRect> {
+  const whiteWidth = width / whiteKeyCount(range);
   const blackWidth = whiteWidth * 0.6;
   const keys = new Map<number, KeyRect>();
   let whiteIndex = 0;
-  for (let pitch = LOWEST_KEY; pitch <= HIGHEST_KEY; pitch++) {
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
     if (isBlackKey(pitch)) {
       keys.set(pitch, { x: whiteIndex * whiteWidth - blackWidth / 2, width: blackWidth, black: true });
     } else {
