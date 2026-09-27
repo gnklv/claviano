@@ -12,6 +12,10 @@ export const en = {
   viewStaff: 'Notes',
   viewKeys: 'Keys',
   viewBoth: 'Both',
+  theme: 'Theme',
+  themeAuto: 'Auto (as in the system)',
+  themeLight: 'Light',
+  themeDark: 'Dark',
   language: 'Language',
 
   openMidi: 'Open MIDI',

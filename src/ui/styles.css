@@ -6,20 +6,93 @@
   font-display: block;
 }
 
-:root {
+/*
+ * Every color of the app lives here, one set per theme. The theme is chosen by the data-theme
+ * attribute on <html> (see ui/theme/useTheme.ts). The staff (SVG) uses these variables directly;
+ * the falling notes (canvas) read them whenever the theme changes.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Interface */
   --bg: #0f1116;
   --panel: #1a1d25;
   --text: #e8e6e1;
   --muted: #8b8f99;
+  --border: #2a2e38;
+  --control: #252933;
+  --control-hover: #2e3340;
   --accent: #4f9dff;
+  --on-accent: #0b1220;
+  --drop-overlay: rgb(79 157 255 / 0.08);
+
+  /* Hands: falling notes, keys, checkboxes */
   --right: #4f9dff;
   --left: #ff9f43;
-  --border: #2a2e38;
-  color-scheme: dark;
+
+  /* Music views */
+  --surface: #14161c;
+  --ink: rgb(255 255 255 / 0.75);
+  --staff-line: rgb(255 255 255 / 0.28);
+  --bar-line: rgb(255 255 255 / 0.45);
+  --bar-number: rgb(255 255 255 / 0.4);
+  --grid-line: rgb(255 255 255 / 0.08);
+  --now-line: rgb(255 255 255 / 0.5);
+  --loop: rgb(120 200 140 / 0.1);
+  --cursor: rgb(79 157 255 / 0.9);
+
+  /* Keyboard */
+  --key-white: #f4f1ea;
+  --key-black: #1d1f24;
+  --key-border: #9a978f;
+  --key-label: #8a877f;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Interface: warm paper tones instead of pure white */
+  --bg: #f3f1ec;
+  --panel: #fbfaf7;
+  --text: #1d1f24;
+  --muted: #6b6f78;
+  --border: #dcd8cf;
+  --control: #ebe8e1;
+  --control-hover: #e2ded5;
+  --accent: #2f7de1;
+  --on-accent: #ffffff;
+  --drop-overlay: rgb(47 125 225 / 0.08);
+
+  /* Hands: a bit deeper than in the dark theme to keep contrast on a light background */
+  --right: #2f7de1;
+  --left: #e07b12;
+
+  /* Music views */
+  --surface: #faf8f4;
+  --ink: rgb(29 31 36 / 0.85);
+  --staff-line: rgb(29 31 36 / 0.45);
+  --bar-line: rgb(29 31 36 / 0.6);
+  --bar-number: rgb(29 31 36 / 0.5);
+  --grid-line: rgb(29 31 36 / 0.08);
+  --now-line: rgb(29 31 36 / 0.35);
+  --loop: rgb(60 160 90 / 0.12);
+  --cursor: rgb(47 125 225 / 0.9);
+
+  /* Keyboard */
+  --key-white: #ffffff;
+  --key-black: #26282e;
+  --key-border: #c9c5bc;
+  --key-label: #9a968d;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Theme switch cross-fade (see ui/theme/useTheme.ts). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
 }
 
 html,
@@ -53,7 +126,7 @@ body {
 .button {
   appearance: none;
   border: 1px solid var(--border);
-  background: #252933;
+  background: var(--control);
   color: var(--text);
   border-radius: 8px;
   padding: 6px 12px;
@@ -62,7 +135,7 @@ body {
 }
 
 .button:hover:not(:disabled) {
-  background: #2e3340;
+  background: var(--control-hover);
 }
 
 .button:disabled {
@@ -74,5 +147,5 @@ body {
   min-width: 44px;
   background: var(--accent);
   border-color: var(--accent);
-  color: #0b1220;
+  color: var(--on-accent);
 }

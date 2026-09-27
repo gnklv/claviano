@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Claviano</title>
+    <script>
+      // Set the theme before the first paint, so a light system never flashes a dark page.
+      // Mirrors src/ui/theme/useTheme.ts, which takes over once the app has loaded.
+      (function () {
+        var setting = 'auto';
+        try {
+          setting = localStorage.getItem('claviano.theme') || 'auto';
+        } catch (e) {}
+        var dark =
+          setting === 'dark' ||
+          (setting !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
     <link rel="preload" href="/fonts/Bravura.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>

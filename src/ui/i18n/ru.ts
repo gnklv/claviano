@@ -6,6 +6,10 @@ export const ru: Dictionary = {
   viewStaff: 'Ноты',
   viewKeys: 'Клавиши',
   viewBoth: 'Вместе',
+  theme: 'Тема',
+  themeAuto: 'Авто (как в системе)',
+  themeLight: 'Светлая',
+  themeDark: 'Тёмная',
   language: 'Язык',
 
   openMidi: 'Открыть MIDI',

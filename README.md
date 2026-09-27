@@ -52,6 +52,8 @@ src/
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
                        (checked by TypeScript). Plurals via Intl.PluralRules. Note labels:
                        C4 in English, До1 in Russian (Russian octave numbering).
+    theme/             Auto / light / dark. All colors are CSS variables in styles.css;
+                       the SVG staff uses them directly, the canvas reads them on switch.
   demo/              Built-in "Ode to Joy" for trying the player without a file.
   main.ts            Composition root.
 tests/               Use cases tested with fake audio/ticker; parser tested with hand-built MIDI.
@@ -67,4 +69,5 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] Web MIDI input and "wait mode"
 - [ ] MusicXML parser
 - [x] View modes: staff / falling notes / both
+- [x] Light and dark themes, following the system by default
 - [ ] Notes on the staff (SVG + Bravura/SMuFL)

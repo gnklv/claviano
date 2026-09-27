@@ -152,7 +152,7 @@ function togglePlay(): void {
 
 .number {
   width: 3.5em;
-  background: #252933;
+  background: var(--control);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;

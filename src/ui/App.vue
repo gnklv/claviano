@@ -5,6 +5,7 @@ import { barAt, type Score } from '../domain/score';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import PianoRoll from './components/PianoRoll.vue';
 import StaffView from './components/StaffView.vue';
+import ThemeSwitch from './components/ThemeSwitch.vue';
 import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
 import { usePlaybackState } from './composables/usePlaybackState';
@@ -127,6 +128,7 @@ onUnmounted(() => {
       <button class="button" @click="openDemo">{{ t('demo') }}</button>
       <span class="title">{{ title }}</span>
       <ViewModeSwitch />
+      <ThemeSwitch />
       <LanguageSwitch />
     </header>
 
@@ -191,7 +193,7 @@ onUnmounted(() => {
   place-items: center;
   border: 2px dashed var(--accent);
   border-radius: 12px;
-  background: rgb(79 157 255 / 0.08);
+  background: var(--drop-overlay);
   font-size: 18px;
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends string">
 defineProps<{
-  options: readonly { value: T; label: string }[];
+  /** `title` is shown on hover and read by screen readers; use it when `label` is an icon. */
+  options: readonly { value: T; label: string; title?: string }[];
   /** Accessible name of the whole group. */
   label: string;
 }>();
@@ -16,6 +17,8 @@ const model = defineModel<T>({ required: true });
       class="option"
       :class="{ active: option.value === model }"
       :aria-pressed="option.value === model"
+      :title="option.title"
+      :aria-label="option.title"
       @click="model = option.value"
     >
       {{ option.label }}
@@ -47,7 +50,7 @@ const model = defineModel<T>({ required: true });
 }
 
 .option.active {
-  background: #252933;
+  background: var(--control);
   color: var(--text);
 }
 </style>

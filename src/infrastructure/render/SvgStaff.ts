@@ -22,14 +22,15 @@ const CURSOR_AT = 0.3;
 /** Share of the tape's width over which each edge fades out. */
 const FADE = 0.12;
 
+/** Theme colors, defined as CSS variables in ui/styles.css; the browser recolors on a theme switch. */
 const COLORS = {
-  background: '#14161c',
-  staffLine: 'rgba(255, 255, 255, 0.28)',
-  barLine: 'rgba(255, 255, 255, 0.45)',
-  barNumber: 'rgba(255, 255, 255, 0.4)',
-  clef: 'rgba(255, 255, 255, 0.75)',
-  loop: 'rgba(120, 200, 140, 0.1)',
-  cursor: 'rgba(79, 157, 255, 0.9)',
+  background: 'var(--surface)',
+  staffLine: 'var(--staff-line)',
+  barLine: 'var(--bar-line)',
+  barNumber: 'var(--bar-number)',
+  clef: 'var(--ink)',
+  loop: 'var(--loop)',
+  cursor: 'var(--cursor)',
 };
 
 /*
@@ -40,12 +41,18 @@ const MUSIC_FONT = 'Bravura';
 const G_CLEF = '\uE050';
 const F_CLEF = '\uE062';
 
+/** Paint goes through `style`, not attributes: only CSS understands var(--…) colors. */
+const PAINT = new Set(['fill', 'stroke']);
+
 function svg<K extends keyof SVGElementTagNameMap>(
   tag: K,
   attributes: Record<string, string | number> = {},
 ): SVGElementTagNameMap[K] {
   const element = document.createElementNS(SVG_NS, tag);
-  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, String(value));
+  for (const [name, value] of Object.entries(attributes)) {
+    if (PAINT.has(name)) element.style.setProperty(name, String(value));
+    else element.setAttribute(name, String(value));
+  }
   return element;
 }
 

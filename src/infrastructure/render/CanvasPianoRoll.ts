@@ -17,7 +17,22 @@ interface KeyRect {
   readonly black: boolean;
 }
 
-const COLORS = {
+/** Canvas cannot use CSS variables, so the UI resolves the theme's colors and passes them in. */
+export interface RollColors {
+  readonly background: string;
+  readonly barLine: string;
+  readonly barNumber: string;
+  readonly loop: string;
+  readonly nowLine: string;
+  readonly whiteKey: string;
+  readonly blackKey: string;
+  readonly keyBorder: string;
+  readonly keyLabel: string;
+  readonly hand: Readonly<Record<Hand, string>>;
+}
+
+/** Used until the UI supplies the theme's colors. */
+const DEFAULT_COLORS: RollColors = {
   background: '#14161c',
   barLine: 'rgba(255, 255, 255, 0.08)',
   barNumber: 'rgba(255, 255, 255, 0.35)',
@@ -27,7 +42,7 @@ const COLORS = {
   blackKey: '#1d1f24',
   keyBorder: '#9a978f',
   keyLabel: '#8a877f',
-  hand: { right: '#4f9dff', left: '#ff9f43' } satisfies Record<Hand, string>,
+  hand: { right: '#4f9dff', left: '#ff9f43' },
 };
 
 const WHITE_KEY_COUNT = 52;
@@ -39,6 +54,7 @@ export class CanvasPianoRoll {
   private width = 0;
   private height = 0;
   private keys = new Map<number, KeyRect>();
+  private colors: RollColors = DEFAULT_COLORS;
   private cachedScore: Score | null = null;
   private longestNote = 0;
 
@@ -50,6 +66,10 @@ export class CanvasPianoRoll {
     if (!ctx) throw new Error('Canvas 2D is not supported');
     this.ctx = ctx;
     this.resize();
+  }
+
+  setColors(colors: RollColors): void {
+    this.colors = colors;
   }
 
   /** Call when the canvas's CSS size changes. */
@@ -70,7 +90,7 @@ export class CanvasPianoRoll {
     const pxPerSecond = rollHeight / this.secondsVisible;
     const yOf = (time: number) => rollHeight - (time - frame.position) * pxPerSecond;
 
-    ctx.fillStyle = COLORS.background;
+    ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
 
     this.drawLoop(frame, yOf, rollHeight);
@@ -78,7 +98,7 @@ export class CanvasPianoRoll {
     const active = this.drawNotes(frame, yOf, rollHeight);
     this.drawKeyboard(rollHeight, keyboardHeight, active, frame.noteLabel);
 
-    ctx.fillStyle = COLORS.nowLine;
+    ctx.fillStyle = this.colors.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
   }
 
@@ -87,7 +107,7 @@ export class CanvasPianoRoll {
     const top = Math.max(0, yOf(frame.loop.end));
     const bottom = Math.min(rollHeight, yOf(frame.loop.start));
     if (bottom <= top) return;
-    this.ctx.fillStyle = COLORS.loop;
+    this.ctx.fillStyle = this.colors.loop;
     this.ctx.fillRect(0, top, this.width, bottom - top);
   }
 
@@ -101,9 +121,9 @@ export class CanvasPianoRoll {
       if (time < frame.position || time > until) return;
       const y = yOf(time);
       if (y > rollHeight) return;
-      ctx.fillStyle = COLORS.barLine;
+      ctx.fillStyle = this.colors.barLine;
       ctx.fillRect(0, y, this.width, 1);
-      ctx.fillStyle = COLORS.barNumber;
+      ctx.fillStyle = this.colors.barNumber;
       ctx.fillText(String(index + 1), 6, y - 2);
     });
   }
@@ -135,7 +155,7 @@ export class CanvasPianoRoll {
       const bottom = Math.min(rollHeight, yOf(note.start));
       const inset = key.black ? 1 : 2;
       ctx.globalAlpha = enabled ? 1 : MUTED_ALPHA;
-      ctx.fillStyle = COLORS.hand[note.hand];
+      ctx.fillStyle = this.colors.hand[note.hand];
       ctx.beginPath();
       ctx.roundRect(key.x + inset, top, key.width - inset * 2, Math.max(2, bottom - top), 4);
       ctx.fill();
@@ -156,11 +176,11 @@ export class CanvasPianoRoll {
       for (const [pitch, key] of this.keys) {
         if (key.black !== black) continue;
         const hand = active.get(pitch);
-        ctx.fillStyle = hand ? COLORS.hand[hand] : black ? COLORS.blackKey : COLORS.whiteKey;
+        ctx.fillStyle = hand ? this.colors.hand[hand] : black ? this.colors.blackKey : this.colors.whiteKey;
         const keyHeight = black ? blackHeight : height;
         ctx.fillRect(key.x, top, key.width, keyHeight);
         if (!black) {
-          ctx.strokeStyle = COLORS.keyBorder;
+          ctx.strokeStyle = this.colors.keyBorder;
           ctx.strokeRect(key.x + 0.5, top + 0.5, key.width - 1, keyHeight - 1);
         }
       }
@@ -175,7 +195,7 @@ export class CanvasPianoRoll {
     ctx.font = `${fontSize}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = COLORS.keyLabel;
+    ctx.fillStyle = this.colors.keyLabel;
     for (const [midi, key] of this.keys) {
       if (midi % 12 === 0) ctx.fillText(noteLabel(midi), key.x + key.width / 2, bottom - 4);
     }
