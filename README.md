@@ -29,7 +29,8 @@ Every push to `master` runs the tests, builds and deploys to GitHub Pages
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
 
-Drag a `.mid` file onto the window or use "Открыть MIDI".
+Drag a MIDI (`.mid`) or uncompressed MusicXML (`.musicxml`) file onto the window, or use
+"Open file". In MuseScore, export as *Uncompressed MusicXML*; compressed `.mxl` is not read.
 
 ## Architecture
 
@@ -47,6 +48,8 @@ src/
     use-cases/       Playback (tempo, loop, hands), LoadScore.
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch.
+                       MusicXmlParser — uncompressed MusicXML (.musicxml/.xml) via DOMParser:
+                       pitches, timing, staves as hands, signatures, tempo, dynamics, ties.
     audio/             WebAudioSynth — additive synth with a piano-like envelope.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + keyboard on Canvas 2D, showing only
@@ -77,7 +80,8 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] Sampled piano (e.g. Salamander Grand Piano) behind `AudioOutput`
 - [ ] Sustain pedal from MIDI CC 64
 - [ ] Web MIDI input and "wait mode"
-- [ ] MusicXML parser
+- [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
+- [ ] MusicXML stage 2: staff from the written notation (values, voices, beams, tuplets)
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

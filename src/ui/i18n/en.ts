@@ -19,10 +19,10 @@ export const en = {
   themeDark: 'Dark',
   language: 'Language',
 
-  openMidi: 'Open MIDI',
+  openMidi: 'Open file',
   demo: 'Demo',
   demoTitle: 'Ode to Joy (demo)',
-  emptyHint: 'Drop a .mid file into the window or press “Demo”',
+  emptyHint: 'Drop a MIDI or MusicXML file into the window or press “Demo”',
   dropHint: 'Release to open',
   scoreSummary: '{title} · {bars} · {notes}',
   barsCount: { one: '{count} bar', other: '{count} bars' },
@@ -45,9 +45,9 @@ export const en = {
   loopBars: 'Loop bars',
 
   openError: 'Could not open “{file}”: {reason}',
-  errorUnsupportedFormat: 'this file type is not supported, choose a .mid or .midi file',
-  errorInvalidFile: 'the file is damaged or is not a MIDI file',
-  errorUnsupportedFeature: 'this kind of MIDI file is not supported yet',
+  errorUnsupportedFormat: 'this file type is not supported, choose MIDI (.mid) or uncompressed MusicXML (.musicxml)',
+  errorInvalidFile: 'the file is damaged or is not MIDI / MusicXML',
+  errorUnsupportedFeature: 'this kind of file is not supported yet',
   errorUnknown: 'unexpected error',
 } satisfies Record<string, Message>;
 

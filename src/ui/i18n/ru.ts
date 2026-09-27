@@ -13,10 +13,10 @@ export const ru: Dictionary = {
   themeDark: 'Тёмная',
   language: 'Язык',
 
-  openMidi: 'Открыть MIDI',
+  openMidi: 'Открыть файл',
   demo: 'Демо',
   demoTitle: 'Ода к радости (демо)',
-  emptyHint: 'Перетащите .mid файл в окно или нажмите «Демо»',
+  emptyHint: 'Перетащите файл MIDI или MusicXML в окно или нажмите «Демо»',
   dropHint: 'Отпустите, чтобы открыть',
   scoreSummary: '{title} · {bars} · {notes}',
   barsCount: { one: '{count} такт', few: '{count} такта', many: '{count} тактов', other: '{count} такта' },
@@ -39,8 +39,8 @@ export const ru: Dictionary = {
   loopBars: 'Цикл тактов',
 
   openError: 'Не удалось открыть «{file}»: {reason}',
-  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите .mid или .midi',
-  errorInvalidFile: 'файл повреждён или это не MIDI',
-  errorUnsupportedFeature: 'такой вид MIDI-файлов пока не поддерживается',
+  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите MIDI (.mid) или несжатый MusicXML (.musicxml)',
+  errorInvalidFile: 'файл повреждён или это не MIDI / MusicXML',
+  errorUnsupportedFeature: 'такой вид файлов пока не поддерживается',
   errorUnknown: 'непредвиденная ошибка',
 };

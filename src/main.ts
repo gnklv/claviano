@@ -5,6 +5,7 @@ import { Playback } from './application/use-cases/Playback';
 import { odeToJoy } from './demo/odeToJoy';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
+import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
 import { SvgStaff } from './infrastructure/render/SvgStaff';
 import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
@@ -18,7 +19,7 @@ if (import.meta.env.DEV) Object.assign(window, { claviano: { playback } });
 createApp(App)
   .provide(depsKey, {
     playback,
-    loadScore: new LoadScore([new MidiFileParser()]),
+    loadScore: new LoadScore([new MidiFileParser(), new MusicXmlParser()]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
     demoScore: (title) => odeToJoy(title),

@@ -124,7 +124,7 @@ onUnmounted(() => {
       <strong class="logo">{{ t('appTitle') }}</strong>
       <label class="button">
         {{ t('openMidi') }}
-        <input type="file" accept=".mid,.midi" hidden @change="onFileChosen" />
+        <input type="file" accept=".mid,.midi,.musicxml,.xml" hidden @change="onFileChosen" />
       </label>
       <button class="button" @click="openDemo">{{ t('demo') }}</button>
       <span class="title">{{ title }}</span>

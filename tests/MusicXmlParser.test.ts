@@ -1,0 +1,145 @@
+// @vitest-environment happy-dom
+import { describe, expect, it } from 'vitest';
+import { pitch } from '../src/domain/pitch';
+import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+
+const parser = new MusicXmlParser();
+const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
+
+/** A two-staff piano score; `measures` is the inner XML of the part. */
+const score = (measures: string, extra = '') =>
+  bytes(`<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  ${extra}
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1">${measures}</part>
+</score-partwise>`);
+
+const attributes = (divisions = 2, fifths = 0, beats = 4) => `
+  <attributes>
+    <divisions>${divisions}</divisions>
+    <key><fifths>${fifths}</fifths></key>
+    <time><beats>${beats}</beats><beat-type>4</beat-type></time>
+    <staves>2</staves>
+  </attributes>`;
+
+const note = (step: string, octave: number, duration: number, { staff = 1, alter = 0, extra = '' } = {}) => `
+  <note>
+    <pitch><step>${step}</step>${alter ? `<alter>${alter}</alter>` : ''}<octave>${octave}</octave></pitch>
+    <duration>${duration}</duration><staff>${staff}</staff>${extra}
+  </note>`;
+
+const rest = (duration: number) => `<note><rest/><duration>${duration}</duration></note>`;
+const tempo = (bpm: number) => `<direction><direction-type><words>T</words></direction-type><sound tempo="${bpm}"/></direction>`;
+
+describe('MusicXmlParser', () => {
+  it('recognises uncompressed MusicXML files only', () => {
+    expect(parser.canParse('piece.musicxml')).toBe(true);
+    expect(parser.canParse('piece.XML')).toBe(true);
+    expect(parser.canParse('piece.mxl')).toBe(false);
+    expect(parser.canParse('piece.mid')).toBe(false);
+  });
+
+  it('reads pitches, beats and seconds', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${tempo(60)}
+        ${note('C', 4, 2)}${note('E', 4, 1, { alter: -1 })}${rest(1)}${note('D', 5, 4)}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => [n.pitch, n.beat, n.beats])).toEqual([
+      [pitch('Do', 4), 0, 1],
+      [pitch('Mib', 4), 1, 0.5],
+      [pitch('Re', 5), 2, 2],
+    ]);
+    // At 60 quarters per minute a beat is a second.
+    expect(s.notes[2]).toMatchObject({ start: 2, duration: 2 });
+  });
+
+  it('plays chord notes together', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}
+        ${note('C', 4, 8)}${note('E', 4, 8, { extra: '<chord/>' })}${note('G', 4, 8, { extra: '<chord/>' })}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => n.beat)).toEqual([0, 0, 0]);
+  });
+
+  it('reads the second staff as the left hand, going back in time with <backup>', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}
+        ${note('C', 5, 8)}<backup><duration>8</duration></backup>${note('C', 3, 8, { staff: 2 })}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => [n.pitch, n.hand, n.beat])).toEqual([
+      [pitch('Do', 3), 'left', 0],
+      [pitch('Do', 5), 'right', 0],
+    ]);
+  });
+
+  it('turns tied notes into one sounding note, across a bar line', () => {
+    const s = parser.parse(
+      score(`
+        <measure number="1">${attributes()}${rest(6)}${note('G', 4, 2, { extra: '<tie type="start"/>' })}</measure>
+        <measure number="2">${note('G', 4, 4, { extra: '<tie type="stop"/>' })}${rest(4)}</measure>`),
+      'test',
+    );
+    expect(s.notes).toHaveLength(1);
+    expect(s.notes[0]).toMatchObject({ beat: 3, beats: 3 });
+  });
+
+  it('reads key and time signatures, bars and a short pickup bar', () => {
+    const s = parser.parse(
+      score(`
+        <measure number="0" implicit="yes">${attributes(2, 1, 3)}${note('D', 5, 2)}</measure>
+        <measure number="1">${note('G', 4, 6)}</measure>
+        <measure number="2">${note('A', 4, 6)}</measure>`),
+      'test',
+    );
+    expect(s.keySignatures).toEqual([{ beat: 0, fifths: 1, minor: false }]);
+    expect(s.timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 4 }]);
+    expect(s.barBeats).toEqual([0, 1, 4]); // the pickup lasts one quarter, not three
+  });
+
+  it('follows tempo changes', () => {
+    const s = parser.parse(
+      score(`
+        <measure number="1">${attributes()}${tempo(120)}${note('C', 4, 8)}</measure>
+        <measure number="2">${tempo(60)}${note('D', 4, 8)}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => [n.start, n.duration])).toEqual([
+      [0, 2], // four quarters at 120
+      [2, 4], // four quarters at 60
+    ]);
+  });
+
+  it('takes loudness from dynamics', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}<direction><sound dynamics="40"/></direction>${note('C', 4, 8)}</measure>`),
+      'test',
+    );
+    expect(s.notes[0].velocity).toBeCloseTo((40 * 0.9) / 127);
+  });
+
+  it('skips grace notes', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}<note><grace/><pitch><step>B</step><octave>4</octave></pitch><staff>1</staff></note>${note('C', 5, 8)}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 5)]);
+  });
+
+  it('uses the work title when the file has one', () => {
+    const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 8)}</measure>`, '<work><work-title>Minuet</work-title></work>'), 'file-name');
+    expect(s.title).toBe('Minuet');
+  });
+
+  it('rejects files that are not MusicXML', () => {
+    expect(() => parser.parse(bytes('<html><body/></html>'), 'x')).toThrow(expect.objectContaining({ code: 'invalid-file' }));
+    expect(() => parser.parse(bytes('not xml at all <'), 'x')).toThrow(expect.objectContaining({ code: 'invalid-file' }));
+  });
+
+  it('says timewise scores are not supported yet', () => {
+    expect(() => parser.parse(bytes('<score-timewise/>'), 'x')).toThrow(expect.objectContaining({ code: 'unsupported-feature' }));
+  });
+});
