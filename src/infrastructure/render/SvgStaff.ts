@@ -101,7 +101,7 @@ const G_CLEF = '\uE050';
 const F_CLEF = '\uE062';
 /** Smaller clefs for a change in the middle of the music. */
 const G_CLEF_CHANGE = '\uE07A';
-const F_CLEF_CHANGE = '\uE07B';
+const F_CLEF_CHANGE = '\uE07C'; // (U+E07B is the C clef change)
 /** A clef sits on its reference line: G on the second line from the bottom, F on the second from the top. */
 const CLEF_LINE_STEP: Record<Clef, number> = { treble: 6, bass: 2 };
 const CLEF_GLYPH: Record<Clef, string> = { treble: G_CLEF, bass: F_CLEF };
