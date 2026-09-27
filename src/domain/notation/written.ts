@@ -57,4 +57,20 @@ export interface WrittenNote {
   readonly stem: 'up' | 'down' | null;
   /** Beam marks by level, index 0 being level 1. */
   readonly beams: readonly BeamMark[];
+  /** A tie begins here (to the next note of the same pitch) and/or ends here. */
+  readonly tieStart: boolean;
+  readonly tieStop: boolean;
+}
+
+/** A printed rest. */
+export interface WrittenRest {
+  readonly staff: number;
+  readonly voice: string;
+  readonly beat: number;
+  readonly duration: WrittenDuration;
+  /** A whole-bar rest: drawn as a whole rest in the middle of the bar, whatever the metre. */
+  readonly measure: boolean;
+  /** Where the engraver placed it vertically, when the file says; read with `clef`. */
+  readonly displayPitch: Pick<SpelledPitch, 'letter' | 'octave'> | null;
+  readonly clef: Clef;
 }

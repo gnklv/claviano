@@ -2,10 +2,10 @@ import { noteEnd, type Hand } from '../../domain/note';
 import { writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
-import type { WrittenNote } from '../../domain/notation/written';
+import type { WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { barAtBeat, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
 import { groupBeams } from './beams';
-import { beatPosition, type Clef } from './staffLayout';
+import { beatPosition, tapeBars, type Clef } from './staffLayout';
 
 /** One notehead of a chord. */
 export interface StaffNote {
@@ -61,11 +61,34 @@ export interface Tuplet {
   readonly above: boolean;
 }
 
+/** A rest on the tape. */
+export interface StaffRest {
+  /** Which staff it is on: 'treble' is the upper one, 'bass' the lower. */
+  readonly staff: Clef;
+  /** Horizontal centre, in bar units. */
+  readonly x: number;
+  /** Vertical reference of the glyph, in staff steps (see staffLayout). */
+  readonly step: number;
+  readonly duration: WrittenDuration;
+}
+
+/** A tie from a note of one chord to the same pitch in a later chord. */
+export interface Tie {
+  readonly from: number;
+  readonly to: number;
+  /** Staff step of the tied note. */
+  readonly step: number;
+  /** Curving up (above the note) or down. */
+  readonly above: boolean;
+}
+
 export interface NotationLayout {
   /** Sorted by start time. */
   readonly chords: readonly StaffChord[];
   readonly beams: readonly Beam[];
   readonly tuplets: readonly Tuplet[];
+  readonly rests: readonly StaffRest[];
+  readonly ties: readonly Tie[];
 }
 
 /** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
@@ -117,7 +140,9 @@ interface Placed {
  * printed notes are laid out as written; otherwise (MIDI) the notation is inferred.
  */
 export function layoutNotation(score: Score): NotationLayout {
-  return score.written && score.written.length > 0 ? layoutWritten(score, score.written) : inferNotation(score);
+  return score.written && score.written.length > 0
+    ? layoutWritten(score, score.written, score.rests)
+    : inferNotation(score);
 }
 
 /**
@@ -209,14 +234,14 @@ function inferNotation(score: Score): NotationLayout {
     for (const i of indices) beamed[i] = { ...chords[i], stemUp, beam: beamIndex };
     return { chords: [...indices].sort((a, b) => chords[a].beat - chords[b].beat), stemUp };
   });
-  return { chords: beamed, beams, tuplets: [] };
+  return { chords: beamed, beams, tuplets: [], rests: [], ties: [] };
 }
 
 /**
  * Lays out printed notes (MusicXML) exactly as written: values, accidentals, stems, beams and
  * tuplets come from the file, and pitches sit where the clef in force puts them.
  */
-function layoutWritten(score: Score, written: readonly WrittenNote[]): NotationLayout {
+function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): NotationLayout {
   // A note marked as a chord shares the stem of the note before it.
   const groups: WrittenNote[][] = [];
   for (const note of written) {
@@ -297,7 +322,93 @@ function layoutWritten(score: Score, written: readonly WrittenNote[]): NotationL
     }
     closeBeam();
   }
-  return { chords, beams, tuplets };
+  return {
+    chords,
+    beams,
+    tuplets,
+    rests: layoutRests(score, rests, written),
+    ties: layoutTies(entries.map((entry) => entry.group), chords),
+  };
+}
+
+/** Rest positions by the usual rules; see restStep. */
+const WHOLE_REST_STEP = 2; // hangs from the fourth line
+const OTHER_REST_STEP = MIDDLE_LINE_STEP; // centred on the middle line
+/** In a bar with two voices on one staff, rests move this far out of the way (two spaces). */
+const VOICE_REST_SHIFT = 4;
+
+/**
+ * Where rests go. A whole-bar rest sits in the middle of its bar. Vertically: where the engraver
+ * put it if the file says; otherwise a whole rest hangs from the fourth line and others centre on
+ * the middle line, moved up for the upper voice and down for the lower one when two voices share
+ * the staff in that bar.
+ */
+function layoutRests(score: Score, rests: readonly WrittenRest[], written: readonly WrittenNote[]): StaffRest[] {
+  const voicesInBar = new Map<string, Set<string>>();
+  const note = (staff: number, beat: number, voice: string) => {
+    const key = `${staff}|${barAtBeat(score, beat)}`;
+    voicesInBar.set(key, (voicesInBar.get(key) ?? new Set<string>()).add(voice));
+  };
+  for (const n of written) note(n.staff, n.beat, n.voice);
+  for (const r of rests) note(r.staff, r.beat, r.voice);
+
+  const bars = tapeBars(score);
+  return rests.map((rest): StaffRest => {
+    const bar = barAtBeat(score, rest.beat);
+    const duration = rest.measure ? { value: 'whole' as const, dots: 0 as const } : rest.duration;
+    let step: number;
+    if (rest.displayPitch) {
+      step = staffStep({ ...rest.displayPitch, alteration: 0 }, rest.clef);
+    } else {
+      step = duration.value === 'whole' ? WHOLE_REST_STEP : OTHER_REST_STEP;
+      const voices = [...(voicesInBar.get(`${rest.staff}|${bar}`) ?? [])].sort((a, b) => Number(a) - Number(b));
+      if (voices.length > 1) step += voices.indexOf(rest.voice) === 0 ? -VOICE_REST_SHIFT : VOICE_REST_SHIFT;
+    }
+    return {
+      staff: rest.staff >= 2 ? 'bass' : 'treble',
+      x: rest.measure ? bars.starts[bar] + bars.widths[bar] / 2 : beatPosition(score, bar, rest.beat),
+      step,
+      duration,
+    };
+  });
+}
+
+/**
+ * Ties join a note marked "tie start" to the next note of the same pitch on the same staff marked
+ * "tie stop". A tie curves away from the stem; in a chord, upper notes tie above and lower below.
+ */
+function layoutTies(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): Tie[] {
+  type Ref = { note: WrittenNote; chord: number; step: number };
+  const byPitch = new Map<string, Ref[]>();
+  groups.forEach((group, chord) => {
+    for (const note of group) {
+      const key = `${note.staff}|${note.pitch.letter}|${note.pitch.octave}|${note.pitch.alteration}`;
+      const refs = byPitch.get(key) ?? [];
+      refs.push({ note, chord, step: staffStep(note.pitch, note.clef) });
+      byPitch.set(key, refs);
+    }
+  });
+
+  const ties: Tie[] = [];
+  for (const refs of byPitch.values()) {
+    refs.sort((a, b) => a.note.beat - b.note.beat);
+    refs.forEach((ref, i) => {
+      if (!ref.note.tieStart) return;
+      const target = refs.slice(i + 1).find((next) => next.note.tieStop && next.note.beat > ref.note.beat);
+      if (!target) return;
+      const chord = chords[ref.chord];
+      const index = chord.notes.findIndex((n) => n.step === ref.step);
+      const count = chord.notes.length;
+      const middle = count % 2 === 1 && index === (count - 1) / 2;
+      ties.push({
+        from: ref.chord,
+        to: target.chord,
+        step: ref.step,
+        above: count === 1 || middle ? !chord.stemUp : index < count / 2,
+      });
+    });
+  }
+  return ties;
 }
 
 /** A bracket unless the whole group hangs from one beam; the number goes on the stem side. */

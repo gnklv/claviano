@@ -1,5 +1,5 @@
 import { noteEnd, type Note } from './note';
-import type { Clef, ClefChange, WrittenNote } from './notation/written';
+import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
 
 export interface TimeRange {
   readonly start: number;
@@ -43,6 +43,8 @@ export interface Score {
   readonly written: readonly WrittenNote[] | null;
   /** Clefs per staff, sorted by beat; empty means treble on the upper staff and bass on the lower. */
   readonly clefs: readonly ClefChange[];
+  /** Printed rests, when the source has notation (MusicXML). */
+  readonly rests: readonly WrittenRest[];
 }
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
@@ -53,6 +55,7 @@ export interface ScoreMusic {
   readonly keySignatures?: readonly KeySignature[];
   readonly written?: readonly WrittenNote[];
   readonly clefs?: readonly ClefChange[];
+  readonly rests?: readonly WrittenRest[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -115,6 +118,7 @@ export function createScore(
     endBeat,
     written: music.written ?? null,
     clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
+    rests: music.rests ?? [],
   };
 }
 

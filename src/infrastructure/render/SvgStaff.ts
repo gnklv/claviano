@@ -14,7 +14,8 @@ import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
 import { beamLine, beamY } from './beams';
-import { layoutNotation, type Beam, type StaffChord, type Tuplet } from './notationLayout';
+import { arc } from './curves';
+import { layoutNotation, type Beam, type StaffChord, type StaffRest, type Tie, type Tuplet } from './notationLayout';
 import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -127,6 +128,26 @@ const NOTEHEAD: Record<NoteValue, string> = {
 const FLAG_UP = ['', '\uE240', '\uE242', '\uE244'];
 const FLAG_DOWN = ['', '\uE241', '\uE243', '\uE245'];
 const AUGMENTATION_DOT = '\uE1E7';
+const REST: Record<NoteValue, string> = {
+  whole: '\uE4E3',
+  half: '\uE4E4',
+  quarter: '\uE4E5',
+  eighth: '\uE4E6',
+  sixteenth: '\uE4E7',
+  thirtySecond: '\uE4E8',
+};
+/** Rest widths (Bravura), for centring them on their beat. */
+const REST_WIDTH: Record<NoteValue, number> = {
+  whole: 1.13,
+  half: 1.13,
+  quarter: 1.08,
+  eighth: 1.0,
+  sixteenth: 1.28,
+  thirtySecond: 1.5,
+};
+/** Ties start and end this far clear of the noteheads, and this far off the note's centre. */
+const TIE_GAP = 0.15;
+const TIE_OFFSET = 0.6;
 /** Tuplet digits 0–9 are consecutive code points from U+E880. */
 const tupletDigits = (value: number) =>
   [...String(value)].map((digit) => String.fromCodePoint(0xe880 + Number(digit))).join('');
@@ -181,6 +202,8 @@ export class SvgStaff {
   private chords: StaffChord[] = [];
   private beams: Beam[] = [];
   private tuplets: Tuplet[] = [];
+  private rests: StaffRest[] = [];
+  private ties: Tie[] = [];
   private chordElements: SVGGElement[] = [];
   private longestChord = 0;
   /** Chords currently highlighted in their hand's color. */
@@ -216,10 +239,12 @@ export class SvgStaff {
 
   setScore(score: Score | null): void {
     this.score = score;
-    const layout = score ? layoutNotation(score) : { chords: [], beams: [], tuplets: [] };
+    const layout = score ? layoutNotation(score) : { chords: [], beams: [], tuplets: [], rests: [], ties: [] };
     this.chords = [...layout.chords];
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
+    this.rests = [...layout.rests];
+    this.ties = [...layout.ties];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.end - chord.start), 0);
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
@@ -485,7 +510,14 @@ export class SvgStaff {
     }
 
     this.chordElements = this.chords.map((chord, index) => this.drawChord(chord, barWidth, stemEnds.get(index)));
-    this.strip.append(...this.chordElements, beamLayer);
+    // A tie belongs to the chord it starts from, so it lights up with it.
+    for (const tie of this.ties) this.chordElements[tie.from].append(this.drawTie(tie, barWidth));
+
+    const restLayer = svg('g');
+    restLayer.style.color = COLORS.note;
+    for (const rest of this.rests) restLayer.append(...this.drawRest(rest, barWidth));
+
+    this.strip.append(restLayer, ...this.chordElements, beamLayer);
     this.lastOffset = Number.NaN;
   }
 
@@ -682,6 +714,35 @@ export class SvgStaff {
       );
     }
     return shapes;
+  }
+
+  /** A rest glyph (with its dot), centred on its beat. */
+  private drawRest(rest: StaffRest, barWidth: number): SVGTextElement[] {
+    const { space } = this;
+    const top = rest.staff === 'treble' ? this.trebleTop() : this.bassTop();
+    const { value, dots } = rest.duration;
+    const width = REST_WIDTH[value] * space;
+    const left = rest.x * barWidth - width / 2;
+    const y = top + (rest.step * space) / 2;
+    const glyphs = [this.noteGlyph(REST[value], left, y)];
+    if (dots) glyphs.push(this.noteGlyph(AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));
+    return glyphs;
+  }
+
+  /** A tie: a crescent from one notehead to the next, curving away from the stems. */
+  private drawTie(tie: Tie, barWidth: number): SVGPathElement {
+    const { space } = this;
+    const from = this.chordGeometry(this.chords[tie.from], barWidth);
+    const to = this.chordGeometry(this.chords[tie.to], barWidth);
+    const y = from.yOf(tie.step) + (tie.above ? -1 : 1) * TIE_OFFSET * space;
+    const shape = arc({
+      x1: from.left + from.headWidth + TIE_GAP * space,
+      x2: to.left - TIE_GAP * space,
+      y,
+      above: tie.above,
+      space,
+    });
+    return svg('path', { d: shape.path, fill: 'currentColor' });
   }
 
   /** A music glyph painted in the group's current color. */

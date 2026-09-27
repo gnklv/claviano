@@ -182,6 +182,36 @@ describe('MusicXmlParser', () => {
       expect(tied.written!.map((n) => n.duration.value)).toEqual(['quarter', 'half']);
     });
 
+    it('reads rests: value, whole-bar rests and placement', () => {
+      const s = parser.parse(
+        score(`
+          <measure number="1">${attributes()}
+            <note><rest/><duration>1</duration><voice>1</voice><type>eighth</type><staff>1</staff></note>
+            <note><rest><display-step>E</display-step><display-octave>5</display-octave></rest><duration>2</duration><voice>2</voice><type>quarter</type><dot/><staff>1</staff></note>
+            ${note('C', 5, 5)}
+          </measure>
+          <measure number="2"><note><rest measure="yes"/><duration>8</duration><staff>2</staff></note>${note('C', 5, 8)}</measure>`),
+        'test',
+      );
+      expect(s.rests).toEqual([
+        expect.objectContaining({ staff: 1, beat: 0, duration: { value: 'eighth', dots: 0 }, measure: false, displayPitch: null }),
+        expect.objectContaining({ voice: '2', duration: { value: 'quarter', dots: 1 }, displayPitch: { letter: 2, octave: 5 } }),
+        expect.objectContaining({ staff: 2, beat: 4, measure: true, clef: 'bass' }),
+      ]);
+    });
+
+    it('marks where ties start and stop', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}
+          ${note('G', 4, 4, { extra: '<type>half</type><tie type="start"/>' })}${note('G', 4, 4, { extra: '<type>half</type><tie type="stop"/>' })}</measure>`),
+        'test',
+      );
+      expect(s.written!.map((n) => [n.tieStart, n.tieStop])).toEqual([
+        [true, false],
+        [false, true],
+      ]);
+    });
+
     it('follows clef changes on a staff', () => {
       const s = parser.parse(
         score(`

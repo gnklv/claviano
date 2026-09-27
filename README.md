@@ -83,7 +83,8 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] Web MIDI input and "wait mode"
 - [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
 - [x] MusicXML stage 2: staff as written (values, tuplets, accidentals, stems, beams, clef changes)
-- [ ] Stage 3: rests, tie arcs
+- [x] Stage 3: rests (placement rules, whole-bar rests, two voices) and tie arcs (MusicXML)
+- [ ] Stage 4: articulations and slurs (legato)
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

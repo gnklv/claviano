@@ -4,7 +4,7 @@ import { pitch } from '../src/domain/pitch';
 import { createScore, type KeySignature } from '../src/domain/score';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
-import type { WrittenNote } from '../src/domain/notation/written';
+import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
 import { layoutNotation, ledgerSteps, staffFor } from '../src/infrastructure/render/notationLayout';
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
@@ -172,6 +172,8 @@ describe('layout of printed notes (MusicXML)', () => {
     accidental: null,
     stem: 'up',
     beams: [],
+    tieStart: false,
+    tieStop: false,
     ...overrides,
   });
   const written = [
@@ -200,5 +202,76 @@ describe('layout of printed notes (MusicXML)', () => {
   it('places pitches by the clef in force, on the staff they are written on', () => {
     const lower = layout.chords[3];
     expect(lower).toMatchObject({ staff: 'bass', notes: [{ step: 1 }], ledgerSteps: [] });
+  });
+});
+
+describe('rests and ties (MusicXML)', () => {
+  const base: WrittenNote = {
+    staff: 1,
+    voice: '1',
+    hand: 'right',
+    chord: false,
+    clef: 'treble',
+    pitch: { letter: 4, octave: 4, alteration: 0 }, // Sol4
+    beat: 0,
+    start: 0,
+    end: 2,
+    duration: { value: 'half', dots: 0 },
+    tuplet: null,
+    tupletStart: null,
+    tupletStop: false,
+    accidental: null,
+    stem: 'up',
+    beams: [],
+    tieStart: false,
+    tieStop: false,
+  };
+  const rest = (overrides: Partial<WrittenRest>): WrittenRest => ({
+    staff: 1,
+    voice: '1',
+    beat: 0,
+    duration: { value: 'quarter', dots: 0 },
+    measure: false,
+    displayPitch: null,
+    clef: 'treble',
+    ...overrides,
+  });
+  const scoreWith = (written: WrittenNote[], rests: WrittenRest[]) =>
+    createScore('test', [note(60, 0, 8)], [0, 4], { barBeats: [0, 4], written, rests });
+
+  it('ties a note to the next one of the same pitch, curving away from the stem', () => {
+    const { ties } = layoutNotation(
+      scoreWith([{ ...base, tieStart: true }, { ...base, beat: 2, start: 2, tieStop: true }], []),
+    );
+    expect(ties).toEqual([{ from: 0, to: 1, step: 6, above: false }]); // Sol4 on the second line; stem up → tie below
+  });
+
+  it('ties across a bar line', () => {
+    const { ties } = layoutNotation(
+      scoreWith([{ ...base, beat: 2, start: 2, tieStart: true }, { ...base, beat: 4, start: 4, tieStop: true }], []),
+    );
+    expect(ties).toHaveLength(1);
+  });
+
+  it('places rests on the middle line, and a whole rest under the fourth line', () => {
+    const { rests } = layoutNotation(
+      scoreWith([base], [rest({ beat: 2 }), rest({ beat: 4, duration: { value: 'whole', dots: 0 } })]),
+    );
+    expect(rests.map((r) => r.step)).toEqual([4, 2]);
+  });
+
+  it('moves rests out of the way when two voices share the staff', () => {
+    const { rests } = layoutNotation(scoreWith([base], [rest({ beat: 2, voice: '2' })]));
+    expect(rests[0].step).toBe(8); // the lower voice's rest goes down
+  });
+
+  it('centres a whole-bar rest in its bar', () => {
+    const { rests } = layoutNotation(scoreWith([base], [rest({ beat: 4, measure: true })]));
+    expect(rests[0]).toMatchObject({ x: 1.5, duration: { value: 'whole', dots: 0 } });
+  });
+
+  it('uses the placement from the file when there is one', () => {
+    const { rests } = layoutNotation(scoreWith([base], [rest({ beat: 2, displayPitch: { letter: 1, octave: 5 } })]));
+    expect(rests[0].step).toBe(2); // Re5: the fourth line from the bottom
   });
 });

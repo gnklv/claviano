@@ -2,7 +2,7 @@ import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreP
 import type { Hand, Note } from '../../domain/note';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
-import type { BeamMark, Clef, ClefChange, WrittenNote } from '../../domain/notation/written';
+import type { BeamMark, Clef, ClefChange, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
 
 /*
@@ -108,6 +108,7 @@ function readPart(part: Element, title: string): Score {
 
   const notes: PendingNote[] = [];
   const written: PendingWritten[] = [];
+  const rests: WrittenRest[] = [];
   const clefChanges: ClefChange[] = [];
   /** The clef in force on each staff; engravers may switch the lower staff to treble and back. */
   const clefs = new Map<number, Clef>([
@@ -183,8 +184,14 @@ function readPart(part: Element, title: string): Score {
             longest = Math.max(longest, cursor);
           }
 
+          const restElement = element.querySelector(':scope > rest');
+          if (restElement) {
+            const staff = childNumber(element, 'staff') ?? 1;
+            rests.push(readRest(element, restElement, { staff, clef: clefs.get(staff) ?? 'treble', beat: beatAt(start), beats: duration / divisions }));
+            break;
+          }
           const pitchElement = element.querySelector(':scope > pitch');
-          if (!pitchElement) break; // a rest (or an unpitched note)
+          if (!pitchElement) break; // an unpitched note
           const pitch = midiPitch(pitchElement);
           const staff = childNumber(element, 'staff') ?? 1;
           const noteDynamics = Number(element.getAttribute('dynamics'));
@@ -194,7 +201,7 @@ function readPart(part: Element, title: string): Score {
           const beats = duration / divisions;
           const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
           const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
-          written.push(readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats }));
+          written.push(readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties }));
 
           const continued = ties.includes('stop') ? openTies.get(tieKey) : undefined;
           if (continued) {
@@ -242,6 +249,7 @@ function readPart(part: Element, title: string): Score {
       timeSignatures,
       keySignatures,
       clefs: clefChanges,
+      rests,
       written: written.map(({ beats, ...note }) => ({
         ...note,
         start: toSeconds(note.beat),
@@ -255,7 +263,7 @@ function readPart(part: Element, title: string): Score {
 function readWritten(
   element: Element,
   pitchElement: Element,
-  at: { staff: number; clef: Clef; hand: Hand; isChord: boolean; beat: number; beats: number },
+  at: { staff: number; clef: Clef; hand: Hand; isChord: boolean; beat: number; beats: number; ties: (string | null)[] },
 ): PendingWritten {
   const alter = Math.max(-2, Math.min(2, Math.round(childNumber(pitchElement, 'alter') ?? 0))) as Alteration;
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
@@ -299,6 +307,30 @@ function readWritten(
     accidental: ACCIDENTALS[childText(element, 'accidental') ?? ''] ?? null,
     stem: stem === 'up' || stem === 'down' ? stem : null,
     beams: [...beams].map((mark) => mark ?? 'continue'),
+    tieStart: at.ties.includes('start'),
+    tieStop: at.ties.includes('stop'),
+  };
+}
+
+/** A printed rest: its value, and where the engraver placed it if the file says. */
+function readRest(
+  element: Element,
+  rest: Element,
+  at: { staff: number; clef: Clef; beat: number; beats: number },
+): WrittenRest {
+  const type = NOTE_TYPES[childText(element, 'type') ?? ''];
+  const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;
+  const step = childText(rest, 'display-step');
+  const octave = childNumber(rest, 'display-octave');
+  return {
+    staff: at.staff,
+    voice: childText(element, 'voice') ?? '1',
+    beat: at.beat,
+    duration: type ? { value: type, dots } : writtenDuration(at.beats),
+    // Some editors mark whole-bar rests explicitly, others just leave out the type.
+    measure: rest.getAttribute('measure') === 'yes' || !type,
+    displayPitch: step && octave !== null && STEP_LETTERS[step] !== undefined ? { letter: STEP_LETTERS[step], octave } : null,
+    clef: at.clef,
   };
 }
 
