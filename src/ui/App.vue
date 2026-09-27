@@ -5,6 +5,7 @@ import { barAt, type Score } from '../domain/score';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import PianoRoll from './components/PianoRoll.vue';
 import StaffView from './components/StaffView.vue';
+import SettingsMenu from './components/SettingsMenu.vue';
 import ThemeSwitch from './components/ThemeSwitch.vue';
 import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
@@ -127,9 +128,13 @@ onUnmounted(() => {
       </label>
       <button class="button" @click="openDemo">{{ t('demo') }}</button>
       <span class="title">{{ title }}</span>
-      <ViewModeSwitch />
-      <ThemeSwitch />
-      <LanguageSwitch />
+      <!-- Wide screens show the settings inline; narrow ones tuck them behind ⚙ (see styles below). -->
+      <div class="settings-inline">
+        <ViewModeSwitch />
+        <ThemeSwitch />
+        <LanguageSwitch />
+      </div>
+      <SettingsMenu class="settings-menu" />
     </header>
 
     <main class="stage" :class="[`view-${viewMode}`, { dragging }]" :data-drop-hint="t('dropHint')">
@@ -164,6 +169,49 @@ onUnmounted(() => {
   white-space: nowrap;
   min-width: 0;
   flex: 1;
+}
+
+.settings-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.settings-menu {
+  display: none;
+}
+
+/* Below this width the inline settings no longer fit next to the title. */
+@media (max-width: 900px) {
+  .settings-inline {
+    display: none;
+  }
+
+  .settings-menu {
+    display: block;
+    margin-left: auto;
+  }
+
+  /* The title gets its own full-width row under the buttons. */
+  .title {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/*
+ * Browsers without the Popover API (e.g. iPhones stuck on iOS 16) would show the menu card
+ * permanently. There we skip the menu and keep the settings inline, as on wide screens.
+ */
+@supports not selector(:popover-open) {
+  .settings-inline {
+    display: inline-flex;
+  }
+
+  .settings-menu {
+    display: none;
+  }
 }
 
 .stage {

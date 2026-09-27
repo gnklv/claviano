@@ -2,6 +2,7 @@ import type { Dictionary } from './en';
 
 export const ru: Dictionary = {
   appTitle: 'Claviano',
+  settings: 'Настройки',
   viewMode: 'Вид',
   viewStaff: 'Ноты',
   viewKeys: 'Клавиши',
