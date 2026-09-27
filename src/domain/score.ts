@@ -128,6 +128,16 @@ function lastIndexAtOrBefore(sorted: readonly number[], value: number): number {
 export const barAt = (score: Score, time: number): number =>
   Math.max(0, lastIndexAtOrBefore(score.bars, time));
 
+/** Zero-based index of the bar that contains `beat` (quarter notes). */
+export const barAtBeat = (score: Score, beat: number): number =>
+  Math.max(0, lastIndexAtOrBefore(score.barBeats, beat + 1e-9));
+
+/** How many quarter notes bar `index` lasts. */
+export function barLength(score: Score, index: number): number {
+  const start = score.barBeats[index];
+  return (score.barBeats[index + 1] ?? start + barLengthInBeats(timeSignatureAt(score, start))) - start;
+}
+
 /** Time range covering bars `from..to` inclusive (zero-based). */
 export function barRange(score: Score, from: number, to: number): TimeRange {
   const last = score.bars.length - 1;

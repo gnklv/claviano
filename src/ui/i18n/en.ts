@@ -37,6 +37,8 @@ export const en = {
   tempo: 'Tempo',
   rightHand: 'Right',
   leftHand: 'Left',
+  handMarkRight: 'R.H.',
+  handMarkLeft: 'L.H.',
   loop: 'Loop',
   loopFrom: 'From bar',
   loopTo: 'To bar',

@@ -31,6 +31,8 @@ export const ru: Dictionary = {
   tempo: 'Темп',
   rightHand: 'Правая',
   leftHand: 'Левая',
+  handMarkRight: 'п. р.',
+  handMarkLeft: 'л. р.',
   loop: 'Цикл',
   loopFrom: 'С такта',
   loopTo: 'По такт',

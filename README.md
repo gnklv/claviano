@@ -40,6 +40,8 @@ src/
   domain/            Note, Score, solfège pitch helpers. No dependencies. Notes carry two clocks:
                      seconds (playback) and beats in quarter notes (notation); scores carry
                      time and key signatures.
+    notation/          Music theory for the staff: spelling (Fa♯ or Sol♭), accidentals per bar,
+                       note values (quarter, dotted eighth…), quantization to a 1/32 grid.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands), LoadScore.
@@ -52,7 +54,9 @@ src/
                        narrow, the keyboard scrolls and a lazy camera follows the music
                        (keyboardCamera); swipe or Shift+wheel to look around.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
-                       the key and time signatures in force at the cursor (staffLayout).
+                       the key and time signatures in force at the cursor (staffLayout) and
+                       the notes laid out by notationLayout and beamed by beams.ts;
+                       sounding notes light up.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
@@ -76,4 +80,6 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] MusicXML parser
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
-- [ ] Notes on the staff (SVG + Bravura/SMuFL)
+- [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals
+- [x] Beams: grouped by beat (by three eighths in 3/8, 6/8…), with stubs and stacked levels
+- [ ] Notes on the staff, level 2: ties, rests, chord seconds, durations from the next note
