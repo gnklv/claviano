@@ -1,8 +1,8 @@
 import {
   barAtBeat,
-  barNumber,
-  beatAt,
   clefAt,
+  writtenBarNumber,
+  writtenBeatAt,
   keySignatureAt,
   timeSignatureAt,
   type KeySignature,
@@ -14,6 +14,7 @@ import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
 import { beamLine, beamY } from './beams';
+import { approach } from './keyboardCamera';
 import { arc, slur } from './curves';
 import {
   layoutNotation,
@@ -25,6 +26,7 @@ import {
   type Tie,
   type Tuplet,
 } from './notationLayout';
+import type { BarNavigation } from '../../domain/notation/navigation';
 import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -168,6 +170,20 @@ const MARK_GLYPHS: Record<StaffMark['kind'], [string, string]> = {
 const SLUR_HEAD_GAP = 1.2;
 const SLUR_STEM_GAP = 0.6;
 
+/*
+ * On a repeat the tape goes back. Rather than jump, it glides there: this is the glide's time
+ * constant in seconds (about three of them to arrive). A move of more than half a bar in one
+ * frame counts as a jump; smaller ones are ordinary playback and are followed exactly.
+ */
+const TAPE_GLIDE_SECONDS = 0.1;
+const JUMP_THRESHOLD_BARS = 0.5;
+
+/** Repeat barlines (with their dots), segno and coda signs. */
+const REPEAT_LEFT = '\uE040';
+const REPEAT_RIGHT = '\uE041';
+const SEGNO = '\uE047';
+const CODA = '\uE048';
+
 /** Ties start and end this far clear of the noteheads, and this far off the note's centre. */
 const TIE_GAP = 0.15;
 const TIE_OFFSET = 0.6;
@@ -215,6 +231,10 @@ export class SvgStaff {
   private width = 0;
   private height = 0;
   private lastOffset = Number.NaN;
+  /** Where the tape is drawn (it trails the target while gliding back on a repeat). */
+  private shownOffset = Number.NaN;
+  private gliding = false;
+  private lastFrameAt = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
   private gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
   /** Beat under the cursor; the left column shows the signatures in force there. */
@@ -274,7 +294,7 @@ export class SvgStaff {
     this.ties = [...layout.ties];
     this.marks = [...layout.marks];
     this.slurs = [...layout.slurs];
-    this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.end - chord.start), 0);
+    this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
     this.drawBackground();
@@ -306,12 +326,27 @@ export class SvgStaff {
    */
   render(position: number, isHandEnabled: (hand: Hand) => boolean = () => true): void {
     if (this.score) {
-      this.currentBeat = beatAt(this.score, position);
+      this.currentBeat = writtenBeatAt(this.score, position);
       if (this.signaturesKey() !== this.shownSignatures) this.drawBackground();
-      this.highlight(position, isHandEnabled);
+      this.highlight(this.currentBeat, isHandEnabled);
     }
     const x = this.score ? barPosition(this.score, position) * this.barWidth() : 0;
-    const offset = Math.round((this.cursorX() - x) * 10) / 10;
+    const target = this.cursorX() - x;
+
+    // Follow the music exactly; but when the target leaps (a repeat, a jump, a seek), glide to it.
+    const now = performance.now();
+    const dt = this.lastFrameAt ? Math.min(0.1, (now - this.lastFrameAt) / 1000) : 0;
+    this.lastFrameAt = now;
+    if (Number.isNaN(this.shownOffset)) this.shownOffset = target;
+    if (Math.abs(target - this.shownOffset) > JUMP_THRESHOLD_BARS * this.barWidth()) this.gliding = true;
+    if (this.gliding) {
+      this.shownOffset = approach(this.shownOffset, target, dt, TAPE_GLIDE_SECONDS);
+      if (this.shownOffset === target) this.gliding = false;
+    } else {
+      this.shownOffset = target;
+    }
+
+    const offset = Math.round(this.shownOffset * 10) / 10;
     if (offset === this.lastOffset) return;
     this.lastOffset = offset;
     this.strip.setAttribute('transform', `translate(${offset} 0)`);
@@ -490,7 +525,7 @@ export class SvgStaff {
     }
 
     const tape = tapeBars(score);
-    score.bars.forEach((_, index) => {
+    score.writtenBarBeats.forEach((_, index) => {
       const x = tape.starts[index] * barWidth - gap;
       this.strip.append(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
       const number = svg('text', {
@@ -500,9 +535,11 @@ export class SvgStaff {
         'font-size': space * 1.1,
         'font-family': 'system-ui, sans-serif',
       });
-      number.textContent = String(barNumber(score, index));
+      number.textContent = String(writtenBarNumber(score, index));
       this.strip.append(number);
     });
+
+    this.strip.append(...this.drawNavigation(score.navigation, tape, barWidth, gap));
 
     // Final bar line: a thin and a thick one.
     const end = tape.end * barWidth - gap;
@@ -748,6 +785,83 @@ export class SvgStaff {
     return shapes;
   }
 
+  /**
+   * Repeat signs at bar lines, volta brackets over the treble staff, segno and coda signs, and
+   * the words of jumps ("D.C. al Fine", "To Coda") over the ends of their bars.
+   */
+  private drawNavigation(
+    navigation: readonly BarNavigation[],
+    tape: { starts: readonly number[]; widths: readonly number[] },
+    barWidth: number,
+    gap: number,
+  ): SVGElement[] {
+    const { space } = this;
+    const shapes: SVGElement[] = [];
+    const staves = [this.trebleTop(), this.bassTop()];
+    const barStart = (i: number) => tape.starts[i] * barWidth - gap;
+    const barEnd = (i: number) => (tape.starts[i] + tape.widths[i]) * barWidth - gap;
+    const top = this.trebleTop();
+    const ink = (element: SVGElement) => {
+      element.style.setProperty('fill', COLORS.note);
+      return element;
+    };
+    const glyph = (codepoint: string, x: number, y: number, anchor: 'start' | 'middle' | 'end' = 'start') => {
+      const text = this.noteGlyph(codepoint, x, y);
+      text.setAttribute('text-anchor', anchor);
+      return ink(text);
+    };
+
+    navigation.forEach((nav, i) => {
+      // The repeat glyphs include their thick and thin lines and dots, one staff tall.
+      for (const staffTop of staves) {
+        if (nav.repeatStart) shapes.push(glyph(REPEAT_LEFT, barStart(i), staffTop + 4 * space));
+        if (nav.repeatEnd) shapes.push(glyph(REPEAT_RIGHT, barEnd(i), staffTop + 4 * space, 'end'));
+      }
+      if (nav.segnoSign) shapes.push(glyph(SEGNO, barStart(i) + space, top - 2.6 * space));
+      if (nav.codaSign) shapes.push(glyph(CODA, barStart(i) + space, top - 2.6 * space));
+      if (nav.text) {
+        const words = svg('text', {
+          x: barEnd(i) - space * 0.5,
+          y: top - 3.4 * space,
+          'font-size': space * 1.3,
+          'font-family': "'Times New Roman', Georgia, serif",
+          'font-style': 'italic',
+          'font-weight': 'bold',
+          'text-anchor': 'end',
+        });
+        words.textContent = nav.text;
+        shapes.push(ink(words));
+      }
+
+      // A volta: a bracket from the first bar of its ending to the last, with its label.
+      if (nav.endingLabel) {
+        let last = i;
+        while (last + 1 < navigation.length && navigation[last + 1].ending && !navigation[last + 1].endingLabel) last++;
+        const y = top - 4.6 * space;
+        const hook = 1.6 * space;
+        const left = barStart(i) + 0.3 * space;
+        const right = barEnd(last) - 0.3 * space;
+        const closed = navigation[last].endingClosed;
+        const line = svg('polyline', {
+          points: `${left},${y + hook} ${left},${y} ${right},${y}${closed ? ` ${right},${y + hook}` : ''}`,
+          fill: 'none',
+          'stroke-width': space * 0.12,
+        });
+        line.style.setProperty('stroke', COLORS.note);
+        const label = svg('text', {
+          x: left + 0.5 * space,
+          y: y + 1.4 * space,
+          'font-size': space * 1.3,
+          'font-family': 'system-ui, sans-serif',
+          'font-weight': 'bold',
+        });
+        label.textContent = nav.endingLabel;
+        shapes.push(line, ink(label));
+      }
+    });
+    return shapes;
+  }
+
   /** A rest glyph (with its dot), centred on its beat. */
   private drawRest(rest: StaffRest, barWidth: number): SVGTextElement[] {
     const { space } = this;
@@ -825,14 +939,17 @@ export class SvgStaff {
     return text;
   }
 
-  /** Colors the chords sounding at `position` in their hand's color, like the keys on the keyboard. */
-  private highlight(position: number, isHandEnabled: (hand: Hand) => boolean): void {
+  /**
+   * Colors the chords sounding at `beat` (along the page) in their hand's color, like the keys on
+   * the keyboard. Working along the page means a repeated bar lights up again on every pass.
+   */
+  private highlight(beat: number, isHandEnabled: (hand: Hand) => boolean): void {
     const { chords } = this;
     const active = new Set<number>();
-    for (let i = firstChordFrom(chords, position - this.longestChord); i < chords.length; i++) {
+    for (let i = firstChordFrom(chords, beat - this.longestChord); i < chords.length; i++) {
       const chord = chords[i];
-      if (chord.start > position) break;
-      if (chord.end > position && isHandEnabled(chord.hand)) active.add(i);
+      if (chord.beat > beat + 1e-9) break;
+      if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) active.add(i);
     }
     for (const index of this.lit) {
       if (active.has(index)) continue;
@@ -847,13 +964,13 @@ export class SvgStaff {
   }
 }
 
-/** Index of the first chord starting at or after `time` (chords are sorted by start). */
-function firstChordFrom(chords: readonly StaffChord[], time: number): number {
+/** Index of the first chord starting at or after `beat` (chords are sorted by beat). */
+function firstChordFrom(chords: readonly StaffChord[], beat: number): number {
   let lo = 0;
   let hi = chords.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (chords[mid].start < time) lo = mid + 1;
+    if (chords[mid].beat < beat) lo = mid + 1;
     else hi = mid;
   }
   return lo;

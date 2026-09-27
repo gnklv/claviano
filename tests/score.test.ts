@@ -4,7 +4,7 @@ import {
   barIndexOf,
   barLengthInBeats,
   barNumber,
-  beatAt,
+  writtenBeatAt,
   createScore,
   hasPickup,
   keySignatureAt,
@@ -66,10 +66,23 @@ describe('signature lookup', () => {
   });
 });
 
-describe('beatAt', () => {
+describe('writtenBeatAt', () => {
   it('converts seconds to beats through the bars', () => {
-    expect(beatAt(score, 2)).toBe(2);
-    expect(beatAt(score, 6)).toBe(6);
+    expect(writtenBeatAt(score, 2)).toBe(2);
+    expect(writtenBeatAt(score, 6)).toBe(6);
+  });
+
+  it('follows repeats back along the page', () => {
+    // Printed bars 0 and 1 (4 beats each), played 0 1 0 1: at 10 s we are in the second pass of bar 0.
+    const repeated = createScore('test', [{ ...note, duration: 16, beats: 16 }], [0, 4, 8, 12], {
+      barBeats: [0, 4, 8, 12],
+      barWritten: [0, 1, 0, 1],
+      writtenBarBeats: [0, 4],
+      writtenEndBeat: 8,
+    });
+    expect(writtenBeatAt(repeated, 10)).toBe(2);
+    expect(barNumber(repeated, 2)).toBe(1); // the third bar played is printed bar 1 again
+    expect(barIndexOf(repeated, 2)).toBe(1); // bar 2 is first played as the second bar
   });
 });
 

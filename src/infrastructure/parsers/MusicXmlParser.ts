@@ -3,6 +3,7 @@ import type { Hand, Note } from '../../domain/note';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
+import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
 
 /*
@@ -124,17 +125,53 @@ interface PendingNote {
 }
 
 /** A printed note before its seconds are known (they need the whole tempo map). */
-type PendingWritten = Omit<WrittenNote, 'start' | 'end'> & { beats: number };
+type PendingWritten = Omit<WrittenNote, 'start' | 'end'>;
 
+/** Everything a printed bar contributes, gathered in the first pass. */
+interface Measure {
+  /** Where it starts and how long it is, along the page, in quarter notes. */
+  start: number;
+  length: number;
+  navigation: MutableNavigation;
+  /** Its notes as they sound, in document order, with page beats. */
+  sounds: SoundEvent[];
+  tempos: { beat: number; bpm: number }[];
+}
+
+interface SoundEvent {
+  pitch: number;
+  staff: number;
+  beat: number;
+  beats: number;
+  velocity: number;
+  hand: Hand;
+  soundingLength: number;
+  tieStart: boolean;
+  tieStop: boolean;
+  fermata: boolean;
+}
+
+type MutableNavigation = { -readonly [K in keyof BarNavigation]: BarNavigation[K] };
+
+/** A note under a fermata is held this many times its length. */
+const FERMATA_HOLD = 2;
+
+/**
+ * Reads a part in two passes. First along the page, bar by bar: the printed notes, rests, clefs
+ * and signatures for the staff, and each bar's sounding notes, tempo changes and navigation.
+ * Then in performance order (repeats, voltas and jumps unrolled): the notes as they are played.
+ */
 function readPart(part: Element, title: string): Score {
   let divisions = 1;
   let staves = 1;
   let dynamics = DEFAULT_DYNAMICS;
-  let measureStart = 0; // in quarter notes
+  let measureStart = 0; // along the page, in quarter notes
   let timeSignature: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
+  let ending: { numbers: number[]; label: string } | null = null;
 
-  const notes: PendingNote[] = [];
+  const measures: Measure[] = [];
   const written: PendingWritten[] = [];
+  const writtenMeasure: number[] = []; // for each printed note, its bar
   const rests: WrittenRest[] = [];
   const clefChanges: ClefChange[] = [];
   /** The clef in force on each staff; engravers may switch the lower staff to treble and back. */
@@ -142,22 +179,21 @@ function readPart(part: Element, title: string): Score {
     [1, 'treble'],
     [2, 'bass'],
   ]);
-  const barBeats: number[] = [];
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
-  const tempos: { beat: number; bpm: number }[] = [];
-  /** Notes waiting for the rest of a tie, by pitch and staff. */
-  const openTies = new Map<string, PendingNote>();
 
-  for (const measure of part.querySelectorAll(':scope > measure')) {
-    barBeats.push(measureStart);
+  for (const measureElement of part.querySelectorAll(':scope > measure')) {
+    const measure: Measure = { start: measureStart, length: 0, navigation: {}, sounds: [], tempos: [] };
+    const nav = measure.navigation;
+    if (ending) nav.ending = ending.numbers;
+    let endingEndsHere = false;
     let cursor = 0; // position inside the measure, in divisions
     let longest = 0; // how far the measure reaches, in divisions
     let lastStart = 0; // start of the previous note, for chords
 
     const beatAt = (position: number) => measureStart + position / divisions;
 
-    for (const element of measure.children) {
+    for (const element of measureElement.children) {
       switch (element.nodeName) {
         case 'attributes': {
           divisions = childNumber(element, 'divisions') ?? divisions;
@@ -184,13 +220,39 @@ function readPart(part: Element, title: string): Score {
           }
           break;
         }
+        case 'barline': {
+          const repeat = element.querySelector(':scope > repeat');
+          if (repeat?.getAttribute('direction') === 'forward') nav.repeatStart = true;
+          if (repeat?.getAttribute('direction') === 'backward') {
+            nav.repeatEnd = { times: Number(repeat.getAttribute('times') ?? 2) || 2 };
+          }
+          const endingElement = element.querySelector(':scope > ending');
+          if (endingElement) {
+            const numbers = (endingElement.getAttribute('number') ?? '1')
+              .split(/[,\s]+/)
+              .map((n) => parseInt(n, 10))
+              .filter((n) => n > 0);
+            const type = endingElement.getAttribute('type');
+            if (type === 'start') {
+              ending = { numbers, label: endingElement.textContent?.trim() || `${numbers.join(', ')}.` };
+              nav.ending = numbers;
+              nav.endingLabel = ending.label;
+            } else if (type === 'stop' || type === 'discontinue') {
+              nav.ending ??= numbers;
+              nav.endingClosed = type === 'stop';
+              endingEndsHere = true;
+            }
+          }
+          break;
+        }
         case 'direction':
         case 'sound': {
           const sound = element.nodeName === 'sound' ? element : element.querySelector(':scope > sound');
           const tempo = Number(sound?.getAttribute('tempo'));
-          if (tempo > 0) tempos.push({ beat: beatAt(cursor), bpm: tempo });
+          if (tempo > 0) measure.tempos.push({ beat: beatAt(cursor), bpm: tempo });
           const level = Number(sound?.getAttribute('dynamics'));
           if (level > 0) dynamics = level;
+          readNavigation(element, sound, nav);
           break;
         }
         case 'backup':
@@ -219,74 +281,199 @@ function readPart(part: Element, title: string): Score {
           }
           const pitchElement = element.querySelector(':scope > pitch');
           if (!pitchElement) break; // an unpitched note
-          const pitch = midiPitch(pitchElement);
           const staff = childNumber(element, 'staff') ?? 1;
           const noteDynamics = Number(element.getAttribute('dynamics'));
           const ties = [...element.querySelectorAll(':scope > tie')].map((tie) => tie.getAttribute('type'));
-          const tieKey = `${pitch}|${staff}`;
-
           const beats = duration / divisions;
           const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
           const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
+
           const printed = readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties });
           written.push(printed);
-          const effect = articulationEffect(printed.articulations);
+          writtenMeasure.push(measures.length);
 
-          const continued = ties.includes('stop') ? openTies.get(tieKey) : undefined;
-          if (continued) {
-            // The second half of a tie: the note keeps sounding, so lengthen the first one.
-            continued.beats = beatAt(start) + beats - continued.beat;
-            if (!ties.includes('start')) openTies.delete(tieKey);
-            break;
-          }
-          const note: PendingNote = {
-            pitch,
+          const effect = articulationEffect(printed.articulations);
+          measure.sounds.push({
+            pitch: midiPitch(pitchElement),
+            staff,
             beat: beatAt(start),
             beats,
             velocity: Math.min(1, (((noteDynamics > 0 ? noteDynamics : dynamics) * 0.9) / 127) * effect.loudness),
             hand,
             soundingLength: effect.length,
-          };
-          notes.push(note);
-          if (ties.includes('start')) openTies.set(tieKey, note);
+            tieStart: ties.includes('start'),
+            tieStop: ties.includes('stop'),
+            fermata: printed.fermata !== null,
+          });
           break;
         }
       }
     }
 
+    // Files do not always close the last volta. A new ‖: never sits inside one, so it closes it.
+    if (nav.repeatStart && ending && !nav.endingLabel) {
+      delete nav.ending;
+      ending = null;
+    }
+
     // A pickup bar is shorter than its time signature says; trust what the measure contains.
     const nominal = (timeSignature.numerator * 4) / timeSignature.denominator;
-    measureStart += longest > 0 ? longest / divisions : nominal;
+    measure.length = longest > 0 ? longest / divisions : nominal;
+    measureStart += measure.length;
+    measures.push(measure);
+    if (endingEndsHere) ending = null;
   }
 
-  const toSeconds = beatsToSecondsConverter(tempos);
+  resolveJumpTargets(measures.map((m) => m.navigation));
+  const performance = perform(measures);
+
+  // Printed notes remember when they first sound: their bar's first performance, plus their offset in it.
+  const writtenSeconds = (index: number, beat: number) => {
+    const measure = measures[writtenMeasure[index]];
+    const firstStart = performance.firstStart[writtenMeasure[index]] ?? measure.start;
+    return performance.toSeconds(firstStart + beat - measure.start);
+  };
+  const hasNavigation = measures.some((m) => Object.keys(m.navigation).length > 0);
+
   return createScore(
     title,
-    notes.map(
+    performance.notes.map(
       (n): Note => ({
         pitch: n.pitch,
-        start: toSeconds(n.beat),
-        duration: (toSeconds(n.beat + n.beats) - toSeconds(n.beat)) * n.soundingLength,
+        start: performance.toSeconds(n.beat),
+        duration: (performance.toSeconds(n.beat + n.beats) - performance.toSeconds(n.beat)) * n.soundingLength,
         beat: n.beat,
         beats: n.beats,
         velocity: n.velocity,
         hand: n.hand,
       }),
     ),
-    barBeats.map(toSeconds),
+    performance.barBeats.map(performance.toSeconds),
     {
-      barBeats,
+      barBeats: performance.barBeats,
+      barWritten: performance.barWritten,
+      writtenBarBeats: measures.map((m) => m.start),
+      writtenEndBeat: measureStart,
+      navigation: hasNavigation ? measures.map((m) => m.navigation) : [],
       timeSignatures,
       keySignatures,
       clefs: clefChanges,
       rests,
-      written: written.map(({ beats, ...note }) => ({
+      written: written.map((note, i) => ({
         ...note,
-        start: toSeconds(note.beat),
-        end: toSeconds(note.beat + beats),
+        start: writtenSeconds(i, note.beat),
+        end: writtenSeconds(i, note.beat + note.beats),
       })),
     },
   );
+}
+
+/** Repeat marks and jumps a <direction> or <sound> carries. */
+function readNavigation(element: Element, sound: Element | null | undefined, nav: MutableNavigation): void {
+  const types = element.querySelector(':scope > direction-type');
+  if (types?.querySelector(':scope > segno')) nav.segnoSign = true;
+  if (types?.querySelector(':scope > coda')) nav.codaSign = true;
+  if (!sound) return;
+  if (sound.getAttribute('segno')) nav.segno = true;
+  if (sound.getAttribute('coda')) nav.coda = true;
+  const jumps = {
+    dacapo: sound.getAttribute('dacapo') === 'yes',
+    dalsegno: !!sound.getAttribute('dalsegno'),
+    fine: sound.getAttribute('fine') !== null,
+    toCoda: !!sound.getAttribute('tocoda'),
+  };
+  if (jumps.dacapo) nav.jump = 'dacapo';
+  if (jumps.dalsegno) nav.jump = 'dalsegno';
+  if (jumps.fine) nav.fine = true;
+  if (jumps.toCoda) nav.toCoda = true;
+  // The words that go with a jump ("D.C. al Fine", "To Coda") are printed over the bar.
+  const words = [...(types?.querySelectorAll(':scope > words') ?? [])].map((w) => w.textContent?.trim()).filter(Boolean);
+  if ((jumps.dacapo || jumps.dalsegno || jumps.fine || jumps.toCoda) && words.length > 0) nav.text = words.join(' ');
+}
+
+/**
+ * Files do not always say which printed 𝄋 / 𝄌 is the target of a jump; when they only print
+ * the signs, the segno is the first one and the coda the last one that is not a "To Coda".
+ */
+function resolveJumpTargets(bars: MutableNavigation[]): void {
+  if (!bars.some((b) => b.segno)) {
+    const sign = bars.find((b) => b.segnoSign);
+    if (sign) sign.segno = true;
+  }
+  if (!bars.some((b) => b.coda)) {
+    const sign = bars.filter((b) => b.codaSign && !b.toCoda).at(-1);
+    if (sign) sign.coda = true;
+  }
+}
+
+/** The second pass: bars in performance order, notes shifted into place, ties joined, fermatas held. */
+function perform(measures: readonly Measure[]) {
+  const order = performanceOrder(measures.map((m) => m.navigation));
+  const barBeats: number[] = [];
+  const barWritten: number[] = [];
+  const firstStart: number[] = [];
+  const notes: PendingNote[] = [];
+  const tempos: { beat: number; bpm: number }[] = [];
+  const fermatas: [number, number][] = [];
+  const openTies = new Map<string, PendingNote>();
+
+  let start = 0;
+  for (const index of order) {
+    const measure = measures[index];
+    const shift = start - measure.start;
+    barBeats.push(start);
+    barWritten.push(index);
+    firstStart[index] ??= start;
+    for (const tempo of measure.tempos) tempos.push({ beat: tempo.beat + shift, bpm: tempo.bpm });
+
+    for (const sound of measure.sounds) {
+      const beat = sound.beat + shift;
+      if (sound.fermata) fermatas.push([beat, beat + sound.beats]);
+      const tieKey = `${sound.pitch}|${sound.staff}`;
+      const continued = sound.tieStop ? openTies.get(tieKey) : undefined;
+      if (continued) {
+        // The second half of a tie: the note keeps sounding, so lengthen the first one.
+        continued.beats = beat + sound.beats - continued.beat;
+        if (!sound.tieStart) openTies.delete(tieKey);
+        continue;
+      }
+      const note: PendingNote = {
+        pitch: sound.pitch,
+        beat,
+        beats: sound.beats,
+        velocity: sound.velocity,
+        hand: sound.hand,
+        soundingLength: sound.soundingLength,
+      };
+      notes.push(note);
+      if (sound.tieStart) openTies.set(tieKey, note);
+    }
+    start += measure.length;
+  }
+
+  return { barBeats, barWritten, firstStart, notes, toSeconds: withFermatas(beatsToSecondsConverter(tempos), fermatas) };
+}
+
+/**
+ * Holds fermatas: time under a fermata passes FERMATA_HOLD times slower, and everything after it
+ * moves later by the extra time. Overlapping fermatas (a chord, both hands) count once.
+ */
+function withFermatas(toSeconds: (beat: number) => number, spans: [number, number][]): (beat: number) => number {
+  const merged: [number, number][] = [];
+  for (const [from, to] of [...spans].sort((a, b) => a[0] - b[0])) {
+    const last = merged.at(-1);
+    if (last && from <= last[1]) last[1] = Math.max(last[1], to);
+    else merged.push([from, to]);
+  }
+  if (merged.length === 0) return toSeconds;
+  return (beat) => {
+    let seconds = toSeconds(beat);
+    for (const [from, to] of merged) {
+      if (beat <= from) break;
+      seconds += (toSeconds(Math.min(beat, to)) - toSeconds(from)) * (FERMATA_HOLD - 1);
+    }
+    return seconds;
+  };
 }
 
 /** The printed side of a <note>: what the engraver wrote, taken as is. */

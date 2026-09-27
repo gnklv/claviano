@@ -95,6 +95,12 @@ function rest(duration: number, options: { type?: string; dots?: number; staff?:
 }
 
 const backup = (duration: number) => `<backup><duration>${duration}</duration></backup>`;
+const repeatStart = '<barline location="left"><repeat direction="forward"/></barline>';
+const repeatEnd = '<barline location="right"><repeat direction="backward"/></barline>';
+const endingStart = (n: number) => `<barline location="left"><ending number="${n}" type="start">${n}.</ending></barline>`;
+const endingStop = (n: number, type: 'stop' | 'discontinue') => `<barline location="right"><ending number="${n}" type="${type}"/></barline>`;
+/** A sign (segno, coda) printed over the bar, with the <sound> that makes it a jump target. */
+const sign = (name: 'segno' | 'coda') => `<direction placement="above"><direction-type><${name}/></direction-type><sound ${name}="${name}"/></direction>`;
 const direction = (words: string, sound: string) =>
   `<direction placement="above"><direction-type><words>${words}</words></direction-type><sound ${sound}/></direction>`;
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
@@ -242,8 +248,8 @@ const measures: string[] = [
     ${note('C#3', Q, { type: 'quarter', staff: 2, articulations: ['staccato', 'accent'] })}${note('G2', Q, { type: 'quarter', staff: 2, articulations: ['staccato'] })}
   </measure>`,
 
-  // 15: legato. A slur over a leaping melody (it must clear the high notes), a fermata; in the bass
-  // a slur under the notes, carried across the bar line.
+  // 15: legato. A slur over a leaping melody (it must clear the high notes), a fermata that is held
+  // (it sounds twice as long); in the bass a slur under the notes, carried across the bar line.
   `<measure number="15">
     ${direction('Legato, fermata', '')}
     ${note('D5', E, { type: 'eighth', beams: ['begin'], slur: [{ type: 'start' }] })}${note('A5', E, { type: 'eighth', beams: ['end'] })}
@@ -254,10 +260,42 @@ const measures: string[] = [
     ${note('B2', Q, { type: 'quarter', staff: 2 })}${note('C#3', Q, { type: 'quarter', staff: 2 })}
   </measure>`,
 
-  // 16: the end, with fermatas over and (inverted) under the last chords.
+  // 16–20: repeats and jumps. Played: 16 17 | 16 18 19 | D.S. → 16 18 | To Coda → 20.
+  // 16: segno and ‖:. The bass slur from bar 15 ends here.
   `<measure number="16">
+    ${repeatStart}
+    ${sign('segno')}
+    ${direction('Repeats', '')}
+    ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
+    ${backup(W)}${note('A2', H, { type: 'half', staff: 2, slur: [{ type: 'stop', number: 2 }] })}${note('D3', H, { type: 'half', staff: 2 })}
+  </measure>`,
+  // 17: first ending, back to ‖:.
+  `<measure number="17">
+    ${endingStart(1)}
+    ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
+    ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
+    ${endingStop(1, 'stop')}${repeatEnd}
+  </measure>`,
+  // 18: second ending; after the D.S. it leads to the coda.
+  `<measure number="18">
+    ${endingStart(2)}
+    ${direction('To Coda', 'tocoda="coda"')}
+    ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
+    ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
+    ${endingStop(2, 'discontinue')}
+  </measure>`,
+  // 19: back to the segno.
+  `<measure number="19">
+    ${direction('D.S. al Coda', 'dalsegno="segno"')}
+    ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
+    ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
+  </measure>`,
+
+  // 20: the coda — the end, with fermatas over and (inverted) under the last chords.
+  `<measure number="20">
+    ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
-    ${backup(W)}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted', slur: [{ type: 'stop', number: 2 }] })}
+    ${backup(W)}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}
     <barline location="right"><bar-style>light-heavy</bar-style></barline>
   </measure>`,
 ];

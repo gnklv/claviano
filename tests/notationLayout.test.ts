@@ -163,6 +163,7 @@ describe('layout of printed notes (MusicXML)', () => {
     chord: false,
     clef: 'treble',
     pitch: { letter: 0, octave: 5, alteration: 0 },
+    beats: 1 / 3,
     start: overrides.beat,
     end: overrides.beat + 1 / 3,
     duration: { value: 'eighth', dots: 0 },
@@ -217,6 +218,7 @@ describe('rests and ties (MusicXML)', () => {
     clef: 'treble',
     pitch: { letter: 4, octave: 4, alteration: 0 }, // Sol4
     beat: 0,
+    beats: 2,
     start: 0,
     end: 2,
     duration: { value: 'half', dots: 0 },
@@ -291,6 +293,7 @@ describe('articulations and slurs (MusicXML)', () => {
     clef: 'treble',
     pitch,
     beat,
+    beats: 1,
     start: beat,
     end: beat + 1,
     duration: { value: 'quarter', dots: 0 },

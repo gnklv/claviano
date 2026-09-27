@@ -1,4 +1,5 @@
 import { noteEnd, type Note } from './note';
+import type { BarNavigation } from './notation/navigation';
 import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
 
 export interface TimeRange {
@@ -24,14 +25,27 @@ export interface KeySignature {
   readonly minor: boolean;
 }
 
+/*
+ * A score has two timelines. The performance: notes and bars in the order they are played, with
+ * repeats unrolled — playback, falling notes, loops and seeking use it. The page: each printed
+ * bar once — the staff uses it. `barWritten` links them. Without repeats (and for MIDI) they match.
+ */
 export interface Score {
   readonly title: string;
-  /** Sorted by start time. */
+  /** Sorted by start time; in performance order. */
   readonly notes: readonly Note[];
-  /** Start time of every bar in seconds, sorted, first one is 0. */
+  /** Start time of every bar as played, in seconds, sorted, first one is 0. */
   readonly bars: readonly number[];
-  /** Start of every bar in quarter notes; same indices as `bars`. */
+  /** Start of every bar as played, in quarter notes; same indices as `bars`. */
   readonly barBeats: readonly number[];
+  /** For every bar as played, the printed bar it is (index into `writtenBarBeats`). */
+  readonly barWritten: readonly number[];
+  /** Start of every printed bar, in quarter notes along the page. */
+  readonly writtenBarBeats: readonly number[];
+  /** Where the music ends along the page, in quarter notes. */
+  readonly writtenEndBeat: number;
+  /** Repeat signs, voltas and jumps per printed bar; empty when there are none. */
+  readonly navigation: readonly BarNavigation[];
   /** Sorted by beat, the first one at beat 0. */
   readonly timeSignatures: readonly TimeSignature[];
   /** Sorted by beat, the first one at beat 0. */
@@ -56,6 +70,11 @@ export interface ScoreMusic {
   readonly written?: readonly WrittenNote[];
   readonly clefs?: readonly ClefChange[];
   readonly rests?: readonly WrittenRest[];
+  /** When bars are played in another order than printed (repeats): see Score. */
+  readonly barWritten?: readonly number[];
+  readonly writtenBarBeats?: readonly number[];
+  readonly writtenEndBeat?: number;
+  readonly navigation?: readonly BarNavigation[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -92,18 +111,23 @@ export function createScore(
   const duration = sortedNotes.reduce((max, note) => Math.max(max, noteEnd(note)), 0);
   const endBeat = sortedNotes.reduce((max, note) => Math.max(max, note.beat + note.beats), 0);
 
-  // Bars and their beats travel together, so they stay aligned after filtering and sorting.
+  // Bars travel with their beats and printed bar, so they stay aligned after filtering and sorting.
   const barPairs = bars
-    .map((time, index) => ({ time, beat: music.barBeats?.[index] ?? index * 4 }))
+    .map((time, index) => ({ time, beat: music.barBeats?.[index] ?? index * 4, written: music.barWritten?.[index] ?? index }))
     .filter((bar) => bar.time < duration)
     .sort((a, b) => a.time - b.time);
-  if (barPairs[0]?.time !== 0) barPairs.unshift({ time: 0, beat: 0 });
+  if (barPairs[0]?.time !== 0) barPairs.unshift({ time: 0, beat: 0, written: 0 });
+  const barBeats = barPairs.map((bar) => bar.beat);
 
   return {
     title,
     notes: sortedNotes,
     bars: barPairs.map((bar) => bar.time),
-    barBeats: barPairs.map((bar) => bar.beat),
+    barBeats,
+    barWritten: music.barWritten ? barPairs.map((bar) => bar.written) : barBeats.map((_, i) => i),
+    writtenBarBeats: music.writtenBarBeats ?? barBeats,
+    writtenEndBeat: music.writtenEndBeat ?? endBeat,
+    navigation: music.navigation ?? [],
     timeSignatures: fromBeatZero(
       music.timeSignatures,
       DEFAULT_TIME_SIGNATURE,
@@ -145,20 +169,20 @@ function lastIndexAtOrBefore(sorted: readonly number[], value: number): number {
 export const barAt = (score: Score, time: number): number =>
   Math.max(0, lastIndexAtOrBefore(score.bars, time));
 
-/** Zero-based index of the bar that contains `beat` (quarter notes). */
+/** The printed bar that contains `beat` (quarter notes along the page). */
 export const barAtBeat = (score: Score, beat: number): number =>
-  Math.max(0, lastIndexAtOrBefore(score.barBeats, beat + 1e-9));
+  Math.max(0, lastIndexAtOrBefore(score.writtenBarBeats, beat + 1e-9));
 
 /**
- * How many quarter notes bar `index` lasts. The last bar has no next bar to measure against:
- * it lasts until the music ends, but no longer than its time signature allows.
+ * How many quarter notes printed bar `index` lasts. The last bar has no next bar to measure
+ * against: it lasts until the music ends, but no longer than its time signature allows.
  */
 export function barLength(score: Score, index: number): number {
-  const start = score.barBeats[index];
-  const next = score.barBeats[index + 1];
+  const start = score.writtenBarBeats[index];
+  const next = score.writtenBarBeats[index + 1];
   if (next !== undefined) return next - start;
   const nominal = barLengthInBeats(timeSignatureAt(score, start));
-  const untilEnd = score.endBeat - start;
+  const untilEnd = score.writtenEndBeat - start;
   return untilEnd > 0 ? Math.min(nominal, untilEnd) : nominal;
 }
 
@@ -167,13 +191,21 @@ export function barLength(score: Score, index: number): number {
  * like the two sixteenths before the first full bar of Für Elise.
  */
 export const hasPickup = (score: Score): boolean =>
-  score.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
+  score.writtenBarBeats.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
 
-/** The number printed for bar `index` (zero-based): a pickup is bar 0, the first full bar is 1. */
-export const barNumber = (score: Score, index: number): number => index + (hasPickup(score) ? 0 : 1);
+/** The number printed on printed bar `written`: a pickup is bar 0, the first full bar is 1. */
+export const writtenBarNumber = (score: Score, written: number): number => written + (hasPickup(score) ? 0 : 1);
 
-/** The index of the bar printed as `number`, the inverse of barNumber. */
-export const barIndexOf = (score: Score, number: number): number => number - (hasPickup(score) ? 0 : 1);
+/** The printed number of bar `index` as played (zero-based): repeated bars keep their number. */
+export const barNumber = (score: Score, index: number): number =>
+  writtenBarNumber(score, score.barWritten[index] ?? index);
+
+/** The first bar played that carries printed `number` (the inverse of barNumber, first pass). */
+export function barIndexOf(score: Score, number: number): number {
+  const written = number - (hasPickup(score) ? 0 : 1);
+  const index = score.barWritten.indexOf(written);
+  return index >= 0 ? index : Math.min(Math.max(0, written), score.bars.length - 1);
+}
 
 /** Time range covering bars `from..to` inclusive (zero-based). */
 export function barRange(score: Score, from: number, to: number): TimeRange {
@@ -204,15 +236,19 @@ export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>
   score.keySignatures[Math.max(0, lastIndexAtOrBefore(score.keySignatures.map((s) => s.beat), beat))];
 
-/** Beat position (quarter notes) of `time` in seconds, by interpolating inside its bar. */
-export function beatAt(score: Score, time: number): number {
+/** Where `time` (seconds, as played) falls on the page: the printed bar and how far through it. */
+export function writtenPositionAt(score: Score, time: number): { bar: number; fraction: number } {
   const index = barAt(score, time);
   const start = score.bars[index];
   const end = score.bars[index + 1] ?? score.duration;
-  const startBeat = score.barBeats[index];
-  const endBeat = score.barBeats[index + 1] ?? startBeat + barLengthInBeats(timeSignatureAt(score, startBeat));
   const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
-  return startBeat + fraction * (endBeat - startBeat);
+  return { bar: score.barWritten[index] ?? index, fraction };
+}
+
+/** The beat along the page (quarter notes) that is sounding at `time`. */
+export function writtenBeatAt(score: Score, time: number): number {
+  const { bar, fraction } = writtenPositionAt(score, time);
+  return score.writtenBarBeats[bar] + fraction * barLength(score, bar);
 }
 
 /** How many quarter notes a bar of this metre lasts: 3/4 → 3, 6/8 → 3, 2/2 → 4. */

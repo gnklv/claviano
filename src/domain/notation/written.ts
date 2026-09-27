@@ -55,8 +55,10 @@ export interface WrittenNote {
   /** The clef in force on its staff, which decides where the pitch sits. */
   readonly clef: Clef;
   readonly pitch: SpelledPitch;
-  /** Start in quarter notes, and sounding time in seconds (for highlighting). */
+  /** Start and length along the page, in quarter notes (a triplet eighth lasts 1/3). */
   readonly beat: number;
+  readonly beats: number;
+  /** When it first sounds, in seconds. */
   readonly start: number;
   readonly end: number;
   readonly duration: WrittenDuration;

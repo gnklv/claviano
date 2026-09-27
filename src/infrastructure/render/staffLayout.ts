@@ -1,4 +1,4 @@
-import { barAt, barLength, barLengthInBeats, timeSignatureAt, type Score } from '../../domain/score';
+import { barLength, barLengthInBeats, timeSignatureAt, writtenPositionAt, type Score } from '../../domain/score';
 
 /** Where each bar starts on the tape and how wide it is, in "bar units" (a full bar is 1 wide). */
 export interface TapeBars {
@@ -21,8 +21,8 @@ export function tapeBars(score: Score): TapeBars {
   const starts: number[] = [];
   const widths: number[] = [];
   let position = 0;
-  score.bars.forEach((_, index) => {
-    const nominal = barLengthInBeats(timeSignatureAt(score, score.barBeats[index]));
+  score.writtenBarBeats.forEach((start, index) => {
+    const nominal = barLengthInBeats(timeSignatureAt(score, start));
     const width = Math.min(1, Math.max(MIN_BAR_SHARE, barLength(score, index) / nominal));
     starts.push(position);
     widths.push(width);
@@ -40,20 +40,19 @@ const MIN_BAR_SHARE = 0.25;
  * Where `time` falls on the tape, in bar units: 0 is the start of the first bar, 2.5 the middle
  * of the third one (when all bars are full). Bars can last different times (tempo or metre
  * changes), so the tape's speed varies per bar, but bar lines stay evenly spaced.
+ * The tape shows printed bars, so with repeats the position goes back.
  */
 export function barPosition(score: Score, time: number): number {
-  const index = barAt(score, time);
-  const start = score.bars[index];
-  const end = score.bars[index + 1] ?? score.duration;
-  const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
+  // Played bars map to printed ones: on a repeat the position jumps back along the tape.
+  const { bar, fraction } = writtenPositionAt(score, time);
   const bars = tapeBars(score);
-  return bars.starts[index] + fraction * bars.widths[index];
+  return bars.starts[bar] + fraction * bars.widths[bar];
 }
 
 /** Where a musical position (bar index and beat) falls on the tape, in bar units. */
 export function beatPosition(score: Score, bar: number, beat: number): number {
   const bars = tapeBars(score);
-  return bars.starts[bar] + ((beat - score.barBeats[bar]) / barLength(score, bar)) * bars.widths[bar];
+  return bars.starts[bar] + ((beat - score.writtenBarBeats[bar]) / barLength(score, bar)) * bars.widths[bar];
 }
 
 export type { Clef } from '../../domain/notation/written';

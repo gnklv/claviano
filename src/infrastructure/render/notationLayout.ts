@@ -20,8 +20,9 @@ export interface StaffChord {
   readonly hand: Hand;
   /** Horizontal place in bar units, like the tape: 2.5 is the middle of the third bar. */
   readonly x: number;
-  /** Start in quarter notes (quantized) and the bar it is in. */
+  /** Start and length along the page, in quarter notes, and the printed bar it is in. */
   readonly beat: number;
+  readonly beats: number;
   readonly bar: number;
   /** Index of the beam joining it to its neighbours (see NotationLayout.beams), if any. */
   readonly beam: number | null;
@@ -101,7 +102,7 @@ export interface StaffSlur {
 }
 
 export interface NotationLayout {
-  /** Sorted by start time. */
+  /** Sorted by their place on the page (beat). */
   readonly chords: readonly StaffChord[];
   readonly beams: readonly Beam[];
   readonly tuplets: readonly Tuplet[];
@@ -146,6 +147,7 @@ interface Placed {
   readonly hand: Hand;
   readonly bar: number;
   readonly beat: number;
+  readonly beats: number;
   readonly x: number;
   readonly pitch: number;
   readonly spelled: SpelledPitch;
@@ -179,6 +181,7 @@ function inferNotation(score: Score): NotationLayout {
       hand: note.hand,
       bar,
       beat,
+      beats,
       x: beatPosition(score, bar, beat),
       pitch: note.pitch,
       spelled,
@@ -192,7 +195,7 @@ function inferNotation(score: Score): NotationLayout {
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
     group.sort((a, b) => a.beat - b.beat || a.pitch - b.pitch);
-    const fifths = keySignatureAt(score, score.barBeats[group[0].bar]).fifths;
+    const fifths = keySignatureAt(score, score.writtenBarBeats[group[0].bar]).fifths;
     barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i].accidental = accidental));
   }
 
@@ -220,6 +223,7 @@ function inferNotation(score: Score): NotationLayout {
         hand,
         x: group[0].x,
         beat: group[0].beat,
+        beats: Math.max(...group.map((p) => p.beats)),
         bar,
         beam: null,
         handMark: false,
@@ -232,7 +236,7 @@ function inferNotation(score: Score): NotationLayout {
       };
     },
   );
-  chords.sort((a, b) => a.start - b.start || a.beat - b.beat);
+  chords.sort((a, b) => a.beat - b.beat || a.start - b.start);
   markHandCrossings(chords);
 
   // Beams: groups of flagged chords of one hand; each group takes one stem direction.
@@ -241,7 +245,7 @@ function inferNotation(score: Score): NotationLayout {
       staff: `${chord.staff}|${chord.hand}`,
       bar: chord.bar,
       beat: chord.beat,
-      barBeat: score.barBeats[chord.bar],
+      barBeat: score.writtenBarBeats[chord.bar],
       duration: chord.duration,
       timeSignature: timeSignatureAt(score, chord.beat),
     })),
@@ -284,6 +288,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       hand: first.hand,
       x: beatPosition(score, bar, first.beat),
       beat: first.beat,
+      beats: Math.max(...group.map((n) => n.beats)),
       bar,
       beam: null,
       handMark: false,
@@ -296,7 +301,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     };
     return { chord, group, voice: `${first.staff}|${first.voice}` };
   });
-  entries.sort((a, b) => a.chord.start - b.chord.start || a.chord.beat - b.chord.beat);
+  entries.sort((a, b) => a.chord.beat - b.chord.beat || a.chord.start - b.chord.start);
   const chords = entries.map((entry) => entry.chord);
 
   // Walk each voice in order, following the file's beam and tuplet marks.
