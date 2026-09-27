@@ -4,6 +4,7 @@ import { pitch } from '../src/domain/pitch';
 import { createScore, type KeySignature } from '../src/domain/score';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
+import type { WrittenNote } from '../src/domain/notation/written';
 import { layoutNotation, ledgerSteps, staffFor } from '../src/infrastructure/render/notationLayout';
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
@@ -151,5 +152,53 @@ describe('hands crossing onto the other staff', () => {
       ['bass', false],
       ['treble', true],
     ]);
+  });
+});
+
+describe('layout of printed notes (MusicXML)', () => {
+  const printed = (overrides: Partial<WrittenNote> & Pick<WrittenNote, 'beat'>): WrittenNote => ({
+    staff: 1,
+    voice: '1',
+    hand: 'right',
+    chord: false,
+    clef: 'treble',
+    pitch: { letter: 0, octave: 5, alteration: 0 },
+    start: overrides.beat,
+    end: overrides.beat + 1 / 3,
+    duration: { value: 'eighth', dots: 0 },
+    tuplet: { actual: 3, normal: 2 },
+    tupletStart: null,
+    tupletStop: false,
+    accidental: null,
+    stem: 'up',
+    beams: [],
+    ...overrides,
+  });
+  const written = [
+    printed({ beat: 0, beams: ['begin'], tupletStart: { showNumber: true, bracket: null } }),
+    printed({ beat: 1 / 3, beams: ['continue'], accidental: 'sharp' }),
+    printed({ beat: 2 / 3, beams: ['end'], tupletStop: true }),
+    // A treble clef on the lower staff: Mi5 sits in the top space, not on ledger lines.
+    printed({ beat: 1, staff: 2, hand: 'left', clef: 'treble', pitch: { letter: 2, octave: 5, alteration: 0 }, tuplet: null }),
+  ];
+  const withWritten = createScore('test', [note(60, 0, 2)], [0, 4], { barBeats: [0, 4], written });
+  const layout = layoutNotation(withWritten);
+
+  it('draws what is written instead of guessing', () => {
+    expect(layout.chords[0].duration).toEqual({ value: 'eighth', dots: 0 });
+    expect(layout.chords[1].notes[0].accidental).toBe('sharp');
+  });
+
+  it('beams as the file says', () => {
+    expect(layout.beams).toEqual([{ chords: [0, 1, 2], stemUp: true }]);
+  });
+
+  it('marks tuplets, without a bracket when the group is one beam', () => {
+    expect(layout.tuplets).toEqual([{ chords: [0, 1, 2], number: 3, showNumber: true, bracket: false, above: true }]);
+  });
+
+  it('places pitches by the clef in force, on the staff they are written on', () => {
+    const lower = layout.chords[3];
+    expect(lower).toMatchObject({ staff: 'bass', notes: [{ step: 1 }], ledgerSteps: [] });
   });
 });

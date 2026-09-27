@@ -1,6 +1,8 @@
 import {
+  barAtBeat,
   barNumber,
   beatAt,
+  clefAt,
   keySignatureAt,
   timeSignatureAt,
   type KeySignature,
@@ -12,8 +14,8 @@ import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
 import { beamLine, beamY } from './beams';
-import { layoutNotation, type Beam, type StaffChord } from './notationLayout';
-import { barPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
+import { layoutNotation, type Beam, type StaffChord, type Tuplet } from './notationLayout';
+import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -96,10 +98,23 @@ const COLORS = {
 const MUSIC_FONT = 'Bravura';
 const G_CLEF = '\uE050';
 const F_CLEF = '\uE062';
+/** Smaller clefs for a change in the middle of the music. */
+const G_CLEF_CHANGE = '\uE07A';
+const F_CLEF_CHANGE = '\uE07B';
+/** A clef sits on its reference line: G on the second line from the bottom, F on the second from the top. */
+const CLEF_LINE_STEP: Record<Clef, number> = { treble: 6, bass: 2 };
+const CLEF_GLYPH: Record<Clef, string> = { treble: G_CLEF, bass: F_CLEF };
+const CLEF_CHANGE_GLYPH: Record<Clef, string> = { treble: G_CLEF_CHANGE, bass: F_CLEF_CHANGE };
 const SHARP = '\uE262';
 const FLAT = '\uE260';
 const NATURAL = '\uE261';
-const ACCIDENTAL_GLYPH: Record<Accidental, string> = { sharp: SHARP, flat: FLAT, natural: NATURAL };
+const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
+  sharp: SHARP,
+  flat: FLAT,
+  natural: NATURAL,
+  'double-sharp': '\uE263',
+  'double-flat': '\uE264',
+};
 const NOTEHEAD: Record<NoteValue, string> = {
   whole: '\uE0A2',
   half: '\uE0A3',
@@ -112,6 +127,9 @@ const NOTEHEAD: Record<NoteValue, string> = {
 const FLAG_UP = ['', '\uE240', '\uE242', '\uE244'];
 const FLAG_DOWN = ['', '\uE241', '\uE243', '\uE245'];
 const AUGMENTATION_DOT = '\uE1E7';
+/** Tuplet digits 0–9 are consecutive code points from U+E880. */
+const tupletDigits = (value: number) =>
+  [...String(value)].map((digit) => String.fromCodePoint(0xe880 + Number(digit))).join('');
 /** Time signature digits 0–9 are consecutive code points from U+E080. */
 const timeDigits = (value: number) =>
   [...String(value)].map((digit) => String.fromCodePoint(0xe080 + Number(digit))).join('');
@@ -162,6 +180,7 @@ export class SvgStaff {
   /** The piece laid out as chords, sorted by start time, and their drawn groups (same indices). */
   private chords: StaffChord[] = [];
   private beams: Beam[] = [];
+  private tuplets: Tuplet[] = [];
   private chordElements: SVGGElement[] = [];
   private longestChord = 0;
   /** Chords currently highlighted in their hand's color. */
@@ -197,9 +216,10 @@ export class SvgStaff {
 
   setScore(score: Score | null): void {
     this.score = score;
-    const layout = score ? layoutNotation(score) : { chords: [], beams: [] };
+    const layout = score ? layoutNotation(score) : { chords: [], beams: [], tuplets: [] };
     this.chords = [...layout.chords];
     this.beams = [...layout.beams];
+    this.tuplets = [...layout.tuplets];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.end - chord.start), 0);
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
@@ -263,9 +283,17 @@ export class SvgStaff {
     return { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) };
   }
 
+  /** The clefs in force under the cursor on the upper and lower staff. */
+  private currentClefs(): [Clef, Clef] {
+    const score = this.score;
+    if (!score) return ['treble', 'bass'];
+    return [clefAt(score, 1, this.currentBeat), clefAt(score, 2, this.currentBeat)];
+  }
+
   private signaturesKey(): string {
     const current = this.currentSignatures();
-    return current ? `${current.key.fifths} ${current.time.numerator}/${current.time.denominator}` : '';
+    const clefs = this.currentClefs().join('/');
+    return current ? `${clefs} ${current.key.fifths} ${current.time.numerator}/${current.time.denominator}` : clefs;
   }
 
   /** Bar width in pixels: about two bars on the tape, so phones see what comes next too. */
@@ -321,11 +349,11 @@ export class SvgStaff {
       }),
     );
 
-    // The treble (G) clef sits on the G line, second from the bottom; the bass (F) clef on the F line,
-    // second from the top.
+    // The clefs in force under the cursor; usually treble above and bass below.
+    const [upper, lower] = this.currentClefs();
     this.background.append(
-      this.glyph(G_CLEF, space * 1.2, this.trebleTop() + 3 * space),
-      this.glyph(F_CLEF, space * 1.2, this.bassTop() + 1 * space),
+      this.glyph(CLEF_GLYPH[upper], space * 1.2, this.trebleTop() + (CLEF_LINE_STEP[upper] * space) / 2),
+      this.glyph(CLEF_GLYPH[lower], space * 1.2, this.bassTop() + (CLEF_LINE_STEP[lower] * space) / 2),
     );
 
     this.drawSignatures();
@@ -346,9 +374,10 @@ export class SvgStaff {
     if (!current) return;
     const { key, time } = current;
     const { space } = this;
+    const [upper, lower] = this.currentClefs();
     const staves: [Clef, number][] = [
-      ['treble', this.trebleTop()],
-      ['bass', this.bassTop()],
+      [upper, this.trebleTop()],
+      [lower, this.bassTop()],
     ];
 
     // Each accidental sits on its line or space: a step is half a staff space.
@@ -428,11 +457,32 @@ export class SvgStaff {
       svg('line', { x1: end, x2: end, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': space * 0.4 }),
     );
 
+    // Clef changes in the middle of the music: a small clef just before the first note it applies to.
+    for (const change of score.clefs) {
+      if (change.beat <= 1e-9) continue; // the opening clefs live in the left column
+      const bar = barAtBeat(score, change.beat);
+      const staffTop = change.staff === 1 ? top : this.bassTop();
+      const x = beatPosition(score, bar, change.beat) * barWidth - 2.6 * space;
+      this.strip.append(
+        svg('text', {
+          x,
+          y: staffTop + (CLEF_LINE_STEP[change.clef] * space) / 2,
+          fill: COLORS.clef,
+          'font-size': space * 4,
+          'font-family': MUSIC_FONT,
+        }),
+      );
+      (this.strip.lastChild as SVGTextElement).textContent = CLEF_CHANGE_GLYPH[change.clef];
+    }
+
     // Beams first: they decide how long the stems of their chords are.
     const stemEnds = new Map<number, number>();
     const beamLayer = svg('g');
     beamLayer.style.color = COLORS.note;
     for (const beam of this.beams) beamLayer.append(...this.drawBeam(beam, barWidth, stemEnds));
+    for (const tuplet of this.tuplets) {
+      if (tuplet.showNumber || tuplet.bracket) beamLayer.append(...this.drawTuplet(tuplet, barWidth, stemEnds));
+    }
 
     this.chordElements = this.chords.map((chord, index) => this.drawChord(chord, barWidth, stemEnds.get(index)));
     this.strip.append(...this.chordElements, beamLayer);
@@ -583,6 +633,53 @@ export class SvgStaff {
         }
         i = j;
       }
+    }
+    return shapes;
+  }
+
+  /**
+   * A tuplet's number (and bracket, if it has one) beyond the stems on their side: over a beam,
+   * or over the notes of an unbeamed group.
+   */
+  private drawTuplet(tuplet: Tuplet, barWidth: number, stemEnds: Map<number, number>): SVGElement[] {
+    const { space } = this;
+    const chords = tuplet.chords.map((index) => this.chords[index]);
+    const geometry = chords.map((chord) => this.chordGeometry(chord, barWidth));
+    // The outermost point of each chord on the tuplet's side: its stem end, or the notehead.
+    const outer = tuplet.chords.map((index, i) => {
+      const g = geometry[i];
+      const stemmed = chords[i].duration.value !== 'whole' && chords[i].stemUp === tuplet.above;
+      if (!stemmed) return tuplet.above ? g.highest - space : g.lowest + space;
+      return stemEnds.get(index) ?? (tuplet.above ? g.highest - STEM_LENGTH * space : g.lowest + STEM_LENGTH * space);
+    });
+    const left = geometry[0].left;
+    const right = geometry[geometry.length - 1].left + geometry[geometry.length - 1].headWidth;
+    const center = (left + right) / 2;
+    const direction = tuplet.above ? -1 : 1;
+    // The line the number and bracket sit on, a little clear of the stems.
+    const y = (tuplet.above ? Math.min(...outer) : Math.max(...outer)) + direction * 1.4 * space;
+
+    const shapes: SVGElement[] = [];
+    if (tuplet.showNumber) {
+      const number = svg('text', {
+        x: center,
+        y: y + space * 0.75, // tuplet digits are about a space and a half tall
+        fill: 'currentColor',
+        'font-size': space * 3.4,
+        'font-family': MUSIC_FONT,
+        'text-anchor': 'middle',
+      });
+      number.textContent = tupletDigits(tuplet.number);
+      shapes.push(number);
+    }
+    if (tuplet.bracket) {
+      const gap = tuplet.showNumber ? space * 1.1 : 0;
+      const hook = -direction * space * 0.8; // hooks point towards the notes
+      const line = { stroke: 'currentColor', 'stroke-width': space * 0.12, fill: 'none' };
+      shapes.push(
+        svg('polyline', { points: `${left},${y + hook} ${left},${y} ${center - gap},${y}`, ...line }),
+        svg('polyline', { points: `${center + gap},${y} ${right},${y} ${right},${y + hook}`, ...line }),
+      );
     }
     return shapes;
   }

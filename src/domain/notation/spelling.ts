@@ -5,8 +5,8 @@
 
 /** Note letters as scale steps: 0 Do, 1 Re, 2 Mi, 3 Fa, 4 Sol, 5 La, 6 Si. */
 export type Letter = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-/** −1 flat, 0 natural, +1 sharp. */
-export type Alteration = -1 | 0 | 1;
+/** −1 flat, 0 natural, +1 sharp; ±2 (double) only appear in written notation. */
+export type Alteration = -2 | -1 | 0 | 1 | 2;
 
 export interface SpelledPitch {
   readonly letter: Letter;
@@ -41,9 +41,15 @@ export function keyAlteration(letter: Letter, fifths: number): Alteration {
   return 0;
 }
 
-export type Accidental = 'sharp' | 'flat' | 'natural';
+export type Accidental = 'sharp' | 'flat' | 'natural' | 'double-sharp' | 'double-flat';
 
-const ACCIDENTALS: Record<Alteration, Accidental> = { 1: 'sharp', [-1]: 'flat', 0: 'natural' };
+const ACCIDENTALS: Record<Alteration, Accidental> = {
+  2: 'double-sharp',
+  1: 'sharp',
+  0: 'natural',
+  [-1]: 'flat',
+  [-2]: 'double-flat',
+};
 
 /**
  * Which accidental to print before each note of one bar on one staff, following the rules:

@@ -2,6 +2,7 @@ import { noteEnd, type Hand } from '../../domain/note';
 import { writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
+import type { WrittenNote } from '../../domain/notation/written';
 import { barAtBeat, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
 import { groupBeams } from './beams';
 import { beatPosition, type Clef } from './staffLayout';
@@ -47,10 +48,24 @@ export interface Beam {
   readonly stemUp: boolean;
 }
 
+/** A tuplet group: "3" over three notes played in the time of two. */
+export interface Tuplet {
+  /** Indices into NotationLayout.chords, left to right. */
+  readonly chords: readonly number[];
+  /** The number shown, e.g. 3 for a triplet. */
+  readonly number: number;
+  readonly showNumber: boolean;
+  /** A bracket is drawn when the group is not one beam (or when the source asks for it). */
+  readonly bracket: boolean;
+  /** On the stem side: above when stems go up. */
+  readonly above: boolean;
+}
+
 export interface NotationLayout {
   /** Sorted by start time. */
   readonly chords: readonly StaffChord[];
   readonly beams: readonly Beam[];
+  readonly tuplets: readonly Tuplet[];
 }
 
 /** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
@@ -98,10 +113,18 @@ interface Placed {
 }
 
 /**
- * Turns a score into what the staff draws: chords with notehead positions, accidentals, note
- * values, stem directions, ledger lines and beams. One voice per staff, no ties or rests yet.
+ * Turns a score into what the staff draws. When the source carries notation (MusicXML), the
+ * printed notes are laid out as written; otherwise (MIDI) the notation is inferred.
  */
 export function layoutNotation(score: Score): NotationLayout {
+  return score.written && score.written.length > 0 ? layoutWritten(score, score.written) : inferNotation(score);
+}
+
+/**
+ * Infers notation from sounding notes (MIDI): quantization, spelling, accidentals by the rules,
+ * note values, stem directions, ledger lines and beams by beat. No ties, rests or tuplets.
+ */
+function inferNotation(score: Score): NotationLayout {
   const placed: Placed[] = score.notes.map((note) => {
     const { beat, beats } = quantize(note.beat, note.beats);
     const bar = barAtBeat(score, beat);
@@ -186,7 +209,111 @@ export function layoutNotation(score: Score): NotationLayout {
     for (const i of indices) beamed[i] = { ...chords[i], stemUp, beam: beamIndex };
     return { chords: [...indices].sort((a, b) => chords[a].beat - chords[b].beat), stemUp };
   });
-  return { chords: beamed, beams };
+  return { chords: beamed, beams, tuplets: [] };
+}
+
+/**
+ * Lays out printed notes (MusicXML) exactly as written: values, accidentals, stems, beams and
+ * tuplets come from the file, and pitches sit where the clef in force puts them.
+ */
+function layoutWritten(score: Score, written: readonly WrittenNote[]): NotationLayout {
+  // A note marked as a chord shares the stem of the note before it.
+  const groups: WrittenNote[][] = [];
+  for (const note of written) {
+    if (note.chord && groups.length > 0) groups[groups.length - 1].push(note);
+    else groups.push([note]);
+  }
+
+  const entries = groups.map((group) => {
+    const first = group[0];
+    const staff: Clef = first.staff >= 2 ? 'bass' : 'treble';
+    const bar = barAtBeat(score, first.beat);
+    const notes = group
+      // The clef in force (not the staff) decides where a pitch sits.
+      .map((note) => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental }))
+      .sort((a, b) => a.step - b.step);
+    const top = notes[0].step;
+    const bottom = notes[notes.length - 1].step;
+    const chord: StaffChord = {
+      staff,
+      hand: first.hand,
+      x: beatPosition(score, bar, first.beat),
+      beat: first.beat,
+      bar,
+      beam: null,
+      handMark: false,
+      notes,
+      duration: first.duration,
+      stemUp: first.stem ? first.stem === 'up' : stemUpFor(top, bottom),
+      ledgerSteps: ledgerSteps(top, bottom),
+      start: Math.min(...group.map((n) => n.start)),
+      end: Math.max(...group.map((n) => n.end)),
+    };
+    return { chord, group, voice: `${first.staff}|${first.voice}` };
+  });
+  entries.sort((a, b) => a.chord.start - b.chord.start || a.chord.beat - b.chord.beat);
+  const chords = entries.map((entry) => entry.chord);
+
+  // Walk each voice in order, following the file's beam and tuplet marks.
+  const beams: Beam[] = [];
+  const tuplets: Tuplet[] = [];
+  const byVoice = groupBy(
+    entries.map((entry, index) => ({ ...entry, index })),
+    (entry) => entry.voice,
+  );
+  for (const voice of byVoice.values()) {
+    let beam: number[] = [];
+    let tuplet: { chords: number[]; number: number; showNumber: boolean; bracket: boolean | null } | null = null;
+    const closeBeam = () => {
+      if (beam.length >= 2) {
+        const index = beams.length;
+        beams.push({ chords: beam, stemUp: chords[beam[0]].stemUp });
+        for (const i of beam) chords[i] = { ...chords[i], beam: index };
+      }
+      beam = [];
+    };
+
+    for (const { group, index } of voice) {
+      const mark = group[0].beams[0];
+      if (mark === 'begin') closeBeam();
+      if (mark === 'begin' || mark === 'continue' || mark === 'end') beam.push(index);
+      else closeBeam();
+      if (mark === 'end') closeBeam();
+
+      const start = group.find((n) => n.tupletStart)?.tupletStart;
+      if (start) {
+        tuplet = {
+          chords: [],
+          number: group.find((n) => n.tuplet)?.tuplet?.actual ?? 3,
+          showNumber: start.showNumber,
+          bracket: start.bracket,
+        };
+      }
+      tuplet?.chords.push(index);
+      if (tuplet && group.some((n) => n.tupletStop)) {
+        tuplets.push(finishTuplet(tuplet, chords));
+        tuplet = null;
+      }
+    }
+    closeBeam();
+  }
+  return { chords, beams, tuplets };
+}
+
+/** A bracket unless the whole group hangs from one beam; the number goes on the stem side. */
+function finishTuplet(
+  tuplet: { chords: number[]; number: number; showNumber: boolean; bracket: boolean | null },
+  chords: readonly StaffChord[],
+): Tuplet {
+  const beam = chords[tuplet.chords[0]].beam;
+  const oneBeam = beam !== null && tuplet.chords.every((i) => chords[i].beam === beam);
+  return {
+    chords: tuplet.chords,
+    number: tuplet.number,
+    showNumber: tuplet.showNumber,
+    bracket: tuplet.bracket ?? !oneBeam,
+    above: chords[tuplet.chords[0]].stemUp,
+  };
 }
 
 /**

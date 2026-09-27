@@ -1,4 +1,5 @@
 import { noteEnd, type Note } from './note';
+import type { Clef, ClefChange, WrittenNote } from './notation/written';
 
 export interface TimeRange {
   readonly start: number;
@@ -38,6 +39,10 @@ export interface Score {
   readonly duration: number;
   /** Where the last note ends, in quarter notes. */
   readonly endBeat: number;
+  /** The notes as printed, when the source has notation (MusicXML); the staff then uses them. */
+  readonly written: readonly WrittenNote[] | null;
+  /** Clefs per staff, sorted by beat; empty means treble on the upper staff and bass on the lower. */
+  readonly clefs: readonly ClefChange[];
 }
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
@@ -46,6 +51,8 @@ export interface ScoreMusic {
   readonly barBeats?: readonly number[];
   readonly timeSignatures?: readonly TimeSignature[];
   readonly keySignatures?: readonly KeySignature[];
+  readonly written?: readonly WrittenNote[];
+  readonly clefs?: readonly ClefChange[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -106,6 +113,8 @@ export function createScore(
     ),
     duration,
     endBeat,
+    written: music.written ?? null,
+    clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
   };
 }
 
@@ -205,3 +214,13 @@ export function beatAt(score: Score, time: number): number {
 /** How many quarter notes a bar of this metre lasts: 3/4 → 3, 6/8 → 3, 2/2 → 4. */
 export const barLengthInBeats = ({ numerator, denominator }: TimeSignature): number =>
   (numerator * 4) / denominator;
+
+/** The clef in force on a staff (1 upper, 2 lower) at `beat`. */
+export function clefAt(score: Score, staff: number, beat: number): Clef {
+  let clef: Clef = staff === 1 ? 'treble' : 'bass';
+  for (const change of score.clefs) {
+    if (change.beat > beat + 1e-9) break;
+    if (change.staff === staff) clef = change.clef;
+  }
+  return clef;
+}

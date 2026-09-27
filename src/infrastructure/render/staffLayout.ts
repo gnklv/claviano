@@ -56,7 +56,8 @@ export function beatPosition(score: Score, bar: number, beat: number): number {
   return bars.starts[bar] + ((beat - score.barBeats[bar]) / barLength(score, bar)) * bars.widths[bar];
 }
 
-export type Clef = 'treble' | 'bass';
+export type { Clef } from '../../domain/notation/written';
+import type { Clef } from '../../domain/notation/written';
 
 /*
  * Vertical positions on a staff are counted in "steps": half a staff space, from the top line

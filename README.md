@@ -49,7 +49,8 @@ src/
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch.
                        MusicXmlParser — uncompressed MusicXML (.musicxml/.xml) via DOMParser:
-                       pitches, timing, staves as hands, signatures, tempo, dynamics, ties.
+                       sounding notes for playback (ties merged) and the notes as printed
+                       (value, tuplet, accidental, stem, beams, clef) for the staff.
     audio/             WebAudioSynth — additive synth with a piano-like envelope.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + keyboard on Canvas 2D, showing only
@@ -58,8 +59,8 @@ src/
                        (keyboardCamera); swipe or Shift+wheel to look around.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
-                       the notes laid out by notationLayout and beamed by beams.ts;
-                       sounding notes light up.
+                       the notes laid out by notationLayout (as written for MusicXML,
+                       inferred for MIDI) and beamed by beams.ts; sounding notes light up.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
@@ -81,7 +82,8 @@ timer jitter; the view only reads `playback.position` each frame.
 - [ ] Sustain pedal from MIDI CC 64
 - [ ] Web MIDI input and "wait mode"
 - [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
-- [ ] MusicXML stage 2: staff from the written notation (values, voices, beams, tuplets)
+- [x] MusicXML stage 2: staff as written (values, tuplets, accidentals, stems, beams, clef changes)
+- [ ] Stage 3: rests, tie arcs
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

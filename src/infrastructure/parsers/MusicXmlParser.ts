@@ -1,11 +1,14 @@
 import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreParser';
 import type { Hand, Note } from '../../domain/note';
+import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
+import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
+import type { BeamMark, Clef, ClefChange, WrittenNote } from '../../domain/notation/written';
 import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
 
 /*
  * MusicXML (https://www.w3.org/2021/06/musicxml40/): the notation format of MuseScore, Finale,
- * Sibelius and others. Stage 1 reads what playback needs: pitches, timing, staves (as hands),
- * key and time signatures, tempo and dynamics. Tied notes become one sounding note.
+ * Sibelius and others. It gives two views of the music: sounding notes for playback (tied notes
+ * become one), and the notes as printed for the staff (value, tuplet, accidental, stem, beams).
  *
  * Only uncompressed files (.musicxml, .xml); compressed .mxl archives are not read.
  * Not yet: repeats and voltas (the piece plays straight through), grace notes (skipped),
@@ -17,6 +20,32 @@ const DEFAULT_TEMPO = 120;
 const DEFAULT_DYNAMICS = 80;
 
 const STEP_SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const STEP_LETTERS: Record<string, Letter> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+
+/** MusicXML note types we can draw; shorter ones are drawn as thirty-seconds, longer as wholes. */
+const NOTE_TYPES: Record<string, NoteValue> = {
+  breve: 'whole',
+  whole: 'whole',
+  half: 'half',
+  quarter: 'quarter',
+  eighth: 'eighth',
+  '16th': 'sixteenth',
+  '32nd': 'thirtySecond',
+  '64th': 'thirtySecond',
+  '128th': 'thirtySecond',
+};
+
+const ACCIDENTALS: Record<string, Accidental> = {
+  sharp: 'sharp',
+  flat: 'flat',
+  natural: 'natural',
+  'double-sharp': 'double-sharp',
+  'sharp-sharp': 'double-sharp',
+  'flat-flat': 'double-flat',
+  'double-flat': 'double-flat',
+};
+
+const BEAM_MARKS = new Set<string>(['begin', 'continue', 'end', 'forward hook', 'backward hook']);
 
 export class InvalidMusicXmlError extends ScoreLoadError {
   constructor(message: string, code: 'invalid-file' | 'unsupported-feature' = 'invalid-file') {
@@ -67,6 +96,9 @@ interface PendingNote {
   hand: Hand;
 }
 
+/** A printed note before its seconds are known (they need the whole tempo map). */
+type PendingWritten = Omit<WrittenNote, 'start' | 'end'> & { beats: number };
+
 function readPart(part: Element, title: string): Score {
   let divisions = 1;
   let staves = 1;
@@ -75,6 +107,13 @@ function readPart(part: Element, title: string): Score {
   let timeSignature: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
 
   const notes: PendingNote[] = [];
+  const written: PendingWritten[] = [];
+  const clefChanges: ClefChange[] = [];
+  /** The clef in force on each staff; engravers may switch the lower staff to treble and back. */
+  const clefs = new Map<number, Clef>([
+    [1, 'treble'],
+    [2, 'bass'],
+  ]);
   const barBeats: number[] = [];
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
@@ -99,6 +138,14 @@ function readPart(part: Element, title: string): Score {
           const fifths = key && childNumber(key, 'fifths');
           if (key && fifths !== null) {
             keySignatures.push({ beat: beatAt(cursor), fifths, minor: childText(key, 'mode') === 'minor' });
+          }
+          for (const clef of element.querySelectorAll(':scope > clef')) {
+            const sign = childText(clef, 'sign');
+            if (sign !== 'G' && sign !== 'F') continue; // C clefs are rare in piano music
+            const staff = Number(clef.getAttribute('number') ?? 1);
+            const value: Clef = sign === 'G' ? 'treble' : 'bass';
+            clefs.set(staff, value);
+            clefChanges.push({ staff, beat: beatAt(cursor), clef: value });
           }
           const time = element.querySelector(':scope > time');
           const numerator = time && childNumber(time, 'beats');
@@ -145,6 +192,10 @@ function readPart(part: Element, title: string): Score {
           const tieKey = `${pitch}|${staff}`;
 
           const beats = duration / divisions;
+          const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
+          const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
+          written.push(readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats }));
+
           const continued = ties.includes('stop') ? openTies.get(tieKey) : undefined;
           if (continued) {
             // The second half of a tie: the note keeps sounding, so lengthen the first one.
@@ -157,7 +208,7 @@ function readPart(part: Element, title: string): Score {
             beat: beatAt(start),
             beats,
             velocity: Math.min(1, ((noteDynamics > 0 ? noteDynamics : dynamics) * 0.9) / 127),
-            hand: staves > 1 && staff > 1 ? 'left' : 'right',
+            hand,
           };
           notes.push(note);
           if (ties.includes('start')) openTies.set(tieKey, note);
@@ -167,8 +218,8 @@ function readPart(part: Element, title: string): Score {
     }
 
     // A pickup bar is shorter than its time signature says; trust what the measure contains.
-    const written = (timeSignature.numerator * 4) / timeSignature.denominator;
-    measureStart += longest > 0 ? longest / divisions : written;
+    const nominal = (timeSignature.numerator * 4) / timeSignature.denominator;
+    measureStart += longest > 0 ? longest / divisions : nominal;
   }
 
   const toSeconds = beatsToSecondsConverter(tempos);
@@ -186,8 +237,69 @@ function readPart(part: Element, title: string): Score {
       }),
     ),
     barBeats.map(toSeconds),
-    { barBeats, timeSignatures, keySignatures },
+    {
+      barBeats,
+      timeSignatures,
+      keySignatures,
+      clefs: clefChanges,
+      written: written.map(({ beats, ...note }) => ({
+        ...note,
+        start: toSeconds(note.beat),
+        end: toSeconds(note.beat + beats),
+      })),
+    },
   );
+}
+
+/** The printed side of a <note>: what the engraver wrote, taken as is. */
+function readWritten(
+  element: Element,
+  pitchElement: Element,
+  at: { staff: number; clef: Clef; hand: Hand; isChord: boolean; beat: number; beats: number },
+): PendingWritten {
+  const alter = Math.max(-2, Math.min(2, Math.round(childNumber(pitchElement, 'alter') ?? 0))) as Alteration;
+  const type = NOTE_TYPES[childText(element, 'type') ?? ''];
+  const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;
+
+  const modification = element.querySelector(':scope > time-modification');
+  const actual = modification && childNumber(modification, 'actual-notes');
+  const normal = modification && childNumber(modification, 'normal-notes');
+  const tuplets = [...element.querySelectorAll(':scope > notations > tuplet')];
+  const start = tuplets.find((t) => t.getAttribute('type') === 'start');
+  const bracket = start?.getAttribute('bracket');
+
+  const beams: BeamMark[] = [];
+  for (const beam of element.querySelectorAll(':scope > beam')) {
+    const level = Number(beam.getAttribute('number') ?? 1);
+    const mark = beam.textContent?.trim() ?? '';
+    if (level >= 1 && BEAM_MARKS.has(mark)) beams[level - 1] = mark as BeamMark;
+  }
+  const stem = childText(element, 'stem');
+
+  return {
+    staff: at.staff,
+    voice: childText(element, 'voice') ?? '1',
+    hand: at.hand,
+    chord: at.isChord,
+    clef: at.clef,
+    pitch: {
+      letter: STEP_LETTERS[childText(pitchElement, 'step') ?? ''],
+      octave: childNumber(pitchElement, 'octave') ?? 4,
+      alteration: alter,
+    },
+    beat: at.beat,
+    beats: at.beats,
+    // Without <type>, fall back to the value its length suggests (undoing any tuplet squeeze).
+    duration: type ? { value: type, dots } : writtenDuration(at.beats * (actual && normal ? actual / normal : 1)),
+    tuplet: actual && normal ? { actual, normal } : null,
+    tupletStart: start
+      ? { showNumber: start.getAttribute('show-number') !== 'none', bracket: bracket === 'yes' ? true : bracket === 'no' ? false : null }
+      : null,
+    tupletStop: tuplets.some((t) => t.getAttribute('type') === 'stop'),
+    accidental: ACCIDENTALS[childText(element, 'accidental') ?? ''] ?? null,
+    stem: stem === 'up' || stem === 'down' ? stem : null,
+    beams: [...beams].map((mark) => mark ?? 'continue'),
+  };
 }
 
 /** MusicXML writes pitches like notation: step E, alter +1, octave 5 is Mi♯5. */

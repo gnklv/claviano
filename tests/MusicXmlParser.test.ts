@@ -142,4 +142,55 @@ describe('MusicXmlParser', () => {
   it('says timewise scores are not supported yet', () => {
     expect(() => parser.parse(bytes('<score-timewise/>'), 'x')).toThrow(expect.objectContaining({ code: 'unsupported-feature' }));
   });
+
+  describe('the notes as printed', () => {
+    const triplet = (step: string, marks: string) =>
+      note(step, 5, 1, {
+        extra: `<voice>1</voice><type>eighth</type><time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification><stem>down</stem>${marks}`,
+      });
+    const printed = parser.parse(
+      score(`<measure number="1">${attributes(3)}
+        ${triplet('C', '<beam number="1">begin</beam><notations><tuplet type="start" bracket="no"/></notations>')}
+        ${triplet('E', '<beam number="1">continue</beam><accidental>natural</accidental>')}
+        ${triplet('G', '<beam number="1">end</beam><notations><tuplet type="stop"/></notations>')}
+        <note><rest/><duration>9</duration></note></measure>`),
+      'test',
+    ).written!;
+
+    it('keeps value, tuplet, stem, beams and printed accidentals', () => {
+      expect(printed).toHaveLength(3);
+      expect(printed[0]).toMatchObject({
+        duration: { value: 'eighth', dots: 0 },
+        tuplet: { actual: 3, normal: 2 },
+        tupletStart: { showNumber: true, bracket: false },
+        stem: 'down',
+        beams: ['begin'],
+        pitch: { letter: 0, octave: 5, alteration: 0 },
+      });
+      expect(printed[1]).toMatchObject({ accidental: 'natural', beams: ['continue'] });
+      expect(printed[2]).toMatchObject({ tupletStop: true, beams: ['end'] });
+    });
+
+    it('keeps both halves of a tie as printed notes', () => {
+      const tied = parser.parse(
+        score(`
+          <measure number="1">${attributes()}${rest(6)}${note('G', 4, 2, { extra: '<type>quarter</type><tie type="start"/>' })}</measure>
+          <measure number="2">${note('G', 4, 4, { extra: '<type>half</type><tie type="stop"/>' })}${rest(4)}</measure>`),
+        'test',
+      );
+      expect(tied.notes).toHaveLength(1);
+      expect(tied.written!.map((n) => n.duration.value)).toEqual(['quarter', 'half']);
+    });
+
+    it('follows clef changes on a staff', () => {
+      const s = parser.parse(
+        score(`
+          <measure number="1">${attributes()}${note('C', 3, 8, { staff: 2 })}</measure>
+          <measure number="2"><attributes><clef number="2"><sign>G</sign><line>2</line></clef></attributes>${note('E', 5, 8, { staff: 2 })}</measure>`),
+        'test',
+      );
+      expect(s.clefs).toContainEqual({ staff: 2, beat: 4, clef: 'treble' });
+      expect(s.written!.map((n) => n.clef)).toEqual(['bass', 'treble']);
+    });
+  });
 });
