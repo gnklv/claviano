@@ -36,6 +36,8 @@ export interface Score {
   /** Sorted by beat, the first one at beat 0. */
   readonly keySignatures: readonly KeySignature[];
   readonly duration: number;
+  /** Where the last note ends, in quarter notes. */
+  readonly endBeat: number;
 }
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
@@ -78,6 +80,7 @@ export function createScore(
 ): Score {
   const sortedNotes = [...notes].sort((a, b) => a.start - b.start || a.pitch - b.pitch);
   const duration = sortedNotes.reduce((max, note) => Math.max(max, noteEnd(note)), 0);
+  const endBeat = sortedNotes.reduce((max, note) => Math.max(max, note.beat + note.beats), 0);
 
   // Bars and their beats travel together, so they stay aligned after filtering and sorting.
   const barPairs = bars
@@ -102,6 +105,7 @@ export function createScore(
       (a, b) => a.fifths === b.fifths && a.minor === b.minor,
     ),
     duration,
+    endBeat,
   };
 }
 
@@ -132,11 +136,31 @@ export const barAt = (score: Score, time: number): number =>
 export const barAtBeat = (score: Score, beat: number): number =>
   Math.max(0, lastIndexAtOrBefore(score.barBeats, beat + 1e-9));
 
-/** How many quarter notes bar `index` lasts. */
+/**
+ * How many quarter notes bar `index` lasts. The last bar has no next bar to measure against:
+ * it lasts until the music ends, but no longer than its time signature allows.
+ */
 export function barLength(score: Score, index: number): number {
   const start = score.barBeats[index];
-  return (score.barBeats[index + 1] ?? start + barLengthInBeats(timeSignatureAt(score, start))) - start;
+  const next = score.barBeats[index + 1];
+  if (next !== undefined) return next - start;
+  const nominal = barLengthInBeats(timeSignatureAt(score, start));
+  const untilEnd = score.endBeat - start;
+  return untilEnd > 0 ? Math.min(nominal, untilEnd) : nominal;
 }
+
+/**
+ * Whether the piece opens with a pickup (anacrusis): a first bar shorter than its time signature,
+ * like the two sixteenths before the first full bar of Für Elise.
+ */
+export const hasPickup = (score: Score): boolean =>
+  score.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
+
+/** The number printed for bar `index` (zero-based): a pickup is bar 0, the first full bar is 1. */
+export const barNumber = (score: Score, index: number): number => index + (hasPickup(score) ? 0 : 1);
+
+/** The index of the bar printed as `number`, the inverse of barNumber. */
+export const barIndexOf = (score: Score, number: number): number => number - (hasPickup(score) ? 0 : 1);
 
 /** Time range covering bars `from..to` inclusive (zero-based). */
 export function barRange(score: Score, from: number, to: number): TimeRange {

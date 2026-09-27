@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createScore } from '../src/domain/score';
-import { barPosition, keySignatureSteps } from '../src/infrastructure/render/staffLayout';
+import { barPosition, beatPosition, keySignatureSteps, tapeBars } from '../src/infrastructure/render/staffLayout';
 
 /** Bars at 0, 2 and 4 seconds; the last one ends at 5 seconds (it is shorter). */
 const score = createScore(
@@ -50,5 +50,42 @@ describe('keySignatureSteps', () => {
   it('has at most seven accidentals', () => {
     expect(keySignatureSteps(7, 'treble')).toHaveLength(7);
     expect(keySignatureSteps(-7, 'bass')).toHaveLength(7);
+  });
+});
+
+describe('tapeBars', () => {
+  // Für Elise-like: 3/8 (1.5 quarters) with a pickup of one eighth (0.5 quarters). 60 BPM.
+  const pickup = createScore(
+    'test',
+    [{ pitch: 76, start: 0, duration: 3.5, beat: 0, beats: 3.5, velocity: 1, hand: 'right' }],
+    [0, 0.5, 2],
+    { barBeats: [0, 0.5, 2], timeSignatures: [{ beat: 0, numerator: 3, denominator: 8 }] },
+  );
+
+  it('makes a pickup as wide as the part of the bar it fills', () => {
+    const { starts, widths } = tapeBars(pickup);
+    expect(widths[0]).toBeCloseTo(1 / 3);
+    expect(widths[1]).toBe(1);
+    expect(starts[1]).toBeCloseTo(1 / 3);
+  });
+
+  it('places time and beats consistently on the narrower bar', () => {
+    expect(barPosition(pickup, 0.25)).toBeCloseTo(1 / 6); // half-way through the pickup
+    expect(beatPosition(pickup, 0, 0.25)).toBeCloseTo(1 / 6);
+    expect(beatPosition(pickup, 1, 1.25)).toBeCloseTo(1 / 3 + 0.5);
+  });
+
+  it('leaves full bars one unit wide', () => {
+    expect(tapeBars(score).widths).toEqual([1, 1, 1]);
+  });
+
+  it('narrows a last bar the music does not fill, as when it completes a pickup', () => {
+    const shortEnd = createScore(
+      'test',
+      [{ pitch: 76, start: 0, duration: 3, beat: 0, beats: 3, velocity: 1, hand: 'right' }],
+      [0, 0.5, 2],
+      { barBeats: [0, 0.5, 2], timeSignatures: [{ beat: 0, numerator: 3, denominator: 8 }] },
+    );
+    expect(tapeBars(shortEnd).widths[2]).toBeCloseTo(2 / 3);
   });
 });

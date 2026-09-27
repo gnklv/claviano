@@ -2,9 +2,9 @@ import { noteEnd, type Hand } from '../../domain/note';
 import { writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
-import { barAtBeat, barLength, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
+import { barAtBeat, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
 import { groupBeams } from './beams';
-import type { Clef } from './staffLayout';
+import { beatPosition, type Clef } from './staffLayout';
 
 /** One notehead of a chord. */
 export interface StaffNote {
@@ -111,7 +111,7 @@ export function layoutNotation(score: Score): NotationLayout {
       hand: note.hand,
       bar,
       beat,
-      x: bar + (beat - score.barBeats[bar]) / barLength(score, bar),
+      x: beatPosition(score, bar, beat),
       pitch: note.pitch,
       spelled,
       duration: writtenDuration(beats),

@@ -1,4 +1,5 @@
 import {
+  barNumber,
   beatAt,
   keySignatureAt,
   timeSignatureAt,
@@ -12,7 +13,7 @@ import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
 import { beamLine, beamY } from './beams';
 import { layoutNotation, type Beam, type StaffChord } from './notationLayout';
-import { barPosition, keySignatureSteps, type Clef } from './staffLayout';
+import { barPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -405,8 +406,9 @@ export class SvgStaff {
       );
     }
 
+    const tape = tapeBars(score);
     score.bars.forEach((_, index) => {
-      const x = index * barWidth - gap;
+      const x = tape.starts[index] * barWidth - gap;
       this.strip.append(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
       const number = svg('text', {
         x: x + space * 0.4,
@@ -415,12 +417,12 @@ export class SvgStaff {
         'font-size': space * 1.1,
         'font-family': 'system-ui, sans-serif',
       });
-      number.textContent = String(index + 1);
+      number.textContent = String(barNumber(score, index));
       this.strip.append(number);
     });
 
     // Final bar line: a thin and a thick one.
-    const end = score.bars.length * barWidth - gap;
+    const end = tape.end * barWidth - gap;
     this.strip.append(
       svg('line', { x1: end - space * 0.6, x2: end - space * 0.6, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }),
       svg('line', { x1: end, x2: end, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': space * 0.4 }),

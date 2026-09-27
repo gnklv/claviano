@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import type { Hand } from '../../domain/note';
-import { barAt, barRange } from '../../domain/score';
+import { barAt, barIndexOf, barNumber, barRange } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
@@ -14,7 +14,9 @@ const { playback } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
-const barCount = computed(() => state.value.score?.bars.length ?? 0);
+/** Bar numbers as printed: a pickup is bar 0, so the first and last numbers depend on the score. */
+const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
+const lastBar = computed(() => (state.value.score ? barNumber(state.value.score, state.value.score.bars.length - 1) : 1));
 
 const tempoPercent = computed({
   get: () => Math.round(state.value.tempo * 100),
@@ -33,7 +35,7 @@ const currentBar = ref<number | null>(null);
 const barLabel = computed(() =>
   currentBar.value === null
     ? t('barPositionEmpty')
-    : t('barPosition', { current: currentBar.value + 1, total: barCount.value }),
+    : t('barPosition', { current: barNumber(state.value.score!, currentBar.value), total: lastBar.value }),
 );
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
@@ -68,7 +70,9 @@ const loopTo = ref(4);
 watch([loopEnabled, loopFrom, loopTo], () => {
   const score = playback.score;
   if (!score) return;
-  playback.setLoop(loopEnabled.value ? barRange(score, loopFrom.value - 1, loopTo.value - 1) : null);
+  playback.setLoop(
+    loopEnabled.value ? barRange(score, barIndexOf(score, loopFrom.value), barIndexOf(score, loopTo.value)) : null,
+  );
 });
 
 // Loading a new score resets the loop in Playback; keep the checkbox in sync.
@@ -142,9 +146,9 @@ function togglePlay(): void {
         <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
           ↻ {{ t('loop') }}
         </button>
-        <input v-model.number="loopFrom" class="number" type="number" min="1" :max="barCount" :aria-label="t('loopFrom')" />
+        <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
         –
-        <input v-model.number="loopTo" class="number" type="number" min="1" :max="barCount" :aria-label="t('loopTo')" />
+        <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
       </div>
     </div>
   </footer>

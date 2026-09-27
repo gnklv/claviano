@@ -1,6 +1,6 @@
 import { noteEnd, type Hand } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
-import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
+import { barNumber, firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 import { approach, clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
 import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
 
@@ -272,7 +272,7 @@ export class CanvasPianoRoll {
       ctx.fillStyle = this.colors.barLine;
       ctx.fillRect(0, y, this.width, 1);
       ctx.fillStyle = this.colors.barNumber;
-      ctx.fillText(String(index + 1), 6, y - 2);
+      ctx.fillText(String(barNumber(frame.score, index)), 6, y - 2);
     });
   }
 

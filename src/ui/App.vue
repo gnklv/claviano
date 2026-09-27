@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/ScoreParser';
-import { barAt, type Score } from '../domain/score';
+import { barAt, barNumber, type Score } from '../domain/score';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import PianoRoll from './components/PianoRoll.vue';
 import StaffView from './components/StaffView.vue';
@@ -41,7 +41,8 @@ const title = computed(() => {
   if (!score) return t('emptyHint');
   return t('scoreSummary', {
     title: score === demo ? t('demoTitle') : score.title,
-    bars: t('barsCount', { count: score.bars.length }),
+    // A pickup is not counted as a bar of its own: the count is the last bar's number.
+    bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
     notes: t('notesCount', { count: score.notes.length }),
   });
 });

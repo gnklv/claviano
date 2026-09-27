@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Note } from '../src/domain/note';
-import { barLengthInBeats, beatAt, createScore, keySignatureAt, timeSignatureAt } from '../src/domain/score';
+import {
+  barIndexOf,
+  barLengthInBeats,
+  barNumber,
+  beatAt,
+  createScore,
+  hasPickup,
+  keySignatureAt,
+  timeSignatureAt,
+} from '../src/domain/score';
 
 /** One long note, so the score lasts 12 seconds. At 60 BPM a beat is a second. */
 const note: Note = { pitch: 60, start: 0, duration: 12, beat: 0, beats: 12, velocity: 1, hand: 'right' };
@@ -69,5 +78,28 @@ describe('barLengthInBeats', () => {
     expect(barLengthInBeats({ beat: 0, numerator: 3, denominator: 4 })).toBe(3);
     expect(barLengthInBeats({ beat: 0, numerator: 6, denominator: 8 })).toBe(3);
     expect(barLengthInBeats({ beat: 0, numerator: 2, denominator: 2 })).toBe(4);
+  });
+});
+
+describe('bar numbers', () => {
+  // 3/4 with a one-beat pickup: bars start at beats 0, 1, 4.
+  const withPickup = createScore('test', [note], [0, 1, 4], {
+    barBeats: [0, 1, 4],
+    timeSignatures: [{ beat: 0, numerator: 3, denominator: 4 }],
+  });
+
+  it('recognises a pickup: a first bar shorter than its time signature', () => {
+    expect(hasPickup(withPickup)).toBe(true);
+    expect(hasPickup(score)).toBe(false);
+  });
+
+  it('numbers a pickup 0 and the first full bar 1', () => {
+    expect([0, 1, 2].map((i) => barNumber(withPickup, i))).toEqual([0, 1, 2]);
+    expect(barIndexOf(withPickup, 1)).toBe(1);
+  });
+
+  it('numbers bars from 1 without a pickup', () => {
+    expect([0, 1, 2].map((i) => barNumber(score, i))).toEqual([1, 2, 3]);
+    expect(barIndexOf(score, 1)).toBe(0);
   });
 });
