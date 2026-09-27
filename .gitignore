@@ -4,3 +4,5 @@ dist
 
 /.idea
 /.claude
+# Local MIDI files for manual testing (not ours to redistribute casually)
+samples/

@@ -46,7 +46,9 @@ src/
     audio/             WebAudioSynth — additive synth with a piano-like envelope.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + keyboard on Canvas 2D, showing only
-                       the octaves the piece uses (keyboardRange).
+                       the octaves the piece uses (keyboardRange). When keys would get too
+                       narrow, the keyboard scrolls and a lazy camera follows the music
+                       (keyboardCamera); swipe or Shift+wheel to look around.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.

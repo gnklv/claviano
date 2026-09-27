@@ -1,11 +1,14 @@
 import { noteEnd, type Hand } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
+import { approach, clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
 import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
 
 export interface RollFrame {
   readonly score: Score;
   readonly position: number;
+  /** The camera only returns to following the music while it is playing. */
+  readonly playing: boolean;
   readonly loop: TimeRange | null;
   readonly isHandEnabled: (hand: Hand) => boolean;
   /** How to label a key on screen; the UI supplies it in the current language. */
@@ -59,10 +62,29 @@ const MIN_KEY_LENGTH_RATIO = 2.5;
 const MAX_KEYBOARD_SHARE = 0.45;
 const MIN_KEYBOARD_PX = 40;
 const MAX_KEYBOARD_PX = 140;
+/*
+ * Scrolling. When the piece's range would make white keys narrower than SCROLL_BELOW_PX,
+ * keys get SCROLL_KEY_PX instead and the keyboard becomes wider than the screen.
+ */
+const SCROLL_BELOW_PX = 16;
+const SCROLL_KEY_PX = 20;
+/**
+ * The camera keeps the notes of the next few seconds in view; when they don't fit together,
+ * it narrows down to the nearer ones (see pickSpan)…
+ */
+const FOLLOW_LOOKAHEADS_SECONDS = [2, 1, 0.5];
+/** …with this many white keys to spare at the edge… */
+const FOLLOW_MARGIN_KEYS = 1;
+/** …unless the user scrolled by hand; then it waits this long (of playing time) before following again. */
+const MANUAL_HOLD_SECONDS = 3;
+/** A position change bigger than this between frames is a seek: the camera jumps instead of gliding. */
+const SEEK_THRESHOLD_SECONDS = 0.5;
 
 /**
  * Falling notes above a piano keyboard, drawn from scratch on a 2D canvas.
- * Only the part of the keyboard the piece uses is shown (see keyboardRange).
+ * Only the part of the keyboard the piece uses is shown (see keyboardRange). When even that
+ * would make keys too narrow, the keyboard scrolls: a camera follows the music (keyboardCamera),
+ * and the user can scroll by hand with scrollBy().
  */
 export class CanvasPianoRoll {
   private readonly ctx: CanvasRenderingContext2D;
@@ -70,13 +92,23 @@ export class CanvasPianoRoll {
   private height = 0;
   private keys = new Map<number, KeyRect>();
   private keyboardHeight = MIN_KEYBOARD_PX;
+  private keyWidth = 0;
+  /** Width of the whole keyboard; more than the canvas width when it scrolls. */
+  private contentWidth = 0;
   /** What the current key layout was computed for; it is redone when any of these change. */
   private layoutScore: Score | null = null;
   private layoutWidth = -1;
   private layoutHeight = -1;
   private colors: RollColors = DEFAULT_COLORS;
-  private cachedScore: Score | null = null;
   private longestNote = 0;
+
+  // Camera state
+  private scrollX = 0;
+  private manualHold = false;
+  private manualIdleSeconds = 0;
+  private snapCamera = true;
+  private lastPosition = 0;
+  private lastRenderAt = 0;
   /** Seconds ahead shown in the current frame; less than the maximum on short screens. */
   private secondsVisible = 4;
 
@@ -93,6 +125,19 @@ export class CanvasPianoRoll {
 
   setColors(colors: RollColors): void {
     this.colors = colors;
+  }
+
+  /** True when the keyboard is wider than the screen and can be scrolled. */
+  get scrollable(): boolean {
+    return this.contentWidth > this.width + 1;
+  }
+
+  /** Manual scrolling (swipe, trackpad). Pauses the camera until the music plays on for a while. */
+  scrollBy(dx: number): void {
+    if (!this.scrollable) return;
+    this.scrollX = clampOffset(this.scrollX + dx, this.cameraView());
+    this.manualHold = true;
+    this.manualIdleSeconds = 0;
   }
 
   /** Call when the canvas's CSS size changes. */
@@ -116,13 +161,22 @@ export class CanvasPianoRoll {
     const pxPerSecond = rollHeight / this.secondsVisible;
     const yOf = (time: number) => rollHeight - (time - frame.position) * pxPerSecond;
 
+    const now = performance.now();
+    const dt = this.lastRenderAt ? Math.min(0.1, (now - this.lastRenderAt) / 1000) : 0;
+    this.lastRenderAt = now;
+    this.updateCamera(frame, dt);
+
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
 
+    // Loop and bar lines span the screen; notes and keys move with the camera.
     this.drawLoop(frame, yOf, rollHeight);
     this.drawBars(frame, yOf, rollHeight);
+    ctx.save();
+    ctx.translate(-this.scrollX, 0);
     const active = this.drawNotes(frame, yOf, rollHeight);
     this.drawKeyboard(rollHeight, keyboardHeight, active, frame.noteLabel);
+    ctx.restore();
 
     ctx.fillStyle = this.colors.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
@@ -134,13 +188,66 @@ export class CanvasPianoRoll {
     const tallest = Math.max(MIN_KEYBOARD_PX, Math.min(MAX_KEYBOARD_PX, height * MAX_KEYBOARD_SHARE));
     const maxKeyWidth = Math.min(MAX_WHITE_KEY_PX, tallest / MIN_KEY_LENGTH_RATIO);
     const range = keyboardRange(score, width, maxKeyWidth);
-    const keyWidth = width / whiteKeyCount(range);
+    const whiteKeys = whiteKeyCount(range);
+    const fitWidth = width / whiteKeys;
+    const keyWidth = fitWidth >= SCROLL_BELOW_PX ? fitWidth : Math.min(SCROLL_KEY_PX, maxKeyWidth);
 
-    this.keys = layoutKeys(width, range);
+    this.keys = layoutKeys(keyWidth, range);
+    this.keyWidth = keyWidth;
+    this.contentWidth = whiteKeys * keyWidth;
     this.keyboardHeight = Math.min(tallest, Math.max(MIN_KEYBOARD_PX, keyWidth * KEY_LENGTH_RATIO));
+    this.longestNote = score.notes.reduce((max, n) => Math.max(max, n.duration), 0);
+    if (score !== this.layoutScore) this.manualHold = false;
+    this.snapCamera = true;
     this.layoutScore = score;
     this.layoutWidth = width;
     this.layoutHeight = height;
+  }
+
+  private cameraView(): CameraView {
+    return { contentWidth: this.contentWidth, viewWidth: this.width };
+  }
+
+  private updateCamera(frame: RollFrame, dt: number): void {
+    const seeked = Math.abs(frame.position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
+    this.lastPosition = frame.position;
+    if (!this.scrollable) {
+      this.scrollX = 0;
+      return;
+    }
+
+    // After a manual scroll the camera waits; the wait only counts down while the music plays.
+    if (this.manualHold) {
+      if (!frame.playing) return;
+      this.manualIdleSeconds += dt;
+      if (this.manualIdleSeconds < MANUAL_HOLD_SECONDS) return;
+      this.manualHold = false;
+    }
+
+    const view = this.cameraView();
+    const margin = FOLLOW_MARGIN_KEYS * this.keyWidth;
+    const spans = FOLLOW_LOOKAHEADS_SECONDS.map((seconds) => this.upcomingSpan(frame, seconds));
+    const target = followTarget(this.scrollX, pickSpan(spans, view.viewWidth, margin), view, margin);
+    this.scrollX = this.snapCamera || seeked ? target : approach(this.scrollX, target, dt);
+    this.snapCamera = false;
+  }
+
+  /** Where on the keyboard the notes sounding now and in the next `seconds` are. */
+  private upcomingSpan(frame: RollFrame, seconds: number): Span | null {
+    const { score, position } = frame;
+    const until = position + seconds;
+    let left = Infinity;
+    let right = -Infinity;
+    for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
+      const note = score.notes[i];
+      if (note.start > until) break;
+      if (noteEnd(note) <= position) continue;
+      const key = this.keys.get(note.pitch);
+      if (!key) continue;
+      left = Math.min(left, key.x);
+      right = Math.max(right, key.x + key.width);
+    }
+    return left <= right ? { left, right } : null;
   }
 
   private drawLoop(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {
@@ -173,11 +280,6 @@ export class CanvasPianoRoll {
   private drawNotes(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): Map<number, Hand> {
     const { ctx } = this;
     const { score, position } = frame;
-    if (score !== this.cachedScore) {
-      this.cachedScore = score;
-      this.longestNote = score.notes.reduce((max, n) => Math.max(max, n.duration), 0);
-    }
-
     const active = new Map<number, Hand>();
     const until = position + this.secondsVisible;
     const { notes } = score;
@@ -244,8 +346,7 @@ export class CanvasPianoRoll {
   }
 }
 
-function layoutKeys(width: number, range: KeyRange): Map<number, KeyRect> {
-  const whiteWidth = width / whiteKeyCount(range);
+function layoutKeys(whiteWidth: number, range: KeyRange): Map<number, KeyRect> {
   const blackWidth = whiteWidth * 0.6;
   const keys = new Map<number, KeyRect>();
   let whiteIndex = 0;

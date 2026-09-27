@@ -27,19 +27,59 @@ watch(theme, () => roll?.setColors(readRollColors()), { flush: 'post' });
 onUnmounted(() => resizeObserver.disconnect());
 
 // Drawn outside Vue's reactivity: 60 fps straight from Playback to the canvas.
-useAnimationFrame(() =>
-  roll?.render({
+useAnimationFrame(() => {
+  if (!roll) return;
+  roll.render({
     score: playback.score ?? EMPTY_SCORE,
     position: playback.position,
+    playing: playback.playing,
     loop: playback.loop,
     isHandEnabled: (hand) => playback.isHandEnabled(hand),
     noteLabel,
-  }),
-);
+  });
+  canvas.value?.classList.toggle('scrollable', roll.scrollable);
+});
+
+// --- Manual scrolling of a keyboard wider than the screen ---
+
+/** The finger or mouse currently dragging the keyboard, and where it was last. */
+let drag: { pointerId: number; x: number } | null = null;
+
+function onPointerDown(event: PointerEvent): void {
+  if (!roll?.scrollable || drag) return;
+  drag = { pointerId: event.pointerId, x: event.clientX };
+  canvas.value?.setPointerCapture(event.pointerId);
+}
+
+function onPointerMove(event: PointerEvent): void {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  roll?.scrollBy(drag.x - event.clientX);
+  drag.x = event.clientX;
+}
+
+function onPointerEnd(event: PointerEvent): void {
+  if (drag?.pointerId === event.pointerId) drag = null;
+}
+
+/** Trackpads scroll sideways directly; with a mouse wheel, hold Shift. */
+function onWheel(event: WheelEvent): void {
+  const dx = event.deltaX || (event.shiftKey ? event.deltaY : 0);
+  if (!dx || !roll?.scrollable) return;
+  event.preventDefault();
+  roll.scrollBy(dx);
+}
 </script>
 
 <template>
-  <canvas ref="canvas" class="roll" />
+  <canvas
+    ref="canvas"
+    class="roll"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerEnd"
+    @pointercancel="onPointerEnd"
+    @wheel="onWheel"
+  />
 </template>
 
 <style scoped>
@@ -47,5 +87,15 @@ useAnimationFrame(() =>
   display: block;
   width: 100%;
   height: 100%;
+  /* Sideways swipes are ours (keyboard scrolling); vertical scroll and pinch zoom stay the browser's. */
+  touch-action: pan-y pinch-zoom;
+}
+
+.roll.scrollable {
+  cursor: grab;
+}
+
+.roll.scrollable:active {
+  cursor: grabbing;
 }
 </style>
