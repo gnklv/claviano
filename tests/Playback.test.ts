@@ -30,10 +30,13 @@ class FakeTicker implements Ticker {
   }
 }
 
+/** At 60 BPM a beat lasts one second, so seconds and beats coincide. */
 const note = (pitch: number, start: number, duration = 0.5, hand: Hand = 'right'): Note => ({
   pitch,
   start,
   duration,
+  beat: start,
+  beats: duration,
   velocity: 0.8,
   hand,
 });

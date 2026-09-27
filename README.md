@@ -37,7 +37,9 @@ Clean architecture: dependencies point inwards only.
 
 ```
 src/
-  domain/            Note, Score, solfège pitch helpers. No dependencies.
+  domain/            Note, Score, solfège pitch helpers. No dependencies. Notes carry two clocks:
+                     seconds (playback) and beats in quarter notes (notation); scores carry
+                     time and key signatures.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands), LoadScore.
@@ -49,7 +51,8 @@ src/
                        the octaves the piece uses (keyboardRange). When keys would get too
                        narrow, the keyboard scrolls and a lazy camera follows the music
                        (keyboardCamera); swipe or Shift+wheel to look around.
-                       SvgStaff — grand staff as a tape scrolling under a fixed cursor.
+                       SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
+                       the key and time signatures in force at the cursor (staffLayout).
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them

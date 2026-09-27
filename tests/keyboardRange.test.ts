@@ -7,7 +7,7 @@ import { keyboardRange, whiteKeyCount } from '../src/infrastructure/render/keybo
 const scoreWith = (...pitches: number[]) =>
   createScore(
     'test',
-    pitches.map((p, i): Note => ({ pitch: p, start: i, duration: 1, velocity: 1, hand: 'right' })),
+    pitches.map((p, i): Note => ({ pitch: p, start: i, duration: 1, beat: i, beats: 1, velocity: 1, hand: 'right' })),
     [0],
   );
 

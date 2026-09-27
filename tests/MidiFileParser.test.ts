@@ -37,6 +37,10 @@ const tempo = (bpm: number): Event => {
 const timeSignature = (numerator: number, denominatorPower: number): Event =>
   [0, 0xff, 0x58, 4, numerator, denominatorPower, 24, 8];
 
+/** Key signature meta event: sharps (+) or flats (−), and major/minor. */
+const keySignature = (delta: number, fifths: number, minor = false): Event =>
+  [delta, 0xff, 0x59, 2, fifths & 0xff, minor ? 1 : 0];
+
 const parser = new MidiFileParser();
 
 describe('MidiFileParser', () => {
@@ -102,6 +106,56 @@ describe('MidiFileParser', () => {
     ]);
     const score = parser.parse(file, 'test');
     expect(score.bars).toEqual([0, 1.5, 3]);
+    expect(score.barBeats).toEqual([0, 3, 6]);
+  });
+
+  it('gives notes their musical time in quarter notes', () => {
+    const file = midiFile(480, [
+      track([
+        tempo(90), // tempo must not matter for beats
+        [0, 0x90, 60, 100],
+        [240, 0x80, 60, 0], // an eighth
+        [0, 0x90, 62, 100],
+        [720, 0x80, 62, 0], // a dotted quarter
+      ]),
+    ]);
+    const [eighth, dottedQuarter] = parser.parse(file, 'test').notes;
+    expect(eighth).toMatchObject({ beat: 0, beats: 0.5 });
+    expect(dottedQuarter).toMatchObject({ beat: 0.5, beats: 1.5 });
+  });
+
+  it('reads time signatures with their position in beats', () => {
+    const file = midiFile(480, [
+      track([
+        timeSignature(3, 3), // 3/8
+        [0, 0x90, 60, 100],
+        [480 * 6, 0x80, 60, 0],
+      ]),
+    ]);
+    expect(parser.parse(file, 'test').timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 8 }]);
+  });
+
+  it('reads key signatures: sharps, flats and changes during the piece', () => {
+    const file = midiFile(480, [
+      track([
+        keySignature(0, 3), // La major: three sharps
+        [0, 0x90, 60, 100],
+        [480 * 4, 0x80, 60, 0],
+        keySignature(0, -2, true), // Sol minor: two flats, from beat 4
+        [0, 0x90, 62, 100],
+        [480, 0x80, 62, 0],
+      ]),
+    ]);
+    expect(parser.parse(file, 'test').keySignatures).toEqual([
+      { beat: 0, fifths: 3, minor: false },
+      { beat: 4, fifths: -2, minor: true },
+    ]);
+  });
+
+  it('defaults to 4/4 in Do major when the file says nothing', () => {
+    const score = parser.parse(midiFile(480, [track([[0, 0x90, 60, 100], [480, 0x80, 60, 0]])]), 'test');
+    expect(score.timeSignatures).toEqual([{ beat: 0, numerator: 4, denominator: 4 }]);
+    expect(score.keySignatures).toEqual([{ beat: 0, fifths: 0, minor: false }]);
   });
 
   it('assigns hands by track, the higher track being the right hand', () => {

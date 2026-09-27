@@ -5,21 +5,104 @@ export interface TimeRange {
   readonly end: number;
 }
 
+/** Metre from `beat` on, e.g. 3/4 or 6/8. */
+export interface TimeSignature {
+  /** Where it starts, in quarter notes. */
+  readonly beat: number;
+  readonly numerator: number;
+  /** A power of two: 4 = quarter notes, 8 = eighths. */
+  readonly denominator: number;
+}
+
+/** Key from `beat` on, written as the number of sharps or flats at the clef. */
+export interface KeySignature {
+  /** Where it starts, in quarter notes. */
+  readonly beat: number;
+  /** Positive: that many sharps; negative: flats; 0: none (Do major / La minor). */
+  readonly fifths: number;
+  readonly minor: boolean;
+}
+
 export interface Score {
   readonly title: string;
   /** Sorted by start time. */
   readonly notes: readonly Note[];
   /** Start time of every bar in seconds, sorted, first one is 0. */
   readonly bars: readonly number[];
+  /** Start of every bar in quarter notes; same indices as `bars`. */
+  readonly barBeats: readonly number[];
+  /** Sorted by beat, the first one at beat 0. */
+  readonly timeSignatures: readonly TimeSignature[];
+  /** Sorted by beat, the first one at beat 0. */
+  readonly keySignatures: readonly KeySignature[];
   readonly duration: number;
 }
 
-export function createScore(title: string, notes: readonly Note[], bars: readonly number[]): Score {
+/** Musical details a source may or may not provide; sensible defaults fill the gaps. */
+export interface ScoreMusic {
+  /** Same length and order as the bars passed to createScore. Default: every bar is 4 quarters. */
+  readonly barBeats?: readonly number[];
+  readonly timeSignatures?: readonly TimeSignature[];
+  readonly keySignatures?: readonly KeySignature[];
+}
+
+export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
+export const DEFAULT_KEY_SIGNATURE: KeySignature = { beat: 0, fifths: 0, minor: false };
+
+/**
+ * Sorts events by beat and makes sure one starts at beat 0. Files often repeat the same event
+ * (e.g. the key once per track): at one beat the last event wins, and a repeat of the previous
+ * value is dropped.
+ */
+function fromBeatZero<T extends { readonly beat: number }>(
+  events: readonly T[] | undefined,
+  fallback: T,
+  sameValue: (a: T, b: T) => boolean,
+): T[] {
+  const sorted = [...(events ?? [])].sort((a, b) => a.beat - b.beat);
+  if (sorted.length === 0 || sorted[0].beat > 0) sorted.unshift(fallback);
+  const result: T[] = [];
+  for (const event of sorted) {
+    if (result.length > 0 && result[result.length - 1].beat === event.beat) result.pop();
+    if (result.length > 0 && sameValue(result[result.length - 1], event)) continue;
+    result.push(event);
+  }
+  return result;
+}
+
+export function createScore(
+  title: string,
+  notes: readonly Note[],
+  bars: readonly number[],
+  music: ScoreMusic = {},
+): Score {
   const sortedNotes = [...notes].sort((a, b) => a.start - b.start || a.pitch - b.pitch);
   const duration = sortedNotes.reduce((max, note) => Math.max(max, noteEnd(note)), 0);
-  const sortedBars = bars.filter((bar) => bar < duration).sort((a, b) => a - b);
-  if (sortedBars[0] !== 0) sortedBars.unshift(0);
-  return { title, notes: sortedNotes, bars: sortedBars, duration };
+
+  // Bars and their beats travel together, so they stay aligned after filtering and sorting.
+  const barPairs = bars
+    .map((time, index) => ({ time, beat: music.barBeats?.[index] ?? index * 4 }))
+    .filter((bar) => bar.time < duration)
+    .sort((a, b) => a.time - b.time);
+  if (barPairs[0]?.time !== 0) barPairs.unshift({ time: 0, beat: 0 });
+
+  return {
+    title,
+    notes: sortedNotes,
+    bars: barPairs.map((bar) => bar.time),
+    barBeats: barPairs.map((bar) => bar.beat),
+    timeSignatures: fromBeatZero(
+      music.timeSignatures,
+      DEFAULT_TIME_SIGNATURE,
+      (a, b) => a.numerator === b.numerator && a.denominator === b.denominator,
+    ),
+    keySignatures: fromBeatZero(
+      music.keySignatures,
+      DEFAULT_KEY_SIGNATURE,
+      (a, b) => a.fifths === b.fifths && a.minor === b.minor,
+    ),
+    duration,
+  };
 }
 
 export const EMPTY_SCORE: Score = createScore('', [], []);
@@ -65,3 +148,26 @@ export function firstNoteAtOrAfter(score: Score, time: number): number {
   }
   return lo;
 }
+
+/** The time signature in force at `beat`. */
+export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
+  score.timeSignatures[Math.max(0, lastIndexAtOrBefore(score.timeSignatures.map((s) => s.beat), beat))];
+
+/** The key signature in force at `beat`. */
+export const keySignatureAt = (score: Score, beat: number): KeySignature =>
+  score.keySignatures[Math.max(0, lastIndexAtOrBefore(score.keySignatures.map((s) => s.beat), beat))];
+
+/** Beat position (quarter notes) of `time` in seconds, by interpolating inside its bar. */
+export function beatAt(score: Score, time: number): number {
+  const index = barAt(score, time);
+  const start = score.bars[index];
+  const end = score.bars[index + 1] ?? score.duration;
+  const startBeat = score.barBeats[index];
+  const endBeat = score.barBeats[index + 1] ?? startBeat + barLengthInBeats(timeSignatureAt(score, startBeat));
+  const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
+  return startBeat + fraction * (endBeat - startBeat);
+}
+
+/** How many quarter notes a bar of this metre lasts: 3/4 → 3, 6/8 → 3, 2/2 → 4. */
+export const barLengthInBeats = ({ numerator, denominator }: TimeSignature): number =>
+  (numerator * 4) / denominator;

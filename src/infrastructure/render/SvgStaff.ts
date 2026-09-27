@@ -1,5 +1,13 @@
-import type { Score, TimeRange } from '../../domain/score';
-import { barPosition } from './staffLayout';
+import {
+  beatAt,
+  keySignatureAt,
+  timeSignatureAt,
+  type KeySignature,
+  type Score,
+  type TimeRange,
+  type TimeSignature,
+} from '../../domain/score';
+import { barPosition, keySignatureSteps, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -19,8 +27,16 @@ const BARS_VISIBLE = 2.2;
 /** Narrower bars would not leave room for notes; wider ones waste a wide screen. */
 const MIN_BAR_WIDTH = 16;
 const MAX_BAR_WIDTH = 40;
-/** Left column with the clefs; it does not scroll. */
-const GUTTER = 7;
+/*
+ * The left column does not scroll: clefs, then the key signature, then the time signature.
+ * Its width fits the widest signatures of the piece, so a key change doesn't shift the tape.
+ */
+const CLEF_AREA = 4.2;
+const SHARP_ADVANCE = 1.1;
+const FLAT_ADVANCE = 1.0;
+const TIME_DIGIT_WIDTH = 1.8;
+const SIGNATURE_GAP = 0.6;
+const GUTTER_END_GAP = 1.2;
 /** The cursor stands at this share of the tape's width, leaving room to read ahead. */
 const CURSOR_AT = 0.3;
 /** Share of the tape's width over which each edge fades out. */
@@ -44,6 +60,12 @@ const COLORS = {
 const MUSIC_FONT = 'Bravura';
 const G_CLEF = '\uE050';
 const F_CLEF = '\uE062';
+const SHARP = '\uE262';
+const FLAT = '\uE260';
+/** Time signature digits 0–9 are consecutive code points from U+E080. */
+const timeDigits = (value: number) =>
+  [...String(value)].map((digit) => String.fromCodePoint(0xe080 + Number(digit))).join('');
+const digitCount = (value: number) => String(value).length;
 
 /** Paint goes through `style`, not attributes: only CSS understands var(--…) colors. */
 const PAINT = new Set(['fill', 'stroke']);
@@ -81,6 +103,12 @@ export class SvgStaff {
   private width = 0;
   private height = 0;
   private lastOffset = Number.NaN;
+  /** Width of the left column in staff spaces, fitted to the piece's signatures. */
+  private gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
+  /** Beat under the cursor; the left column shows the signatures in force there. */
+  private currentBeat = 0;
+  /** Which signatures the left column shows now; it is redrawn when they change. */
+  private shownSignatures = '';
 
   constructor(private readonly container: HTMLElement) {
     container.style.position = 'relative';
@@ -110,6 +138,9 @@ export class SvgStaff {
 
   setScore(score: Score | null): void {
     this.score = score;
+    this.currentBeat = 0;
+    this.gutterSpaces = this.fitGutter(score);
+    this.drawBackground();
     this.drawStrip();
   }
 
@@ -129,6 +160,10 @@ export class SvgStaff {
 
   /** Called every frame; touches the DOM only when the tape actually moves. */
   render(position: number): void {
+    if (this.score) {
+      this.currentBeat = beatAt(this.score, position);
+      if (this.signaturesKey() !== this.shownSignatures) this.drawBackground();
+    }
     const x = this.score ? barPosition(this.score, position) * this.barWidth() : 0;
     const offset = Math.round((this.cursorX() - x) * 10) / 10;
     if (offset === this.lastOffset) return;
@@ -139,7 +174,26 @@ export class SvgStaff {
   // --- Geometry (pixels) ---
 
   private gutterWidth(): number {
-    return GUTTER * this.space;
+    return this.gutterSpaces * this.space;
+  }
+
+  /** Room for the clefs plus the widest key and time signatures that occur in the piece. */
+  private fitGutter(score: Score | null): number {
+    if (!score || score.notes.length === 0) return CLEF_AREA + GUTTER_END_GAP;
+    const keyWidth = Math.max(...score.keySignatures.map((key) => keySignatureWidth(key)));
+    const timeWidth = Math.max(...score.timeSignatures.map((time) => timeSignatureWidth(time)));
+    return CLEF_AREA + keyWidth + timeWidth + GUTTER_END_GAP;
+  }
+
+  private currentSignatures(): { key: KeySignature; time: TimeSignature } | null {
+    const score = this.score;
+    if (!score || score.notes.length === 0) return null;
+    return { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) };
+  }
+
+  private signaturesKey(): string {
+    const current = this.currentSignatures();
+    return current ? `${current.key.fifths} ${current.time.numerator}/${current.time.denominator}` : '';
   }
 
   /** Bar width in pixels: about two bars on the tape, so phones see what comes next too. */
@@ -202,6 +256,8 @@ export class SvgStaff {
       this.glyph(F_CLEF, space * 1.2, this.bassTop() + 1 * space),
     );
 
+    this.drawSignatures();
+
     this.tape.style.left = `${gutter}px`;
     Object.assign(this.cursor.style, {
       left: `${gutter + this.cursorX() - 1}px`,
@@ -211,9 +267,48 @@ export class SvgStaff {
     this.lastOffset = Number.NaN;
   }
 
+  /** Key signature and time signature after the clefs, on both staves. */
+  private drawSignatures(): void {
+    const current = this.currentSignatures();
+    this.shownSignatures = this.signaturesKey();
+    if (!current) return;
+    const { key, time } = current;
+    const { space } = this;
+    const staves: [Clef, number][] = [
+      ['treble', this.trebleTop()],
+      ['bass', this.bassTop()],
+    ];
+
+    // Each accidental sits on its line or space: a step is half a staff space.
+    const keyX = CLEF_AREA * space;
+    const advance = (key.fifths >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
+    for (const [clef, top] of staves) {
+      keySignatureSteps(key.fifths, clef).forEach((step, index) => {
+        this.background.append(this.glyph(key.fifths > 0 ? SHARP : FLAT, keyX + index * advance, top + (step * space) / 2));
+      });
+    }
+
+    // Time signature digits are two spaces tall and centred on their baseline:
+    // the numerator fills the upper half of the staff, the denominator the lower half.
+    const timeCenter = keyX + keySignatureWidth(key) * space + (timeSignatureWidth(time) * space) / 2;
+    for (const [, top] of staves) {
+      this.background.append(
+        this.glyph(timeDigits(time.numerator), timeCenter, top + space, 'middle'),
+        this.glyph(timeDigits(time.denominator), timeCenter, top + 3 * space, 'middle'),
+      );
+    }
+  }
+
   /** A SMuFL glyph whose reference line (baseline) is at `y`. */
-  private glyph(codepoint: string, x: number, y: number): SVGTextElement {
-    const text = svg('text', { x, y, fill: COLORS.clef, 'font-size': this.space * 4, 'font-family': MUSIC_FONT });
+  private glyph(codepoint: string, x: number, y: number, anchor: 'start' | 'middle' = 'start'): SVGTextElement {
+    const text = svg('text', {
+      x,
+      y,
+      fill: COLORS.clef,
+      'font-size': this.space * 4,
+      'font-family': MUSIC_FONT,
+      'text-anchor': anchor,
+    });
     text.textContent = codepoint;
     return text;
   }
@@ -258,4 +353,15 @@ export class SvgStaff {
     );
     this.lastOffset = Number.NaN;
   }
+}
+
+/** Width of a key signature in staff spaces, including the gap after it. */
+function keySignatureWidth({ fifths }: KeySignature): number {
+  if (fifths === 0) return 0;
+  return Math.abs(fifths) * (fifths > 0 ? SHARP_ADVANCE : FLAT_ADVANCE) + SIGNATURE_GAP;
+}
+
+/** Width of a time signature in staff spaces, set by its longer number (e.g. 12 in 12/8). */
+function timeSignatureWidth({ numerator, denominator }: TimeSignature): number {
+  return Math.max(digitCount(numerator), digitCount(denominator)) * TIME_DIGIT_WIDTH;
 }

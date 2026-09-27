@@ -13,3 +13,25 @@ export function barPosition(score: Score, time: number): number {
   const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
   return index + fraction;
 }
+
+export type Clef = 'treble' | 'bass';
+
+/*
+ * Vertical positions on a staff are counted in "steps": half a staff space, from the top line
+ * downwards. 0 is the top line, 1 the space below it, 2 the second line … 8 the bottom line;
+ * negative steps are above the staff.
+ *
+ * Key signature accidentals always go in the same order and at the same places:
+ * sharps Fa Do Sol Re La Mi Si, flats Si Mi La Re Sol Do Fa. On the treble staff the first sharp
+ * (Fa) sits on the top line; on the bass staff everything is two steps lower (a third down).
+ */
+const SHARP_STEPS_TREBLE = [0, 3, -1, 2, 5, 1, 4];
+const FLAT_STEPS_TREBLE = [4, 1, 5, 2, 6, 3, 7];
+const BASS_OFFSET = 2;
+
+/** Staff steps of the key signature's accidentals, in the order they are written. */
+export function keySignatureSteps(fifths: number, clef: Clef): number[] {
+  const steps = fifths >= 0 ? SHARP_STEPS_TREBLE : FLAT_STEPS_TREBLE;
+  const offset = clef === 'bass' ? BASS_OFFSET : 0;
+  return steps.slice(0, Math.min(7, Math.abs(fifths))).map((step) => step + offset);
+}

@@ -31,11 +31,19 @@ interface TimeSignatureEvent {
   denominator: number;
 }
 
+interface KeySignatureEvent {
+  tick: number;
+  /** -7..7: flats are negative, sharps positive. */
+  fifths: number;
+  minor: boolean;
+}
+
 interface MidiData {
   ticksPerQuarter: number;
   notes: RawNote[];
   tempos: TempoEvent[];
   timeSignatures: TimeSignatureEvent[];
+  keySignatures: KeySignatureEvent[];
   lastTick: number;
 }
 
@@ -105,19 +113,32 @@ export class MidiFileParser implements ScoreParser {
     const toSeconds = tickToSecondsConverter(midi.tempos, midi.ticksPerQuarter);
     const handOf = handAssigner(midi.notes);
 
+    // Ticks count in fractions of a quarter note, so musical time is a plain division.
+    const toBeats = (tick: number) => tick / midi.ticksPerQuarter;
+
     const notes: Note[] = midi.notes.map((raw) => {
       const start = toSeconds(raw.startTick);
       return {
         pitch: raw.pitch,
         start,
         duration: Math.max(0, toSeconds(raw.endTick) - start),
+        beat: toBeats(raw.startTick),
+        beats: toBeats(raw.endTick - raw.startTick),
         velocity: raw.velocity / 127,
         hand: handOf(raw),
       };
     });
 
-    const bars = barTicks(midi.timeSignatures, midi.ticksPerQuarter, midi.lastTick).map(toSeconds);
-    return createScore(title, notes, bars);
+    const bars = barTicks(midi.timeSignatures, midi.ticksPerQuarter, midi.lastTick);
+    return createScore(title, notes, bars.map(toSeconds), {
+      barBeats: bars.map(toBeats),
+      timeSignatures: midi.timeSignatures.map(({ tick, numerator, denominator }) => ({
+        beat: toBeats(tick),
+        numerator,
+        denominator,
+      })),
+      keySignatures: midi.keySignatures.map(({ tick, fifths, minor }) => ({ beat: toBeats(tick), fifths, minor })),
+    });
   }
 }
 
@@ -138,6 +159,7 @@ function readMidi(reader: ByteReader): MidiData {
     notes: [],
     tempos: [],
     timeSignatures: [],
+    keySignatures: [],
     lastTick: 0,
   };
 
@@ -184,6 +206,13 @@ function readTrack(reader: ByteReader, end: number, track: number, data: MidiDat
         data.tempos.push({ tick, usPerQuarter: (reader.u8() << 16) | (reader.u8() << 8) | reader.u8() });
       } else if (type === 0x58 && length >= 2) {
         data.timeSignatures.push({ tick, numerator: reader.u8(), denominator: 2 ** reader.u8() });
+      } else if (type === 0x59 && length === 2) {
+        const sharpsOrFlats = reader.u8();
+        data.keySignatures.push({
+          tick,
+          fifths: sharpsOrFlats > 127 ? sharpsOrFlats - 256 : sharpsOrFlats, // a signed byte
+          minor: reader.u8() === 1,
+        });
       } else if (type === 0x2f) {
         reader.pos = payloadEnd;
         break;

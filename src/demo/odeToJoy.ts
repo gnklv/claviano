@@ -29,12 +29,20 @@ const bass: readonly Part[] = [
   [...chord(Sol2, Re3, 2), ...chord(Do3, Sol3, 2)],
 ];
 
+/** Both clocks of a note: seconds for playback (slightly detached), beats for notation (exact). */
+const timing = (beat: number, beats: number, secondsPerBeat: number) => ({
+  start: beat * secondsPerBeat,
+  duration: beats * secondsPerBeat * 0.95,
+  beat,
+  beats,
+});
+
 function sequence(part: Part, hand: Hand, secondsPerBeat: number): Note[] {
   const notes: Note[] = [];
   let beat = 0;
   for (const [midi, beats] of part) {
     if (midi !== null) {
-      notes.push({ pitch: midi, start: beat * secondsPerBeat, duration: beats * secondsPerBeat * 0.95, velocity: 0.7, hand });
+      notes.push({ pitch: midi, ...timing(beat, beats, secondsPerBeat), velocity: 0.7, hand });
     }
     beat += beats;
   }
@@ -50,7 +58,7 @@ function chords(bars: readonly Part[], hand: Hand, secondsPerBeat: number): Note
       const beats = bar[i][1];
       for (const [midi] of [bar[i], bar[i + 1]]) {
         if (midi === null) continue;
-        notes.push({ pitch: midi, start: beat * secondsPerBeat, duration: beats * secondsPerBeat * 0.95, velocity: 0.45, hand });
+        notes.push({ pitch: midi, ...timing(beat, beats, secondsPerBeat), velocity: 0.45, hand });
       }
       beat += beats;
     }
@@ -62,10 +70,15 @@ function chords(bars: readonly Part[], hand: Hand, secondsPerBeat: number): Note
 export function odeToJoy(title: string, bpm = 100): Score {
   const secondsPerBeat = 60 / bpm;
   const barCount = 8;
-  const bars = Array.from({ length: barCount }, (_, i) => i * 4 * secondsPerBeat);
+  const barBeats = Array.from({ length: barCount }, (_, i) => i * 4);
   return createScore(
     title,
     [...sequence(melody, 'right', secondsPerBeat), ...chords(bass, 'left', secondsPerBeat)],
-    bars,
+    barBeats.map((beat) => beat * secondsPerBeat),
+    {
+      barBeats,
+      timeSignatures: [{ beat: 0, numerator: 4, denominator: 4 }],
+      keySignatures: [{ beat: 0, fifths: 0, minor: false }], // Do major
+    },
   );
 }
