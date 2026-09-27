@@ -21,7 +21,7 @@ Every push to `master` runs the tests, builds and deploys to GitHub Pages
 
 **Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
 playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties,
-key/time/clef/tempo/dynamics changes, a wide range). It is built by `scripts/showcase.ts`
+key/time/clef/tempo/dynamics changes, a wide range, articulations, fermatas, slurs). It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 `tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
 
@@ -90,7 +90,9 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
 - [x] MusicXML stage 2: staff as written (values, tuplets, accidentals, stems, beams, clef changes)
 - [x] Stage 3: rests (placement rules, whole-bar rests, two voices) and tie arcs (MusicXML)
-- [ ] Stage 4: articulations and slurs (legato)
+- [x] Stage 4: articulations (staccato, staccatissimo, tenuto, portato, accent, marcato), fermatas
+      and slurs from MusicXML; staccato plays shorter, accents louder
+- [ ] Repeats and voltas; fermata timing
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

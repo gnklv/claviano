@@ -2,7 +2,7 @@ import { noteEnd, type Hand } from '../../domain/note';
 import { writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
-import type { WrittenNote, WrittenRest } from '../../domain/notation/written';
+import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { barAtBeat, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
 import { groupBeams } from './beams';
 import { beatPosition, tapeBars, type Clef } from './staffLayout';
@@ -82,6 +82,24 @@ export interface Tie {
   readonly above: boolean;
 }
 
+/** A sign at a chord: an articulation or a fermata. */
+export interface StaffMark {
+  readonly chord: number;
+  readonly kind: Articulation | 'fermata';
+  readonly above: boolean;
+  /** Vertical reference of the glyph, in staff steps. */
+  readonly step: number;
+}
+
+/** A phrasing slur (legato) from one chord to another. */
+export interface StaffSlur {
+  readonly from: number;
+  readonly to: number;
+  readonly above: boolean;
+  /** Chords on the same staff between its ends, which it must pass clear of. */
+  readonly between: readonly number[];
+}
+
 export interface NotationLayout {
   /** Sorted by start time. */
   readonly chords: readonly StaffChord[];
@@ -89,6 +107,8 @@ export interface NotationLayout {
   readonly tuplets: readonly Tuplet[];
   readonly rests: readonly StaffRest[];
   readonly ties: readonly Tie[];
+  readonly marks: readonly StaffMark[];
+  readonly slurs: readonly StaffSlur[];
 }
 
 /** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
@@ -234,7 +254,7 @@ function inferNotation(score: Score): NotationLayout {
     for (const i of indices) beamed[i] = { ...chords[i], stemUp, beam: beamIndex };
     return { chords: [...indices].sort((a, b) => chords[a].beat - chords[b].beat), stemUp };
   });
-  return { chords: beamed, beams, tuplets: [], rests: [], ties: [] };
+  return { chords: beamed, beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
 }
 
 /**
@@ -328,7 +348,116 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     tuplets,
     rests: layoutRests(score, rests, written),
     ties: layoutTies(entries.map((entry) => entry.group), chords),
+    marks: layoutMarks(score, entries.map((entry) => entry.group), chords, written, rests),
+    slurs: layoutSlurs(entries.map((entry) => entry.group), chords),
   };
+}
+
+/** Voices present on each staff in each bar ("staff|bar" → voices), for two-voice rules. */
+function voicesByStaffAndBar(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): Map<string, Set<string>> {
+  const voices = new Map<string, Set<string>>();
+  for (const item of [...written, ...rests]) {
+    const key = `${item.staff}|${barAtBeat(score, item.beat)}`;
+    voices.set(key, (voices.get(key) ?? new Set<string>()).add(item.voice));
+  }
+  return voices;
+}
+
+/** Articulations that sit right at the notehead come first; accents stack outside them. */
+const CLOSE_ARTICULATIONS: readonly Articulation[] = ['staccato', 'staccatissimo', 'tenuto', 'portato'];
+const OUTER_ARTICULATIONS: readonly Articulation[] = ['accent', 'marcato'];
+/** A stem is 3.5 spaces: 7 steps. */
+const STEM_STEPS = 7;
+const TOP_LINE_STEP = 0;
+
+/**
+ * Where articulations and fermatas go. Articulations sit on the notehead side (away from the stem),
+ * one space from the note, and dots and dashes move off a line into the next space; with two
+ * voices on the staff they go on the stem side instead, so each voice keeps its own. Several
+ * articulations stack outward. A fermata goes above the staff (under it when inverted), clear of
+ * everything else.
+ */
+function layoutMarks(
+  score: Score,
+  groups: readonly (readonly WrittenNote[])[],
+  chords: readonly StaffChord[],
+  written: readonly WrittenNote[],
+  rests: readonly WrittenRest[],
+): StaffMark[] {
+  const voices = voicesByStaffAndBar(score, written, rests);
+  const marks: StaffMark[] = [];
+  groups.forEach((group, index) => {
+    const chord = chords[index];
+    const articulations = new Set(group.flatMap((note) => note.articulations));
+    const fermata = group.find((note) => note.fermata)?.fermata ?? null;
+    if (articulations.size === 0 && !fermata) return;
+
+    const top = chord.notes[0].step;
+    const bottom = chord.notes[chord.notes.length - 1].step;
+    const stemmed = chord.duration.value !== 'whole';
+    const twoVoices = (voices.get(`${group[0].staff}|${chord.bar}`)?.size ?? 0) > 1;
+    const above = twoVoices ? chord.stemUp : !chord.stemUp;
+    const direction = above ? -1 : 1;
+    const onStemSide = stemmed && above === chord.stemUp;
+    let step = onStemSide ? (above ? top - STEM_STEPS : bottom + STEM_STEPS) : above ? top : bottom;
+
+    const ordered = [...CLOSE_ARTICULATIONS, ...OUTER_ARTICULATIONS].filter((a) => articulations.has(a));
+    for (const kind of ordered) {
+      step += 2 * direction;
+      const onLineInsideStaff = step % 2 === 0 && step >= TOP_LINE_STEP && step <= BOTTOM_LINE_STEP;
+      if (CLOSE_ARTICULATIONS.includes(kind) && onLineInsideStaff) step += direction;
+      marks.push({ chord: index, kind, above, step });
+    }
+
+    if (fermata) {
+      const upright = fermata === 'upright';
+      // Clear of the notes, the stem and the articulations on that side, and outside the staff.
+      const extremes = [upright ? top : bottom];
+      if (stemmed && chord.stemUp === upright) extremes.push(upright ? top - STEM_STEPS : bottom + STEM_STEPS);
+      if (above === upright) extremes.push(step);
+      const outermost = upright ? Math.min(...extremes) : Math.max(...extremes);
+      marks.push({
+        chord: index,
+        kind: 'fermata',
+        above: upright,
+        step: upright ? Math.min(TOP_LINE_STEP - 3, outermost - 3) : Math.max(BOTTOM_LINE_STEP + 3, outermost + 3),
+      });
+    }
+  });
+  return marks;
+}
+
+/**
+ * Phrasing slurs, matched by number from "start" to "stop". Placement comes from the file;
+ * otherwise a slur goes under the noteheads when all its stems point up, and above when not.
+ */
+function layoutSlurs(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffSlur[] {
+  const open = new Map<number, { from: number; placement: 'above' | 'below' | null }>();
+  const slurs: StaffSlur[] = [];
+  groups.forEach((group, index) => {
+    const marks = group.flatMap((note) => note.slurs);
+    // A chord can end one slur and start the next: close first.
+    for (const mark of marks.filter((m) => m.type === 'stop')) {
+      const start = open.get(mark.number);
+      if (!start) continue;
+      open.delete(mark.number);
+      const first = chords[start.from];
+      const last = chords[index];
+      const between = chords
+        .map((chord, i) => ({ chord, i }))
+        .filter(({ chord, i }) => i !== start.from && i !== index && chord.staff === first.staff && chord.x > first.x && chord.x < last.x)
+        .map(({ i }) => i);
+      const allStemsUp = [start.from, ...between, index].every((i) => chords[i].stemUp);
+      slurs.push({
+        from: start.from,
+        to: index,
+        above: start.placement ? start.placement === 'above' : !allStemsUp,
+        between,
+      });
+    }
+    for (const mark of marks.filter((m) => m.type === 'start')) open.set(mark.number, { from: index, placement: mark.placement });
+  });
+  return slurs;
 }
 
 /** Rest positions by the usual rules; see restStep. */

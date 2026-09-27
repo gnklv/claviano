@@ -174,6 +174,9 @@ describe('layout of printed notes (MusicXML)', () => {
     beams: [],
     tieStart: false,
     tieStop: false,
+    articulations: [],
+    fermata: null,
+    slurs: [],
     ...overrides,
   });
   const written = [
@@ -225,6 +228,9 @@ describe('rests and ties (MusicXML)', () => {
     beams: [],
     tieStart: false,
     tieStop: false,
+    articulations: [],
+    fermata: null,
+    slurs: [],
   };
   const rest = (overrides: Partial<WrittenRest>): WrittenRest => ({
     staff: 1,
@@ -273,5 +279,74 @@ describe('rests and ties (MusicXML)', () => {
   it('uses the placement from the file when there is one', () => {
     const { rests } = layoutNotation(scoreWith([base], [rest({ beat: 2, displayPitch: { letter: 1, octave: 5 } })]));
     expect(rests[0].step).toBe(2); // Re5: the fourth line from the bottom
+  });
+});
+
+describe('articulations and slurs (MusicXML)', () => {
+  const at = (beat: number, pitch: WrittenNote['pitch'], overrides: Partial<WrittenNote> = {}): WrittenNote => ({
+    staff: 1,
+    voice: '1',
+    hand: 'right',
+    chord: false,
+    clef: 'treble',
+    pitch,
+    beat,
+    start: beat,
+    end: beat + 1,
+    duration: { value: 'quarter', dots: 0 },
+    tuplet: null,
+    tupletStart: null,
+    tupletStop: false,
+    accidental: null,
+    stem: null,
+    beams: [],
+    tieStart: false,
+    tieStop: false,
+    articulations: [],
+    fermata: null,
+    slurs: [],
+    ...overrides,
+  });
+  const Sol4 = { letter: 4, octave: 4, alteration: 0 } as const; // second line: step 6
+  const layoutOf = (written: WrittenNote[]) =>
+    layoutNotation(createScore('test', [note(60, 0, 4)], [0], { barBeats: [0], written }));
+
+  it('moves a staccato dot off a line into the next space', () => {
+    // Sol4 has its stem up, so the dot goes below: one space down is step 8, a line, so it moves to 9.
+    const { marks } = layoutOf([at(0, Sol4, { articulations: ['staccato'] })]);
+    expect(marks).toEqual([{ chord: 0, kind: 'staccato', above: false, step: 9 }]);
+  });
+
+  it('puts articulations on the stem side when two voices share the staff', () => {
+    const { marks } = layoutOf([
+      at(0, Sol4, { articulations: ['accent'], stem: 'up' }),
+      at(0, { letter: 0, octave: 4, alteration: 0 }, { voice: '2', stem: 'down' }),
+    ]);
+    const accent = marks.find((m) => m.kind === 'accent')!;
+    expect(accent.above).toBe(true);
+    expect(accent.step).toBeLessThan(6 - 7); // beyond the end of the upward stem
+  });
+
+  it('keeps a fermata outside the staff', () => {
+    const { marks } = layoutOf([at(0, Sol4, { fermata: 'upright' })]);
+    expect(marks[0]).toMatchObject({ kind: 'fermata', above: true });
+    expect(marks[0].step).toBeLessThan(0);
+  });
+
+  it('follows the slur placement given in the file', () => {
+    const { slurs } = layoutOf([
+      at(0, Sol4, { slurs: [{ type: 'start', number: 1, placement: 'above' }] }),
+      at(1, Sol4),
+      at(2, Sol4, { slurs: [{ type: 'stop', number: 1, placement: null }] }),
+    ]);
+    expect(slurs).toEqual([{ from: 0, to: 2, above: true, between: [1] }]);
+  });
+
+  it('puts a slur under the noteheads when all stems point up', () => {
+    const { slurs } = layoutOf([
+      at(0, Sol4, { slurs: [{ type: 'start', number: 1, placement: null }] }),
+      at(1, Sol4, { slurs: [{ type: 'stop', number: 1, placement: null }] }),
+    ]);
+    expect(slurs[0].above).toBe(false);
   });
 });

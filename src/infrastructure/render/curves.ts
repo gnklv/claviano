@@ -1,5 +1,5 @@
 /*
- * Ties (and later slurs) are drawn like in print: a crescent, thin at the ends and thicker in the
+ * Ties and slurs are drawn like in print: a crescent, thin at the ends and thicker in the
  * middle, made of two cubic Bézier curves — the outer edge there, the inner edge back.
  */
 
@@ -33,17 +33,60 @@ const SHOULDER = 0.25;
 export function arc({ x1, x2, y, above, space }: ArcOptions): ArcShape {
   const length = Math.max(0, x2 - x1);
   const height = Math.min(MAX_HEIGHT * space, Math.max(MIN_HEIGHT * space, length * HEIGHT_PER_LENGTH));
-  const thickness = THICKNESS * space;
-  const sign = above ? -1 : 1; // screen y grows downwards
+  return crescent(x1, y, x2, y, height, THICKNESS * space, above);
+}
 
+export interface SlurOptions {
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+  readonly above: boolean;
+  readonly space: number;
+  /** Points the slur must pass clear of (noteheads, stem ends between its ends). */
+  readonly obstacles?: readonly { readonly x: number; readonly y: number }[];
+}
+
+/** Slurs span phrases, so they may bulge more than ties, and must clear the notes they cover. */
+const SLUR_HEIGHT_PER_LENGTH = 0.12;
+const SLUR_MIN_HEIGHT = 0.8;
+const SLUR_MAX_HEIGHT = 4;
+const SLUR_CLEARANCE = 0.8;
+
+/**
+ * A phrasing slur: like a tie, but its ends may sit at different heights, and it rises (or sinks)
+ * as far as needed to pass clear of every obstacle between them.
+ */
+export function slur({ x1, y1, x2, y2, above, space, obstacles = [] }: SlurOptions): ArcShape {
+  const length = Math.max(1, x2 - x1);
+  const sign = above ? -1 : 1;
+  const lineY = (x: number) => y1 + ((y2 - y1) * (x - x1)) / length;
+  let height = Math.max(SLUR_MIN_HEIGHT * space, length * SLUR_HEIGHT_PER_LENGTH);
+  for (const point of obstacles) {
+    // How far past the straight line between the ends the obstacle reaches, towards the bulge.
+    const beyond = sign * (point.y - lineY(point.x));
+    height = Math.max(height, beyond + SLUR_CLEARANCE * space);
+  }
+  height = Math.min(height, SLUR_MAX_HEIGHT * space);
+  return crescent(x1, y1, x2, y2, height, THICKNESS * space, above);
+}
+
+/**
+ * The crescent between (x1, y1) and (x2, y2): an outer cubic Bézier bulging `height` from the
+ * straight line between the ends at its middle, and an inner one `thickness` less, closed.
+ */
+function crescent(x1: number, y1: number, x2: number, y2: number, height: number, thickness: number, above: boolean): ArcShape {
+  const length = x2 - x1;
+  const sign = above ? -1 : 1; // screen y grows downwards
+  const lineY = (x: number) => y1 + (length ? ((y2 - y1) * (x - x1)) / length : 0);
   const c1 = x1 + length * SHOULDER;
   const c2 = x2 - length * SHOULDER;
-  // Bézier control points overshoot: the curve reaches ~3/4 of their height.
-  const outer = y + (sign * height * 4) / 3;
-  const inner = y + (sign * (height - thickness) * 4) / 3;
+  // With control points at a quarter and three quarters, the curve's middle reaches 3/4 of their offset.
+  const outer = (sign * height * 4) / 3;
+  const inner = (sign * (height - thickness) * 4) / 3;
   const r = (value: number) => Math.round(value * 100) / 100;
   const path =
-    `M ${r(x1)} ${r(y)} C ${r(c1)} ${r(outer)} ${r(c2)} ${r(outer)} ${r(x2)} ${r(y)} ` +
-    `C ${r(c2)} ${r(inner)} ${r(c1)} ${r(inner)} ${r(x1)} ${r(y)} Z`;
+    `M ${r(x1)} ${r(y1)} C ${r(c1)} ${r(lineY(c1) + outer)} ${r(c2)} ${r(lineY(c2) + outer)} ${r(x2)} ${r(y2)} ` +
+    `C ${r(c2)} ${r(lineY(c2) + inner)} ${r(c1)} ${r(lineY(c1) + inner)} ${r(x1)} ${r(y1)} Z`;
   return { height, thickness, path };
 }

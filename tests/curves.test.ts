@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arc } from '../src/infrastructure/render/curves';
+import { arc, slur } from '../src/infrastructure/render/curves';
 
 const SPACE = 10;
 
@@ -25,5 +25,30 @@ describe('arc', () => {
 
   it('is thicker in the middle than at the ends', () => {
     expect(arc({ x1: 0, x2: 100, y: 0, above: true, space: SPACE }).thickness).toBeGreaterThan(0);
+  });
+});
+
+describe('slur', () => {
+  it('joins ends at different heights', () => {
+    const { path } = slur({ x1: 0, y1: 50, x2: 100, y2: 30, above: true, space: SPACE });
+    expect(path.startsWith('M 0 50')).toBe(true);
+    expect(path).toContain(' 100 30 C');
+  });
+
+  it('rises high enough to clear the notes it passes over', () => {
+    // A note at x=50 reaching 20 px above the line between the ends: the slur needs 20 + clearance.
+    const clear = slur({ x1: 0, y1: 100, x2: 100, y2: 100, above: true, space: SPACE, obstacles: [{ x: 50, y: 80 }] });
+    expect(clear.height).toBeGreaterThanOrEqual(20 + 8);
+  });
+
+  it('ignores obstacles on the other side', () => {
+    const plain = slur({ x1: 0, y1: 100, x2: 100, y2: 100, above: true, space: SPACE });
+    const withLowNote = slur({ x1: 0, y1: 100, x2: 100, y2: 100, above: true, space: SPACE, obstacles: [{ x: 50, y: 140 }] });
+    expect(withLowNote.height).toBe(plain.height);
+  });
+
+  it('never balloons', () => {
+    const capped = slur({ x1: 0, y1: 100, x2: 100, y2: 100, above: true, space: SPACE, obstacles: [{ x: 50, y: -500 }] });
+    expect(capped.height).toBe(40);
   });
 });

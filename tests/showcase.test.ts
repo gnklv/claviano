@@ -21,11 +21,11 @@ const chordsIn = (number: number, staff: 'treble' | 'bass' = 'treble') =>
   layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.x - b.x);
 
 describe('showcase score', () => {
-  it('opens with a pickup and numbers bars 0–14', () => {
+  it('opens with a pickup and numbers bars 0–16', () => {
     expect(score.title).toBe('Claviano showcase');
     expect(hasPickup(score)).toBe(true);
     expect(barNumber(score, 0)).toBe(0);
-    expect(barNumber(score, score.bars.length - 1)).toBe(14);
+    expect(barNumber(score, score.bars.length - 1)).toBe(16);
   });
 
   it('has every note value, dotted ones and ledger lines', () => {
@@ -108,5 +108,39 @@ describe('showcase score', () => {
     const pitches = score.notes.map((n) => n.pitch);
     expect(Math.min(...pitches)).toBe(pitch('La', 0));
     expect(Math.max(...pitches)).toBe(pitch('La', 6));
+  });
+
+  it('places articulations away from the stems, stacking several outward', () => {
+    const marksIn = (number: number, staff: 'treble' | 'bass') =>
+      layout.marks.filter((m) => layout.chords[m.chord].staff === staff && barNumber(score, layout.chords[m.chord].bar) === number);
+    const upper = marksIn(14, 'treble');
+    expect(upper.map((m) => m.kind)).toEqual(['staccato', 'tenuto', 'accent', 'marcato']);
+    expect(upper.every((m) => m.above)).toBe(true); // stems down
+    const lower = marksIn(14, 'bass');
+    expect(lower.every((m) => !m.above)).toBe(true); // stems up
+    const stacked = lower.filter((m) => m.chord === lower.find((x) => x.kind === 'accent')!.chord);
+    expect(stacked.map((m) => m.kind)).toEqual(['staccato', 'accent']);
+    expect(stacked[1].step).toBeGreaterThan(stacked[0].step); // the accent further out (below)
+  });
+
+  it('draws fermatas over and, inverted, under', () => {
+    const fermatas = layout.marks.filter((m) => m.kind === 'fermata');
+    expect(fermatas.map((m) => m.above).sort()).toEqual([false, true, true]);
+  });
+
+  it('draws slurs above a leaping melody and below the bass, across the bar line', () => {
+    expect(layout.slurs).toHaveLength(2);
+    const [upper, lower] = [...layout.slurs].sort((a, b) => Number(b.above) - Number(a.above));
+    expect(upper.above).toBe(true);
+    expect(upper.between).toHaveLength(2);
+    expect(lower.above).toBe(false);
+    expect(barNumber(score, layout.chords[lower.to].bar)).toBe(16);
+  });
+
+  it('makes staccato sound shorter and accents louder', () => {
+    const inBar14 = score.notes.filter((n) => n.hand === 'right' && n.beat >= score.barBeats[14] && n.beat < score.barBeats[15]);
+    const [staccato, tenuto, accent] = inBar14;
+    expect(staccato.duration).toBeCloseTo(tenuto.duration / 2);
+    expect(accent.velocity).toBeGreaterThan(tenuto.velocity);
   });
 });

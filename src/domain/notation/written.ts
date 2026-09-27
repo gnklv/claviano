@@ -31,6 +31,17 @@ export interface TupletStart {
   readonly bracket: boolean | null;
 }
 
+/** Marks that tell how to play a note. */
+export type Articulation = 'staccato' | 'staccatissimo' | 'tenuto' | 'portato' | 'accent' | 'marcato';
+
+/** One end of a phrasing slur (legato). Slurs are matched by number; they may overlap. */
+export interface SlurMark {
+  readonly type: 'start' | 'stop';
+  readonly number: number;
+  /** Where the engraver put it; null lets the layout decide. */
+  readonly placement: 'above' | 'below' | null;
+}
+
 /** One beam level at a note: 1 is the main beam, 2 the sixteenth beam and so on. */
 export type BeamMark = 'begin' | 'continue' | 'end' | 'forward hook' | 'backward hook';
 
@@ -60,6 +71,10 @@ export interface WrittenNote {
   /** A tie begins here (to the next note of the same pitch) and/or ends here. */
   readonly tieStart: boolean;
   readonly tieStop: boolean;
+  readonly articulations: readonly Articulation[];
+  /** A pause sign over (or, inverted, under) the note. */
+  readonly fermata: 'upright' | 'inverted' | null;
+  readonly slurs: readonly SlurMark[];
 }
 
 /** A printed rest. */

@@ -212,6 +212,24 @@ describe('MusicXmlParser', () => {
       ]);
     });
 
+    it('reads articulations, fermatas and slurs, and plays staccato short and accents loud', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${note('C', 5, 2, { extra: '<type>quarter</type><notations><slur type="start" number="1" placement="above"/><articulations><staccato/></articulations></notations>' })}
+          ${note('D', 5, 2, { extra: '<type>quarter</type><notations><articulations><strong-accent/></articulations></notations>' })}
+          ${note('E', 5, 4, { extra: '<type>half</type><notations><slur type="stop" number="1"/><fermata type="inverted"/></notations>' })}</measure>`),
+        'test',
+      );
+      expect(s.written!.map((n) => [n.articulations, n.fermata, n.slurs.map((m) => m.type)])).toEqual([
+        [['staccato'], null, ['start']],
+        [['marcato'], null, []],
+        [[], 'inverted', ['stop']],
+      ]);
+      expect(s.written![0].slurs[0].placement).toBe('above');
+      expect(s.notes[0].duration).toBeCloseTo(0.5); // a staccato quarter at 60 BPM
+      expect(s.notes[1].velocity).toBeGreaterThan(s.notes[2].velocity);
+    });
+
     it('follows clef changes on a staff', () => {
       const s = parser.parse(
         score(`

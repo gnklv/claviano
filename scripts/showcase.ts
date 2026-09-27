@@ -28,6 +28,10 @@ interface NoteOptions {
   tie?: Tie;
   chord?: boolean;
   tuplet?: { actual: number; normal: number; start?: boolean; stop?: boolean; bracket?: 'yes' | 'no'; hideNumber?: boolean };
+  /** MusicXML articulation names: staccato, staccatissimo, tenuto, detached-legato, accent, strong-accent. */
+  articulations?: string[];
+  fermata?: 'upright' | 'inverted';
+  slur?: { type: 'start' | 'stop'; number?: number; placement?: 'above' | 'below' }[];
 }
 
 const defaultVoice = (staff: 1 | 2) => (staff === 1 ? 1 : 5); // MuseScore numbers voices per staff: 1–4 and 5–8
@@ -47,6 +51,11 @@ function note(name: string, duration: number, options: NoteOptions): string {
       ? `<tuplet type="start"${tuplet.bracket ? ` bracket="${tuplet.bracket}"` : ''}${tuplet.hideNumber ? ' show-number="none"' : ''}/>`
       : '',
     tuplet?.stop ? '<tuplet type="stop"/>' : '',
+    ...(options.slur ?? []).map(
+      (m) => `<slur type="${m.type}" number="${m.number ?? 1}"${m.placement ? ` placement="${m.placement}"` : ''}/>`,
+    ),
+    options.articulations?.length ? `<articulations>${options.articulations.map((a) => `<${a}/>`).join('')}</articulations>` : '',
+    options.fermata ? `<fermata type="${options.fermata}"/>` : '',
   ].join('');
   return [
     '<note>',
@@ -222,10 +231,33 @@ const measures: string[] = [
     ${backup(W)}${note('D2', H, { type: 'half', staff: 2 })}${note('A0', H, { type: 'half', staff: 2 })}
   </measure>`,
 
-  // 14: the end.
+  // 14: articulations. Stems down in the right hand, so its marks go above; stems up in the left
+  // hand, so its marks go below. Staccato + accent stack; accents sound louder, staccato shorter.
   `<measure number="14">
-    ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole' })}
-    ${backup(W)}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2 })}
+    ${direction('Articulation', '')}
+    ${note('B5', Q, { type: 'quarter', articulations: ['staccato'] })}${note('A5', Q, { type: 'quarter', articulations: ['tenuto'] })}
+    ${note('G5', Q, { type: 'quarter', articulations: ['accent'] })}${note('F#5', Q, { type: 'quarter', articulations: ['strong-accent'] })}
+    ${backup(W)}
+    ${note('A2', Q, { type: 'quarter', staff: 2, articulations: ['staccatissimo'] })}${note('B2', Q, { type: 'quarter', staff: 2, articulations: ['detached-legato'] })}
+    ${note('C#3', Q, { type: 'quarter', staff: 2, articulations: ['staccato', 'accent'] })}${note('G2', Q, { type: 'quarter', staff: 2, articulations: ['staccato'] })}
+  </measure>`,
+
+  // 15: legato. A slur over a leaping melody (it must clear the high notes), a fermata; in the bass
+  // a slur under the notes, carried across the bar line.
+  `<measure number="15">
+    ${direction('Legato, fermata', '')}
+    ${note('D5', E, { type: 'eighth', beams: ['begin'], slur: [{ type: 'start' }] })}${note('A5', E, { type: 'eighth', beams: ['end'] })}
+    ${note('F#5', E, { type: 'eighth', beams: ['begin'] })}${note('D6', E, { type: 'eighth', beams: ['end'], slur: [{ type: 'stop' }] })}
+    ${note('B5', H, { type: 'half', fermata: 'upright' })}
+    ${backup(W)}
+    ${note('G2', Q, { type: 'quarter', staff: 2, slur: [{ type: 'start', number: 2 }] })}${note('A2', Q, { type: 'quarter', staff: 2 })}
+    ${note('B2', Q, { type: 'quarter', staff: 2 })}${note('C#3', Q, { type: 'quarter', staff: 2 })}
+  </measure>`,
+
+  // 16: the end, with fermatas over and (inverted) under the last chords.
+  `<measure number="16">
+    ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
+    ${backup(W)}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted', slur: [{ type: 'stop', number: 2 }] })}
     <barline location="right"><bar-style>light-heavy</bar-style></barline>
   </measure>`,
 ];

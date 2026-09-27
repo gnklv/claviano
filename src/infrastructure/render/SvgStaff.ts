@@ -14,8 +14,17 @@ import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
 import { beamLine, beamY } from './beams';
-import { arc } from './curves';
-import { layoutNotation, type Beam, type StaffChord, type StaffRest, type Tie, type Tuplet } from './notationLayout';
+import { arc, slur } from './curves';
+import {
+  layoutNotation,
+  type Beam,
+  type StaffChord,
+  type StaffMark,
+  type StaffRest,
+  type StaffSlur,
+  type Tie,
+  type Tuplet,
+} from './notationLayout';
 import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -145,6 +154,20 @@ const REST_WIDTH: Record<NoteValue, number> = {
   sixteenth: 1.28,
   thirtySecond: 1.5,
 };
+/** Articulation and fermata glyphs: [above, below]. */
+const MARK_GLYPHS: Record<StaffMark['kind'], [string, string]> = {
+  staccato: ['\uE4A2', '\uE4A3'],
+  staccatissimo: ['\uE4A8', '\uE4A9'],
+  tenuto: ['\uE4A4', '\uE4A5'],
+  portato: ['\uE4B2', '\uE4B3'],
+  accent: ['\uE4A0', '\uE4A1'],
+  marcato: ['\uE4AC', '\uE4AD'],
+  fermata: ['\uE4C0', '\uE4C1'],
+};
+/** Slur ends sit this far beyond a notehead or a stem end. */
+const SLUR_HEAD_GAP = 1.2;
+const SLUR_STEM_GAP = 0.6;
+
 /** Ties start and end this far clear of the noteheads, and this far off the note's centre. */
 const TIE_GAP = 0.15;
 const TIE_OFFSET = 0.6;
@@ -204,6 +227,8 @@ export class SvgStaff {
   private tuplets: Tuplet[] = [];
   private rests: StaffRest[] = [];
   private ties: Tie[] = [];
+  private marks: StaffMark[] = [];
+  private slurs: StaffSlur[] = [];
   private chordElements: SVGGElement[] = [];
   private longestChord = 0;
   /** Chords currently highlighted in their hand's color. */
@@ -239,12 +264,16 @@ export class SvgStaff {
 
   setScore(score: Score | null): void {
     this.score = score;
-    const layout = score ? layoutNotation(score) : { chords: [], beams: [], tuplets: [], rests: [], ties: [] };
+    const layout = score
+      ? layoutNotation(score)
+      : { chords: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
     this.chords = [...layout.chords];
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
     this.rests = [...layout.rests];
     this.ties = [...layout.ties];
+    this.marks = [...layout.marks];
+    this.slurs = [...layout.slurs];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.end - chord.start), 0);
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
@@ -510,8 +539,11 @@ export class SvgStaff {
     }
 
     this.chordElements = this.chords.map((chord, index) => this.drawChord(chord, barWidth, stemEnds.get(index)));
-    // A tie belongs to the chord it starts from, so it lights up with it.
+    // A tie belongs to the chord it starts from, so it lights up with it; so do the chord's marks.
     for (const tie of this.ties) this.chordElements[tie.from].append(this.drawTie(tie, barWidth));
+    for (const mark of this.marks) this.chordElements[mark.chord].append(this.drawMark(mark, barWidth));
+    // A slur spans a phrase, so it stays in the ink colour with the beams.
+    for (const phrase of this.slurs) beamLayer.append(this.drawSlur(phrase, barWidth, stemEnds));
 
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
@@ -727,6 +759,47 @@ export class SvgStaff {
     const glyphs = [this.noteGlyph(REST[value], left, y)];
     if (dots) glyphs.push(this.noteGlyph(AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));
     return glyphs;
+  }
+
+  /** An articulation or fermata, centred over (or under) the notehead. */
+  private drawMark(mark: StaffMark, barWidth: number): SVGTextElement {
+    const { yOf, left, headWidth } = this.chordGeometry(this.chords[mark.chord], barWidth);
+    const [above, below] = MARK_GLYPHS[mark.kind];
+    const glyph = this.noteGlyph(mark.above ? above : below, left + headWidth / 2, yOf(mark.step));
+    glyph.setAttribute('text-anchor', 'middle');
+    return glyph;
+  }
+
+  /**
+   * A phrasing slur. Each end sits just beyond its notehead, or beyond the stem end when the slur
+   * is on the stem side; the curve then rises (or sinks) to clear every chord in between.
+   */
+  private drawSlur(phrase: StaffSlur, barWidth: number, stemEnds: Map<number, number>): SVGPathElement {
+    const { space } = this;
+    const direction = phrase.above ? -1 : 1;
+    const outerPoint = (index: number) => {
+      const chord = this.chords[index];
+      const g = this.chordGeometry(chord, barWidth);
+      const stemmed = chord.duration.value !== 'whole';
+      if (stemmed && chord.stemUp === phrase.above) {
+        const stemEnd =
+          stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * space : g.lowest + STEM_LENGTH * space);
+        return { x: g.stemX, y: stemEnd + direction * SLUR_STEM_GAP * space };
+      }
+      return { x: g.left + g.headWidth / 2, y: (phrase.above ? g.highest : g.lowest) + direction * SLUR_HEAD_GAP * space };
+    };
+    const start = outerPoint(phrase.from);
+    const end = outerPoint(phrase.to);
+    const shape = slur({
+      x1: start.x,
+      y1: start.y,
+      x2: end.x,
+      y2: end.y,
+      above: phrase.above,
+      space,
+      obstacles: phrase.between.map(outerPoint),
+    });
+    return svg('path', { d: shape.path, fill: 'currentColor' });
   }
 
   /** A tie: a crescent from one notehead to the next, curving away from the stems. */

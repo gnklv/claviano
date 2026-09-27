@@ -2,7 +2,7 @@ import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreP
 import type { Hand, Note } from '../../domain/note';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
-import type { BeamMark, Clef, ClefChange, WrittenNote, WrittenRest } from '../../domain/notation/written';
+import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
 
 /*
@@ -46,6 +46,31 @@ const ACCIDENTALS: Record<string, Accidental> = {
 };
 
 const BEAM_MARKS = new Set<string>(['begin', 'continue', 'end', 'forward hook', 'backward hook']);
+
+const ARTICULATIONS: Record<string, Articulation> = {
+  staccato: 'staccato',
+  staccatissimo: 'staccatissimo',
+  spiccato: 'staccatissimo',
+  tenuto: 'tenuto',
+  'detached-legato': 'portato',
+  accent: 'accent',
+  'strong-accent': 'marcato',
+};
+
+/**
+ * How articulation changes the sound: the share of its written length a note sounds for,
+ * and how much louder it is. Legato and tenuto keep the full length.
+ */
+const SOUNDING_LENGTH: Partial<Record<Articulation, number>> = { staccatissimo: 0.25, staccato: 0.5, portato: 0.75 };
+const LOUDNESS: Partial<Record<Articulation, number>> = { accent: 1.2, marcato: 1.35 };
+
+/** The combined effect of a note's articulations on its sound. */
+function articulationEffect(articulations: readonly Articulation[]): { length: number; loudness: number } {
+  return {
+    length: Math.min(1, ...articulations.map((a) => SOUNDING_LENGTH[a] ?? 1)),
+    loudness: Math.max(1, ...articulations.map((a) => LOUDNESS[a] ?? 1)),
+  };
+}
 
 export class InvalidMusicXmlError extends ScoreLoadError {
   constructor(message: string, code: 'invalid-file' | 'unsupported-feature' = 'invalid-file') {
@@ -94,6 +119,8 @@ interface PendingNote {
   beats: number;
   velocity: number;
   hand: Hand;
+  /** Share of its length the note sounds for (staccato is shorter). */
+  soundingLength: number;
 }
 
 /** A printed note before its seconds are known (they need the whole tempo map). */
@@ -201,7 +228,9 @@ function readPart(part: Element, title: string): Score {
           const beats = duration / divisions;
           const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
           const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
-          written.push(readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties }));
+          const printed = readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties });
+          written.push(printed);
+          const effect = articulationEffect(printed.articulations);
 
           const continued = ties.includes('stop') ? openTies.get(tieKey) : undefined;
           if (continued) {
@@ -214,8 +243,9 @@ function readPart(part: Element, title: string): Score {
             pitch,
             beat: beatAt(start),
             beats,
-            velocity: Math.min(1, ((noteDynamics > 0 ? noteDynamics : dynamics) * 0.9) / 127),
+            velocity: Math.min(1, (((noteDynamics > 0 ? noteDynamics : dynamics) * 0.9) / 127) * effect.loudness),
             hand,
+            soundingLength: effect.length,
           };
           notes.push(note);
           if (ties.includes('start')) openTies.set(tieKey, note);
@@ -236,7 +266,7 @@ function readPart(part: Element, title: string): Score {
       (n): Note => ({
         pitch: n.pitch,
         start: toSeconds(n.beat),
-        duration: toSeconds(n.beat + n.beats) - toSeconds(n.beat),
+        duration: (toSeconds(n.beat + n.beats) - toSeconds(n.beat)) * n.soundingLength,
         beat: n.beat,
         beats: n.beats,
         velocity: n.velocity,
@@ -309,7 +339,29 @@ function readWritten(
     beams: [...beams].map((mark) => mark ?? 'continue'),
     tieStart: at.ties.includes('start'),
     tieStop: at.ties.includes('stop'),
+    articulations: [...element.querySelectorAll(':scope > notations > articulations > *')]
+      .map((a) => ARTICULATIONS[a.nodeName])
+      .filter((a): a is Articulation => a !== undefined),
+    fermata: fermataOf(element),
+    slurs: [...element.querySelectorAll(':scope > notations > slur')].flatMap((slur): SlurMark[] => {
+      const type = slur.getAttribute('type');
+      if (type !== 'start' && type !== 'stop') return []; // "continue" only matters across systems
+      const placement = slur.getAttribute('placement');
+      return [
+        {
+          type,
+          number: Number(slur.getAttribute('number') ?? 1),
+          placement: placement === 'above' || placement === 'below' ? placement : null,
+        },
+      ];
+    }),
   };
+}
+
+function fermataOf(element: Element): WrittenNote['fermata'] {
+  const fermata = element.querySelector(':scope > notations > fermata');
+  if (!fermata) return null;
+  return fermata.getAttribute('type') === 'inverted' ? 'inverted' : 'upright';
 }
 
 /** A printed rest: its value, and where the engraver placed it if the file says. */
