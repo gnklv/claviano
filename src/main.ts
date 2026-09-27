@@ -14,14 +14,27 @@ import { depsKey } from './ui/deps';
 import './ui/styles.css';
 
 const playback = new Playback(new WebAudioSynth(), new IntervalTicker());
+const musicXml = new MusicXmlParser();
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback } });
 
 createApp(App)
   .provide(depsKey, {
     playback,
-    loadScore: new LoadScore([new MidiFileParser(), new MusicXmlParser()]),
+    loadScore: new LoadScore([new MidiFileParser(), musicXml]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
-    demoScore: (title) => odeToJoy(title),
+    demos: [
+      { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
+      {
+        id: 'showcase',
+        title: 'demoShowcase',
+        // Fetched only when chosen; public/ files are served under the site's base path.
+        load: async () => {
+          const response = await fetch(`${import.meta.env.BASE_URL}demos/showcase.musicxml`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return musicXml.parse(await response.arrayBuffer(), 'showcase');
+        },
+      },
+    ],
   })
   .mount('#app');

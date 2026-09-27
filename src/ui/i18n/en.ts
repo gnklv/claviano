@@ -21,7 +21,8 @@ export const en = {
 
   openMidi: 'Open file',
   demo: 'Demo',
-  demoTitle: 'Ode to Joy (demo)',
+  demoOde: 'Ode to Joy (demo)',
+  demoShowcase: 'Showcase: everything the player can do',
   emptyHint: 'Drop a MIDI or MusicXML file into the window or press “Demo”',
   dropHint: 'Release to open',
   scoreSummary: '{title} · {bars} · {notes}',

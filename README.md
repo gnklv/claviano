@@ -19,6 +19,12 @@ npm run build
 Every push to `master` runs the tests, builds and deploys to GitHub Pages
 (`.github/workflows/deploy.yml`).
 
+**Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
+playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties,
+key/time/clef/tempo/dynamics changes, a wide range). It is built by `scripts/showcase.ts`
+(`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
+`tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
+
 ## Controls
 
 | | |

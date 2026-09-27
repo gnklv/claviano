@@ -15,7 +15,8 @@ export const ru: Dictionary = {
 
   openMidi: 'Открыть файл',
   demo: 'Демо',
-  demoTitle: 'Ода к радости (демо)',
+  demoOde: 'Ода к радости (демо)',
+  demoShowcase: 'Витрина: всё, что умеет плеер',
   emptyHint: 'Перетащите файл MIDI или MusicXML в окно или нажмите «Демо»',
   dropHint: 'Отпустите, чтобы открыть',
   scoreSummary: '{title} · {bars} · {notes}',

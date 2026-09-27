@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/ScoreParser';
 import { barAt, barNumber, type Score } from '../domain/score';
+import DemoMenu from './components/DemoMenu.vue';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import PianoRoll from './components/PianoRoll.vue';
 import StaffView from './components/StaffView.vue';
@@ -11,7 +12,7 @@ import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useViewMode } from './composables/useViewMode';
-import { useDeps } from './deps';
+import { useDeps, type Demo } from './deps';
 import type { MessageKey } from './i18n/en';
 import { useI18n } from './i18n/useI18n';
 
@@ -21,14 +22,14 @@ const ERROR_MESSAGES: Record<ScoreLoadErrorCode, MessageKey> = {
   'unsupported-feature': 'errorUnsupportedFeature',
 };
 
-const { playback, loadScore, demoScore } = useDeps();
+const { playback, loadScore, demos } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const viewMode = useViewMode();
 const dragging = ref(false);
 
-/** The demo's title comes from the dictionary, so it follows a language switch too. */
-let demo: Score | null = null;
+/** The open demo, if any: its title comes from the dictionary, so it follows a language switch. */
+let openDemoInfo: { score: Score; demo: Demo } | null = null;
 
 /** Kept as data, not text, so the message follows a language switch. */
 const loadError = ref<{ file: string; reason: MessageKey } | null>(null);
@@ -40,16 +41,22 @@ const title = computed(() => {
   const score = state.value.score;
   if (!score) return t('emptyHint');
   return t('scoreSummary', {
-    title: score === demo ? t('demoTitle') : score.title,
+    title: openDemoInfo?.score === score ? t(openDemoInfo.demo.title) : score.title,
     // A pickup is not counted as a bar of its own: the count is the last bar's number.
     bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
     notes: t('notesCount', { count: score.notes.length }),
   });
 });
 
-function openDemo(): void {
-  demo = demoScore(t('demoTitle'));
-  open(demo);
+async function openDemo(demo: Demo): Promise<void> {
+  try {
+    const score = await demo.load();
+    openDemoInfo = { score, demo };
+    open(score);
+  } catch (e) {
+    loadError.value = { file: t(demo.title), reason: 'errorUnknown' };
+    console.error(e);
+  }
 }
 
 function open(score: Score): void {
@@ -127,7 +134,7 @@ onUnmounted(() => {
         {{ t('openMidi') }}
         <input type="file" accept=".mid,.midi,.musicxml,.xml" hidden @change="onFileChosen" />
       </label>
-      <button class="button" @click="openDemo">{{ t('demo') }}</button>
+      <DemoMenu :demos="demos" @choose="openDemo" />
       <span class="title">{{ title }}</span>
       <!-- Wide screens show the settings inline; narrow ones tuck them behind ⚙ (see styles below). -->
       <div class="settings-inline">
