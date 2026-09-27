@@ -217,6 +217,8 @@ onUnmounted(() => {
 .stage {
   position: relative;
   min-height: 0;
+  /* In landscape the notch is on a side; keep the keyboard edges out from under it. */
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   display: grid;
   grid-template-rows: 1fr;
 }
@@ -243,5 +245,21 @@ onUnmounted(() => {
   border-radius: 12px;
   background: var(--drop-overlay);
   font-size: 18px;
+}
+
+/*
+ * Short screens (a phone in landscape): every pixel of height goes to the music.
+ * The title stays in the button row, and the staff gets a share instead of a fixed minimum.
+ * Kept last so it overrides the rules above for the same elements.
+ */
+@media (max-height: 500px) {
+  .title {
+    order: 0;
+    flex-basis: 0;
+  }
+
+  .stage.view-both {
+    grid-template-rows: 45% 1fr;
+  }
 }
 </style>

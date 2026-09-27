@@ -43,6 +43,13 @@ describe('keyboardRange', () => {
     expect(range).toEqual({ low: pitch('Do', 1), high: pitch('Do', 6) });
   });
 
+  it('shows more octaves when keys must stay narrow, e.g. a short keyboard in landscape', () => {
+    const ode = scoreWith(pitch('Sol', 2), pitch('Sol', 4));
+    const range = keyboardRange(ode, 812, 22);
+    expect(812 / whiteKeyCount(range)).toBeLessThanOrEqual(22);
+    expect(whiteKeyCount(range)).toBeGreaterThan(whiteKeyCount(keyboardRange(ode, 812)));
+  });
+
   it('never goes beyond the 88 keys', () => {
     expect(keyboardRange(scoreWith(pitch('Mi', 4)), 4000)).toEqual(FULL);
     expect(keyboardRange(scoreWith(21, 108), PHONE)).toEqual(FULL);

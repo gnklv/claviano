@@ -160,7 +160,9 @@ function togglePlay(): void {
     'tempo'
     'practice';
   gap: 10px 24px;
-  padding: 10px 16px;
+  /* Keep clear of the home indicator and, in landscape, the notch. */
+  padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   background: var(--panel);
   border-top: 1px solid var(--border);
 }

@@ -14,7 +14,11 @@ const STAFF_GAP = 6;
 const CONTENT_HEIGHT = 24;
 const MIN_SPACE_PX = 6;
 const MAX_SPACE_PX = 14;
-const BAR_WIDTH = 36;
+/** About this many bars fit on the tape, within the bar width limits below. */
+const BARS_VISIBLE = 2.2;
+/** Narrower bars would not leave room for notes; wider ones waste a wide screen. */
+const MIN_BAR_WIDTH = 16;
+const MAX_BAR_WIDTH = 40;
 /** Left column with the clefs; it does not scroll. */
 const GUTTER = 7;
 /** The cursor stands at this share of the tape's width, leaving room to read ahead. */
@@ -125,7 +129,7 @@ export class SvgStaff {
 
   /** Called every frame; touches the DOM only when the tape actually moves. */
   render(position: number): void {
-    const x = this.score ? barPosition(this.score, position) * BAR_WIDTH * this.space : 0;
+    const x = this.score ? barPosition(this.score, position) * this.barWidth() : 0;
     const offset = Math.round((this.cursorX() - x) * 10) / 10;
     if (offset === this.lastOffset) return;
     this.lastOffset = offset;
@@ -136,6 +140,13 @@ export class SvgStaff {
 
   private gutterWidth(): number {
     return GUTTER * this.space;
+  }
+
+  /** Bar width in pixels: about two bars on the tape, so phones see what comes next too. */
+  private barWidth(): number {
+    const tapeWidth = this.width - this.gutterWidth();
+    const spaces = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, tapeWidth / BARS_VISIBLE / this.space));
+    return spaces * this.space;
   }
 
   /** Cursor position inside the tape. */
@@ -213,7 +224,7 @@ export class SvgStaff {
     if (!score || score.notes.length === 0) return;
 
     const { space } = this;
-    const barWidth = BAR_WIDTH * space;
+    const barWidth = this.barWidth();
     const top = this.trebleTop();
     const bottom = this.systemBottom();
 

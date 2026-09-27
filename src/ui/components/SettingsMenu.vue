@@ -42,7 +42,7 @@ const id = 'settings-menu';
 .menu {
   /* Popovers open centred by default; pin it under the header's right corner instead. */
   position: fixed;
-  inset: 56px 12px auto auto;
+  inset: calc(56px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) auto auto;
   margin: 0;
   padding: 12px 14px;
   min-width: 260px;

@@ -1,7 +1,7 @@
 import { noteEnd, type Hand } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
-import { keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
+import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
 
 export interface RollFrame {
   readonly score: Score;
@@ -47,6 +47,18 @@ const DEFAULT_COLORS: RollColors = {
 };
 
 const MUTED_ALPHA = 0.25;
+/** On short screens, look less far ahead rather than squashing notes flat. */
+const MIN_PX_PER_SECOND = 40;
+/*
+ * Keyboard proportions. A white key looks right when it is about four times as long as it is wide
+ * and turns into a square below ~2.5. The keyboard takes at most this share of the canvas height;
+ * when that is too short, more octaves are shown so the keys get narrower instead of squarer.
+ */
+const KEY_LENGTH_RATIO = 4;
+const MIN_KEY_LENGTH_RATIO = 2.5;
+const MAX_KEYBOARD_SHARE = 0.45;
+const MIN_KEYBOARD_PX = 40;
+const MAX_KEYBOARD_PX = 140;
 
 /**
  * Falling notes above a piano keyboard, drawn from scratch on a 2D canvas.
@@ -57,16 +69,21 @@ export class CanvasPianoRoll {
   private width = 0;
   private height = 0;
   private keys = new Map<number, KeyRect>();
-  /** What the current key layout was computed for; it is redone when either changes. */
-  private keysScore: Score | null = null;
-  private keysWidth = -1;
+  private keyboardHeight = MIN_KEYBOARD_PX;
+  /** What the current key layout was computed for; it is redone when any of these change. */
+  private layoutScore: Score | null = null;
+  private layoutWidth = -1;
+  private layoutHeight = -1;
   private colors: RollColors = DEFAULT_COLORS;
   private cachedScore: Score | null = null;
   private longestNote = 0;
+  /** Seconds ahead shown in the current frame; less than the maximum on short screens. */
+  private secondsVisible = 4;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly secondsVisible = 4,
+    /** How far ahead the falling notes reach, when there is enough height for it. */
+    private readonly maxSecondsVisible = 4,
   ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D is not supported');
@@ -90,16 +107,14 @@ export class CanvasPianoRoll {
 
   render(frame: RollFrame): void {
     const { ctx, width, height } = this;
-    const keyboardHeight = Math.min(140, Math.max(60, height * 0.2));
+    if (frame.score !== this.layoutScore || width !== this.layoutWidth || height !== this.layoutHeight) {
+      this.layoutKeyboard(frame.score);
+    }
+    const { keyboardHeight } = this;
     const rollHeight = height - keyboardHeight;
+    this.secondsVisible = Math.min(this.maxSecondsVisible, Math.max(0.5, rollHeight / MIN_PX_PER_SECOND));
     const pxPerSecond = rollHeight / this.secondsVisible;
     const yOf = (time: number) => rollHeight - (time - frame.position) * pxPerSecond;
-
-    if (frame.score !== this.keysScore || width !== this.keysWidth) {
-      this.keys = layoutKeys(width, keyboardRange(frame.score, width));
-      this.keysScore = frame.score;
-      this.keysWidth = width;
-    }
 
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
@@ -111,6 +126,21 @@ export class CanvasPianoRoll {
 
     ctx.fillStyle = this.colors.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
+  }
+
+  /** Picks the keyboard's range and height together, so keys keep piano-like proportions. */
+  private layoutKeyboard(score: Score): void {
+    const { width, height } = this;
+    const tallest = Math.max(MIN_KEYBOARD_PX, Math.min(MAX_KEYBOARD_PX, height * MAX_KEYBOARD_SHARE));
+    const maxKeyWidth = Math.min(MAX_WHITE_KEY_PX, tallest / MIN_KEY_LENGTH_RATIO);
+    const range = keyboardRange(score, width, maxKeyWidth);
+    const keyWidth = width / whiteKeyCount(range);
+
+    this.keys = layoutKeys(width, range);
+    this.keyboardHeight = Math.min(tallest, Math.max(MIN_KEYBOARD_PX, keyWidth * KEY_LENGTH_RATIO));
+    this.layoutScore = score;
+    this.layoutWidth = width;
+    this.layoutHeight = height;
   }
 
   private drawLoop(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {

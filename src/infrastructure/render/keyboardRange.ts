@@ -25,9 +25,14 @@ export function whiteKeyCount({ low, high }: KeyRange): number {
  * The part of the keyboard to draw: from the Do at or below the lowest note of the piece
  * to the Do at or above the highest one, as real keyboards start and end on Do.
  * Then it grows an octave at a time, alternating sides, while it is shorter than two octaves
- * or while its white keys would be wider than MAX_WHITE_KEY_PX, but never beyond 88 keys.
+ * or while its white keys would be wider than `maxKeyWidthPx`, but never beyond 88 keys.
+ * The caller lowers `maxKeyWidthPx` when the keyboard is short, so keys don't turn into squares.
  */
-export function keyboardRange(score: Score | null, widthPx: number): KeyRange {
+export function keyboardRange(
+  score: Score | null,
+  widthPx: number,
+  maxKeyWidthPx: number = MAX_WHITE_KEY_PX,
+): KeyRange {
   let low: number;
   let high: number;
   if (!score || score.notes.length === 0) {
@@ -41,7 +46,7 @@ export function keyboardRange(score: Score | null, widthPx: number): KeyRange {
   high = Math.min(HIGHEST_KEY, high);
 
   const tooNarrow = () => high - low < MIN_OCTAVES * OCTAVE;
-  const keysTooWide = () => widthPx / whiteKeyCount({ low, high }) > MAX_WHITE_KEY_PX;
+  const keysTooWide = () => widthPx / whiteKeyCount({ low, high }) > maxKeyWidthPx;
   const canGrow = () => low > LOWEST_KEY || high < HIGHEST_KEY;
 
   let growDown = true;
