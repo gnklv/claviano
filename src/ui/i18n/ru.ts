@@ -31,6 +31,9 @@ export const ru: Dictionary = {
   tempo: 'Темп',
   rightHand: 'Правая',
   leftHand: 'Левая',
+  loop: 'Цикл',
+  loopFrom: 'С такта',
+  loopTo: 'По такт',
   loopBars: 'Цикл тактов',
 
   openError: 'Не удалось открыть «{file}»: {reason}',

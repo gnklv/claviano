@@ -37,6 +37,9 @@ export const en = {
   tempo: 'Tempo',
   rightHand: 'Right',
   leftHand: 'Left',
+  loop: 'Loop',
+  loopFrom: 'From bar',
+  loopTo: 'To bar',
   loopBars: 'Loop bars',
 
   openError: 'Could not open “{file}”: {reason}',

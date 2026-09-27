@@ -84,70 +84,192 @@ function togglePlay(): void {
 </script>
 
 <template>
-  <footer class="bar">
-    <button
-      class="button primary"
-      :disabled="!loaded"
-      :title="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
-      :aria-label="t(state.playing ? 'pause' : 'play')"
-      @click="togglePlay"
-    >
-      {{ state.playing ? '❚❚' : '▶' }}
-    </button>
-    <button class="button" :disabled="!loaded" :title="t('stop')" :aria-label="t('stop')" @click="playback.stop()">
-      ■
-    </button>
-    <span class="readout">{{ barLabel }}</span>
-    <input
-      ref="seek"
-      class="seek"
-      type="range"
-      min="0"
-      :max="SEEK_STEPS"
-      value="0"
-      :disabled="!loaded"
-      @input="onSeek"
-      @change="onSeekEnd"
-    />
+  <!--
+    Three groups by meaning: playback, tempo, practice (hands and loop).
+    How they are arranged depends on the width; see the grid areas below.
+  -->
+  <footer class="transport">
+    <div class="playback">
+      <button
+        class="button primary"
+        :disabled="!loaded"
+        :title="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
+        :aria-label="t(state.playing ? 'pause' : 'play')"
+        @click="togglePlay"
+      >
+        {{ state.playing ? '❚❚' : '▶' }}
+      </button>
+      <button class="button" :disabled="!loaded" :title="t('stop')" :aria-label="t('stop')" @click="playback.stop()">
+        ■
+      </button>
+      <input
+        ref="seek"
+        class="seek"
+        type="range"
+        min="0"
+        :max="SEEK_STEPS"
+        value="0"
+        :disabled="!loaded"
+        :aria-label="barLabel"
+        @input="onSeek"
+        @change="onSeekEnd"
+      />
+      <span class="readout">{{ barLabel }}</span>
+    </div>
 
-    <label class="group">
+    <label class="tempo">
       {{ t('tempo') }}
-      <input v-model.number="tempoPercent" type="range" min="25" max="150" step="5" />
+      <input v-model.number="tempoPercent" class="tempo-slider" type="range" min="25" max="150" step="5" />
       <output class="readout">{{ tempoPercent }}%</output>
     </label>
 
-    <label v-for="{ hand, label } in hands" :key="hand" class="group" :class="`hand-${hand}`">
-      <input
-        type="checkbox"
-        :checked="state.hands[hand]"
-        @change="playback.setHandEnabled(hand, ($event.target as HTMLInputElement).checked)"
-      />
-      {{ t(label) }}
-    </label>
+    <div class="practice">
+      <div class="hands">
+        <button
+          v-for="{ hand, label } in hands"
+          :key="hand"
+          class="toggle"
+          :class="`hand-${hand}`"
+          :aria-pressed="state.hands[hand]"
+          @click="playback.setHandEnabled(hand, !state.hands[hand])"
+        >
+          <span class="dot" aria-hidden="true" />
+          {{ t(label) }}
+        </button>
+      </div>
 
-    <span class="group">
-      <label><input v-model="loopEnabled" type="checkbox" :disabled="!loaded" /> {{ t('loopBars') }}</label>
-      <input v-model.number="loopFrom" class="number" type="number" min="1" :max="barCount" />
-      –
-      <input v-model.number="loopTo" class="number" type="number" min="1" :max="barCount" />
-    </span>
+      <div class="loop">
+        <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
+          ↻ {{ t('loop') }}
+        </button>
+        <input v-model.number="loopFrom" class="number" type="number" min="1" :max="barCount" :aria-label="t('loopFrom')" />
+        –
+        <input v-model.number="loopTo" class="number" type="number" min="1" :max="barCount" :aria-label="t('loopTo')" />
+      </div>
+    </div>
   </footer>
 </template>
 
 <style scoped>
-.bar {
+/* Phones: one group per row, each full width. */
+.transport {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'playback'
+    'tempo'
+    'practice';
+  gap: 10px 24px;
+  padding: 10px 16px;
+  background: var(--panel);
   border-top: 1px solid var(--border);
+}
+
+/* Tablets and narrow windows: playback on top, tempo and practice share the second row. */
+@media (min-width: 600px) {
+  .transport {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'playback playback'
+      'tempo practice';
+  }
+}
+
+/* Wide screens: everything in one row. */
+@media (min-width: 1100px) {
+  .transport {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: 'playback tempo practice';
+  }
+}
+
+.playback,
+.tempo,
+.practice,
+.hands,
+.loop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.playback {
+  grid-area: playback;
+}
+
+.tempo {
+  grid-area: tempo;
+}
+
+.practice {
+  grid-area: practice;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.seek,
+.tempo-slider {
+  flex: 1;
+  min-width: 80px;
+}
+
+@media (min-width: 1100px) {
+  .tempo-slider {
+    flex: 0 1 140px;
+  }
 }
 
 .readout {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-  min-width: 4.5em;
+  white-space: nowrap;
 }
 
-.seek {
-  flex: 1;
-  min-width: 120px;
+/* A pressable chip: on when aria-pressed is true, faded when off. */
+.toggle {
+  appearance: none;
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--control);
+  color: var(--text);
+}
+
+.toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.hand-right .dot {
+  color: var(--right);
+}
+
+.hand-left .dot {
+  color: var(--left);
+}
+
+.toggle[aria-pressed='true'] .dot {
+  background: currentColor;
 }
 
 .number {
@@ -160,11 +282,21 @@ function togglePlay(): void {
   font: inherit;
 }
 
-.hand-right input {
-  accent-color: var(--right);
-}
+/* Phones: finger-sized targets. */
+@media (max-width: 599px) {
+  .button,
+  .toggle,
+  .number {
+    min-height: 44px;
+  }
 
-.hand-left input {
-  accent-color: var(--left);
+  .button {
+    min-width: 44px;
+  }
+
+  /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
+  .number {
+    font-size: 16px;
+  }
 }
 </style>
