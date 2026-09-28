@@ -3,6 +3,7 @@ import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
 import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
+import type { DynamicMark, Hairpin } from './notation/dynamics';
 
 export interface TimeRange {
   readonly start: number;
@@ -106,6 +107,9 @@ export interface Score {
   readonly tempoMarks: readonly TempoMark[];
   /** Printed octave shifts (MusicXML), sorted by start; the written notes are already shifted. */
   readonly octaveShifts: readonly OctaveShift[];
+  /** Printed dynamics (MusicXML): marks and words, and hairpins, along the page, sorted. */
+  readonly dynamics: readonly DynamicMark[];
+  readonly hairpins: readonly Hairpin[];
   /** Marks of all pedals along the page, sorted by beat. */
   readonly pedalMarks: readonly PedalMark[];
 }
@@ -132,6 +136,8 @@ export interface ScoreMusic {
   readonly timeMap?: readonly TimePoint[];
   readonly tempoMarks?: readonly TempoMark[];
   readonly octaveShifts?: readonly OctaveShift[];
+  readonly dynamics?: readonly DynamicMark[];
+  readonly hairpins?: readonly Hairpin[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -206,6 +212,8 @@ export function createScore(
     pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
     tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
     octaveShifts: [...(music.octaveShifts ?? [])].sort((a, b) => a.start - b.start),
+    dynamics: [...(music.dynamics ?? [])].sort((a, b) => a.beat - b.beat),
+    hairpins: [...(music.hairpins ?? [])].sort((a, b) => a.start - b.start),
     timeMap: music.timeMap
       ? [...music.timeMap].sort((a, b) => a.beat - b.beat)
       : evenTimeMap(barPairs, { time: duration, beat: endBeat }),

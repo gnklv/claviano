@@ -5,6 +5,7 @@ import type { Accidental, Alteration, Letter } from '../../domain/notation/spell
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
+import { levelAt, MARK_LEVELS, withHairpinLevels, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
 import {
   createScore,
   type KeySignature,
@@ -153,7 +154,12 @@ interface SoundEvent {
   staff: number;
   beat: number;
   beats: number;
+  /** Worked out once the whole page is read (dynamics and hairpins along it); 0 until then. */
   velocity: number;
+  /** The note's own loudness from the file (<note dynamics>), if it has one. */
+  ownDynamics: number | null;
+  /** How much louder its articulation makes it (an accent). */
+  loudness: number;
   hand: Hand;
   soundingLength: number;
   tieStart: boolean;
@@ -174,7 +180,6 @@ const FERMATA_HOLD = 2;
 function readPart(part: Element, title: string): Score {
   let divisions = 1;
   let staves = 1;
-  let dynamics = DEFAULT_DYNAMICS;
   let measureStart = 0; // along the page, in quarter notes
   let timeSignature: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
   let ending: { numbers: number[]; label: string } | null = null;
@@ -197,6 +202,11 @@ function readPart(part: Element, title: string): Score {
   /** Octave shifts in force on each staff (where they started, how many octaves), and the finished ones. */
   const openShifts = new Map<number, { start: number; octaves: number }>();
   const octaveShifts: OctaveShift[] = [];
+  // Dynamics along the page: levels set, printed marks, hairpins (open ones by their number).
+  const dynamicLevels: DynamicLevel[] = [];
+  const dynamicMarks: DynamicMark[] = [];
+  const hairpins: Hairpin[] = [];
+  const openHairpins = new Map<string, { start: number; type: Hairpin['type']; below: boolean }>();
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
   for (const measureElement of part.querySelectorAll(':scope > measure')) {
@@ -273,7 +283,6 @@ function readPart(part: Element, title: string): Score {
             tempoMarks.push({ beat: beatAt(cursor), unit: { value: 'quarter', dots: 0 }, perMinute: Math.round(tempo), printed: false });
           }
           const level = Number(sound?.getAttribute('dynamics'));
-          if (level > 0) dynamics = level;
           readNavigation(element, sound, nav);
           // A direction may sit before the note it belongs to, shifted by its <offset>.
           const offset = element.nodeName === 'direction' ? (childNumber(element, 'offset') ?? 0) : 0;
@@ -281,6 +290,14 @@ function readPart(part: Element, title: string): Score {
           measure.pedal.push(...pedal.events);
           pedalMarks.push(...pedal.marks);
           const shift = element.querySelector(':scope > direction-type > octave-shift');
+          if (element.nodeName === 'direction') {
+            const dynamicsAt = readDynamics(element, beatAt(cursor + offset), level > 0 ? level : null, openHairpins);
+            dynamicMarks.push(...dynamicsAt.marks);
+            hairpins.push(...dynamicsAt.hairpins);
+            if (dynamicsAt.level !== null) dynamicLevels.push({ beat: beatAt(cursor + offset), level: dynamicsAt.level });
+          } else if (level > 0) {
+            dynamicLevels.push({ beat: beatAt(cursor), level });
+          }
           if (shift) {
             const staff = childNumber(element, 'staff') ?? 1;
             const type = shift.getAttribute('type');
@@ -341,7 +358,9 @@ function readPart(part: Element, title: string): Score {
             staff,
             beat: beatAt(start),
             beats,
-            velocity: Math.min(1, (((noteDynamics > 0 ? noteDynamics : dynamics) * 0.9) / 127) * effect.loudness),
+            velocity: 0,
+            ownDynamics: noteDynamics > 0 ? noteDynamics : null,
+            loudness: effect.loudness,
             hand,
             soundingLength: effect.length,
             tieStart: ties.includes('start'),
@@ -369,6 +388,17 @@ function readPart(part: Element, title: string): Score {
 
   // A shift the file never stops ends with the music.
   for (const [staff, open] of openShifts) octaveShifts.push({ staff, start: open.start, end: measureStart, octaves: open.octaves });
+
+  // Hairpins the file never stops end with the music; then every note gets its loudness.
+  for (const open of openHairpins.values()) hairpins.push({ ...open, end: measureStart, drawn: true });
+  hairpins.sort((a, b) => a.start - b.start);
+  const levels = withHairpinLevels(dynamicLevels, hairpins, DEFAULT_DYNAMICS);
+  for (const measure of measures) {
+    for (const sound of measure.sounds) {
+      const level = sound.ownDynamics ?? levelAt(levels, hairpins, sound.beat, DEFAULT_DYNAMICS);
+      sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness);
+    }
+  }
 
   resolveJumpTargets(measures.map((m) => m.navigation));
   const performance = perform(measures);
@@ -407,6 +437,8 @@ function readPart(part: Element, title: string): Score {
       timeMap: performance.timeMap,
       tempoMarks: distinctTempoMarks(tempoMarks),
       octaveShifts,
+      dynamics: dynamicMarks,
+      hairpins: hairpins.filter((h) => h.drawn),
       pedalMarks,
       timeSignatures,
       keySignatures,
@@ -442,6 +474,60 @@ function readNavigation(element: Element, sound: Element | null | undefined, nav
   // The words that go with a jump ("D.C. al Fine", "To Coda") are printed over the bar.
   const words = [...(types?.querySelectorAll(':scope > words') ?? [])].map((w) => w.textContent?.trim()).filter(Boolean);
   if ((jumps.dacapo || jumps.dalsegno || jumps.fine || jumps.toCoda) && words.length > 0) nav.text = words.join(' ');
+}
+
+/** Words that make music louder or softer until the next mark, like a hairpin. */
+const CRESCENDO_WORDS = /^(cresc|crescendo)\b/i;
+const DIMINUENDO_WORDS = /^(dim|dimin|diminuendo|decresc|decrescendo)\b/i;
+/** How far "cresc." and "dim." reach when no mark follows (quarter notes): about a bar. */
+const WORDS_REACH = 4;
+
+/**
+ * The dynamics a <direction> carries: printed marks (pp, mf, sfz…), hairpins (<wedge>), and the
+ * words "cresc." / "dim.", which act like hairpins up to the next mark. A mark sets a level unless
+ * the file gives its own (<sound dynamics>, `soundLevel`); sforzando-like marks only accent.
+ */
+function readDynamics(
+  direction: Element,
+  beat: number,
+  soundLevel: number | null,
+  open: Map<string, { start: number; type: Hairpin['type']; below: boolean }>,
+): { marks: DynamicMark[]; hairpins: Hairpin[]; level: number | null } {
+  const marks: DynamicMark[] = [];
+  const hairpins: Hairpin[] = [];
+  const staff = childNumber(direction, 'staff') ?? 1;
+  // Marks for the lower staff printed under it; everything else between the staves.
+  const below = staff >= 2 && direction.getAttribute('placement') === 'below';
+  let level = soundLevel;
+
+  for (const dynamics of direction.querySelectorAll(':scope > direction-type > dynamics')) {
+    const text = [...dynamics.children]
+      .map((mark) => (mark.nodeName === 'other-dynamics' ? (mark.textContent?.trim() ?? '') : mark.nodeName))
+      .join('');
+    if (!text) continue;
+    marks.push({ beat, below, text, letters: /^[pmfrszn]+$/.test(text) });
+    level ??= MARK_LEVELS[text] ?? null;
+  }
+
+  for (const wedge of direction.querySelectorAll(':scope > direction-type > wedge')) {
+    const number = wedge.getAttribute('number') ?? '1';
+    const type = wedge.getAttribute('type');
+    if (type === 'crescendo' || type === 'diminuendo') open.set(number, { start: beat, type, below });
+    else if (type === 'stop') {
+      const started = open.get(number);
+      if (started) hairpins.push({ ...started, end: beat, drawn: true });
+      open.delete(number);
+    }
+  }
+
+  for (const words of direction.querySelectorAll(':scope > direction-type > words')) {
+    const text = words.textContent?.trim() ?? '';
+    const type = CRESCENDO_WORDS.test(text) ? 'crescendo' : DIMINUENDO_WORDS.test(text) ? 'diminuendo' : null;
+    if (!type) continue;
+    marks.push({ beat, below, text, letters: false });
+    hairpins.push({ start: beat, end: beat + WORDS_REACH, type, below, drawn: false });
+  }
+  return { marks, hairpins, level };
 }
 
 /** A printed metronome mark: <metronome> with its beat unit (and dot) and the number per minute. */

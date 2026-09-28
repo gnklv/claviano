@@ -21,7 +21,7 @@ Every push to `master` runs the tests, builds and deploys to GitHub Pages
 
 **Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
 playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties,
-key/time/clef/tempo/dynamics changes, a wide range, articulations, fermatas, slurs, the sustain
+key/time/clef/tempo/dynamics changes, hairpins, a wide range, articulations, fermatas, slurs, the sustain
 pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 `tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
@@ -131,6 +131,9 @@ timer jitter; the view only reads `playback.position` each frame.
       alternating; ledger lines, accidentals and dots make room
 - [x] 8va / 8vb: MusicXML octave shifts printed with their bracket (notes an octave nearer, sound
       unchanged); in MIDI, runs beyond three ledger lines go under 8va / 8vb (15ma when needed)
+- [x] Dynamics (MusicXML): pp…ff, sf, fp and the like in the music font, hairpins, "cresc." / "dim.";
+      between the staves, or under the lower one when notes fill the gap; hairpins and words play
+      as a gradual change towards the next mark (or a step, when none follows)
 - [x] Several voices on a staff: stems turned apart where the file crosses them, voices a second
       apart side by side, beams off another voice's notes; beams across both staves
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a

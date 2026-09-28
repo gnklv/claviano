@@ -124,6 +124,13 @@ const metronome = (unit: string, dotted: boolean, perMinute: number, quarters: n
  */
 const octaveShift = (type: 'down' | 'up' | 'stop', staff: 1 | 2) =>
   `<direction placement="${staff === 1 ? 'above' : 'below'}"><direction-type><octave-shift type="${type}" size="8"/></direction-type><staff>${staff}</staff></direction>`;
+/** A printed dynamic mark between the staves, with the loudness it sets (MuseScore's levels). */
+const DYNAMIC_LEVELS: Record<string, number> = { pp: 36.67, p: 54.44, mp: 71.11, mf: 88.89, f: 106.67, ff: 124.44 };
+const dynamic = (mark: string) =>
+  `<direction placement="below"><direction-type><dynamics><${mark}/></dynamics></direction-type><staff>1</staff><sound dynamics="${DYNAMIC_LEVELS[mark]}"/></direction>`;
+/** A hairpin between the staves: start it before the notes it covers, stop it after them. */
+const wedge = (type: 'crescendo' | 'diminuendo' | 'stop') =>
+  `<direction placement="below"><direction-type><wedge type="${type}"/></direction-type><staff>1</staff></direction>`;
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
 const key = (fifths: number) => `<key><fifths>${fifths}</fifths></key>`;
 const time = (beats: number, beatType: number) => `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>`;
@@ -162,14 +169,16 @@ const measures: string[] = [
     ${backup(W)}${note('G2', dotted(H), { type: 'half', dots: 1, staff: 2 })}${rest(Q, { type: 'quarter', staff: 2 })}
   </measure>`,
 
-  // 3: beams mixing values, with partial beams and hooks.
+  // 3: beams mixing values, with partial beams and hooks; a crescendo hairpin (a step louder).
   `<measure number="3">
     ${direction('Beams', '')}
+    ${wedge('crescendo')}
     ${note('C5', E, { type: 'eighth', beams: ['begin'] })}${note('D5', S, { type: '16th', beams: ['continue', 'begin'] })}${note('E5', S, { type: '16th', beams: ['end', 'end'] })}
     ${note('F5', S, { type: '16th', beams: ['begin', 'forward hook'] })}${note('G5', dotted(E), { type: 'eighth', dots: 1, beams: ['end'] })}
     ${note('A5', E, { type: 'eighth', beams: ['begin'] })}${note('B5', E, { type: 'eighth', beams: ['end'] })}
     ${note('C6', T, { type: '32nd', beams: ['begin', 'begin', 'begin'] })}${note('B5', T, { type: '32nd', beams: ['continue', 'continue', 'end'] })}
     ${note('A5', S, { type: '16th', beams: ['continue', 'end'] })}${note('G5', E, { type: 'eighth', beams: ['end'] })}
+    ${wedge('stop')}
     ${backup(W)}${['C3', 'E3', 'G3', 'C4'].map((n) => note(n, Q, { type: 'quarter', staff: 2 })).join('')}
   </measure>`,
 
@@ -183,13 +192,16 @@ const measures: string[] = [
     ${backup(W)}${chord(['C3', 'E3', 'G3'], W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 5: tuplets: beamed triplets (number, no bracket), hidden number, a quintuplet, quarter triplets with a bracket.
+  // 5: tuplets: beamed triplets (number, no bracket), hidden number, a quintuplet, quarter triplets with a bracket;
+  // a diminuendo hairpin (a step softer again).
   `<measure number="5">
     ${direction('Tuplets', '')}
+    ${wedge('diminuendo')}
     ${['C5', 'D5', 'E5'].map((n, i) => note(n, Q / 3, { type: 'eighth', stem: 'up', beams: [run(3)[i]], tuplet: triplet(i, { bracket: 'no' }) })).join('')}
     ${['F5', 'E5', 'D5'].map((n, i) => note(n, Q / 3, { type: 'eighth', stem: 'up', beams: [run(3)[i]], tuplet: triplet(i, { bracket: 'no', hideNumber: true }) })).join('')}
     ${['C5', 'D5', 'E5', 'F5', 'G5'].map((n, i) => note(n, Q / 5, { type: '16th', stem: 'up', beams: [run(5)[i], run(5)[i]], tuplet: { actual: 5, normal: 4, start: i === 0, stop: i === 4, bracket: 'no' } })).join('')}
     ${note('G4', Q, { type: 'quarter' })}
+    ${wedge('stop')}
     ${backup(W)}
     ${['C3', 'E3', 'G3'].map((n, i) => note(n, H / 3, { type: 'quarter', staff: 2, tuplet: triplet(i, { bracket: 'yes' }) })).join('')}
     ${note('C3', H, { type: 'half', staff: 2 })}
@@ -248,7 +260,8 @@ const measures: string[] = [
   // 12: back to bass clef; slower and quiet, with the left pedal (una corda): quieter and duller.
   `<measure number="12">
     ${attributes(clef(2, 'F'))}
-    ${direction('Slower, piano', 'tempo="60" dynamics="45"')}
+    ${direction('Slower, piano', 'tempo="60"')}
+    ${dynamic('p')}
     ${softPedal(true)}
     ${note('Bb4', dotted(H), { type: 'half', dots: 1 })}
     ${backup(dotted(H))}${note('Eb2', dotted(H), { type: 'half', dots: 1, staff: 2 })}
@@ -259,7 +272,8 @@ const measures: string[] = [
   // under the 8vb bracket.
   `<measure number="13">
     ${attributes(`${key(2)}${time(4, 4)}`)}
-    ${direction('Range, forte', 'tempo="90" dynamics="110"')}
+    ${direction('Range, forte', 'tempo="90"')}
+    ${dynamic('f')}
     ${softPedal(false)}
     ${octaveShift('down', 1)}${note('D6', Q, { type: 'quarter' })}${note('F#6', Q, { type: 'quarter' })}${note('A6', H, { type: 'half' })}${octaveShift('stop', 1)}
     ${backup(W)}${pedal('start')}${note('D2', H, { type: 'half', staff: 2 })}${octaveShift('up', 2)}${note('A0', H, { type: 'half', staff: 2 })}${octaveShift('stop', 2)}${pedal('stop')}

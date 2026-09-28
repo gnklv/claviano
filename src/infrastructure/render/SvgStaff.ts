@@ -290,6 +290,33 @@ const OCTAVE_LINE_RISE = 0.8;
 const OCTAVE_HOOK = 1.0;
 /** How far an octave glyph reaches below its baseline. */
 const OCTAVE_BRACKET_DEPTH = 0.4;
+
+/**
+ * Dynamics: marks (SMuFL letters p, m, f, r, s, z, n combined), words (cresc., dim.) and hairpins,
+ * between the staves (or under the lower one); their baseline sits DYNAMICS_DROP below the upper
+ * staff, lower where notes of the upper staff reach down, by DYNAMICS_CLEARANCE.
+ */
+const DYNAMIC_LETTERS: Readonly<Record<string, string>> = {
+  p: '\uE520',
+  m: '\uE521',
+  f: '\uE522',
+  r: '\uE523',
+  s: '\uE524',
+  z: '\uE525',
+  n: '\uE526',
+};
+const DYNAMICS_DROP = 4;
+const DYNAMICS_CLEARANCE = 2;
+/** How far a mark (or a hairpin's lower line) reaches below its baseline, plus a little air. */
+const DYNAMICS_BELOW_LINE = 0.6;
+/** Width of one dynamic letter, roughly (spaces): a hairpin starting at a mark begins after it. */
+const DYNAMIC_LETTER_WIDTH = 1.3;
+/** Half the opening of a hairpin, and how far above the dynamics baseline its middle is. */
+const HAIRPIN_OPENING = 0.6;
+const HAIRPIN_RISE = 0.7;
+/** "una corda" / "tre corde": this far under the upper staff, above the dynamics. */
+const SOFT_PEDAL_DROP = 1.8;
+const SOFT_PEDAL_INSET = 0.8;
 const TEMPO_NOTE_SIZE = 2.6;
 const TEMPO_NOTE_WIDTH = 1.3;
 const TEMPO_DOT_WIDTH = 0.3;
@@ -373,6 +400,8 @@ export class SvgStaff {
   private marks: StaffMark[] = [];
   private slurs: StaffSlur[] = [];
   private octaveShifts: StaffOctaveShift[] = [];
+  /** Dynamics drawn under the lower staff (their baselines), for the pedal marks to clear. */
+  private dynamicsBelow: { left: number; right: number; y: number }[] = [];
   /** Where each bar number was drawn (its baseline), for volta brackets to clear. */
   private barNumberY: number[] = [];
   /**
@@ -878,7 +907,10 @@ export class SvgStaff {
     // Octave brackets first: the tempo marks go over the 8va ones, the pedal under the 8vb ones.
     this.octaveBrackets = [];
     for (const shift of this.octaveShifts) restLayer.append(...this.drawOctaveShift(shift, stemEnds));
-    restLayer.append(...this.drawPedal(score, stemEnds));
+    // Dynamics before the pedal: those pushed under the lower staff, the pedal goes under.
+    this.dynamicsBelow = [];
+    const dynamics = this.drawDynamics(score, stemEnds);
+    restLayer.append(...this.drawPedal(score, stemEnds), ...dynamics);
     restLayer.append(...this.drawTempoMarks(score));
 
     this.strip.append(restLayer, ...this.chordElements, beamLayer);
@@ -1358,10 +1390,12 @@ export class SvgStaff {
     }
 
     // The left pedal's words, in italics between the staves, like other playing directions.
-    const wordsY = this.trebleTop() + (LINES_PER_STAFF - 1 + STAFF_GAP / 2 + 0.5) * space;
+    // Just under the upper staff, above the dynamics line.
+    const wordsY = this.trebleTop() + (LINES_PER_STAFF - 1 + SOFT_PEDAL_DROP) * space;
     for (const { x, text } of words) {
       const element = svg('text', {
-        x: pressLeft(x),
+        // Just past the notehead, clear of a stem hanging down from its left side.
+        x: this.px(x) + SOFT_PEDAL_INSET * space,
         y: wordsY,
         'font-size': space * 1.3,
         'font-family': "'Times New Roman', Georgia, serif",
@@ -1374,6 +1408,75 @@ export class SvgStaff {
     return shapes;
   }
 
+
+  /**
+   * Dynamics as printed: marks in the music font, words in italics, hairpins as two lines
+   * opening (crescendo) or closing (diminuendo). Between the staves, clear of the upper staff's
+   * low notes; or under the lower staff when the file puts them there.
+   */
+  private drawDynamics(score: Score, stemEnds: Map<number, number>): SVGElement[] {
+    const { space } = this;
+    const shapes: SVGElement[] = [];
+    const x = (beat: number) => this.px(beatPosition(score, barAtBeat(score, beat), beat));
+    // Between the staves if the notes of both leave room there (a mark is about two spaces
+    // tall), otherwise under the lower staff, as the file asks for some marks anyway.
+    const baseline = (below: boolean, left: number, right: number) => {
+      const bass = this.inkExtent('bass', left, right, stemEnds);
+      const under = () => {
+        const y = Math.max(this.systemBottom(), bass.bottom) + DYNAMICS_CLEARANCE * space;
+        this.dynamicsBelow.push({ left, right, y });
+        return y;
+      };
+      if (below) return under();
+      const upperBottom = this.trebleTop() + (LINES_PER_STAFF - 1) * space;
+      const treble = this.inkExtent('treble', left, right, stemEnds);
+      const y = Math.max(upperBottom + DYNAMICS_DROP * space, treble.bottom + DYNAMICS_CLEARANCE * space);
+      const room = Math.min(this.bassTop(), bass.top) - DYNAMICS_BELOW_LINE * space;
+      return y <= room ? y : under();
+    };
+
+    for (const mark of score.dynamics) {
+      const at = x(mark.beat);
+      if (mark.letters) {
+        const width = mark.text.length * DYNAMIC_LETTER_WIDTH * space;
+        const glyph = this.inked([...mark.text].map((letter) => DYNAMIC_LETTERS[letter] ?? '').join(''), at, baseline(mark.below, at - width / 2, at + width / 2));
+        glyph.setAttribute('text-anchor', 'middle');
+        shapes.push(glyph);
+      } else {
+        const words = svg('text', {
+          x: at - 0.5 * space,
+          y: baseline(mark.below, at, at + 4 * space),
+          'font-size': space * 1.3,
+          'font-family': "'Times New Roman', Georgia, serif",
+          'font-style': 'italic',
+        });
+        words.textContent = mark.text;
+        words.style.setProperty('fill', COLORS.note);
+        shapes.push(words);
+      }
+    }
+
+    for (const hairpin of score.hairpins) {
+      // Clear of a mark at either end: start after it, end before it.
+      const markAt = (beat: number) => score.dynamics.find((m) => m.letters && Math.abs(m.beat - beat) < 1e-6);
+      const startMark = markAt(hairpin.start);
+      const endMark = markAt(hairpin.end);
+      const from = x(hairpin.start) + (startMark ? (startMark.text.length * DYNAMIC_LETTER_WIDTH) / 2 + 0.4 : -0.5) * space;
+      const endX = this.edgeX(beatPosition(score, barAtBeat(score, hairpin.end), hairpin.end));
+      const to = Math.max(from + 2 * space, endX - (endMark ? (endMark.text.length * DYNAMIC_LETTER_WIDTH) / 2 + 0.4 : 0.8) * space);
+      const middle = baseline(hairpin.below, from, to) - HAIRPIN_RISE * space;
+      const open = HAIRPIN_OPENING * space;
+      const [narrow, wide] = hairpin.type === 'crescendo' ? [from, to] : [to, from];
+      const line = svg('polyline', {
+        points: `${wide},${middle - open} ${narrow},${middle} ${wide},${middle + open}`,
+        fill: 'none',
+        'stroke-width': space * 0.12,
+      });
+      line.style.setProperty('stroke', COLORS.note);
+      shapes.push(line);
+    }
+    return shapes;
+  }
 
   /**
    * Bar numbers over the treble staff, just after each bar line; raised over a high note or stem
@@ -1473,6 +1576,11 @@ export class SvgStaff {
     for (const bracket of this.octaveBrackets) {
       if (bracket.staff !== 'bass' || bracket.above || bracket.right < left || bracket.left > right) continue;
       floor = Math.max(floor, bracket.y + OCTAVE_BRACKET_DEPTH * space);
+    }
+    // Dynamics pushed under the staff.
+    for (const mark of this.dynamicsBelow) {
+      if (mark.right < left || mark.left > right) continue;
+      floor = Math.max(floor, mark.y + DYNAMICS_BELOW_LINE * space);
     }
     return floor;
   }

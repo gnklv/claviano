@@ -134,6 +134,37 @@ describe('MusicXmlParser', () => {
     }
   });
 
+  describe('dynamics', () => {
+    const mark = (m: string) => `<direction><direction-type><dynamics><${m}/></dynamics></direction-type></direction>`;
+    const wedge = (type: string) => `<direction><direction-type><wedge type="${type}"/></direction-type></direction>`;
+
+    it('reads marks, and sets the loudness from them when the file gives no <sound dynamics>', () => {
+      const s = parser.parse(score(`<measure number="1">${attributes()}${mark('p')}${note('C', 4, 4)}${mark('ff')}${note('D', 4, 4)}</measure>`), 'test');
+      expect(s.dynamics.map((d) => [d.text, d.beat, d.letters])).toEqual([
+        ['p', 0, true],
+        ['ff', 2, true],
+      ]);
+      expect(s.notes[1].velocity).toBeGreaterThan(s.notes[0].velocity);
+    });
+
+    it('reads a hairpin from its start to its stop, and "cresc." as words that sound like one', () => {
+      const words = '<direction><direction-type><words>cresc.</words></direction-type></direction>';
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${mark('p')}${wedge('crescendo')}${note('C', 4, 2)}${note('D', 4, 2)}${wedge('stop')}${mark('f')}${note('E', 4, 2)}${words}${note('F', 4, 2)}</measure>`),
+        'test',
+      );
+      expect(s.hairpins).toEqual([{ start: 0, end: 2, type: 'crescendo', below: false, drawn: true }]);
+      expect(s.dynamics.map((d) => [d.text, d.letters])).toEqual([
+        ['p', true],
+        ['f', true],
+        ['cresc.', false],
+      ]);
+      const [first, second, third] = s.notes.map((n) => n.velocity);
+      expect(second).toBeGreaterThan(first); // rising towards the f
+      expect(third).toBeGreaterThan(second);
+    });
+  });
+
   it('plays chord notes together', () => {
     const s = parser.parse(
       score(`<measure number="1">${attributes()}

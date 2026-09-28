@@ -269,4 +269,25 @@ describe('showcase score: changes along the way', () => {
       ['bass', -1],
     ]);
   });
+
+  it('prints p and f in bars 12 and 13, a crescendo in bar 3 and a diminuendo in bar 5', () => {
+    expect(score.dynamics.map((d) => [d.text, d.beat])).toEqual([
+      ['p', score.writtenBarBeats[12]],
+      ['f', score.writtenBarBeats[13]],
+    ]);
+    expect(score.hairpins.map((h) => [h.type, h.start, h.end])).toEqual([
+      ['crescendo', score.writtenBarBeats[3], score.writtenBarBeats[4]],
+      ['diminuendo', score.writtenBarBeats[5], score.writtenBarBeats[6]],
+    ]);
+  });
+
+  it('plays the crescendo of bar 3 louder and louder, and the diminuendo of bar 5 softer', () => {
+    const rightHandIn = (bar: number) =>
+      score.notes.filter((n) => n.hand === 'right' && n.beat >= score.barBeats[bar] && n.beat < score.barBeats[bar + 1]);
+    const cresc = rightHandIn(3).map((n) => n.velocity);
+    expect(cresc.at(-1)!).toBeGreaterThan(cresc[0]);
+    expect([...cresc].sort((a, b) => a - b)).toEqual(cresc); // never softer along the way
+    const dim = rightHandIn(5).map((n) => n.velocity);
+    expect(dim.at(-1)!).toBeLessThan(dim[0]);
+  });
 });
