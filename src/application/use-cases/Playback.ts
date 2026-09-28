@@ -1,3 +1,4 @@
+import { countIn, metronomeClicks, type Click } from '../../domain/metronome';
 import { HANDS, type Hand } from '../../domain/note';
 import { pedalDownAt, SOFT_PEDAL_LOUDNESS, soundingDurations } from '../../domain/pedal';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
@@ -19,8 +20,27 @@ interface Anchor {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
+/** A click handed to the output, in audio time: for showing the beat. */
+interface SoundedClick {
+  readonly at: number;
+  readonly accent: boolean;
+}
+
+/** Index of the first click at or after `time` (clicks are sorted). */
+function firstClickAtOrAfter(clicks: readonly Click[], time: number): number {
+  let lo = 0;
+  let hi = clicks.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (clicks[mid].time < time - 1e-9) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 /**
- * Plays a score through an AudioOutput with tempo, per-hand muting, looping and the sustain pedal.
+ * Plays a score through an AudioOutput with tempo, per-hand muting, looping, the pedals,
+ * a metronome and a count-in.
  *
  * Notes are scheduled slightly ahead of time on the audio clock (the "two clocks" pattern),
  * so timing does not depend on how regularly the ticker fires.
@@ -36,6 +56,15 @@ export class Playback {
   private sustained: number[] = [];
   /** Which notes are struck with the soft pedal down (same indices as its notes). */
   private softened: boolean[] = [];
+  private metronomeOn = false;
+  private countInOn = false;
+  /** Every metronome click of the score, and the next one to schedule. */
+  private clicks: Click[] = [];
+  private nextClickIndex = 0;
+  /** The count-in in progress: its clicks' audio times and the numbers counted, and when the music comes in. */
+  private counting: { times: number[]; counts: number[]; end: number } | null = null;
+  /** Clicks recently handed to the output, oldest first. */
+  private sounded: SoundedClick[] = [];
 
   /** What the listener hears right now. When paused, `score` is the paused position. */
   private anchor: Anchor = { audio: 0, score: 0 };
@@ -78,10 +107,45 @@ export class Playback {
     return this.pedalOn;
   }
 
+  get metronomeEnabled(): boolean {
+    return this.metronomeOn;
+  }
+
+  /** Whether playing starts with a count-in. */
+  get countInEnabled(): boolean {
+    return this.countInOn;
+  }
+
+  /** While counting in, the number being counted now ("1", "2"…); null otherwise. */
+  get countInBeat(): number | null {
+    const counting = this.counting;
+    if (!counting || !this.isPlaying) return null;
+    const now = this.audio.now();
+    if (now >= counting.end) return null;
+    let current: number | null = null;
+    counting.times.forEach((at, i) => {
+      if (at <= now) current = counting.counts[i];
+    });
+    return current;
+  }
+
+  /** The last click heard (metronome or count-in): how many seconds ago, and whether accented. */
+  get lastClick(): { age: number; accent: boolean } | null {
+    const now = this.audio.now();
+    let last: SoundedClick | undefined;
+    for (const click of this.sounded) {
+      if (click.at > now) break;
+      last = click;
+    }
+    return last ? { age: now - last.at, accent: last.accent } : null;
+  }
+
   /** Current position in score seconds. Cheap enough to read every animation frame. */
   get position(): number {
     if (!this.isPlaying) return this.anchor.score;
     const now = this.audio.now();
+    // Counting in: the music waits at its start.
+    if (now < this.anchor.audio) return this.anchor.score;
     while (this.pendingWraps.length > 0 && now >= this.pendingWraps[0].audio) {
       this.anchor = this.pendingWraps.shift()!;
     }
@@ -89,7 +153,7 @@ export class Playback {
     return Math.min(position, this.currentScore?.duration ?? 0);
   }
 
-  /** Subscribes to state changes (play/pause, tempo, loop, hands, score). Not called per frame. */
+  /** Subscribes to state changes (play/pause, tempo, loop, hands, pedals, metronome, score). Not called per frame. */
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -100,6 +164,7 @@ export class Playback {
     this.currentScore = score;
     this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
     this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
+    this.clicks = metronomeClicks(score);
     this.currentLoop = null;
     this.anchor = { audio: 0, score: 0 };
     this.emit();
@@ -114,7 +179,7 @@ export class Playback {
     const range = this.playRange(score);
     const from = this.anchor.score;
     this.isPlaying = true;
-    this.restartFrom(from >= range.start && from < range.end ? from : range.start);
+    this.restartFrom(from >= range.start && from < range.end ? from : range.start, this.countInOn);
     this.stopTicker = this.ticker.start(() => this.tick());
     this.emit();
   }
@@ -132,6 +197,8 @@ export class Playback {
     this.stopTicker = null;
     if (silence) this.audio.stopAll();
     this.pendingWraps = [];
+    this.counting = null;
+    this.sounded = [];
     this.anchor = { audio: 0, score: position };
     this.emit();
   }
@@ -189,6 +256,19 @@ export class Playback {
     this.emit();
   }
 
+  /** Clicks already handed to the output still sound; the change applies from the next one. */
+  setMetronomeEnabled(enabled: boolean): void {
+    if (enabled === this.metronomeOn) return;
+    this.metronomeOn = enabled;
+    this.emit();
+  }
+
+  setCountInEnabled(enabled: boolean): void {
+    if (enabled === this.countInOn) return;
+    this.countInOn = enabled;
+    this.emit();
+  }
+
   setLoop(range: TimeRange | null): void {
     const score = this.currentScore;
     if (!score) return;
@@ -213,13 +293,34 @@ export class Playback {
     return this.currentLoop ?? { start: 0, end: score.duration };
   }
 
-  private restartFrom(position: number): void {
+  /** Starts sounding from `position` now, or after a count-in. */
+  private restartFrom(position: number, withCountIn = false): void {
     const score = this.currentScore!;
-    this.anchor = { audio: this.audio.now(), score: position };
+    const now = this.audio.now();
+    this.counting = null;
+    this.sounded = [];
+    let lead = 0;
+    if (withCountIn) {
+      const clicks = countIn(score, position);
+      lead = Math.max(0, ...clicks.map((c) => c.before)) / this.currentTempo;
+      const times = clicks.map((c) => now + lead - c.before / this.currentTempo);
+      clicks.forEach((c, i) => this.click(times[i], c.count === 1));
+      this.counting = { times, counts: clicks.map((c) => c.count), end: now + lead };
+    }
+    this.anchor = { audio: now + lead, score: position };
     this.pendingWraps = [];
     this.scheduleAnchor = this.anchor;
     this.nextNoteIndex = firstNoteAtOrAfter(score, position);
+    this.nextClickIndex = firstClickAtOrAfter(this.clicks, position);
     this.schedule(score);
+  }
+
+  private click(at: number, accent: boolean): void {
+    this.audio.playClick(at, accent);
+    const now = this.audio.now();
+    // Keep only what can still be the last click heard.
+    while (this.sounded.length > 1 && this.sounded[1].at <= now) this.sounded.shift();
+    this.sounded.push({ at, accent });
   }
 
   private tick(): void {
@@ -249,6 +350,11 @@ export class Playback {
         const velocity = soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity;
         this.audio.playNote(note.pitch, velocity, this.toAudio(note.start), duration / this.currentTempo, soft);
       }
+      // The index moves on even with the metronome off, so switching it on joins in at the right beat.
+      while (this.nextClickIndex < this.clicks.length && this.clicks[this.nextClickIndex].time < horizon) {
+        const click = this.clicks[this.nextClickIndex++];
+        if (this.metronomeOn) this.click(this.toAudio(click.time), click.accent);
+      }
       if (!this.currentLoop || horizon < segmentEnd) return;
 
       // The horizon crosses the loop end: continue scheduling from the loop start seamlessly.
@@ -256,6 +362,7 @@ export class Playback {
       this.pendingWraps.push(wrap);
       this.scheduleAnchor = wrap;
       this.nextNoteIndex = firstNoteAtOrAfter(score, wrap.score);
+      this.nextClickIndex = firstClickAtOrAfter(this.clicks, wrap.score);
     }
   }
 

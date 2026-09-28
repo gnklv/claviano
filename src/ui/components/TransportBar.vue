@@ -9,6 +9,8 @@ import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
 
 const SEEK_STEPS = 1000;
+/** How long the metronome's dot stays lit after a click, in seconds. */
+const PULSE_SECONDS = 0.1;
 
 const { playback } = useDeps();
 const { t } = useI18n();
@@ -40,7 +42,14 @@ const barLabel = computed(() =>
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
 
+/** The metronome's dot flashes with each click it plays (or the count-in plays). */
+const pulse = ref<'none' | 'beat' | 'accent'>('none');
+
 useAnimationFrame(() => {
+  const click = playback.playing ? playback.lastClick : null;
+  const now = click && click.age < PULSE_SECONDS ? (click.accent ? 'accent' : 'beat') : 'none';
+  if (now !== pulse.value) pulse.value = now;
+
   const score = playback.score;
   if (!score) return;
   const position = playback.position;
@@ -141,6 +150,17 @@ function togglePlay(): void {
           {{ t(label) }}
         </button>
       </div>
+
+      <button
+        class="toggle metronome"
+        :class="`pulse-${pulse}`"
+        :aria-pressed="state.metronome"
+        :title="t('metronomeHint')"
+        @click="playback.setMetronomeEnabled(!state.metronome)"
+      >
+        <span class="dot" aria-hidden="true" />
+        {{ t('metronome') }}
+      </button>
 
       <div class="loop">
         <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
@@ -276,6 +296,21 @@ function togglePlay(): void {
 
 .toggle[aria-pressed='true'] .dot {
   background: currentColor;
+}
+
+.metronome .dot {
+  color: var(--muted);
+  transition: scale 0.08s ease-out;
+}
+
+.metronome.pulse-beat .dot,
+.metronome.pulse-accent .dot {
+  color: var(--accent);
+  background: currentColor;
+}
+
+.metronome.pulse-accent .dot {
+  scale: 1.35;
 }
 
 .number {

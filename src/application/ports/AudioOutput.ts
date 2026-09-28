@@ -5,6 +5,8 @@ export interface AudioOutput {
   resume(): Promise<void>;
   /** `soft`: struck with the soft (una corda) pedal down, a duller tone (loudness is in `velocity`). */
   playNote(pitch: number, velocity: number, at: number, duration: number, soft?: boolean): void;
-  /** Silences sounding notes and cancels every note scheduled for the future. */
+  /** A metronome click; `accent` for the first beat of a bar. */
+  playClick(at: number, accent: boolean): void;
+  /** Silences sounding notes and clicks, and cancels every one scheduled for the future. */
   stopAll(): void;
 }

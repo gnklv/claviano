@@ -35,7 +35,9 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 | Tempo | 25–150%, pitch is unaffected |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
+| Metronome | a click on every beat (6/8 by dotted quarters), the first of a bar accented |
 | ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
+| ⚙ → Count-in | count the beats leading in before playing ("1 2 3" before a pickup on 4) |
 
 Drag a MIDI (`.mid`) or uncompressed MusicXML (`.musicxml`) file onto the window, or use
 "Open file". In MuseScore, export as *Uncompressed MusicXML*; compressed `.mxl` is not read.
@@ -51,12 +53,14 @@ src/
                      time and key signatures, and two timelines: bars as played (repeats
                      unrolled) and bars as printed, linked by barWritten. The three pedals
                      (pedal.ts) are kept beside the notes, which keep the length of the key.
+                     A time map (beat → second, with tempo changes and fermatas) places the
+                     metronome's clicks and the count-in (metronome.ts).
     notation/          Music theory for the staff: spelling (Fa♯ or Sol♭), accidentals per bar,
                        note values (quarter, dotted eighth…), quantization to a 1/32 grid,
                        and navigation: the performance order of repeats and jumps.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
-    use-cases/       Playback (tempo, loop, hands, pedal), LoadScore.
+    use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
                        (pedals from controllers 64, 66 and 67).
@@ -108,6 +112,8 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Soft (una corda) and sostenuto pedals (MIDI CC 67 / 66, MusicXML): quieter and duller notes,
       only the keys held at the press sustained; "una corda" / "tre corde" and "Sost." on the staff,
       the left and middle pedals light up in the corner
+- [x] Metronome and count-in: clicks along the bars as played (tempo, loop, metre changes,
+      pickup, fermatas), a count-in that leads into the beat where the music enters
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

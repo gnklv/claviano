@@ -14,6 +14,10 @@ class FakeAudio implements AudioOutput {
   playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
     this.played.push({ pitch, at, duration, velocity, soft });
   }
+  clicks: { at: number; accent: boolean }[] = [];
+  playClick(at: number, accent: boolean): void {
+    this.clicks.push({ at, accent });
+  }
   stopAll(): void {
     this.stops++;
   }
@@ -169,6 +173,55 @@ describe('Playback', () => {
       [36, 3],
       [72, 0.5],
     ]);
+  });
+
+  describe('metronome and count-in', () => {
+    /** Two bars of 4/4 whole notes at 60 BPM: a beat is a second. */
+    const whole = (pitch: number, beat: number) => ({ ...note(pitch, beat, 4), beats: 4 });
+    const twoBars = createScore('m', [whole(60, 0), whole(62, 4)], [0, 4], { barBeats: [0, 4] });
+
+    it('clicks every beat while the metronome is on', async () => {
+      const { audio, playback, advance } = setup();
+      playback.load(twoBars);
+      playback.setMetronomeEnabled(true);
+      await playback.play();
+      advance(2.5);
+      expect(audio.clicks.map((c) => [Math.round(c.at * 10) / 10, c.accent])).toEqual([
+        [0, true],
+        [1, false],
+        [2, false],
+      ]);
+    });
+
+    it('does not click with the metronome off', async () => {
+      const { audio, playback, advance } = setup();
+      playback.load(twoBars);
+      await playback.play();
+      advance(2.5);
+      expect(audio.clicks).toEqual([]);
+    });
+
+    it('counts in a bar before the music, which waits at its start', async () => {
+      const { audio, playback, advance } = setup();
+      playback.load(twoBars);
+      playback.setCountInEnabled(true);
+      playback.setTempo(0.5); // count-in follows the tempo: two seconds a beat
+      await playback.play();
+      expect(audio.clicks.map((c) => [c.at, c.accent])).toEqual([
+        [0, true],
+        [2, false],
+        [4, false],
+        [6, false],
+      ]);
+      expect(audio.played).toEqual([]);
+      advance(3);
+      expect(playback.position).toBe(0);
+      expect(playback.countInBeat).toBe(2);
+      advance(5.1);
+      expect(playback.countInBeat).toBeNull();
+      expect(audio.played[0]).toMatchObject({ pitch: 60 });
+      expect(audio.played[0].at).toBeCloseTo(8);
+    });
   });
 
   it('keeps the position when paused and resumed', async () => {

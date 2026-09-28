@@ -5,7 +5,7 @@ import type { Accidental, Alteration, Letter } from '../../domain/notation/spell
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
-import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
+import { createScore, type KeySignature, type Score, type TimePoint, type TimeSignature } from '../../domain/score';
 
 /*
  * MusicXML (https://www.w3.org/2021/06/musicxml40/): the notation format of MuseScore, Finale,
@@ -367,6 +367,7 @@ function readPart(part: Element, title: string): Score {
       pedal: performance.pedals.sustain,
       sostenutoPedal: performance.pedals.sostenuto,
       softPedal: performance.pedals.soft,
+      timeMap: performance.timeMap,
       pedalMarks,
       timeSignatures,
       keySignatures,
@@ -558,13 +559,20 @@ function perform(measures: readonly Measure[]) {
     start += measure.length;
   }
 
-  const toSeconds = withFermatas(beatsToSecondsConverter(tempos), fermatas);
+  const held = mergeSpans(fermatas);
+  const toSeconds = withFermatas(beatsToSecondsConverter(tempos), held);
+  // Time runs evenly between bar starts, tempo changes and fermata edges.
+  const corners = [...new Set([...barBeats, ...tempos.map((t) => t.beat), ...held.flat(), start])].sort((a, b) => a - b);
+  const timeMap: TimePoint[] = corners.map((beat) =>
+    held.some(([from, to]) => beat >= from && beat < to) ? { beat, time: toSeconds(beat), hold: true } : { beat, time: toSeconds(beat) },
+  );
   return {
     barBeats,
     barWritten,
     firstStart,
     notes,
     toSeconds,
+    timeMap,
     // Beats and seconds go the same way, so spans can be joined in beats and then converted.
     pedals: Object.fromEntries(
       (['sustain', 'sostenuto', 'soft'] as const).map((kind) => [
@@ -578,17 +586,22 @@ function perform(measures: readonly Measure[]) {
   };
 }
 
-/**
- * Holds fermatas: time under a fermata passes FERMATA_HOLD times slower, and everything after it
- * moves later by the extra time. Overlapping fermatas (a chord, both hands) count once.
- */
-function withFermatas(toSeconds: (beat: number) => number, spans: [number, number][]): (beat: number) => number {
+/** Fermata spans with overlapping ones (a chord, both hands) joined, in order. */
+function mergeSpans(spans: [number, number][]): [number, number][] {
   const merged: [number, number][] = [];
   for (const [from, to] of [...spans].sort((a, b) => a[0] - b[0])) {
     const last = merged.at(-1);
     if (last && from <= last[1]) last[1] = Math.max(last[1], to);
     else merged.push([from, to]);
   }
+  return merged;
+}
+
+/**
+ * Holds fermatas: time under a fermata passes FERMATA_HOLD times slower, and everything after it
+ * moves later by the extra time. `merged` comes from mergeSpans.
+ */
+function withFermatas(toSeconds: (beat: number) => number, merged: [number, number][]): (beat: number) => number {
   if (merged.length === 0) return toSeconds;
   return (beat) => {
     let seconds = toSeconds(beat);

@@ -8,6 +8,17 @@ export interface TimeRange {
   readonly end: number;
 }
 
+/**
+ * A point of the time map: quarter note `beat` (as played) sounds at `time` seconds. Between two
+ * points time runs evenly. `hold`: the stretch up to the next point is held (a fermata), so no
+ * beat is counted inside it.
+ */
+export interface TimePoint {
+  readonly beat: number;
+  readonly time: number;
+  readonly hold?: boolean;
+}
+
 /** Metre from `beat` on, e.g. 3/4 or 6/8. */
 export interface TimeSignature {
   /** Where it starts, in quarter notes. */
@@ -65,6 +76,11 @@ export interface Score {
   /** When the middle (sostenuto) and left (soft) pedals are down, as played; sorted. */
   readonly sostenutoPedal: readonly PedalSpan[];
   readonly softPedal: readonly PedalSpan[];
+  /**
+   * Beats to seconds, as played: sorted, the first point at beat 0. Tempo can change inside a bar
+   * and fermatas stretch it, so bar starts alone are not enough to place a beat in time.
+   */
+  readonly timeMap: readonly TimePoint[];
   /** Marks of all pedals along the page, sorted by beat. */
   readonly pedalMarks: readonly PedalMark[];
 }
@@ -87,6 +103,8 @@ export interface ScoreMusic {
   readonly sostenutoPedal?: readonly PedalSpan[];
   readonly softPedal?: readonly PedalSpan[];
   readonly pedalMarks?: readonly PedalMark[];
+  /** Default: time runs evenly within each bar. */
+  readonly timeMap?: readonly TimePoint[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -159,10 +177,73 @@ export function createScore(
     sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),
     pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
+    timeMap: music.timeMap
+      ? [...music.timeMap].sort((a, b) => a.beat - b.beat)
+      : evenTimeMap(barPairs, { time: duration, beat: endBeat }),
   };
 }
 
+/** Without a better map: time runs evenly from each bar start to the next, and on to the end. */
+function evenTimeMap(bars: readonly { time: number; beat: number }[], end: { time: number; beat: number }): TimePoint[] {
+  const points: TimePoint[] = bars.map(({ time, beat }) => ({ beat, time }));
+  const last = points.at(-1);
+  if (last && end.beat > last.beat && end.time > last.time) points.push(end);
+  return points;
+}
+
 export const EMPTY_SCORE: Score = createScore('', [], []);
+
+/** Seconds per quarter note when a map has nothing to go by (120 BPM). */
+const FALLBACK_SECONDS_PER_BEAT = 0.5;
+
+/** Index of the time-map point at or before `value` of `key` (0 before the first). */
+function segmentOf(map: readonly TimePoint[], key: 'beat' | 'time', value: number): number {
+  let lo = 0;
+  let hi = map.length - 1;
+  let result = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (map[mid][key] <= value) {
+      result = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return result;
+}
+
+/** Seconds per beat along segment `i` (the last segment's pace continues past the end). */
+function paceOf(map: readonly TimePoint[], i: number): number {
+  const [a, b] = i + 1 < map.length ? [map[i], map[i + 1]] : [map[i - 1], map[i]];
+  if (!a || !b || b.beat <= a.beat) return FALLBACK_SECONDS_PER_BEAT;
+  return (b.time - a.time) / (b.beat - a.beat);
+}
+
+/** When quarter note `beat` (as played) sounds, in seconds. */
+export function secondsAtBeat(score: Score, beat: number): number {
+  const map = score.timeMap;
+  if (map.length === 0) return beat * FALLBACK_SECONDS_PER_BEAT;
+  const i = segmentOf(map, 'beat', beat);
+  return map[i].time + (beat - map[i].beat) * paceOf(map, i);
+}
+
+/** Which quarter note (as played) sounds at `time` seconds: the inverse of secondsAtBeat. */
+export function beatAtSeconds(score: Score, time: number): number {
+  const map = score.timeMap;
+  if (map.length === 0) return time / FALLBACK_SECONDS_PER_BEAT;
+  const i = segmentOf(map, 'time', time);
+  const pace = paceOf(map, i);
+  return map[i].beat + (pace > 0 ? (time - map[i].time) / pace : 0);
+}
+
+/** Whether `beat` falls strictly inside a held stretch (a fermata). */
+export function isHeldAt(score: Score, beat: number): boolean {
+  const map = score.timeMap;
+  const i = segmentOf(map, 'beat', beat);
+  const next = map[i + 1];
+  return !!map[i]?.hold && beat > map[i].beat + 1e-9 && (next === undefined || beat < next.beat - 1e-9);
+}
 
 /** Index of the last element in a sorted array that is <= value, or -1. */
 function lastIndexAtOrBefore(sorted: readonly number[], value: number): number {

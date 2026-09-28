@@ -4,12 +4,15 @@ import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/Sc
 import { barAt, barNumber, type Score } from '../domain/score';
 import DemoMenu from './components/DemoMenu.vue';
 import LanguageSwitch from './components/LanguageSwitch.vue';
+import CountInOverlay from './components/CountInOverlay.vue';
 import PianoRoll from './components/PianoRoll.vue';
+import PracticeSettings from './components/PracticeSettings.vue';
 import StaffView from './components/StaffView.vue';
 import SettingsMenu from './components/SettingsMenu.vue';
 import ThemeSwitch from './components/ThemeSwitch.vue';
 import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
+import { rememberPracticeSettings } from './composables/rememberPracticeSettings';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useViewMode } from './composables/useViewMode';
 import { useDeps, type Demo } from './deps';
@@ -25,6 +28,7 @@ const ERROR_MESSAGES: Record<ScoreLoadErrorCode, MessageKey> = {
 const { playback, loadScore, demos } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
+rememberPracticeSettings(playback);
 const viewMode = useViewMode();
 const dragging = ref(false);
 
@@ -141,6 +145,8 @@ onUnmounted(() => {
         <ViewModeSwitch />
         <ThemeSwitch />
         <LanguageSwitch />
+        <!-- Only where the ⚙ menu cannot open (no Popover API): see styles below. -->
+        <div class="practice-inline"><PracticeSettings /></div>
       </div>
       <SettingsMenu class="settings-menu" />
     </header>
@@ -148,6 +154,7 @@ onUnmounted(() => {
     <main class="stage" :class="[`view-${viewMode}`, { dragging }]" :data-drop-hint="t('dropHint')">
       <StaffView v-if="viewMode !== 'keys'" class="view staff" />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" />
+      <CountInOverlay />
     </main>
 
     <TransportBar />
@@ -186,18 +193,17 @@ onUnmounted(() => {
   gap: 8px 16px;
 }
 
-.settings-menu {
+.practice-inline {
   display: none;
 }
 
-/* Below this width the inline settings no longer fit next to the title. */
+/* Below this width the inline settings no longer fit next to the title; the ⚙ menu has them all. */
 @media (max-width: 900px) {
   .settings-inline {
     display: none;
   }
 
   .settings-menu {
-    display: block;
     margin-left: auto;
   }
 
@@ -215,6 +221,10 @@ onUnmounted(() => {
 @supports not selector(:popover-open) {
   .settings-inline {
     display: inline-flex;
+  }
+
+  .practice-inline {
+    display: contents;
   }
 
   .settings-menu {

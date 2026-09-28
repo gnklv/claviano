@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitch from './LanguageSwitch.vue';
-import PedalSwitch from './PedalSwitch.vue';
+import PracticeSettings from './PracticeSettings.vue';
 import ThemeSwitch from './ThemeSwitch.vue';
 import ViewModeSwitch from './ViewModeSwitch.vue';
 
@@ -17,22 +17,20 @@ const id = 'settings-menu';
   <div class="settings">
     <button class="button gear" :popovertarget="id" :title="t('settings')" :aria-label="t('settings')">⚙</button>
     <div :id="id" class="menu" popover>
-      <div class="row">
+      <!-- Wide screens show these in the header already (see App.vue); the menu keeps the practice settings. -->
+      <div class="row display">
         <span class="label">{{ t('viewMode') }}</span>
         <ViewModeSwitch />
       </div>
-      <div class="row">
-        <span class="label">{{ t('pedal') }}</span>
-        <PedalSwitch />
-      </div>
-      <div class="row">
+      <div class="row display">
         <span class="label">{{ t('theme') }}</span>
         <ThemeSwitch />
       </div>
-      <div class="row">
+      <div class="row display">
         <span class="label">{{ t('language') }}</span>
         <LanguageSwitch />
       </div>
+      <PracticeSettings />
     </div>
   </div>
 </template>
@@ -95,6 +93,12 @@ const id = 'settings-menu';
 @media (prefers-reduced-motion: reduce) {
   .menu {
     transition: none;
+  }
+}
+
+@media (min-width: 901px) {
+  .row.display {
+    display: none;
   }
 }
 

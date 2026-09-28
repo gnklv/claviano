@@ -161,6 +161,10 @@ export class MidiFileParser implements ScoreParser {
       pedal: inSeconds(sustain),
       sostenutoPedal: inSeconds(sostenuto),
       softPedal: inSeconds(soft),
+      // Time runs evenly between bar starts and tempo changes.
+      timeMap: [...new Set([...bars, ...midi.tempos.map((t) => t.tick), midi.lastTick])]
+        .sort((a, b) => a - b)
+        .map((tick) => ({ beat: toBeats(tick), time: toSeconds(tick) })),
       pedalMarks: [
         ...pedalMarks('sustain', inBeats(sustain)),
         ...pedalMarks('sostenuto', inBeats(sostenuto)),

@@ -10,6 +10,8 @@ export interface PlaybackSnapshot {
   readonly loop: TimeRange | null;
   readonly hands: Readonly<Record<Hand, boolean>>;
   readonly pedal: boolean;
+  readonly metronome: boolean;
+  readonly countIn: boolean;
 }
 
 const snapshot = (playback: Playback): PlaybackSnapshot => ({
@@ -19,10 +21,12 @@ const snapshot = (playback: Playback): PlaybackSnapshot => ({
   loop: playback.loop,
   hands: { right: playback.isHandEnabled('right'), left: playback.isHandEnabled('left') },
   pedal: playback.pedalEnabled,
+  metronome: playback.metronomeEnabled,
+  countIn: playback.countInEnabled,
 });
 
 /**
- * Reactive mirror of Playback's discrete state (play/pause, tempo, loop, hands, pedal, score).
+ * Reactive mirror of Playback's discrete state (play/pause, tempo, loop, hands, pedal, metronome, score).
  * A shallowRef keeps Vue from deep-proxying the score's notes.
  * The continuously changing position is deliberately not here: read it per frame instead.
  */

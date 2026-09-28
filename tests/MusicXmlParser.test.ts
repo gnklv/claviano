@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+import { isHeldAt, secondsAtBeat } from '../src/domain/score';
 
 const parser = new MusicXmlParser();
 const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
@@ -53,6 +54,27 @@ describe('MusicXmlParser', () => {
     ]);
     // At 60 quarters per minute a beat is a second.
     expect(s.notes[2]).toMatchObject({ start: 2, duration: 2 });
+  });
+
+  it('maps beats to seconds through a tempo change inside a bar', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${tempo(60)}${note('C', 4, 4)}${tempo(120)}${note('D', 4, 4)}</measure>`),
+      'test',
+    );
+    expect(secondsAtBeat(s, 1)).toBeCloseTo(1);
+    expect(secondsAtBeat(s, 2)).toBeCloseTo(2);
+    expect(secondsAtBeat(s, 3)).toBeCloseTo(2.5); // twice as fast from beat 2
+  });
+
+  it('marks a fermata in the time map as held', () => {
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${tempo(60)}${note('C', 4, 4, { extra: '<type>half</type><notations><fermata/></notations>' })}${note('D', 4, 4)}</measure>`),
+      'test',
+    );
+    expect(isHeldAt(s, 1)).toBe(true);
+    expect(isHeldAt(s, 0)).toBe(false); // its start is still counted
+    expect(isHeldAt(s, 3)).toBe(false);
+    expect(secondsAtBeat(s, 2)).toBeCloseTo(4); // held twice as long
   });
 
   it('plays chord notes together', () => {

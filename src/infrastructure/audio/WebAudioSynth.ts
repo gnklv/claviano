@@ -21,6 +21,16 @@ const RING_OUT = 3;
 const RING_OUT_FROM = 3 * DECAY;
 /** Time constant of the fade after the key is released. */
 const RELEASE = 0.08;
+/**
+ * The metronome: a short high blip, higher and louder on the first beat of a bar. It bypasses the
+ * piano's limiter, so loud chords don't squash it.
+ */
+const CLICK = {
+  accent: { frequency: 1760, level: 0.35 },
+  beat: { frequency: 1320, level: 0.2 },
+  /** Time constant of its decay: gone in about 30 ms. */
+  decay: 0.01,
+};
 
 /**
  * A small additive synth: a triangle fundamental plus a quiet sine an octave up,
@@ -81,6 +91,25 @@ export class WebAudioSynth implements AudioOutput {
       osc.stop(stopAt);
     }
     fundamental.onended = () => {
+      gain.disconnect();
+      this.voices.delete(voice);
+    };
+  }
+
+  playClick(at: number, accent: boolean): void {
+    const { ctx } = this;
+    const start = Math.max(at, ctx.currentTime);
+    const { frequency, level } = accent ? CLICK.accent : CLICK.beat;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(level, start);
+    gain.gain.setTargetAtTime(0, start + 0.002, CLICK.decay);
+    gain.connect(ctx.destination);
+    const osc = this.oscillator('sine', frequency, gain);
+    const voice: Voice = { gain, oscillators: [osc] };
+    this.voices.add(voice);
+    osc.start(start);
+    osc.stop(start + CLICK.decay * 8);
+    osc.onended = () => {
       gain.disconnect();
       this.voices.delete(voice);
     };
