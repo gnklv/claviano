@@ -4,6 +4,7 @@ import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
+import { pedalSpans, type PedalMark } from '../../domain/pedal';
 import { createScore, type KeySignature, type Score, type TimeSignature } from '../../domain/score';
 
 /*
@@ -12,8 +13,7 @@ import { createScore, type KeySignature, type Score, type TimeSignature } from '
  * become one), and the notes as printed for the staff (value, tuplet, accidental, stem, beams).
  *
  * Only uncompressed files (.musicxml, .xml); compressed .mxl archives are not read.
- * Not yet: repeats and voltas (the piece plays straight through), grace notes (skipped),
- * more than one part (the first one is read).
+ * Not yet: grace notes (skipped), more than one part (the first one is read).
  */
 
 const DEFAULT_TEMPO = 120;
@@ -136,6 +136,8 @@ interface Measure {
   /** Its notes as they sound, in document order, with page beats. */
   sounds: SoundEvent[];
   tempos: { beat: number; bpm: number }[];
+  /** Pedal presses and releases, with page beats. */
+  pedal: { beat: number; down: boolean }[];
 }
 
 interface SoundEvent {
@@ -181,9 +183,11 @@ function readPart(part: Element, title: string): Score {
   ]);
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
+  const pedalMarks: PedalMark[] = [];
+  const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
   for (const measureElement of part.querySelectorAll(':scope > measure')) {
-    const measure: Measure = { start: measureStart, length: 0, navigation: {}, sounds: [], tempos: [] };
+    const measure: Measure = { start: measureStart, length: 0, navigation: {}, sounds: [], tempos: [], pedal: [] };
     const nav = measure.navigation;
     if (ending) nav.ending = ending.numbers;
     let endingEndsHere = false;
@@ -253,6 +257,11 @@ function readPart(part: Element, title: string): Score {
           const level = Number(sound?.getAttribute('dynamics'));
           if (level > 0) dynamics = level;
           readNavigation(element, sound, nav);
+          // A direction may sit before the note it belongs to, shifted by its <offset>.
+          const offset = element.nodeName === 'direction' ? (childNumber(element, 'offset') ?? 0) : 0;
+          const pedal = readPedal(element, sound, beatAt(cursor + offset), pedalState);
+          measure.pedal.push(...pedal.events);
+          if (pedal.mark) pedalMarks.push(pedal.mark);
           break;
         }
         case 'backup':
@@ -355,6 +364,8 @@ function readPart(part: Element, title: string): Score {
       writtenBarBeats: measures.map((m) => m.start),
       writtenEndBeat: measureStart,
       navigation: hasNavigation ? measures.map((m) => m.navigation) : [],
+      pedal: performance.pedal,
+      pedalMarks,
       timeSignatures,
       keySignatures,
       clefs: clefChanges,
@@ -392,6 +403,78 @@ function readNavigation(element: Element, sound: Element | null | undefined, nav
 }
 
 /**
+ * The sustain pedal a <direction> or <sound> carries: presses and releases for playback, and the
+ * printed mark for the staff. A printed <pedal> decides; a bare <sound damper-pedal> only sounds.
+ */
+/**
+ * Which pedals are down along the page. The middle (sostenuto) pedal starts with its own type but
+ * ends with a plain "stop", so a stop needs to know which pedal it lifts: the one with its number,
+ * or else the only one down, or else the one pressed last (like nested brackets).
+ */
+interface PedalState {
+  sustain: boolean;
+  /** The `number` of a sostenuto pedal that is down ('' when unnumbered), or null. */
+  sostenuto: string | null;
+  sostenutoLast: boolean;
+}
+
+function readPedal(
+  element: Element,
+  sound: Element | null | undefined,
+  beat: number,
+  state: PedalState,
+): { events: { beat: number; down: boolean }[]; mark: PedalMark | null } {
+  const none = { events: [], mark: null };
+  const pedal = element.querySelector(':scope > direction-type > pedal');
+  const type = pedal?.getAttribute('type');
+  const number = pedal?.getAttribute('number') ?? '';
+
+  // The middle pedal is not played yet; only keep its stop from lifting the sustain pedal.
+  if (type === 'sostenuto') {
+    state.sostenuto = number;
+    state.sostenutoLast = true;
+    return none;
+  }
+  const byNumber = number !== '' && state.sostenuto !== null && state.sostenuto !== '';
+  const liftsSostenuto =
+    type === 'stop' &&
+    state.sostenuto !== null &&
+    (byNumber ? number === state.sostenuto : !state.sustain || state.sostenutoLast);
+  if (liftsSostenuto) {
+    state.sostenuto = null;
+    return none;
+  }
+
+  if (pedal && (type === 'start' || type === 'stop' || type === 'change')) {
+    state.sustain = type !== 'stop';
+    state.sostenutoLast = false;
+    // By the standard, signs ("Ped." and "✱") are the default unless the pedal is drawn with a line.
+    const line = pedal.getAttribute('line') === 'yes';
+    const sign = pedal.getAttribute('sign') ? pedal.getAttribute('sign') === 'yes' : !line;
+    const events =
+      type === 'change'
+        ? [
+            { beat, down: false },
+            { beat, down: true },
+          ]
+        : [{ beat, down: type === 'start' }];
+    return { events, mark: { beat, type, sign, line } };
+  }
+  if (type === 'resume' || type === 'discontinue') {
+    state.sustain = type === 'resume';
+    if (state.sustain) state.sostenutoLast = false;
+    return { events: [{ beat, down: state.sustain }], mark: null };
+  }
+
+  const damper = sound?.getAttribute('damper-pedal');
+  if (!damper) return none;
+  // "yes" / "no", or how far down it is in percent.
+  const down = damper === 'yes' || (damper !== 'no' && Number(damper) >= 50);
+  state.sustain = down;
+  return { events: [{ beat, down }], mark: null };
+}
+
+/**
  * Files do not always say which printed 𝄋 / 𝄌 is the target of a jump; when they only print
  * the signs, the segno is the first one and the coda the last one that is not a "To Coda".
  */
@@ -415,6 +498,7 @@ function perform(measures: readonly Measure[]) {
   const notes: PendingNote[] = [];
   const tempos: { beat: number; bpm: number }[] = [];
   const fermatas: [number, number][] = [];
+  const pedal: { time: number; down: boolean }[] = [];
   const openTies = new Map<string, PendingNote>();
 
   let start = 0;
@@ -425,6 +509,7 @@ function perform(measures: readonly Measure[]) {
     barWritten.push(index);
     firstStart[index] ??= start;
     for (const tempo of measure.tempos) tempos.push({ beat: tempo.beat + shift, bpm: tempo.bpm });
+    for (const event of measure.pedal) pedal.push({ time: event.beat + shift, down: event.down });
 
     for (const sound of measure.sounds) {
       const beat = sound.beat + shift;
@@ -451,7 +536,16 @@ function perform(measures: readonly Measure[]) {
     start += measure.length;
   }
 
-  return { barBeats, barWritten, firstStart, notes, toSeconds: withFermatas(beatsToSecondsConverter(tempos), fermatas) };
+  const toSeconds = withFermatas(beatsToSecondsConverter(tempos), fermatas);
+  return {
+    barBeats,
+    barWritten,
+    firstStart,
+    notes,
+    toSeconds,
+    // Beats and seconds go the same way, so spans can be joined in beats and then converted.
+    pedal: pedalSpans(pedal, start).map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) })),
+  };
 }
 
 /**

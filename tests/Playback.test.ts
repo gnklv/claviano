@@ -62,6 +62,9 @@ function setup() {
   return { audio, ticker, playback, advance };
 }
 
+/** A bass note under the pedal and a melody note after it: the pedal holds the bass. */
+const pedalled = createScore('pedal', [note(48, 0, 0.5, 'left'), note(64, 1, 0.5)], [0], { pedal: [{ start: 0, end: 2 }] });
+
 describe('Playback', () => {
   it('schedules only the notes within the lookahead window', async () => {
     const { audio, playback, advance } = setup();
@@ -120,6 +123,30 @@ describe('Playback', () => {
     audio.played = [];
     await playback.play();
     expect(audio.played.map((n) => n.pitch)).toEqual([60]);
+  });
+
+  it('holds notes under the sustain pedal', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(pedalled);
+    await playback.play();
+    advance(1.5);
+    expect(audio.played.map((n) => [n.pitch, n.duration])).toEqual([
+      [48, 2],
+      [64, 1],
+    ]);
+  });
+
+  it('plays notes as long as their keys with the pedal off', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(pedalled);
+    playback.setPedalEnabled(false);
+    expect(playback.pedalEnabled).toBe(false);
+    await playback.play();
+    advance(1.5);
+    expect(audio.played.map((n) => [n.pitch, n.duration])).toEqual([
+      [48, 0.5],
+      [64, 0.5],
+    ]);
   });
 
   it('keeps the position when paused and resumed', async () => {

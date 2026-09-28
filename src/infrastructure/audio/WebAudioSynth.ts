@@ -7,14 +7,21 @@ interface Voice {
 }
 
 const ATTACK = 0.005;
-/** Time constant of the natural decay of a held key. */
+/** Time constant of the natural decay of a held key: the quick drop right after the strike… */
 const DECAY = 0.6;
+/**
+ * …and of the long fade that follows, like a string ringing out. Without it a note held by the
+ * pedal would stay at the same level forever, and pedalled passages would pile up into a drone.
+ */
+const RING_OUT = 3;
+/** The long fade takes over once the quick drop has mostly happened (three time constants). */
+const RING_OUT_FROM = 3 * DECAY;
 /** Time constant of the fade after the key is released. */
 const RELEASE = 0.08;
 
 /**
  * A small additive synth: a triangle fundamental plus a quiet sine an octave up,
- * with a piano-like envelope (fast attack, long decay while held, short release).
+ * with a piano-like envelope (fast attack, a drop and then a slow fade while held, short release).
  * Good enough to hear the music; a sampler can replace it behind the same port.
  */
 export class WebAudioSynth implements AudioOutput {
@@ -51,6 +58,7 @@ export class WebAudioSynth implements AudioOutput {
     gain.gain.setValueAtTime(0, start);
     gain.gain.linearRampToValueAtTime(peak, start + ATTACK);
     gain.gain.setTargetAtTime(peak * 0.15, start + ATTACK, DECAY);
+    if (start + ATTACK + RING_OUT_FROM < end) gain.gain.setTargetAtTime(0, start + ATTACK + RING_OUT_FROM, RING_OUT);
     gain.gain.setTargetAtTime(0, end, RELEASE);
     gain.connect(this.output);
 

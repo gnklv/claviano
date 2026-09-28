@@ -335,4 +335,86 @@ describe('MusicXmlParser', () => {
       expect(s.notes.map((n) => n.beats)).toEqual([8, 8]); // two passes, each a tied pair
     });
   });
+
+  describe('sustain pedal', () => {
+    const pedal = (type: string, attrs = '', offset = '') =>
+      `<direction placement="below"><direction-type><pedal type="${type}" ${attrs}/></direction-type>${offset}</direction>`;
+    const quarter = (step: string, octave = 3) => note(step, octave, 2, { staff: 2, extra: '<type>quarter</type>' });
+
+    it('reads printed pedal marks as spans for playback and marks for the staff', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('start')}${quarter('C')}${quarter('E')}${pedal('change', 'line="yes"')}${quarter('G')}${quarter('C', 4)}${pedal('stop')}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([
+        { start: 0, end: 2 },
+        { start: 2, end: 4 },
+      ]);
+      expect(s.pedalMarks).toEqual([
+        { beat: 0, type: 'start', sign: true, line: false },
+        { beat: 2, type: 'change', sign: false, line: true },
+        { beat: 4, type: 'stop', sign: true, line: false },
+      ]);
+    });
+
+    it('places a pedal mark by its offset', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('start', '', '<offset>2</offset>')}${quarter('C')}${quarter('E')}${pedal('stop')}${quarter('G')}${quarter('C', 4)}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([{ start: 1, end: 2 }]);
+    });
+
+    it('plays a bare <sound damper-pedal> without printing anything', () => {
+      const damper = (value: string) => `<sound damper-pedal="${value}"/>`;
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${damper('yes')}${quarter('C')}${quarter('E')}${damper('no')}${quarter('G')}${quarter('C', 4)}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([{ start: 0, end: 2 }]);
+      expect(s.pedalMarks).toEqual([]);
+    });
+
+    it('does not let the stop of a middle (sostenuto) pedal lift the sustain pedal', () => {
+      // Sustain down on beat 0; sostenuto from beat 1 to 2 (its end is a plain "stop", which lifts the
+      // pedal pressed last); sustain up on 4.
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('start')}${quarter('C')}${pedal('sostenuto')}${quarter('E')}${pedal('stop')}${quarter('G')}${quarter('C', 4)}${pedal('stop')}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([{ start: 0, end: 4 }]);
+      expect(s.pedalMarks.map((m) => [m.type, m.beat])).toEqual([
+        ['start', 0],
+        ['stop', 4],
+      ]);
+    });
+
+    it('tells overlapping pedals apart by their number', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('sostenuto', 'number="2"')}${quarter('C')}${pedal('start', 'number="1"')}${quarter('E')}${pedal('stop', 'number="2"')}${quarter('G')}${pedal('stop', 'number="1"')}${quarter('C', 4)}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([{ start: 1, end: 3 }]);
+    });
+
+    it('presses the pedal again on every pass of a repeat', () => {
+      const repeatStart = '<barline location="left"><repeat direction="forward"/></barline>';
+      const repeatEnd = '<barline location="right"><repeat direction="backward"/></barline>';
+      const s = parser.parse(
+        score(`<measure number="1">${repeatStart}${attributes()}${tempo(60)}
+          ${pedal('start')}${quarter('C')}${quarter('E')}${quarter('G')}${quarter('C', 4)}${pedal('stop')}${repeatEnd}</measure>`),
+        'test',
+      );
+      expect(s.pedal).toEqual([
+        { start: 0, end: 4 },
+        { start: 4, end: 8 },
+      ]);
+      expect(s.pedalMarks).toHaveLength(2); // printed once
+    });
+  });
 });

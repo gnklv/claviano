@@ -41,6 +41,9 @@ const timeSignature = (numerator: number, denominatorPower: number): Event =>
 const keySignature = (delta: number, fifths: number, minor = false): Event =>
   [delta, 0xff, 0x59, 2, fifths & 0xff, minor ? 1 : 0];
 
+/** Sustain pedal (controller 64) on channel 1: down or up. */
+const pedal = (delta: number, down: boolean): Event => [delta, 0xb0, 64, down ? 127 : 0];
+
 const parser = new MidiFileParser();
 
 describe('MidiFileParser', () => {
@@ -179,6 +182,57 @@ describe('MidiFileParser', () => {
   it('ignores the drum channel', () => {
     const file = midiFile(480, [track([[0, 0x99, 36, 100], [480, 0x89, 36, 0]])]);
     expect(parser.parse(file, 'test').notes).toHaveLength(0);
+  });
+
+  describe('sustain pedal', () => {
+    it('reads controller 64 as pedal spans in seconds', () => {
+      const file = midiFile(480, [
+        track([tempo(120), pedal(0, true), [0, 0x90, 48, 100], [480, 0x80, 48, 0], pedal(480, false), [480, 0x90, 50, 100], [480, 0x80, 50, 0]]),
+      ]);
+      const score = parser.parse(file, 'test');
+      expect(score.pedal).toEqual([{ start: 0, end: 1 }]);
+      // The note keeps the length of the key; the pedal lives beside it.
+      expect(score.notes[0].duration).toBe(0.5);
+    });
+
+    it('treats values from 64 up as down and merges copies from several tracks', () => {
+      const file = midiFile(480, [
+        track([tempo(120), [0, 0xb0, 64, 100], [480, 0xb0, 64, 20]]),
+        track([pedal(0, true), [0, 0x90, 60, 100], [960, 0x80, 60, 0], pedal(0, false)]),
+      ]);
+      expect(parser.parse(file, 'test').pedal).toEqual([{ start: 0, end: 1 }]);
+    });
+
+    it('draws the pedal as a bracket, a quick lift and press being a change', () => {
+      const file = midiFile(480, [
+        track([
+          pedal(0, true),
+          [0, 0x90, 60, 100],
+          pedal(960, false), // at beat 2…
+          pedal(60, true), // …pressed again an eighth of a beat later: a change
+          [0, 0x80, 60, 0],
+          pedal(960, false), // a real release: up for a whole beat
+          [0, 0x90, 62, 100],
+          pedal(480, true),
+          [480, 0x80, 62, 0],
+          pedal(0, false),
+        ]),
+      ]);
+      const marks = parser.parse(file, 'test').pedalMarks;
+      expect(marks.map((m) => [m.type, m.beat])).toEqual([
+        ['start', 0],
+        ['change', 2],
+        ['stop', 4.125],
+        ['start', 5.125],
+        ['stop', 6.125],
+      ]);
+      expect(marks.every((m) => m.line && !m.sign)).toBe(true);
+    });
+
+    it('ignores the pedal of the drum channel', () => {
+      const file = midiFile(480, [track([[0, 0xb9, 64, 127], [0, 0x90, 60, 100], [480, 0x80, 60, 0], [0, 0xb9, 64, 0]])]);
+      expect(parser.parse(file, 'test').pedal).toEqual([]);
+    });
   });
 
   it('rejects files that are not MIDI', () => {

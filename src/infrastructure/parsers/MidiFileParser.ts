@@ -1,5 +1,6 @@
 import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
+import { pedalSpans, type PedalMark, type PedalSpan } from '../../domain/pedal';
 import { createScore, type Score } from '../../domain/score';
 
 export class InvalidMidiError extends ScoreLoadError {
@@ -11,6 +12,13 @@ export class InvalidMidiError extends ScoreLoadError {
 
 const DEFAULT_US_PER_QUARTER = 500_000; // 120 BPM
 const DRUM_CHANNEL = 9;
+/** Controller 64 is the sustain pedal: values from 64 up mean down. */
+const SUSTAIN_CONTROLLER = 64;
+/**
+ * Players change the pedal by lifting it and pressing it again a moment later. A gap this short
+ * (in quarter notes) is drawn as one change rather than a release and a new press.
+ */
+const PEDAL_CHANGE_GAP = 0.25;
 
 interface RawNote {
   track: number;
@@ -38,9 +46,17 @@ interface KeySignatureEvent {
   minor: boolean;
 }
 
+interface PedalEvent {
+  tick: number;
+  down: boolean;
+  /** Track and channel it came from: each has its own pedal state. */
+  source: number;
+}
+
 interface MidiData {
   ticksPerQuarter: number;
   notes: RawNote[];
+  pedal: PedalEvent[];
   tempos: TempoEvent[];
   timeSignatures: TimeSignatureEvent[];
   keySignatures: KeySignatureEvent[];
@@ -130,8 +146,11 @@ export class MidiFileParser implements ScoreParser {
     });
 
     const bars = barTicks(midi.timeSignatures, midi.ticksPerQuarter, midi.lastTick);
+    const pedal = mergedPedal(midi.pedal, midi.lastTick);
     return createScore(title, notes, bars.map(toSeconds), {
       barBeats: bars.map(toBeats),
+      pedal: pedal.map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) })),
+      pedalMarks: pedalMarks(pedal.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }))),
       timeSignatures: midi.timeSignatures.map(({ tick, numerator, denominator }) => ({
         beat: toBeats(tick),
         numerator,
@@ -157,6 +176,7 @@ function readMidi(reader: ByteReader): MidiData {
   const data: MidiData = {
     ticksPerQuarter: division,
     notes: [],
+    pedal: [],
     tempos: [],
     timeSignatures: [],
     keySignatures: [],
@@ -242,6 +262,10 @@ function readTrack(reader: ByteReader, end: number, track: number, data: MidiDat
       } else {
         closeNote(channel, pitch); // note-on with velocity 0 is a note-off
       }
+    } else if (type === 0xb) {
+      const controller = reader.u8();
+      const value = reader.u8();
+      if (controller === SUSTAIN_CONTROLLER && channel !== DRUM_CHANNEL) data.pedal.push({ tick, down: value >= 64, source: track * 16 + channel });
     } else if (type === 0xc || type === 0xd) {
       reader.skip(1);
     } else {
@@ -311,4 +335,44 @@ function handAssigner(notes: RawNote[]): (note: RawNote) => Hand {
     return (note) => (note.track === rightTrack ? 'right' : 'left');
   }
   return (note) => handBySplitPoint(note.pitch);
+}
+
+/**
+ * Tracks and channels may each carry their own copy of the pedal. The piano has one: it is down
+ * while any of them holds it down.
+ */
+function mergedPedal(events: PedalEvent[], lastTick: number): PedalSpan[] {
+  const bySource = new Map<number, PedalEvent[]>();
+  for (const event of events) {
+    const own = bySource.get(event.source) ?? [];
+    own.push(event);
+    bySource.set(event.source, own);
+  }
+  const spans = [...bySource.values()]
+    .flatMap((own) => pedalSpans(own.map(({ tick, down }) => ({ time: tick, down })), lastTick))
+    .sort((a, b) => a.start - b.start);
+  const merged: { start: number; end: number }[] = [];
+  for (const span of spans) {
+    const last = merged.at(-1);
+    // Only overlaps join: spans that just touch are a pedal change and stay apart.
+    if (last && span.start < last.end) last.end = Math.max(last.end, span.end);
+    else merged.push({ ...span });
+  }
+  return merged;
+}
+
+/**
+ * How the pedal is drawn on the staff: MIDI has no notation, so as a bracket line, where a quick
+ * lift and press becomes a change (a notch) at the moment of the lift.
+ */
+function pedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
+  const marks: PedalMark[] = [];
+  const mark = (beat: number, type: PedalMark['type']): PedalMark => ({ beat, type, sign: false, line: true });
+  spans.forEach((span, i) => {
+    const previous = spans[i - 1];
+    if (previous && span.start - previous.end <= PEDAL_CHANGE_GAP) marks[marks.length - 1] = mark(previous.end, 'change');
+    else marks.push(mark(span.start, 'start'));
+    marks.push(mark(span.end, 'stop'));
+  });
+  return marks;
 }

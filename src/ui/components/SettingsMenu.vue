@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitch from './LanguageSwitch.vue';
+import PedalSwitch from './PedalSwitch.vue';
 import ThemeSwitch from './ThemeSwitch.vue';
 import ViewModeSwitch from './ViewModeSwitch.vue';
 
@@ -19,6 +20,10 @@ const id = 'settings-menu';
       <div class="row">
         <span class="label">{{ t('viewMode') }}</span>
         <ViewModeSwitch />
+      </div>
+      <div class="row">
+        <span class="label">{{ t('pedal') }}</span>
+        <PedalSwitch />
       </div>
       <div class="row">
         <span class="label">{{ t('theme') }}</span>

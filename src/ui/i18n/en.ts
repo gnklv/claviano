@@ -18,6 +18,12 @@ export const en = {
   themeLight: 'Light',
   themeDark: 'Dark',
   language: 'Language',
+  pedal: 'Pedal',
+  pedalOn: 'On',
+  pedalOff: 'Off',
+  pedalPress: 'Pedal ↓',
+  pedalRelease: 'Pedal ↑',
+  pedalChange: 'Pedal ↑↓',
 
   openMidi: 'Open file',
   demo: 'Demo',

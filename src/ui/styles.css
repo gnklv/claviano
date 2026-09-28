@@ -40,6 +40,7 @@
   --now-line: rgb(255 255 255 / 0.5);
   --loop: rgb(120 200 140 / 0.1);
   --cursor: rgb(79 157 255 / 0.9);
+  --pedal: rgb(180 140 255 / 0.85);
 
   /* Keyboard */
   --key-white: #f4f1ea;
@@ -77,6 +78,7 @@
   --now-line: rgb(29 31 36 / 0.35);
   --loop: rgb(60 160 90 / 0.12);
   --cursor: rgb(47 125 225 / 0.9);
+  --pedal: rgb(130 90 220 / 0.8);
 
   /* Keyboard */
   --key-white: #ffffff;

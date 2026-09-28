@@ -9,7 +9,8 @@ import { readRollColors } from '../theme/readRollColors';
 import { useTheme } from '../theme/useTheme';
 
 const { playback, createRoll } = useDeps();
-const { noteLabel } = useI18n();
+const { noteLabel, t } = useI18n();
+const PEDAL_LABELS = { press: 'pedalPress', release: 'pedalRelease', change: 'pedalChange' } as const;
 const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
@@ -35,7 +36,9 @@ useAnimationFrame(() => {
     playing: playback.playing,
     loop: playback.loop,
     isHandEnabled: (hand) => playback.isHandEnabled(hand),
+    pedalEnabled: playback.pedalEnabled,
     noteLabel,
+    pedalLabel: (kind) => t(PEDAL_LABELS[kind]),
   });
   canvas.value?.classList.toggle('scrollable', roll.scrollable);
 });

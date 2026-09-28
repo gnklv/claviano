@@ -12,6 +12,12 @@ export const ru: Dictionary = {
   themeLight: 'Светлая',
   themeDark: 'Тёмная',
   language: 'Язык',
+  pedal: 'Педаль',
+  pedalOn: 'Вкл',
+  pedalOff: 'Выкл',
+  pedalPress: 'Педаль ↓',
+  pedalRelease: 'Педаль ↑',
+  pedalChange: 'Педаль ↑↓',
 
   openMidi: 'Открыть файл',
   demo: 'Демо',

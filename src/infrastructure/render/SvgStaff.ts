@@ -27,6 +27,7 @@ import {
   type Tuplet,
 } from './notationLayout';
 import type { BarNavigation } from '../../domain/notation/navigation';
+import { layoutPedal } from './pedalLayout';
 import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -183,6 +184,29 @@ const REPEAT_LEFT = '\uE040';
 const REPEAT_RIGHT = '\uE041';
 const SEGNO = '\uE047';
 const CODA = '\uE048';
+
+/** Pedal signs ("Ped." and "✱") and the bracket line, under the lower staff. */
+const PEDAL_PRESS = '\uE650';
+const PEDAL_RELEASE = '\uE655';
+/**
+ * How far below the bottom line of the lower staff the pedal marks sit (their baseline), and how
+ * far below low notes, stems and marks when those reach further down ("Ped." is 2 spaces tall).
+ */
+const PEDAL_DROP = 3.8;
+const PEDAL_CLEARANCE = 2.6;
+/** An articulation or fermata under a note reaches about this far below its reference line. */
+const MARK_DEPTH = 1.5;
+/**
+ * Width of the "Ped." glyph, where a line after it starts. The "✱" is centred this far before its
+ * beat: a release on a bar line goes before the line (bar lines stand BAR_LINE_GAP before the beat).
+ */
+const PEDAL_PRESS_WIDTH = 4.1;
+const PEDAL_RELEASE_BEFORE = 2.2;
+/** Bracket hooks and change notches: height, and half the width of a notch. */
+const PEDAL_HOOK = 1.2;
+const PEDAL_NOTCH = 0.5;
+/** A line ends this far before its release beat: before the bar line (even the final double one) when released on one. */
+const PEDAL_LINE_GAP = 2.4;
 
 /** Ties start and end this far clear of the noteheads, and this far off the note's centre. */
 const TIE_GAP = 0.15;
@@ -585,6 +609,7 @@ export class SvgStaff {
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
     for (const rest of this.rests) restLayer.append(...this.drawRest(rest, barWidth));
+    restLayer.append(...this.drawPedal(score, barWidth, stemEnds));
 
     this.strip.append(restLayer, ...this.chordElements, beamLayer);
     this.lastOffset = Number.NaN;
@@ -860,6 +885,78 @@ export class SvgStaff {
       }
     });
     return shapes;
+  }
+
+  /** The sustain pedal under the lower staff: "Ped." and "✱" signs, and bracket lines. */
+  /**
+   * The sustain pedal under the lower staff: "Ped." and "✱" signs, and bracket lines. Each sits
+   * clear of the low notes, stems and marks above it; a line keeps one height all along.
+   */
+  private drawPedal(score: Score, barWidth: number, stemEnds: Map<number, number>): SVGElement[] {
+    const { space } = this;
+    const { signs, lines } = layoutPedal(score);
+    const shapes: SVGElement[] = [];
+    const baseline = (left: number, right: number) =>
+      Math.max(this.systemBottom() + PEDAL_DROP * space, this.bassFloor(left, right, barWidth, stemEnds) + PEDAL_CLEARANCE * space);
+
+    // "Ped." starts a little before its beat, under the left edge of the note it goes with.
+    const pressLeft = (x: number) => x * barWidth - 0.5 * space;
+    const pressWidth = PEDAL_PRESS_WIDTH * space;
+    // A "Ped." followed by a line sits at the line's height.
+    const lineBaselines = new Map<number, number>();
+
+    const hook = PEDAL_HOOK * space;
+    const notch = PEDAL_NOTCH * space;
+    for (const line of lines) {
+      // ⌊ (or "Ped." and then the line), ∧ at each change, and ⌋ just before the release.
+      const left = pressLeft(line.from);
+      const from = left + (line.afterSign ? pressWidth + 0.3 * space : 0);
+      const to = Math.max(from + space, line.to * barWidth - PEDAL_LINE_GAP * space);
+      const y = baseline(left, to);
+      if (line.afterSign) lineBaselines.set(line.from, y);
+      const points = line.afterSign ? [`${from},${y}`] : [`${from},${y - hook}`, `${from},${y}`];
+      for (const change of line.changes) {
+        const at = change * barWidth;
+        if (at - notch <= from || at + notch >= to) continue;
+        points.push(`${at - notch},${y}`, `${at},${y - hook}`, `${at + notch},${y}`);
+      }
+      points.push(`${to},${y}`, `${to},${y - hook}`);
+      const shape = svg('polyline', { points: points.join(' '), fill: 'none', 'stroke-width': space * 0.12 });
+      shape.style.setProperty('stroke', COLORS.note);
+      shapes.push(shape);
+    }
+
+    for (const sign of signs) {
+      const press = sign.kind === 'press';
+      const left = press ? pressLeft(sign.x) : sign.x * barWidth - (PEDAL_RELEASE_BEFORE + 0.9) * space;
+      const y = (press && lineBaselines.get(sign.x)) || baseline(left, left + (press ? pressWidth : 1.8 * space));
+      const glyph = this.noteGlyph(press ? PEDAL_PRESS : PEDAL_RELEASE, press ? left : sign.x * barWidth - PEDAL_RELEASE_BEFORE * space, y);
+      if (!press) glyph.setAttribute('text-anchor', 'middle');
+      glyph.style.setProperty('fill', COLORS.note);
+      shapes.push(glyph);
+    }
+    return shapes;
+  }
+
+  /** The lowest point (largest y) of the lower staff's notes, down stems and marks under them between two x's. */
+  private bassFloor(left: number, right: number, barWidth: number, stemEnds: Map<number, number>): number {
+    const { space } = this;
+    let floor = this.systemBottom();
+    const bottoms = new Map<number, number>(); // chord → its lowest point
+    this.chords.forEach((chord, index) => {
+      if (chord.staff !== 'bass') return;
+      const g = this.chordGeometry(chord, barWidth);
+      if (g.left + g.headWidth < left || g.left > right) return;
+      let bottom = g.lowest + space / 2;
+      if (!chord.stemUp && chord.duration.value !== 'whole') bottom = Math.max(bottom, stemEnds.get(index) ?? g.lowest + STEM_LENGTH * space);
+      bottoms.set(index, bottom);
+      floor = Math.max(floor, bottom);
+    });
+    for (const mark of this.marks) {
+      if (mark.above || !bottoms.has(mark.chord)) continue;
+      floor = Math.max(floor, this.chordGeometry(this.chords[mark.chord], barWidth).yOf(mark.step) + MARK_DEPTH * space);
+    }
+    return floor;
   }
 
   /** A rest glyph (with its dot), centred on its beat. */

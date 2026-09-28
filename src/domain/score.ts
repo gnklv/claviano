@@ -1,5 +1,6 @@
 import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
+import type { PedalMark, PedalSpan } from './pedal';
 import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
 
 export interface TimeRange {
@@ -59,6 +60,10 @@ export interface Score {
   readonly clefs: readonly ClefChange[];
   /** Printed rests, when the source has notation (MusicXML). */
   readonly rests: readonly WrittenRest[];
+  /** When the sustain pedal is down, as played; sorted. */
+  readonly pedal: readonly PedalSpan[];
+  /** Pedal marks along the page, sorted by beat. */
+  readonly pedalMarks: readonly PedalMark[];
 }
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
@@ -75,6 +80,8 @@ export interface ScoreMusic {
   readonly writtenBarBeats?: readonly number[];
   readonly writtenEndBeat?: number;
   readonly navigation?: readonly BarNavigation[];
+  readonly pedal?: readonly PedalSpan[];
+  readonly pedalMarks?: readonly PedalMark[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -143,6 +150,8 @@ export function createScore(
     written: music.written ?? null,
     clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
     rests: music.rests ?? [],
+    pedal: [...(music.pedal ?? [])].sort((a, b) => a.start - b.start),
+    pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
   };
 }
 

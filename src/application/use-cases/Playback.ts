@@ -1,4 +1,5 @@
 import { HANDS, type Hand } from '../../domain/note';
+import { soundingDurations } from '../../domain/pedal';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
@@ -19,7 +20,7 @@ const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
 /**
- * Plays a score through an AudioOutput with tempo, per-hand muting and looping.
+ * Plays a score through an AudioOutput with tempo, per-hand muting, looping and the sustain pedal.
  *
  * Notes are scheduled slightly ahead of time on the audio clock (the "two clocks" pattern),
  * so timing does not depend on how regularly the ticker fires.
@@ -30,6 +31,9 @@ export class Playback {
   private currentTempo = 1;
   private currentLoop: TimeRange | null = null;
   private readonly enabledHands = new Set<Hand>(HANDS);
+  private pedalOn = true;
+  /** How long each note of the score sounds with the pedal (same indices as its notes). */
+  private sustained: number[] = [];
 
   /** What the listener hears right now. When paused, `score` is the paused position. */
   private anchor: Anchor = { audio: 0, score: 0 };
@@ -67,6 +71,11 @@ export class Playback {
     return this.enabledHands.has(hand);
   }
 
+  /** Whether the score's sustain pedal is played. Off, every note stops when its key is released. */
+  get pedalEnabled(): boolean {
+    return this.pedalOn;
+  }
+
   /** Current position in score seconds. Cheap enough to read every animation frame. */
   get position(): number {
     if (!this.isPlaying) return this.anchor.score;
@@ -87,6 +96,7 @@ export class Playback {
   load(score: Score): void {
     this.pause();
     this.currentScore = score;
+    this.sustained = soundingDurations(score.notes, score.pedal);
     this.currentLoop = null;
     this.anchor = { audio: 0, score: 0 };
     this.emit();
@@ -107,12 +117,17 @@ export class Playback {
   }
 
   pause(): void {
+    this.halt(true);
+  }
+
+  /** Stops playing; `silence` also cuts what is still sounding (a finished piece rings out instead). */
+  private halt(silence: boolean): void {
     if (!this.isPlaying) return;
     const position = this.position;
     this.isPlaying = false;
     this.stopTicker?.();
     this.stopTicker = null;
-    this.audio.stopAll();
+    if (silence) this.audio.stopAll();
     this.pendingWraps = [];
     this.anchor = { audio: 0, score: position };
     this.emit();
@@ -159,6 +174,18 @@ export class Playback {
     this.emit();
   }
 
+  setPedalEnabled(enabled: boolean): void {
+    if (enabled === this.pedalOn) return;
+    this.pedalOn = enabled;
+    // Notes already handed to the output keep their old length; reschedule them.
+    if (this.isPlaying) {
+      const position = this.position;
+      this.audio.stopAll();
+      this.restartFrom(position);
+    }
+    this.emit();
+  }
+
   setLoop(range: TimeRange | null): void {
     const score = this.currentScore;
     if (!score) return;
@@ -196,7 +223,7 @@ export class Playback {
     const score = this.currentScore;
     if (!score || !this.isPlaying) return;
     if (!this.currentLoop && this.position >= score.duration) {
-      this.pause();
+      this.halt(false);
       return;
     }
     this.schedule(score);
@@ -209,9 +236,12 @@ export class Playback {
       const segmentEnd = this.currentLoop?.end ?? score.duration;
       const horizon = Math.min(this.toScore(horizonAudio), segmentEnd);
       while (this.nextNoteIndex < notes.length && notes[this.nextNoteIndex].start < horizon) {
-        const note = notes[this.nextNoteIndex++];
+        const index = this.nextNoteIndex++;
+        const note = notes[index];
         if (!this.enabledHands.has(note.hand)) continue;
-        const duration = Math.min(note.duration, segmentEnd - note.start);
+        const sounding = this.pedalOn ? this.sustained[index] : note.duration;
+        // A loop cuts what would sound past its end; the end of the piece lets it ring (the last pedalled chord).
+        const duration = this.currentLoop ? Math.min(sounding, segmentEnd - note.start) : sounding;
         this.audio.playNote(note.pitch, note.velocity, this.toAudio(note.start), duration / this.currentTempo);
       }
       if (!this.currentLoop || horizon < segmentEnd) return;
