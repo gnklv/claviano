@@ -4,6 +4,7 @@ import type { PedalMark, PedalSpan } from './pedal';
 import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicMark, Hairpin } from './notation/dynamics';
+import { firstAtOrAfter, lastAtOrBefore } from './search';
 
 export interface TimeRange {
   readonly start: number;
@@ -234,21 +235,8 @@ export const EMPTY_SCORE: Score = createScore('', [], []);
 const FALLBACK_SECONDS_PER_BEAT = 0.5;
 
 /** Index of the time-map point at or before `value` of `key` (0 before the first). */
-function segmentOf(map: readonly TimePoint[], key: 'beat' | 'time', value: number): number {
-  let lo = 0;
-  let hi = map.length - 1;
-  let result = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (map[mid][key] <= value) {
-      result = mid;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  return result;
-}
+const segmentOf = (map: readonly TimePoint[], key: 'beat' | 'time', value: number): number =>
+  Math.max(0, lastAtOrBefore(map, value, (point) => point[key]));
 
 /** Seconds per beat along segment `i` (the last segment's pace continues past the end). */
 function paceOf(map: readonly TimePoint[], i: number): number {
@@ -282,30 +270,15 @@ export function isHeldAt(score: Score, beat: number): boolean {
   return !!map[i]?.hold && beat > map[i].beat + 1e-9 && (next === undefined || beat < next.beat - 1e-9);
 }
 
-/** Index of the last element in a sorted array that is <= value, or -1. */
-function lastIndexAtOrBefore(sorted: readonly number[], value: number): number {
-  let lo = 0;
-  let hi = sorted.length - 1;
-  let result = -1;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (sorted[mid] <= value) {
-      result = mid;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  return result;
-}
+const itself = (value: number) => value;
 
 /** Zero-based index of the bar that contains `time`. */
 export const barAt = (score: Score, time: number): number =>
-  Math.max(0, lastIndexAtOrBefore(score.bars, time));
+  Math.max(0, lastAtOrBefore(score.bars, time, itself));
 
 /** The printed bar that contains `beat` (quarter notes along the page). */
 export const barAtBeat = (score: Score, beat: number): number =>
-  Math.max(0, lastIndexAtOrBefore(score.writtenBarBeats, beat + 1e-9));
+  Math.max(0, lastAtOrBefore(score.writtenBarBeats, beat + 1e-9, itself));
 
 /**
  * How many quarter notes printed bar `index` lasts. The last bar has no next bar to measure
@@ -376,35 +349,22 @@ export function barRange(score: Score, from: number, to: number): TimeRange {
 }
 
 /** Index of the first note that starts at or after `time`. */
-export function firstNoteAtOrAfter(score: Score, time: number): number {
-  const { notes } = score;
-  let lo = 0;
-  let hi = notes.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (notes[mid].start < time) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
+export const firstNoteAtOrAfter = (score: Score, time: number): number =>
+  firstAtOrAfter(score.notes, time, (note) => note.start);
 
 /** The time signature in force at `beat`. */
 export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
-  score.timeSignatures[Math.max(0, lastIndexAtOrBefore(score.timeSignatures.map((s) => s.beat), beat))];
+  score.timeSignatures[Math.max(0, lastAtOrBefore(score.timeSignatures, beat, (s) => s.beat))];
 
 /** The metronome mark in force at `beat` along the page, if the source gives one. */
 export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
-  let mark: TempoMark | null = null;
-  for (const candidate of score.tempoMarks) {
-    if (candidate.beat > beat + 1e-9) break;
-    mark = candidate;
-  }
-  return mark ?? score.tempoMarks[0] ?? null;
+  const index = lastAtOrBefore(score.tempoMarks, beat + 1e-9, (mark) => mark.beat);
+  return score.tempoMarks[Math.max(0, index)] ?? null;
 }
 
 /** The key signature in force at `beat`. */
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>
-  score.keySignatures[Math.max(0, lastIndexAtOrBefore(score.keySignatures.map((s) => s.beat), beat))];
+  score.keySignatures[Math.max(0, lastAtOrBefore(score.keySignatures, beat, (s) => s.beat))];
 
 /** Where `time` (seconds, as played) falls on the page: the printed bar and how far through it. */
 export function writtenPositionAt(score: Score, time: number): { bar: number; fraction: number } {

@@ -5,6 +5,7 @@ import type { Accidental, Alteration, Letter } from '../../domain/notation/spell
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
+import { lastAtOrBefore } from '../../domain/search';
 import { levelAt, MARK_LEVELS, withHairpinLevels, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
 import {
   createScore,
@@ -794,13 +795,17 @@ function mergeSpans(spans: [number, number][]): [number, number][] {
  */
 function withFermatas(toSeconds: (beat: number) => number, merged: [number, number][]): (beat: number) => number {
   if (merged.length === 0) return toSeconds;
+  // The extra time of all fermatas before each one, so a beat only looks at the fermata it is in or after.
+  const extraBefore: number[] = [0];
+  for (const [from, to] of merged) {
+    extraBefore.push(extraBefore[extraBefore.length - 1] + (toSeconds(to) - toSeconds(from)) * (FERMATA_HOLD - 1));
+  }
   return (beat) => {
-    let seconds = toSeconds(beat);
-    for (const [from, to] of merged) {
-      if (beat <= from) break;
-      seconds += (toSeconds(Math.min(beat, to)) - toSeconds(from)) * (FERMATA_HOLD - 1);
-    }
-    return seconds;
+    const i = lastAtOrBefore(merged, beat, ([from]) => from); // the fermata `beat` is in, or the last one before it
+    if (i < 0) return toSeconds(beat);
+    const [from, to] = merged[i];
+    const inside = (toSeconds(Math.min(beat, to)) - toSeconds(from)) * (FERMATA_HOLD - 1);
+    return toSeconds(beat) + extraBefore[i] + inside;
   };
 }
 
@@ -920,11 +925,7 @@ function beatsToSecondsConverter(tempos: { beat: number; bpm: number }[]): (beat
     segments.push({ beat: tempo.beat, seconds, secondsPerBeat: 60 / tempo.bpm });
   }
   return (beat) => {
-    let segment = segments[0];
-    for (const candidate of segments) {
-      if (candidate.beat > beat) break;
-      segment = candidate;
-    }
+    const segment = segments[Math.max(0, lastAtOrBefore(segments, beat, (s) => s.beat))];
     return segment.seconds + (beat - segment.beat) * segment.secondsPerBeat;
   };
 }

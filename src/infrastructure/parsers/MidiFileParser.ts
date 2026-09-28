@@ -2,6 +2,7 @@ import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../..
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
 import { pedalSpans, type PedalKind, type PedalMark, type PedalSpan } from '../../domain/pedal';
 import { createScore, type Score } from '../../domain/score';
+import { lastAtOrBefore } from '../../domain/search';
 
 export class InvalidMidiError extends ScoreLoadError {
   constructor(message: string, code: ScoreLoadErrorCode = 'invalid-file') {
@@ -319,11 +320,8 @@ function tickToSecondsConverter(tempos: TempoEvent[], ticksPerQuarter: number): 
   }
 
   return (tick) => {
-    let segment = segments[0];
-    for (const candidate of segments) {
-      if (candidate.tick > tick) break;
-      segment = candidate;
-    }
+    // Recordings of live playing change the tempo thousands of times: find the segment by halving.
+    const segment = segments[Math.max(0, lastAtOrBefore(segments, tick, (s) => s.tick))];
     return segment.seconds + (tick - segment.tick) * segment.secondsPerTick;
   };
 }

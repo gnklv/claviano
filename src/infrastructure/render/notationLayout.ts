@@ -5,6 +5,7 @@ import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../..
 import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { beatsOf } from '../../domain/metronome';
 import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
+import { lastAtOrBefore } from '../../domain/search';
 import { groupBeams } from './beams';
 import { beatPosition, tapeBars, type Clef } from './staffLayout';
 
@@ -225,15 +226,31 @@ export function untangleVoices(chords: readonly StaffChord[], beams: readonly Be
     })
     .filter((unit) => !unit.mixed && !unit.stemless);
 
+  // Stem-up units by staff, in order, to look only at those near each stem-down one.
+  const upsByStaff = new Map<StaffChord['staff'], (typeof described)[number][]>();
+  for (const unit of described) {
+    if (!unit.stemUp) continue;
+    const ups = upsByStaff.get(unit.staff);
+    if (ups) ups.push(unit);
+    else upsByStaff.set(unit.staff, [unit]);
+  }
+  const longest = new Map<StaffChord['staff'], number>();
+  for (const [staff, ups] of upsByStaff) {
+    ups.sort((a, b) => a.first - b.first);
+    longest.set(staff, Math.max(...ups.map((u) => u.last - u.first)));
+  }
+
   const flip = new Set<(typeof described)[number]>();
   for (const down of described) {
     if (down.stemUp) continue;
-    for (const up of described) {
-      if (!up.stemUp || up.staff !== down.staff) continue;
-      // Drawn over the same stretch (one after the other is how a single voice turns its stems).
-      const together = down.first <= up.last && up.first <= down.last;
+    const ups = upsByStaff.get(down.staff) ?? [];
+    // Drawn over the same stretch (one after the other is how a single voice turns its stems):
+    // starts by the down unit's end, and no earlier than the longest up unit could still reach it.
+    const earliest = down.first - (longest.get(down.staff) ?? 0);
+    for (let i = lastAtOrBefore(ups, down.last, (u) => u.first); i >= 0 && ups[i].first >= earliest; i--) {
+      const up = ups[i];
       // Only a voice wholly above the other: a melody that dips to its accompaniment's note keeps its stems.
-      if (together && down.bottom < up.top) {
+      if (up.last >= down.first && down.bottom < up.top) {
         flip.add(down);
         flip.add(up);
       }

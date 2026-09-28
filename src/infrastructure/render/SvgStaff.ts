@@ -11,6 +11,7 @@ import {
   type TimeRange,
   type TimeSignature,
 } from '../../domain/score';
+import { firstAtOrAfter } from '../../domain/search';
 import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
@@ -399,6 +400,12 @@ export class SvgStaff {
   private rests: StaffRest[] = [];
   private ties: Tie[] = [];
   private marks: StaffMark[] = [];
+  /** Chord indices in order along the tape, to find the chords near a place by halving. */
+  private chordsAlong: number[] = [];
+  /** The marks (staccato, accents…) of each chord, by its index. */
+  private marksOf = new Map<number, StaffMark[]>();
+  /** Chord geometry for the current drawing (it depends on the size and the room at bar lines). */
+  private geometry = new Map<StaffChord, ReturnType<SvgStaff['measureChord']>>();
   private slurs: StaffSlur[] = [];
   private octaveShifts: StaffOctaveShift[] = [];
   /** Dynamics drawn under the lower staff (their baselines), for the pedal marks to clear. */
@@ -474,6 +481,13 @@ export class SvgStaff {
     this.marks = [...layout.marks];
     this.slurs = [...layout.slurs];
     this.octaveShifts = [...layout.octaveShifts];
+    this.chordsAlong = this.chords.map((_, i) => i).sort((a, b) => this.chords[a].x - this.chords[b].x);
+    this.marksOf = new Map();
+    for (const mark of this.marks) {
+      const own = this.marksOf.get(mark.chord);
+      if (own) own.push(mark);
+      else this.marksOf.set(mark.chord, [mark]);
+    }
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.changes = score ? signatureChanges(score) : [];
     const navigation = score?.navigation ?? [];
@@ -511,7 +525,8 @@ export class SvgStaff {
     const place = pageAt(score, ...this.fromPx(px));
     if (!place) return null;
     let nearest: StaffChord | null = null;
-    for (const chord of this.chords) {
+    for (const index of this.chordsNear(px - NOTE_SNAP * this.space, px + NOTE_SNAP * this.space)) {
+      const chord = this.chords[index];
       const distance = Math.abs(this.px(chord.x) - px);
       if (distance <= NOTE_SNAP * this.space && (!nearest || distance < Math.abs(this.px(nearest.x) - px))) nearest = chord;
     }
@@ -842,6 +857,7 @@ export class SvgStaff {
   }
 
   private drawStrip(): void {
+    this.geometry.clear();
     this.strip.replaceChildren();
     this.lit.clear();
     this.chordElements = [];
@@ -932,7 +948,32 @@ export class SvgStaff {
   }
 
   /** Where a chord's parts go, in pixels. */
-  private chordGeometry(chord: StaffChord) {
+  private chordGeometry(chord: StaffChord): ReturnType<SvgStaff['measureChord']> {
+    let geometry = this.geometry.get(chord);
+    if (!geometry) {
+      geometry = this.measureChord(chord);
+      this.geometry.set(chord, geometry);
+    }
+    return geometry;
+  }
+
+  /**
+   * Indices of the chords whose noteheads may reach between two x's (in pixels), in order along
+   * the tape. Callers still check each one: this only skips the chords far away.
+   */
+  private chordsNear(left: number, right: number): number[] {
+    // A head reaches half its width left of its x, or one and a half when moved aside for a second.
+    const reach = 2 * HEAD_WIDTH.whole * this.space;
+    const x = (index: number) => this.px(this.chords[index].x);
+    const near: number[] = [];
+    for (let i = firstAtOrAfter(this.chordsAlong, left - reach, x); i < this.chordsAlong.length; i++) {
+      if (x(this.chordsAlong[i]) > right + reach) break;
+      near.push(this.chordsAlong[i]);
+    }
+    return near;
+  }
+
+  private measureChord(chord: StaffChord) {
     const { space } = this;
     const top = chord.staff === 'treble' ? this.trebleTop() : this.bassTop();
     const yOf = (step: number) => top + (step * space) / 2;
@@ -1124,15 +1165,16 @@ export class SvgStaff {
     const right = Math.max(...geometry.map((g) => g.left + g.headWidth)) + space;
     const own = new Set(beam.chords);
     const heads: BeamObstacle[] = [];
-    this.chords.forEach((chord, index) => {
-      if (own.has(index) || chord.staff !== staff) return;
+    for (const index of this.chordsNear(left, right)) {
+      const chord = this.chords[index];
+      if (own.has(index) || chord.staff !== staff) continue;
       const g = this.chordGeometry(chord);
-      if (g.left + g.headWidth < left || g.left > right) return;
+      if (g.left + g.headWidth < left || g.left > right) continue;
       for (const note of chord.notes) {
         const y = g.yOf(note.step);
         heads.push({ x: g.left + g.headWidth / 2, top: y - space / 2, bottom: y + space / 2 });
       }
-    });
+    }
     return heads;
   }
 
@@ -1554,17 +1596,18 @@ export class SvgStaff {
     const { space } = this;
     let top = Infinity;
     let bottom = -Infinity;
-    this.chords.forEach((chord, index) => {
-      if (chord.staff !== staff) return;
+    for (const index of this.chordsNear(left, right)) {
+      const chord = this.chords[index];
+      if (chord.staff !== staff) continue;
       const g = this.chordGeometry(chord);
-      if (g.left + g.headWidth < left || g.left > right) return;
+      if (g.left + g.headWidth < left || g.left > right) continue;
       top = Math.min(top, g.highest - space / 2);
       bottom = Math.max(bottom, g.lowest + space / 2);
-      if (chord.duration.value === 'whole') return;
+      if (chord.duration.value === 'whole') continue;
       const stemEnd = stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * space : g.lowest + STEM_LENGTH * space);
       if (chord.stemUp) top = Math.min(top, stemEnd);
       else bottom = Math.max(bottom, stemEnd);
-    });
+    }
     return { top, bottom };
   }
 
@@ -1572,19 +1615,16 @@ export class SvgStaff {
   private bassFloor(left: number, right: number, stemEnds: Map<number, number>): number {
     const { space } = this;
     let floor = this.systemBottom();
-    const bottoms = new Map<number, number>(); // chord → its lowest point
-    this.chords.forEach((chord, index) => {
-      if (chord.staff !== 'bass') return;
+    for (const index of this.chordsNear(left, right)) {
+      const chord = this.chords[index];
+      if (chord.staff !== 'bass') continue;
       const g = this.chordGeometry(chord);
-      if (g.left + g.headWidth < left || g.left > right) return;
-      let bottom = g.lowest + space / 2;
-      if (!chord.stemUp && chord.duration.value !== 'whole') bottom = Math.max(bottom, stemEnds.get(index) ?? g.lowest + STEM_LENGTH * space);
-      bottoms.set(index, bottom);
-      floor = Math.max(floor, bottom);
-    });
-    for (const mark of this.marks) {
-      if (mark.above || !bottoms.has(mark.chord)) continue;
-      floor = Math.max(floor, this.chordGeometry(this.chords[mark.chord]).yOf(mark.step) + MARK_DEPTH * space);
+      if (g.left + g.headWidth < left || g.left > right) continue;
+      floor = Math.max(floor, g.lowest + space / 2);
+      if (!chord.stemUp && chord.duration.value !== 'whole') floor = Math.max(floor, stemEnds.get(index) ?? g.lowest + STEM_LENGTH * space);
+      for (const mark of this.marksOf.get(index) ?? []) {
+        if (!mark.above) floor = Math.max(floor, g.yOf(mark.step) + MARK_DEPTH * space);
+      }
     }
     // An 8vb bracket under the staff (its glyph sits on the baseline, the hook reaches up).
     for (const bracket of this.octaveBrackets) {
