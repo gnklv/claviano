@@ -5,7 +5,15 @@ import type { Accidental, Alteration, Letter } from '../../domain/notation/spell
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
-import { createScore, type KeySignature, type Score, type TempoMark, type TimePoint, type TimeSignature } from '../../domain/score';
+import {
+  createScore,
+  type KeySignature,
+  type OctaveShift,
+  type Score,
+  type TempoMark,
+  type TimePoint,
+  type TimeSignature,
+} from '../../domain/score';
 
 /*
  * MusicXML (https://www.w3.org/2021/06/musicxml40/): the notation format of MuseScore, Finale,
@@ -186,6 +194,9 @@ function readPart(part: Element, title: string): Score {
   const pedalMarks: PedalMark[] = [];
   /** `printed`: from a <metronome>; otherwise worked out from a <sound tempo>, in quarters. */
   const tempoMarks: (TempoMark & { printed: boolean })[] = [];
+  /** Octave shifts in force on each staff (where they started, how many octaves), and the finished ones. */
+  const openShifts = new Map<number, { start: number; octaves: number }>();
+  const octaveShifts: OctaveShift[] = [];
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
   for (const measureElement of part.querySelectorAll(':scope > measure')) {
@@ -269,6 +280,19 @@ function readPart(part: Element, title: string): Score {
           const pedal = readPedal(element, sound, beatAt(cursor + offset), pedalState);
           measure.pedal.push(...pedal.events);
           pedalMarks.push(...pedal.marks);
+          const shift = element.querySelector(':scope > direction-type > octave-shift');
+          if (shift) {
+            const staff = childNumber(element, 'staff') ?? 1;
+            const type = shift.getAttribute('type');
+            const open = openShifts.get(staff);
+            if (open && (type === 'stop' || type === 'up' || type === 'down')) {
+              octaveShifts.push({ staff, start: open.start, end: beatAt(cursor + offset), octaves: open.octaves });
+              openShifts.delete(staff);
+            }
+            // 8 is an octave, 15 two, 22 three. "down": printed lower than played, as under 8va.
+            const octaves = Math.max(1, Math.round((Number(shift.getAttribute('size') ?? 8) - 1) / 7));
+            if (type === 'up' || type === 'down') openShifts.set(staff, { start: beatAt(cursor + offset), octaves: type === 'down' ? octaves : -octaves });
+          }
           break;
         }
         case 'backup':
@@ -304,7 +328,10 @@ function readPart(part: Element, title: string): Score {
           const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
           const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
 
-          const printed = readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties });
+          const shifted = readWritten(element, pitchElement, { staff, clef, hand, isChord, beat: beatAt(start), beats, ties });
+          // <pitch> is what sounds; under an octave shift the note is printed octaves away from it.
+          const shiftBy = openShifts.get(staff)?.octaves ?? 0;
+          const printed = shiftBy ? { ...shifted, pitch: { ...shifted.pitch, octave: shifted.pitch.octave - shiftBy } } : shifted;
           written.push(printed);
           writtenMeasure.push(measures.length);
 
@@ -339,6 +366,9 @@ function readPart(part: Element, title: string): Score {
     measures.push(measure);
     if (endingEndsHere) ending = null;
   }
+
+  // A shift the file never stops ends with the music.
+  for (const [staff, open] of openShifts) octaveShifts.push({ staff, start: open.start, end: measureStart, octaves: open.octaves });
 
   resolveJumpTargets(measures.map((m) => m.navigation));
   const performance = perform(measures);
@@ -376,6 +406,7 @@ function readPart(part: Element, title: string): Score {
       softPedal: performance.pedals.soft,
       timeMap: performance.timeMap,
       tempoMarks: distinctTempoMarks(tempoMarks),
+      octaveShifts,
       pedalMarks,
       timeSignatures,
       keySignatures,

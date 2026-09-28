@@ -24,6 +24,7 @@ import {
   type StaffRest,
   type StaffSlur,
   type Tie,
+  type StaffOctaveShift,
   type Tuplet,
 } from './notationLayout';
 import type { BarNavigation } from '../../domain/notation/navigation';
@@ -244,6 +245,24 @@ const NATURAL_ADVANCE = 1.0;
  * "= 90", this far over the top line of the treble staff.
  */
 const TEMPO_MARK_RISE = 3.4;
+
+/**
+ * Octave shift brackets: "8va" (15ma, 22ma) and a dashed line over the notes it covers, with a
+ * hook at the end towards the staff; "8vb" (15mb, 22mb) the same under them.
+ */
+const OCTAVE_GLYPH_ABOVE = ['\uE511', '\uE515', '\uE518'];
+const OCTAVE_GLYPH_BELOW = ['\uE51C', '\uE51D', '\uE51E'];
+/** Widths of those glyphs at the music font size, in staff spaces (the line starts after them). */
+const OCTAVE_GLYPH_WIDTH_ABOVE = 3.6;
+const OCTAVE_GLYPH_WIDTH_BELOW = 3.2;
+/** A metronome mark over an 8va bracket goes this far above the bracket's baseline. */
+const TEMPO_OVER_OCTAVE = 3.2;
+/** Clearance from the staff and from the notes, and the height of the dashed line above the baseline. */
+const OCTAVE_CLEARANCE = 2.2;
+const OCTAVE_LINE_RISE = 0.8;
+const OCTAVE_HOOK = 1.0;
+/** How far an octave glyph reaches below its baseline. */
+const OCTAVE_BRACKET_DEPTH = 0.4;
 const TEMPO_NOTE_SIZE = 2.6;
 const TEMPO_NOTE_WIDTH = 1.3;
 const TEMPO_DOT_WIDTH = 0.3;
@@ -326,6 +345,12 @@ export class SvgStaff {
   private ties: Tie[] = [];
   private marks: StaffMark[] = [];
   private slurs: StaffSlur[] = [];
+  private octaveShifts: StaffOctaveShift[] = [];
+  /**
+   * Where octave brackets were drawn (their baselines): 8va over the treble staff, for tempo marks
+   * to clear, and 8vb under the bass staff, for the pedal marks to clear.
+   */
+  private octaveBrackets: { staff: Clef; above: boolean; left: number; right: number; y: number }[] = [];
   private chordElements: SVGGElement[] = [];
   private longestChord = 0;
   /** Chords currently highlighted in their hand's color. */
@@ -378,7 +403,7 @@ export class SvgStaff {
     this.score = score;
     const layout = score
       ? layoutNotation(score)
-      : { chords: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
     this.chords = [...layout.chords];
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
@@ -386,6 +411,7 @@ export class SvgStaff {
     this.ties = [...layout.ties];
     this.marks = [...layout.marks];
     this.slurs = [...layout.slurs];
+    this.octaveShifts = [...layout.octaveShifts];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.changes = score ? signatureChanges(score) : [];
     this.room = (score?.writtenBarBeats ?? []).map(() => 0);
@@ -777,7 +803,7 @@ export class SvgStaff {
     });
 
     this.strip.append(...this.drawNavigation(score.navigation));
-    this.strip.append(...this.drawSignatureChanges(score), ...this.drawTempoMarks(score));
+    this.strip.append(...this.drawSignatureChanges(score));
 
     // Final bar line: a thin and a thick one.
     const end = this.barLineX(tape.starts.length);
@@ -823,7 +849,11 @@ export class SvgStaff {
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
     for (const rest of this.rests) restLayer.append(...this.drawRest(rest));
+    // Octave brackets first: the tempo marks go over the 8va ones, the pedal under the 8vb ones.
+    this.octaveBrackets = [];
+    for (const shift of this.octaveShifts) restLayer.append(...this.drawOctaveShift(shift, stemEnds));
     restLayer.append(...this.drawPedal(score, stemEnds));
+    restLayer.append(...this.drawTempoMarks(score));
 
     this.strip.append(restLayer, ...this.chordElements, beamLayer);
     this.lastOffset = Number.NaN;
@@ -1089,9 +1119,11 @@ export class SvgStaff {
   private drawTempoMarks(score: Score): SVGElement[] {
     const { space } = this;
     const shapes: SVGElement[] = [];
-    const y = this.trebleTop() - TEMPO_MARK_RISE * space;
     for (const mark of score.tempoMarks) {
       const x = this.px(beatPosition(score, barAtBeat(score, mark.beat), mark.beat)) - 0.5 * space;
+      // Over an 8va bracket if there is one here.
+      const bracket = this.octaveBrackets.find((b) => b.staff === 'treble' && b.above && x < b.right && x + 5 * space > b.left);
+      const y = Math.min(this.trebleTop() - TEMPO_MARK_RISE * space, bracket ? bracket.y - TEMPO_OVER_OCTAVE * space : Infinity);
       const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
       note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
       const words = svg('text', {
@@ -1264,7 +1296,58 @@ export class SvgStaff {
   }
 
 
-  /** The lowest point (largest y) of the lower staff's notes, down stems and marks under them between two x's. */
+  /**
+   * An octave shift bracket: "8va" and a dashed line clear of the notes under it, ending with a
+   * hook towards the staff just before the notes go back to their own octave.
+   */
+  private drawOctaveShift(shift: StaffOctaveShift, stemEnds: Map<number, number>): SVGElement[] {
+    const { space } = this;
+    const above = shift.octaves > 0;
+    const glyphs = above ? OCTAVE_GLYPH_ABOVE : OCTAVE_GLYPH_BELOW;
+    const glyph = glyphs[Math.min(glyphs.length, Math.abs(shift.octaves)) - 1];
+    const glyphWidth = (above ? OCTAVE_GLYPH_WIDTH_ABOVE : OCTAVE_GLYPH_WIDTH_BELOW) * space;
+    const left = this.px(shift.from) - 0.5 * space;
+    const right = Math.max(left + glyphWidth + space, this.px(shift.to) - BAR_LINE_GAP * space);
+    const staffTop = shift.staff === 'treble' ? this.trebleTop() : this.bassTop();
+    const staffBottom = staffTop + (LINES_PER_STAFF - 1) * space;
+    const ink = this.inkExtent(shift.staff, left, right, stemEnds);
+    const y = above
+      ? Math.min(staffTop, ink.top) - OCTAVE_CLEARANCE * space + OCTAVE_LINE_RISE * space
+      : Math.max(staffBottom, ink.bottom) + OCTAVE_CLEARANCE * space + OCTAVE_LINE_RISE * space;
+    const lineY = y - OCTAVE_LINE_RISE * space;
+    const hook = (above ? 1 : -1) * OCTAVE_HOOK * space;
+    const lineStart = left + glyphWidth + 0.3 * space;
+    this.octaveBrackets.push({ staff: shift.staff, above, left, right, y });
+    const line = svg('polyline', {
+      points: `${lineStart},${lineY} ${right},${lineY} ${right},${lineY + hook}`,
+      fill: 'none',
+      'stroke-width': space * 0.12,
+      'stroke-dasharray': `${space * 0.6} ${space * 0.4}`,
+    });
+    line.style.setProperty('stroke', COLORS.note);
+    return [this.inked(glyph, left, y), line];
+  }
+
+  /** How far up and down the notes and stems of one staff reach between two x's (at least the staff itself). */
+  private inkExtent(staff: Clef, left: number, right: number, stemEnds: Map<number, number>): { top: number; bottom: number } {
+    const { space } = this;
+    let top = Infinity;
+    let bottom = -Infinity;
+    this.chords.forEach((chord, index) => {
+      if (chord.staff !== staff) return;
+      const g = this.chordGeometry(chord);
+      if (g.left + g.headWidth < left || g.left > right) return;
+      top = Math.min(top, g.highest - space / 2);
+      bottom = Math.max(bottom, g.lowest + space / 2);
+      if (chord.duration.value === 'whole') return;
+      const stemEnd = stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * space : g.lowest + STEM_LENGTH * space);
+      if (chord.stemUp) top = Math.min(top, stemEnd);
+      else bottom = Math.max(bottom, stemEnd);
+    });
+    return { top, bottom };
+  }
+
+  /** The lowest point (largest y) of the lower staff's notes, down stems, marks and 8vb brackets under them between two x's. */
   private bassFloor(left: number, right: number, stemEnds: Map<number, number>): number {
     const { space } = this;
     let floor = this.systemBottom();
@@ -1281,6 +1364,11 @@ export class SvgStaff {
     for (const mark of this.marks) {
       if (mark.above || !bottoms.has(mark.chord)) continue;
       floor = Math.max(floor, this.chordGeometry(this.chords[mark.chord]).yOf(mark.step) + MARK_DEPTH * space);
+    }
+    // An 8vb bracket under the staff (its glyph sits on the baseline, the hook reaches up).
+    for (const bracket of this.octaveBrackets) {
+      if (bracket.staff !== 'bass' || bracket.above || bracket.right < left || bracket.left > right) continue;
+      floor = Math.max(floor, bracket.y + OCTAVE_BRACKET_DEPTH * space);
     }
     return floor;
   }

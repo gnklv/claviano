@@ -28,6 +28,18 @@ export interface TempoMark {
   readonly perMinute: number;
 }
 
+/**
+ * An octave shift as printed (8va, 8vb, 15ma…): notes on `staff` from `start` to `end` (beats along
+ * the page) are written `octaves` lower than they sound (negative: higher, as under 8vb).
+ */
+export interface OctaveShift {
+  /** 1 upper, 2 lower. */
+  readonly staff: number;
+  readonly start: number;
+  readonly end: number;
+  readonly octaves: number;
+}
+
 /** Metre from `beat` on, e.g. 3/4 or 6/8. */
 export interface TimeSignature {
   /** Where it starts, in quarter notes. */
@@ -92,6 +104,8 @@ export interface Score {
   readonly timeMap: readonly TimePoint[];
   /** Metronome marks along the page, sorted by beat; empty when the source gives no tempo. */
   readonly tempoMarks: readonly TempoMark[];
+  /** Printed octave shifts (MusicXML), sorted by start; the written notes are already shifted. */
+  readonly octaveShifts: readonly OctaveShift[];
   /** Marks of all pedals along the page, sorted by beat. */
   readonly pedalMarks: readonly PedalMark[];
 }
@@ -117,6 +131,7 @@ export interface ScoreMusic {
   /** Default: time runs evenly within each bar. */
   readonly timeMap?: readonly TimePoint[];
   readonly tempoMarks?: readonly TempoMark[];
+  readonly octaveShifts?: readonly OctaveShift[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -190,6 +205,7 @@ export function createScore(
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),
     pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
     tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
+    octaveShifts: [...(music.octaveShifts ?? [])].sort((a, b) => a.start - b.start),
     timeMap: music.timeMap
       ? [...music.timeMap].sort((a, b) => a.beat - b.beat)
       : evenTimeMap(barPairs, { time: duration, beat: endBeat }),

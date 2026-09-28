@@ -118,6 +118,12 @@ const softPedal = (down: boolean) =>
 /** A printed metronome mark, e.g. a dotted quarter = 60, with the tempo it sounds at in quarters. */
 const metronome = (unit: string, dotted: boolean, perMinute: number, quarters: number) =>
   `<direction placement="above"><direction-type><metronome><beat-unit>${unit}</beat-unit>${dotted ? '<beat-unit-dot/>' : ''}<per-minute>${perMinute}</per-minute></metronome></direction-type><sound tempo="${quarters}"/></direction>`;
+/**
+ * An octave shift over (or under) the notes of a staff: "down" is 8va (printed an octave lower than
+ * played), "up" is 8vb. The notes themselves are written at their sounding pitch, as MusicXML has it.
+ */
+const octaveShift = (type: 'down' | 'up' | 'stop', staff: 1 | 2) =>
+  `<direction placement="${staff === 1 ? 'above' : 'below'}"><direction-type><octave-shift type="${type}" size="8"/></direction-type><staff>${staff}</staff></direction>`;
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
 const key = (fifths: number) => `<key><fifths>${fifths}</fifths></key>`;
 const time = (beats: number, beatType: number) => `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>`;
@@ -248,13 +254,14 @@ const measures: string[] = [
   </measure>`,
 
   // 13: two sharps, 4/4 again, faster and loud (tre corde: the left pedal comes up); very high and
-  // very low notes (keyboard scrolling on phones).
+  // very low notes (keyboard scrolling on phones), printed under 8va and 8vb; the pedal marks go
+  // under the 8vb bracket.
   `<measure number="13">
     ${attributes(`${key(2)}${time(4, 4)}`)}
     ${direction('Range, forte', 'tempo="90" dynamics="110"')}
     ${softPedal(false)}
-    ${note('D6', Q, { type: 'quarter' })}${note('F#6', Q, { type: 'quarter' })}${note('A6', H, { type: 'half' })}
-    ${backup(W)}${note('D2', H, { type: 'half', staff: 2 })}${note('A0', H, { type: 'half', staff: 2 })}
+    ${octaveShift('down', 1)}${note('D6', Q, { type: 'quarter' })}${note('F#6', Q, { type: 'quarter' })}${note('A6', H, { type: 'half' })}${octaveShift('stop', 1)}
+    ${backup(W)}${pedal('start')}${note('D2', H, { type: 'half', staff: 2 })}${octaveShift('up', 2)}${note('A0', H, { type: 'half', staff: 2 })}${octaveShift('stop', 2)}${pedal('stop')}
   </measure>`,
 
   // 14: articulations. Stems down in the right hand, so its marks go above; stems up in the left

@@ -244,4 +244,23 @@ describe('showcase score: changes along the way', () => {
       [score.writtenBarBeats[13], 'quarter', 90],
     ]);
   });
+
+  it('prints the high notes of bar 13 under 8va and its A0 under 8vb, sounding where they should', () => {
+    const start = score.writtenBarBeats[13];
+    const end = score.writtenBarBeats[14];
+    expect(score.octaveShifts).toEqual([
+      { staff: 1, start, end, octaves: 1 },
+      { staff: 2, start: start + 2, end, octaves: -1 },
+    ]);
+    // Printed an octave nearer…
+    const printed = score.written!.filter((n) => n.beat >= start && n.beat < end).map((n) => `${'CDEFGAB'[n.pitch.letter]}${n.pitch.octave}`);
+    expect(printed).toEqual(['D5', 'F5', 'A5', 'D2', 'A1']);
+    // …but played where written in the file.
+    expect(score.notes.some((n) => n.pitch === pitch('La', 6))).toBe(true);
+    expect(score.notes.some((n) => n.pitch === pitch('La', 0))).toBe(true);
+    expect(layout.octaveShifts.map((s) => [s.staff, s.octaves])).toEqual([
+      ['treble', 1],
+      ['bass', -1],
+    ]);
+  });
 });

@@ -107,9 +107,19 @@ export interface StaffSlur {
   readonly between: readonly number[];
 }
 
+/** An octave shift bracket (8va, 8vb…) over or under the notes from `from` to `to` (bar units). */
+export interface StaffOctaveShift {
+  readonly staff: Clef;
+  readonly from: number;
+  readonly to: number;
+  /** How many octaves lower the notes are printed than they sound (negative: higher, as 8vb). */
+  readonly octaves: number;
+}
+
 export interface NotationLayout {
   /** Sorted by their place on the page (beat). */
   readonly chords: readonly StaffChord[];
+  readonly octaveShifts: readonly StaffOctaveShift[];
   readonly beams: readonly Beam[];
   readonly tuplets: readonly Tuplet[];
   readonly rests: readonly StaffRest[];
@@ -198,7 +208,7 @@ export function withSeconds(chord: StaffChord): StaffChord {
  * note values, stem directions, ledger lines and beams by beat. No ties, rests or tuplets.
  */
 function inferNotation(score: Score): NotationLayout {
-  const placed: Placed[] = score.notes.map((note) => {
+  const sounding: Placed[] = score.notes.map((note) => {
     const { beat, beats } = quantize(note.beat, note.beats);
     const bar = barAtBeat(score, beat);
     const spelled = spell(note.pitch, keySignatureAt(score, beat).fifths);
@@ -217,6 +227,7 @@ function inferNotation(score: Score): NotationLayout {
       accidental: null,
     };
   });
+  const { placed, shifts } = shiftExtremes(sounding);
 
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
@@ -284,7 +295,66 @@ function inferNotation(score: Score): NotationLayout {
     for (const i of indices) beamed[i] = { ...chords[i], stemUp, beam: beamIndex };
     return { chords: [...indices].sort((a, b) => chords[a].beat - chords[b].beat), stemUp };
   });
-  return { chords: beamed, beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+  const octaveShifts = shifts.map(
+    ({ staff, start, end, octaves }): StaffOctaveShift => ({
+      staff,
+      from: beatPosition(score, barAtBeat(score, start), start),
+      to: beatPosition(score, barAtBeat(score, end), end),
+      octaves,
+    }),
+  );
+  return { chords: beamed, octaveShifts, beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+}
+
+/** More ledger lines than this above the treble staff or below the bass staff, and MIDI notes go under 8va / 8vb. */
+const MAX_LEDGER_LINES_BEFORE_SHIFT = 3;
+
+/**
+ * For MIDI: runs of notes far above the treble staff (or below the bass staff) are written an
+ * octave (or two) nearer under an 8va (8vb) bracket, rather than on a ladder of ledger lines.
+ * A run is the notes, in time order on one staff, that go that far; the first one that does not
+ * ends it. Notes starting together are shifted together.
+ */
+function shiftExtremes(placed: Placed[]): {
+  placed: Placed[];
+  shifts: { staff: Clef; start: number; end: number; octaves: number }[];
+} {
+  const shifts: { staff: Clef; start: number; end: number; octaves: number }[] = [];
+  const result = [...placed];
+  const limit = 2 * MAX_LEDGER_LINES_BEFORE_SHIFT + 2; // steps beyond the outer line
+  // How far past the limit a note is (in steps, > 0 means too far), on its own staff's outer side.
+  const beyond = (p: Placed) =>
+    p.staff === 'treble' ? -limit - staffStep(p.spelled, 'treble') : staffStep(p.spelled, 'bass') - BOTTOM_LINE_STEP - limit;
+
+  for (const staff of ['treble', 'bass'] as const) {
+    const onStaff = result.map((p, index) => ({ p, index })).filter(({ p }) => p.staff === staff);
+    const byBeat = [...groupBy(onStaff, ({ p }) => String(p.beat)).values()].sort((a, b) => a[0].p.beat - b[0].p.beat);
+
+    let run: { index: number; p: Placed }[] = [];
+    const close = () => {
+      if (run.length === 0) return;
+      // One octave, or two when one still leaves the notes too far out.
+      const farthest = Math.max(...run.map(({ p }) => beyond(p)));
+      const octaves = farthest >= 7 ? 2 : 1;
+      const signed = staff === 'treble' ? octaves : -octaves;
+      for (const { index, p } of run) {
+        result[index] = { ...p, spelled: { ...p.spelled, octave: p.spelled.octave - signed } };
+      }
+      shifts.push({
+        staff,
+        start: Math.min(...run.map(({ p }) => p.beat)),
+        end: Math.max(...run.map(({ p }) => p.beat + p.beats)),
+        octaves: signed,
+      });
+      run = [];
+    };
+    for (const notes of byBeat) {
+      if (notes.some(({ p }) => beyond(p) >= 0)) run.push(...notes);
+      else close();
+    }
+    close();
+  }
+  return { placed: result, shifts };
 }
 
 /**
@@ -375,6 +445,14 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   }
   return {
     chords,
+    octaveShifts: score.octaveShifts.map(
+      (shift): StaffOctaveShift => ({
+        staff: shift.staff >= 2 ? 'bass' : 'treble',
+        from: beatPosition(score, barAtBeat(score, shift.start), shift.start),
+        to: beatPosition(score, barAtBeat(score, shift.end), shift.end),
+        octaves: shift.octaves,
+      }),
+    ),
     beams,
     tuplets,
     rests: layoutRests(score, rests, written),

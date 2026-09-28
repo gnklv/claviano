@@ -129,5 +129,6 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Beams: grouped by beat (by three eighths in 3/8, 6/8…), with stubs and stacked levels
 - [x] Seconds in chords: one head of each second on the other side of the stem, clusters
       alternating; ledger lines, accidentals and dots make room
-- [ ] 8va / 8vb (MusicXML octave shifts, and for very high or low runs in MIDI)
+- [x] 8va / 8vb: MusicXML octave shifts printed with their bracket (notes an octave nearer, sound
+      unchanged); in MIDI, runs beyond three ledger lines go under 8va / 8vb (15ma when needed)
 - [ ] MIDI note values up to the next note of the same hand

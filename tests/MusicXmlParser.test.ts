@@ -103,6 +103,17 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  it('prints notes under an octave shift an octave nearer, sounding as written in the file', () => {
+    const shift = (type: string) => `<direction><direction-type><octave-shift type="${type}" size="8"/></direction-type><staff>1</staff></direction>`;
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${shift('down')}${note('C', 7, 4)}${shift('stop')}${note('C', 5, 4)}</measure>`),
+      'test',
+    );
+    expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 7), pitch('Do', 5)]);
+    expect(s.written!.map((n) => n.pitch.octave)).toEqual([6, 5]);
+    expect(s.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
+  });
+
   it('plays chord notes together', () => {
     const s = parser.parse(
       score(`<measure number="1">${attributes()}

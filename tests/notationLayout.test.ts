@@ -390,3 +390,26 @@ describe('withSeconds', () => {
     expect(withSeconds(triad)).toBe(triad);
   });
 });
+
+describe('octave shifts for MIDI', () => {
+  const midiNote = (p: number, beat: number): Note => ({ pitch: p, start: beat, duration: 1, beat, beats: 1, velocity: 0.8, hand: 'right' });
+
+  it('writes a run of very high notes an octave lower under 8va, and back after it', () => {
+    // Do7 Re7 (four ledger lines and more), then Do5 on the staff.
+    const score = createScore('high', [midiNote(pitch('Do', 7), 0), midiNote(pitch('Re', 7), 1), midiNote(pitch('Do', 5), 2)], [0]);
+    const layout = layoutNotation(score);
+    expect(layout.octaveShifts).toEqual([{ staff: 'treble', from: 0, to: 0.5, octaves: 1 }]);
+    // Do6 sits two ledger lines up (step -4) instead of four.
+    expect(layout.chords.map((c) => c.notes[0].step)).toEqual([-4, -5, 3]);
+  });
+
+  it('goes two octaves for notes too far even for one', () => {
+    const score = createScore('higher', [midiNote(pitch('Sol', 7), 0)], [0]);
+    expect(layoutNotation(score).octaveShifts[0].octaves).toBe(2);
+  });
+
+  it('leaves notes a few ledger lines out where they are', () => {
+    const score = createScore('high enough', [midiNote(pitch('Mi', 6), 0)], [0]); // three ledger lines
+    expect(layoutNotation(score).octaveShifts).toEqual([]);
+  });
+});
