@@ -198,6 +198,14 @@ const JUMP_THRESHOLD_SPACES = 2;
 const MANUAL_HOLD_SECONDS = 3;
 const SEEK_THRESHOLD_SECONDS = 0.5;
 
+/**
+ * Room for repeat signs, in staff spaces: the ‖: and :‖ glyphs are REPEAT_GLYPH_WIDTH wide and
+ * stand on the bar line, so a ‖: gets room before the bar's first note, a :‖ after its last note.
+ */
+const REPEAT_GLYPH_WIDTH = 1.5;
+const REPEAT_LEAD = 1.6;
+const REPEAT_TAIL = 2.2;
+
 /** Repeat barlines (with their dots), segno and coda signs. */
 const REPEAT_LEFT = '\uE040';
 const REPEAT_RIGHT = '\uE041';
@@ -361,11 +369,14 @@ export class SvgStaff {
   private readonly overlay: SVGGElement = svg('g');
   private hoverBar: number | null = null;
   /**
-   * Key and time changes along the page, and the room each printed bar gets before its first note
-   * for them (in staff spaces; 0 without a change). `roomBefore[i]` adds up the room of bars before i.
+   * Key and time changes along the page. Room on the tape, in staff spaces, for what is printed at
+   * bar lines: `lead[i]` between bar i's line and its first note (a ‖:, a key or time change),
+   * `tail[i]` between its last note and the next line (a :‖). `roomBefore[i]` adds up all the room
+   * before bar i's line.
    */
   private changes: SignatureChange[] = [];
-  private room: number[] = [];
+  private lead: number[] = [];
+  private tail: number[] = [];
   private roomBefore: number[] = [0];
   /** The tape dragged by hand (see dragBy), or null while it follows the music. */
   private manual: { offset: number; idle: number } | null = null;
@@ -414,10 +425,12 @@ export class SvgStaff {
     this.octaveShifts = [...layout.octaveShifts];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.changes = score ? signatureChanges(score) : [];
-    this.room = (score?.writtenBarBeats ?? []).map(() => 0);
-    for (const change of this.changes) this.room[change.bar] = signatureChangeWidth(change);
+    const navigation = score?.navigation ?? [];
+    this.lead = (score?.writtenBarBeats ?? []).map((_, i) => (navigation[i]?.repeatStart ? REPEAT_LEAD : 0));
+    this.tail = (score?.writtenBarBeats ?? []).map((_, i) => (navigation[i]?.repeatEnd ? REPEAT_TAIL : 0));
+    for (const change of this.changes) this.lead[change.bar] += signatureChangeWidth(change);
     this.roomBefore = [0];
-    for (const width of this.room) this.roomBefore.push(this.roomBefore[this.roomBefore.length - 1] + width);
+    this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i] + lead + this.tail[i]));
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
     this.drawBackground();
@@ -594,7 +607,7 @@ export class SvgStaff {
     const score = this.score;
     if (!score) return x * this.barWidth();
     const bar = tapeBarAt(tapeBars(score).starts, x);
-    return x * this.barWidth() + (this.roomBefore[bar + 1] ?? 0) * this.space;
+    return x * this.barWidth() + ((this.roomBefore[bar] ?? 0) + (this.lead[bar] ?? 0)) * this.space;
   }
 
   /** The inverse of px, for finding what is under the pointer: [x for the bar lookup, x for the beat]. */
@@ -605,7 +618,7 @@ export class SvgStaff {
     // The bar whose bar line is at or before the pointer.
     let bar = 0;
     while (bar + 1 < bars && this.barLineX(bar + 1) <= px) bar++;
-    const x = (px - (this.roomBefore[bar + 1] ?? 0) * this.space) / this.barWidth();
+    const x = (px - ((this.roomBefore[bar] ?? 0) + (this.lead[bar] ?? 0)) * this.space) / this.barWidth();
     return [tapeBars(score).starts[bar] + (px < this.barLineX(0) ? -1 : 0), x];
   }
 
@@ -1083,7 +1096,7 @@ export class SvgStaff {
         [clefAt(score, 1, beat), top],
         [clefAt(score, 2, beat), this.bassTop()],
       ];
-      let x = line + CHANGE_GAP_BEFORE * space;
+      let x = line + (score.navigation[change.bar]?.repeatStart ? REPEAT_GLYPH_WIDTH * space : 0) + CHANGE_GAP_BEFORE * space;
       if (change.key) {
         const { from, to } = change.key;
         const naturals = cancelledSteps(from, to, 'treble').length;
@@ -1248,7 +1261,8 @@ export class SvgStaff {
       // ⌊ (or "Ped." and then the line), ∧ at each change, and ⌋ just before the release.
       const left = pressLeft(line.from);
       const from = left + (line.afterSign ? signWidth(line.pedal) + 0.3 * space : 0);
-      const to = Math.max(from + space, this.px(line.to) - PEDAL_LINE_GAP * space);
+      // Measured from the bar line when the release is on one (the next bar may have room after it).
+      const to = Math.max(from + space, this.edgeX(line.to) - (PEDAL_LINE_GAP - BAR_LINE_GAP) * space);
       let y = baseline(left, to);
       if (line.pedal === 'sustain') sustainSpans.push([left, to]);
       else if (sustainSpans.some(([a, b]) => a < to && b > left)) y += PEDAL_ROW * space;
@@ -1268,11 +1282,12 @@ export class SvgStaff {
     for (const sign of signs) {
       const release = sign.kind === 'release';
       const pedal = sign.kind === 'sostenuto' ? 'sostenuto' : 'sustain';
-      const left = release ? this.px(sign.x) - (PEDAL_RELEASE_BEFORE + 0.9) * space : pressLeft(sign.x);
+      const releaseX = this.edgeX(sign.x) - (PEDAL_RELEASE_BEFORE - BAR_LINE_GAP) * space;
+      const left = release ? releaseX - 0.9 * space : pressLeft(sign.x);
       const y =
         (!release && lineBaselines.get(`${pedal} ${sign.x}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
       const codepoint = release ? PEDAL_RELEASE : pedal === 'sostenuto' ? PEDAL_SOSTENUTO : PEDAL_PRESS;
-      const glyph = this.noteGlyph(codepoint, release ? this.px(sign.x) - PEDAL_RELEASE_BEFORE * space : left, y);
+      const glyph = this.noteGlyph(codepoint, release ? releaseX : left, y);
       if (release) glyph.setAttribute('text-anchor', 'middle');
       glyph.style.setProperty('fill', COLORS.note);
       shapes.push(glyph);
@@ -1307,7 +1322,7 @@ export class SvgStaff {
     const glyph = glyphs[Math.min(glyphs.length, Math.abs(shift.octaves)) - 1];
     const glyphWidth = (above ? OCTAVE_GLYPH_WIDTH_ABOVE : OCTAVE_GLYPH_WIDTH_BELOW) * space;
     const left = this.px(shift.from) - 0.5 * space;
-    const right = Math.max(left + glyphWidth + space, this.px(shift.to) - BAR_LINE_GAP * space);
+    const right = Math.max(left + glyphWidth + space, this.edgeX(shift.to));
     const staffTop = shift.staff === 'treble' ? this.trebleTop() : this.bassTop();
     const staffBottom = staffTop + (LINES_PER_STAFF - 1) * space;
     const ink = this.inkExtent(shift.staff, left, right, stemEnds);
