@@ -1,6 +1,6 @@
 import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
-import { pedalSpans, type PedalMark, type PedalSpan } from '../../domain/pedal';
+import { pedalSpans, type PedalKind, type PedalMark, type PedalSpan } from '../../domain/pedal';
 import { createScore, type Score } from '../../domain/score';
 
 export class InvalidMidiError extends ScoreLoadError {
@@ -12,8 +12,8 @@ export class InvalidMidiError extends ScoreLoadError {
 
 const DEFAULT_US_PER_QUARTER = 500_000; // 120 BPM
 const DRUM_CHANNEL = 9;
-/** Controller 64 is the sustain pedal: values from 64 up mean down. */
-const SUSTAIN_CONTROLLER = 64;
+/** Controllers of the three pedals (right, middle, left); values from 64 up mean down. */
+const PEDAL_CONTROLLERS: Record<number, PedalKind> = { 64: 'sustain', 66: 'sostenuto', 67: 'soft' };
 /**
  * Players change the pedal by lifting it and pressing it again a moment later. A gap this short
  * (in quarter notes) is drawn as one change rather than a release and a new press.
@@ -47,6 +47,7 @@ interface KeySignatureEvent {
 }
 
 interface PedalEvent {
+  pedal: PedalKind;
   tick: number;
   down: boolean;
   /** Track and channel it came from: each has its own pedal state. */
@@ -146,11 +147,25 @@ export class MidiFileParser implements ScoreParser {
     });
 
     const bars = barTicks(midi.timeSignatures, midi.ticksPerQuarter, midi.lastTick);
-    const pedal = mergedPedal(midi.pedal, midi.lastTick);
+    const pedals = (['sustain', 'sostenuto', 'soft'] as const).map((kind) =>
+      mergedPedal(
+        midi.pedal.filter((event) => event.pedal === kind),
+        midi.lastTick,
+      ),
+    );
+    const inSeconds = (spans: PedalSpan[]) => spans.map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) }));
+    const inBeats = (spans: PedalSpan[]) => spans.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }));
+    const [sustain, sostenuto, soft] = pedals;
     return createScore(title, notes, bars.map(toSeconds), {
       barBeats: bars.map(toBeats),
-      pedal: pedal.map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) })),
-      pedalMarks: pedalMarks(pedal.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }))),
+      pedal: inSeconds(sustain),
+      sostenutoPedal: inSeconds(sostenuto),
+      softPedal: inSeconds(soft),
+      pedalMarks: [
+        ...pedalMarks('sustain', inBeats(sustain)),
+        ...pedalMarks('sostenuto', inBeats(sostenuto)),
+        ...softPedalMarks(inBeats(soft)),
+      ],
       timeSignatures: midi.timeSignatures.map(({ tick, numerator, denominator }) => ({
         beat: toBeats(tick),
         numerator,
@@ -265,7 +280,8 @@ function readTrack(reader: ByteReader, end: number, track: number, data: MidiDat
     } else if (type === 0xb) {
       const controller = reader.u8();
       const value = reader.u8();
-      if (controller === SUSTAIN_CONTROLLER && channel !== DRUM_CHANNEL) data.pedal.push({ tick, down: value >= 64, source: track * 16 + channel });
+      const pedal = PEDAL_CONTROLLERS[controller];
+      if (pedal && channel !== DRUM_CHANNEL) data.pedal.push({ pedal, tick, down: value >= 64, source: track * 16 + channel });
     } else if (type === 0xc || type === 0xd) {
       reader.skip(1);
     } else {
@@ -362,12 +378,13 @@ function mergedPedal(events: PedalEvent[], lastTick: number): PedalSpan[] {
 }
 
 /**
- * How the pedal is drawn on the staff: MIDI has no notation, so as a bracket line, where a quick
- * lift and press becomes a change (a notch) at the moment of the lift.
+ * How a pedal is drawn on the staff: MIDI has no notation, so as a bracket line ("Sost." and a line
+ * for the middle pedal), where a quick lift and press becomes a change (a notch) at the moment of the lift.
  */
-function pedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
+function pedalMarks(pedal: 'sustain' | 'sostenuto', spans: { start: number; end: number }[]): PedalMark[] {
   const marks: PedalMark[] = [];
-  const mark = (beat: number, type: PedalMark['type']): PedalMark => ({ beat, type, sign: false, line: true });
+  const sign = pedal === 'sostenuto';
+  const mark = (beat: number, type: PedalMark['type']): PedalMark => ({ pedal, beat, type, sign, line: true });
   spans.forEach((span, i) => {
     const previous = spans[i - 1];
     if (previous && span.start - previous.end <= PEDAL_CHANGE_GAP) marks[marks.length - 1] = mark(previous.end, 'change');
@@ -375,4 +392,17 @@ function pedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
     marks.push(mark(span.end, 'stop'));
   });
   return marks;
+}
+
+/** The soft pedal is written in words: "una corda" (one string) to press, "tre corde" (three strings) to lift. */
+function softPedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
+  const mark = (beat: number, type: 'start' | 'stop'): PedalMark => ({
+    pedal: 'soft',
+    beat,
+    type,
+    sign: false,
+    line: false,
+    text: type === 'start' ? 'una corda' : 'tre corde',
+  });
+  return spans.flatMap((span) => [mark(span.start, 'start'), mark(span.end, 'stop')]);
 }

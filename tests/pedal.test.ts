@@ -121,3 +121,15 @@ describe('pedalEvents', () => {
     expect(pedalEvents(pedal).map((e) => e.kind)).toEqual(['press', 'release', 'press', 'release']);
   });
 });
+
+describe('sostenuto', () => {
+  it('holds only the keys that are down when it is pressed', () => {
+    // The bass is down when the middle pedal goes down at 0.5; the melody comes later.
+    const sostenuto = [{ start: 0.5, end: 4 }];
+    expect(soundingDurations([note(36, 0, 1), note(72, 2, 0.5)], [], sostenuto)).toEqual([4, 0.5]);
+  });
+
+  it('does not catch a key already released', () => {
+    expect(soundingDurations([note(36, 0, 0.5)], [], [{ start: 1, end: 4 }])).toEqual([0.5]);
+  });
+});

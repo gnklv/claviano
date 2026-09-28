@@ -62,7 +62,10 @@ export interface Score {
   readonly rests: readonly WrittenRest[];
   /** When the sustain pedal is down, as played; sorted. */
   readonly pedal: readonly PedalSpan[];
-  /** Pedal marks along the page, sorted by beat. */
+  /** When the middle (sostenuto) and left (soft) pedals are down, as played; sorted. */
+  readonly sostenutoPedal: readonly PedalSpan[];
+  readonly softPedal: readonly PedalSpan[];
+  /** Marks of all pedals along the page, sorted by beat. */
   readonly pedalMarks: readonly PedalMark[];
 }
 
@@ -81,6 +84,8 @@ export interface ScoreMusic {
   readonly writtenEndBeat?: number;
   readonly navigation?: readonly BarNavigation[];
   readonly pedal?: readonly PedalSpan[];
+  readonly sostenutoPedal?: readonly PedalSpan[];
+  readonly softPedal?: readonly PedalSpan[];
   readonly pedalMarks?: readonly PedalMark[];
 }
 
@@ -151,6 +156,8 @@ export function createScore(
     clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
     rests: music.rests ?? [],
     pedal: [...(music.pedal ?? [])].sort((a, b) => a.start - b.start),
+    sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
+    softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),
     pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
   };
 }

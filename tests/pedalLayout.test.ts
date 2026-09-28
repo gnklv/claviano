@@ -7,8 +7,8 @@ import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
 /** Two 4/4 bars of whole notes: on the tape, beat 4 is x = 1 and beat 8 is x = 2. */
 const notes: Note[] = [0, 4].map((beat) => ({ pitch: 48, start: beat, duration: 4, beat, beats: 4, velocity: 0.8, hand: 'left' }));
 const withMarks = (marks: PedalMark[]) => createScore('pedal', notes, [0, 4], { barBeats: [0, 4], pedalMarks: marks });
-const signs = { sign: true, line: false };
-const line = { sign: false, line: true };
+const signs = { pedal: 'sustain', sign: true, line: false } as const;
+const line = { pedal: 'sustain', sign: false, line: true } as const;
 
 describe('layoutPedal', () => {
   it('prints signs as "Ped." at the press and "✱" at the release', () => {
@@ -44,7 +44,7 @@ describe('layoutPedal', () => {
         { beat: 4, type: 'stop', ...line },
       ]),
     );
-    expect(layout.lines).toEqual([{ from: 0, to: 1, changes: [0.5], afterSign: false }]);
+    expect(layout.lines).toEqual([{ pedal: 'sustain', from: 0, to: 1, changes: [0.5], afterSign: false }]);
     expect(layout.signs).toEqual([]);
   });
 
@@ -53,6 +53,30 @@ describe('layoutPedal', () => {
     expect(layout.lines.map((l) => [l.from, l.to])).toEqual([
       [0, 1],
       [1, 2],
+    ]);
+  });
+});
+
+describe('layoutPedal, middle and left pedals', () => {
+  it('keeps each pedal apart: "Sost." and its own line, the soft pedal in words', () => {
+    const layout = layoutPedal(
+      withMarks([
+        { beat: 0, type: 'start', ...line },
+        { pedal: 'sostenuto', beat: 2, type: 'start', sign: true, line: true },
+        { pedal: 'soft', beat: 2, type: 'start', sign: false, line: false, text: 'una corda' },
+        { beat: 4, type: 'stop', ...line },
+        { pedal: 'sostenuto', beat: 6, type: 'stop', sign: true, line: true },
+        { pedal: 'soft', beat: 6, type: 'stop', sign: false, line: false, text: 'tre corde' },
+      ]),
+    );
+    expect(layout.lines.map((l) => [l.pedal, l.from, l.to, l.afterSign])).toEqual([
+      ['sustain', 0, 1, false],
+      ['sostenuto', 0.5, 1.5, true],
+    ]);
+    expect(layout.signs).toEqual([{ x: 0.5, kind: 'sostenuto' }]);
+    expect(layout.words).toEqual([
+      { x: 0.5, text: 'una corda' },
+      { x: 1.5, text: 'tre corde' },
     ]);
   });
 });

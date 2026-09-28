@@ -22,7 +22,7 @@ Every push to `master` runs the tests, builds and deploys to GitHub Pages
 **Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
 playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties,
 key/time/clef/tempo/dynamics changes, a wide range, articulations, fermatas, slurs, the sustain
-pedal, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
+pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 `tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
 
@@ -35,7 +35,7 @@ pedal, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.t
 | Tempo | 25–150%, pitch is unaffected |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
-| ⚙ → Pedal | play the score's sustain pedal or not (to hear the fingers alone) |
+| ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
 
 Drag a MIDI (`.mid`) or uncompressed MusicXML (`.musicxml`) file onto the window, or use
 "Open file". In MuseScore, export as *Uncompressed MusicXML*; compressed `.mxl` is not read.
@@ -49,8 +49,8 @@ src/
   domain/            Note, Score, solfège pitch helpers. No dependencies. Notes carry two clocks:
                      seconds (playback) and beats in quarter notes (notation); scores carry
                      time and key signatures, and two timelines: bars as played (repeats
-                     unrolled) and bars as printed, linked by barWritten. The sustain pedal
-                     (pedal.ts) is kept beside the notes, which keep the length of the key.
+                     unrolled) and bars as printed, linked by barWritten. The three pedals
+                     (pedal.ts) are kept beside the notes, which keep the length of the key.
     notation/          Music theory for the staff: spelling (Fa♯ or Sol♭), accidentals per bar,
                        note values (quarter, dotted eighth…), quantization to a 1/32 grid,
                        and navigation: the performance order of repeats and jumps.
@@ -59,7 +59,7 @@ src/
     use-cases/       Playback (tempo, loop, hands, pedal), LoadScore.
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
-                       (sustain pedal from controller 64).
+                       (pedals from controllers 64, 66 and 67).
                        MusicXmlParser — uncompressed MusicXML (.musicxml/.xml) via DOMParser:
                        sounding notes for playback (ties merged) and the notes as printed
                        (value, tuplet, accidental, stem, beams, clef, pedal) for the staff.
@@ -69,12 +69,13 @@ src/
                        the octaves the piece uses (keyboardRange). When keys would get too
                        narrow, the keyboard scrolls and a lazy camera follows the music
                        (keyboardCamera); swipe or Shift+wheel to look around. Pedal moves
-                       fall as plain labels ("Pedal ↓", "Pedal ↑", "Pedal ↑↓").
+                       fall as plain labels ("Pedal ↓", "Left pedal ↑"…) beside three pedals.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
                        the notes laid out by notationLayout (as written for MusicXML,
                        inferred for MIDI) and beamed by beams.ts; sounding notes light up.
-                       Pedal marks ("Ped." / "✱" or a bracket line) come from pedalLayout.
+                       Pedal marks ("Ped." / "✱" or a bracket line, "Sost.", "una corda")
+                       come from pedalLayout.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
@@ -104,6 +105,9 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Sustain pedal (MIDI CC 64, MusicXML): held notes ring on, "Ped." / "✱" signs or a bracket
       under the staff; in the falling notes, plain labels (Pedal ↓ / ↑ / ↑↓) falling where the foot
       moves and three pedals in the corner, the right one lit while held; an on/off switch
+- [x] Soft (una corda) and sostenuto pedals (MIDI CC 67 / 66, MusicXML): quieter and duller notes,
+      only the keys held at the press sustained; "una corda" / "tre corde" and "Sost." on the staff,
+      the left and middle pedals light up in the corner
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

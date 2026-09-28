@@ -7,6 +7,9 @@ interface Voice {
 }
 
 const ATTACK = 0.005;
+/** Level of the overtone an octave up, and with the soft pedal. */
+const OVERTONE = 0.25;
+const SOFT_OVERTONE = 0.08;
 /** Time constant of the natural decay of a held key: the quick drop right after the strike… */
 const DECAY = 0.6;
 /**
@@ -48,7 +51,7 @@ export class WebAudioSynth implements AudioOutput {
     if (this.ctx.state !== 'running') await this.ctx.resume();
   }
 
-  playNote(pitch: number, velocity: number, at: number, duration: number): void {
+  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
     const { ctx } = this;
     const start = Math.max(at, ctx.currentTime);
     const end = start + Math.max(duration, 0.05);
@@ -65,7 +68,8 @@ export class WebAudioSynth implements AudioOutput {
     const frequency = pitchFrequency(pitch);
     const fundamental = this.oscillator('triangle', frequency, gain);
     const overtoneGain = ctx.createGain();
-    overtoneGain.gain.value = 0.25;
+    // The soft pedal makes the tone duller: less of the brighter overtone.
+    overtoneGain.gain.value = soft ? SOFT_OVERTONE : OVERTONE;
     overtoneGain.connect(gain);
     const overtone = this.oscillator('sine', frequency * 2, overtoneGain);
 

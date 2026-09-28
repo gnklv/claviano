@@ -18,6 +18,12 @@ export const ru: Dictionary = {
   pedalPress: 'Педаль ↓',
   pedalRelease: 'Педаль ↑',
   pedalChange: 'Педаль ↑↓',
+  softPedalPress: 'Левая педаль ↓',
+  softPedalRelease: 'Левая педаль ↑',
+  softPedalChange: 'Левая педаль ↑↓',
+  sostenutoPedalPress: 'Средняя педаль ↓',
+  sostenutoPedalRelease: 'Средняя педаль ↑',
+  sostenutoPedalChange: 'Средняя педаль ↑↓',
 
   openMidi: 'Открыть файл',
   demo: 'Демо',

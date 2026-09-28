@@ -10,7 +10,12 @@ import { useTheme } from '../theme/useTheme';
 
 const { playback, createRoll } = useDeps();
 const { noteLabel, t } = useI18n();
-const PEDAL_LABELS = { press: 'pedalPress', release: 'pedalRelease', change: 'pedalChange' } as const;
+/** The right pedal is just "Pedal": it is the one people mean. */
+const PEDAL_LABELS = {
+  sustain: { press: 'pedalPress', release: 'pedalRelease', change: 'pedalChange' },
+  soft: { press: 'softPedalPress', release: 'softPedalRelease', change: 'softPedalChange' },
+  sostenuto: { press: 'sostenutoPedalPress', release: 'sostenutoPedalRelease', change: 'sostenutoPedalChange' },
+} as const;
 const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
@@ -38,7 +43,7 @@ useAnimationFrame(() => {
     isHandEnabled: (hand) => playback.isHandEnabled(hand),
     pedalEnabled: playback.pedalEnabled,
     noteLabel,
-    pedalLabel: (kind) => t(PEDAL_LABELS[kind]),
+    pedalLabel: (move) => t(PEDAL_LABELS[move.pedal][move.kind]),
   });
   canvas.value?.classList.toggle('scrollable', roll.scrollable);
 });

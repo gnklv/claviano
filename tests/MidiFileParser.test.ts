@@ -184,7 +184,7 @@ describe('MidiFileParser', () => {
     expect(parser.parse(file, 'test').notes).toHaveLength(0);
   });
 
-  describe('sustain pedal', () => {
+  describe('pedals', () => {
     it('reads controller 64 as pedal spans in seconds', () => {
       const file = midiFile(480, [
         track([tempo(120), pedal(0, true), [0, 0x90, 48, 100], [480, 0x80, 48, 0], pedal(480, false), [480, 0x90, 50, 100], [480, 0x80, 50, 0]]),
@@ -227,6 +227,23 @@ describe('MidiFileParser', () => {
         ['stop', 6.125],
       ]);
       expect(marks.every((m) => m.line && !m.sign)).toBe(true);
+    });
+
+    it('reads the middle (66) and left (67) pedals, and marks them for the staff', () => {
+      const cc = (delta: number, controller: number, down: boolean): Event => [delta, 0xb0, controller, down ? 127 : 0];
+      const file = midiFile(480, [
+        track([tempo(120), cc(0, 67, true), [0, 0x90, 36, 100], cc(0, 66, true), [480, 0x80, 36, 0], cc(480, 66, false), cc(0, 67, false)]),
+      ]);
+      const score = parser.parse(file, 'test');
+      expect(score.sostenutoPedal).toEqual([{ start: 0, end: 1 }]);
+      expect(score.softPedal).toEqual([{ start: 0, end: 1 }]);
+      expect(score.pedal).toEqual([]);
+      expect(score.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
+        ['sostenuto', 'start', undefined],
+        ['soft', 'start', 'una corda'],
+        ['sostenuto', 'stop', undefined],
+        ['soft', 'stop', 'tre corde'],
+      ]);
     });
 
     it('ignores the pedal of the drum channel', () => {

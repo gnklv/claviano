@@ -24,6 +24,12 @@ export const en = {
   pedalPress: 'Pedal ↓',
   pedalRelease: 'Pedal ↑',
   pedalChange: 'Pedal ↑↓',
+  softPedalPress: 'Left pedal ↓',
+  softPedalRelease: 'Left pedal ↑',
+  softPedalChange: 'Left pedal ↑↓',
+  sostenutoPedalPress: 'Middle pedal ↓',
+  sostenutoPedalRelease: 'Middle pedal ↑',
+  sostenutoPedalChange: 'Middle pedal ↑↓',
 
   openMidi: 'Open file',
   demo: 'Demo',

@@ -336,7 +336,7 @@ describe('MusicXmlParser', () => {
     });
   });
 
-  describe('sustain pedal', () => {
+  describe('pedals', () => {
     const pedal = (type: string, attrs = '', offset = '') =>
       `<direction placement="below"><direction-type><pedal type="${type}" ${attrs}/></direction-type>${offset}</direction>`;
     const quarter = (step: string, octave = 3) => note(step, octave, 2, { staff: 2, extra: '<type>quarter</type>' });
@@ -352,9 +352,9 @@ describe('MusicXmlParser', () => {
         { start: 2, end: 4 },
       ]);
       expect(s.pedalMarks).toEqual([
-        { beat: 0, type: 'start', sign: true, line: false },
-        { beat: 2, type: 'change', sign: false, line: true },
-        { beat: 4, type: 'stop', sign: true, line: false },
+        { pedal: 'sustain', beat: 0, type: 'start', sign: true, line: false },
+        { pedal: 'sustain', beat: 2, type: 'change', sign: false, line: true },
+        { pedal: 'sustain', beat: 4, type: 'stop', sign: true, line: false },
       ]);
     });
 
@@ -387,9 +387,12 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.pedal).toEqual([{ start: 0, end: 4 }]);
-      expect(s.pedalMarks.map((m) => [m.type, m.beat])).toEqual([
-        ['start', 0],
-        ['stop', 4],
+      expect(s.sostenutoPedal).toEqual([{ start: 1, end: 2 }]);
+      expect(s.pedalMarks.map((m) => [m.pedal, m.type, m.beat])).toEqual([
+        ['sustain', 'start', 0],
+        ['sostenuto', 'start', 1],
+        ['sostenuto', 'stop', 2],
+        ['sustain', 'stop', 4],
       ]);
     });
 
@@ -400,6 +403,24 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.pedal).toEqual([{ start: 1, end: 3 }]);
+      expect(s.sostenutoPedal).toEqual([{ start: 0, end: 2 }]);
+    });
+
+    it('reads the soft pedal from "una corda" and "tre corde", and from <sound soft-pedal>', () => {
+      const words = (text: string) => `<direction><direction-type><words>${text}</words></direction-type></direction>`;
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${words('una corda')}${quarter('C')}${quarter('E')}${words('tre corde')}${quarter('G')}<sound soft-pedal="yes"/>${quarter('C', 4)}</measure>`),
+        'test',
+      );
+      expect(s.softPedal).toEqual([
+        { start: 0, end: 2 },
+        { start: 3, end: 4 },
+      ]);
+      expect(s.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
+        ['soft', 'start', 'una corda'],
+        ['soft', 'stop', 'tre corde'],
+      ]);
     });
 
     it('presses the pedal again on every pass of a repeat', () => {

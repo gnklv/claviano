@@ -188,6 +188,8 @@ const CODA = '\uE048';
 /** Pedal signs ("Ped." and "✱") and the bracket line, under the lower staff. */
 const PEDAL_PRESS = '\uE650';
 const PEDAL_RELEASE = '\uE655';
+/** "Sost.": the middle pedal. */
+const PEDAL_SOSTENUTO = '\uE659';
 /**
  * How far below the bottom line of the lower staff the pedal marks sit (their baseline), and how
  * far below low notes, stems and marks when those reach further down ("Ped." is 2 spaces tall).
@@ -201,6 +203,9 @@ const MARK_DEPTH = 1.5;
  * beat: a release on a bar line goes before the line (bar lines stand BAR_LINE_GAP before the beat).
  */
 const PEDAL_PRESS_WIDTH = 4.1;
+const PEDAL_SOSTENUTO_WIDTH = 4.4;
+/** Where the middle pedal's line overlaps the right pedal's marks, it goes this much lower. */
+const PEDAL_ROW = 2.4;
 const PEDAL_RELEASE_BEFORE = 2.2;
 /** Bracket hooks and change notches: height, and half the width of a notch. */
 const PEDAL_HOOK = 1.2;
@@ -889,31 +894,38 @@ export class SvgStaff {
 
   /** The sustain pedal under the lower staff: "Ped." and "✱" signs, and bracket lines. */
   /**
-   * The sustain pedal under the lower staff: "Ped." and "✱" signs, and bracket lines. Each sits
-   * clear of the low notes, stems and marks above it; a line keeps one height all along.
+   * The pedals. Under the lower staff, the right one ("Ped." and "✱" signs, bracket lines) and the
+   * middle one ("Sost." and a line); each sits clear of the low notes, stems and marks above it, and
+   * a line keeps one height all along. The left one in words between the staves.
    */
   private drawPedal(score: Score, barWidth: number, stemEnds: Map<number, number>): SVGElement[] {
     const { space } = this;
-    const { signs, lines } = layoutPedal(score);
+    const { signs, lines, words } = layoutPedal(score);
     const shapes: SVGElement[] = [];
     const baseline = (left: number, right: number) =>
       Math.max(this.systemBottom() + PEDAL_DROP * space, this.bassFloor(left, right, barWidth, stemEnds) + PEDAL_CLEARANCE * space);
 
-    // "Ped." starts a little before its beat, under the left edge of the note it goes with.
+    // "Ped." / "Sost." start a little before their beat, under the left edge of the note they go with.
     const pressLeft = (x: number) => x * barWidth - 0.5 * space;
-    const pressWidth = PEDAL_PRESS_WIDTH * space;
-    // A "Ped." followed by a line sits at the line's height.
-    const lineBaselines = new Map<number, number>();
+    const signWidth = (pedal: 'sustain' | 'sostenuto') => (pedal === 'sustain' ? PEDAL_PRESS_WIDTH : PEDAL_SOSTENUTO_WIDTH) * space;
+    // A sign followed by a line sits at the line's height.
+    const lineBaselines = new Map<string, number>();
+    // Where the right pedal's marks are, so the middle pedal's line can keep out of their way.
+    const sustainSpans: [number, number][] = signs
+      .filter((sign) => sign.kind !== 'sostenuto')
+      .map((sign) => [pressLeft(sign.x) - 2 * space, pressLeft(sign.x) + PEDAL_PRESS_WIDTH * space]);
 
     const hook = PEDAL_HOOK * space;
     const notch = PEDAL_NOTCH * space;
     for (const line of lines) {
       // ⌊ (or "Ped." and then the line), ∧ at each change, and ⌋ just before the release.
       const left = pressLeft(line.from);
-      const from = left + (line.afterSign ? pressWidth + 0.3 * space : 0);
+      const from = left + (line.afterSign ? signWidth(line.pedal) + 0.3 * space : 0);
       const to = Math.max(from + space, line.to * barWidth - PEDAL_LINE_GAP * space);
-      const y = baseline(left, to);
-      if (line.afterSign) lineBaselines.set(line.from, y);
+      let y = baseline(left, to);
+      if (line.pedal === 'sustain') sustainSpans.push([left, to]);
+      else if (sustainSpans.some(([a, b]) => a < to && b > left)) y += PEDAL_ROW * space;
+      if (line.afterSign) lineBaselines.set(`${line.pedal} ${line.from}`, y);
       const points = line.afterSign ? [`${from},${y}`] : [`${from},${y - hook}`, `${from},${y}`];
       for (const change of line.changes) {
         const at = change * barWidth;
@@ -927,16 +939,35 @@ export class SvgStaff {
     }
 
     for (const sign of signs) {
-      const press = sign.kind === 'press';
-      const left = press ? pressLeft(sign.x) : sign.x * barWidth - (PEDAL_RELEASE_BEFORE + 0.9) * space;
-      const y = (press && lineBaselines.get(sign.x)) || baseline(left, left + (press ? pressWidth : 1.8 * space));
-      const glyph = this.noteGlyph(press ? PEDAL_PRESS : PEDAL_RELEASE, press ? left : sign.x * barWidth - PEDAL_RELEASE_BEFORE * space, y);
-      if (!press) glyph.setAttribute('text-anchor', 'middle');
+      const release = sign.kind === 'release';
+      const pedal = sign.kind === 'sostenuto' ? 'sostenuto' : 'sustain';
+      const left = release ? sign.x * barWidth - (PEDAL_RELEASE_BEFORE + 0.9) * space : pressLeft(sign.x);
+      const y =
+        (!release && lineBaselines.get(`${pedal} ${sign.x}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
+      const codepoint = release ? PEDAL_RELEASE : pedal === 'sostenuto' ? PEDAL_SOSTENUTO : PEDAL_PRESS;
+      const glyph = this.noteGlyph(codepoint, release ? sign.x * barWidth - PEDAL_RELEASE_BEFORE * space : left, y);
+      if (release) glyph.setAttribute('text-anchor', 'middle');
       glyph.style.setProperty('fill', COLORS.note);
       shapes.push(glyph);
     }
+
+    // The left pedal's words, in italics between the staves, like other playing directions.
+    const wordsY = this.trebleTop() + (LINES_PER_STAFF - 1 + STAFF_GAP / 2 + 0.5) * space;
+    for (const { x, text } of words) {
+      const element = svg('text', {
+        x: pressLeft(x),
+        y: wordsY,
+        'font-size': space * 1.3,
+        'font-family': "'Times New Roman', Georgia, serif",
+        'font-style': 'italic',
+      });
+      element.textContent = text;
+      element.style.setProperty('fill', COLORS.note);
+      shapes.push(element);
+    }
     return shapes;
   }
+
 
   /** The lowest point (largest y) of the lower staff's notes, down stems and marks under them between two x's. */
   private bassFloor(left: number, right: number, barWidth: number, stemEnds: Map<number, number>): number {

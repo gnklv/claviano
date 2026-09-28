@@ -7,12 +7,12 @@ import { createScore } from '../src/domain/score';
 
 class FakeAudio implements AudioOutput {
   time = 0;
-  played: { pitch: number; at: number; duration: number }[] = [];
+  played: { pitch: number; at: number; duration: number; velocity: number; soft: boolean }[] = [];
   stops = 0;
   now = () => this.time;
   resume = async () => {};
-  playNote(pitch: number, _velocity: number, at: number, duration: number): void {
-    this.played.push({ pitch, at, duration });
+  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
+    this.played.push({ pitch, at, duration, velocity, soft });
   }
   stopAll(): void {
     this.stops++;
@@ -146,6 +146,28 @@ describe('Playback', () => {
     expect(audio.played.map((n) => [n.pitch, n.duration])).toEqual([
       [48, 0.5],
       [64, 0.5],
+    ]);
+  });
+
+  it('plays notes struck with the soft pedal quieter and duller', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(createScore('soft', [note(60, 0), note(62, 1)], [0], { softPedal: [{ start: 0.5, end: 2 }] }));
+    await playback.play();
+    advance(1.5);
+    const [before, under] = audio.played;
+    expect(before.soft).toBe(false);
+    expect(under.soft).toBe(true);
+    expect(under.velocity).toBeLessThan(before.velocity);
+  });
+
+  it('holds the keys caught by the middle pedal', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(createScore('sost', [note(36, 0, 1), note(72, 1)], [0], { sostenutoPedal: [{ start: 0.5, end: 3 }] }));
+    await playback.play();
+    advance(1.5);
+    expect(audio.played.map((n) => [n.pitch, n.duration])).toEqual([
+      [36, 3],
+      [72, 0.5],
     ]);
   });
 

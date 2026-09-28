@@ -1,9 +1,14 @@
 import { noteEnd, type Hand } from '../../domain/note';
-import { pedalDownAt, pedalEvents, type PedalEvent } from '../../domain/pedal';
+import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { isBlackKey } from '../../domain/pitch';
 import { barNumber, firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 import { approach, clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
 import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
+
+/** A move of one of the three pedals. */
+export interface PedalMove extends PedalEvent {
+  readonly pedal: PedalKind;
+}
 
 export interface RollFrame {
   readonly score: Score;
@@ -17,7 +22,7 @@ export interface RollFrame {
   /** How to label a key on screen; the UI supplies it in the current language. */
   readonly noteLabel: (midi: number) => string;
   /** How to label a pedal move ("Pedal ↓"), in the current language. */
-  readonly pedalLabel: (kind: PedalEvent['kind']) => string;
+  readonly pedalLabel: (move: PedalMove) => string;
 }
 
 interface KeyRect {
@@ -58,10 +63,10 @@ const DEFAULT_COLORS: RollColors = {
 
 const MUTED_ALPHA = 0.25;
 /*
- * The sustain pedal. Where the foot moves, a plain label falls with the notes near the right edge
- * ("Pedal ↓", "Pedal ↑", "Pedal ↑↓" for a change; the staff keeps the sheet-music signs). It lands
- * beside three piano pedals in the corner over the keyboard; the right one lights up and sinks while held, and comes
- * up for a moment at a change.
+ * The pedals. Where a foot moves, a plain label falls with the notes near the right edge
+ * ("Pedal ↓", "Pedal ↑", "Pedal ↑↓" for a change, "Left pedal ↓"…; the staff keeps the sheet-music
+ * signs). It lands beside three piano pedals in the corner over the keyboard; each lights up and
+ * sinks while held, and comes up for a moment at a change.
  */
 const PEDAL_LABEL_PX = 13;
 /** MIDI players lift and press again in a flash; a gap this short (seconds) is one change. */
@@ -69,6 +74,8 @@ const PEDAL_CHANGE_GAP_SECONDS = 0.15;
 /** How long (seconds of music) the pedal in the corner stays up at a change, so the change is seen. */
 const PEDAL_CHANGE_FLASH_SECONDS = 0.15;
 const PEDAL_ICON = { width: 11, height: 26, gap: 5, margin: 10, travel: 4 };
+/** The pedals in the corner, left to right, as on a piano. */
+const PEDAL_ORDER: readonly PedalKind[] = ['soft', 'sostenuto', 'sustain'];
 /** On short screens, look less far ahead rather than squashing notes flat. */
 const MIN_PX_PER_SECOND = 40;
 /*
@@ -120,8 +127,9 @@ export class CanvasPianoRoll {
   private layoutHeight = -1;
   private colors: RollColors = DEFAULT_COLORS;
   private longestNote = 0;
-  /** Where the foot moves in the current score, in time order. */
-  private pedalMoments: PedalEvent[] = [];
+  /** Where each pedal moves in the current score, in time order; and all of them together. */
+  private pedalMoves: Record<PedalKind, PedalEvent[]> = { sustain: [], sostenuto: [], soft: [] };
+  private pedalMoments: PedalMove[] = [];
 
   // Camera state
   private scrollX = 0;
@@ -193,7 +201,6 @@ export class CanvasPianoRoll {
     // Loop and bar lines span the screen; notes and keys move with the camera.
     this.drawLoop(frame, yOf, rollHeight);
     this.drawBars(frame, yOf, rollHeight);
-    this.drawPedalMoments(frame, yOf, rollHeight);
     ctx.save();
     ctx.translate(-this.scrollX, 0);
     const active = this.drawNotes(frame, yOf, rollHeight);
@@ -202,10 +209,13 @@ export class CanvasPianoRoll {
 
     ctx.fillStyle = this.colors.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
-    if (this.pedalMoments.length > 0) this.drawPedals(frame, rollHeight);
+    if (this.pedalMoments.length > 0) {
+      this.drawPedalMoments(frame, yOf, rollHeight);
+      this.drawPedals(frame, rollHeight);
+    }
   }
 
-  /** A label wherever the foot moves, falling with the notes near the right edge. */
+  /** A label wherever a foot moves, falling with the notes near the right edge; over them, with a halo to stay legible. */
   private drawPedalMoments(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {
     const { ctx, width } = this;
     const until = frame.position + this.secondsVisible;
@@ -215,23 +225,33 @@ export class CanvasPianoRoll {
     ctx.save();
     ctx.globalAlpha = frame.pedalEnabled ? 1 : MUTED_ALPHA;
     ctx.fillStyle = this.colors.pedal;
+    ctx.strokeStyle = this.colors.background;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
     ctx.font = `600 ${PEDAL_LABEL_PX}px system-ui, sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
+    let stacked = 0; // labels of several pedals at one moment stack upwards
+    let previous = Number.NaN;
     for (const moment of this.pedalMoments) {
       if (moment.time < frame.position) continue;
       if (moment.time > until) break;
+      stacked = moment.time === previous ? stacked + 1 : 0;
+      previous = moment.time;
       const y = yOf(moment.time);
       if (y > rollHeight) continue;
-      ctx.fillText(frame.pedalLabel(moment.kind), labelRight, y - 3);
+      const label = frame.pedalLabel(moment);
+      const labelY = y - 3 - stacked * (PEDAL_LABEL_PX + 3);
+      ctx.strokeText(label, labelRight, labelY);
+      ctx.fillText(label, labelRight, labelY);
     }
     ctx.restore();
   }
 
-  /** Whether the pedal is being changed at `time`: lifted and pressed again at once, shown as briefly up. */
-  private changingAt(time: number): boolean {
-    // The last moment at or before `time` (moments are in time order).
-    const moments = this.pedalMoments;
+  /** Whether a pedal is being changed at `time`: lifted and pressed again at once, shown as briefly up. */
+  private changingAt(pedal: PedalKind, time: number): boolean {
+    // The last move at or before `time` (moves are in time order).
+    const moments = this.pedalMoves[pedal];
     let lo = 0;
     let hi = moments.length;
     while (lo < hi) {
@@ -243,22 +263,26 @@ export class CanvasPianoRoll {
     return latest?.kind === 'change' && time - latest.time < PEDAL_CHANGE_FLASH_SECONDS;
   }
 
-  /** Three piano pedals in the corner over the keyboard; the right (sustain) one lit and sunk while held. */
+  /** Three piano pedals in the corner over the keyboard, each lit and sunk while held. */
   private drawPedals(frame: RollFrame, rollHeight: number): void {
     const { ctx } = this;
     const { width: w, height: h, gap, margin, travel } = PEDAL_ICON;
-    const down = frame.pedalEnabled && pedalDownAt(frame.score.pedal, frame.position) && !this.changingAt(frame.position);
+    const spans: Record<PedalKind, readonly PedalSpan[]> = {
+      sustain: frame.score.pedal,
+      sostenuto: frame.score.sostenutoPedal,
+      soft: frame.score.softPedal,
+    };
     const left = this.width - margin - 3 * w - 2 * gap;
     const top = rollHeight - margin - h - travel;
     ctx.save();
     ctx.globalAlpha = frame.pedalEnabled ? 1 : MUTED_ALPHA;
-    for (let i = 0; i < 3; i++) {
-      const sustain = i === 2;
-      ctx.fillStyle = sustain && down ? this.colors.pedal : this.colors.keyBorder;
+    PEDAL_ORDER.forEach((pedal, i) => {
+      const down = frame.pedalEnabled && pedalDownAt(spans[pedal], frame.position) && !this.changingAt(pedal, frame.position);
+      ctx.fillStyle = down ? this.colors.pedal : this.colors.keyBorder;
       ctx.beginPath();
-      ctx.roundRect(left + i * (w + gap), top + (sustain && down ? travel : 0), w, h, [2, 2, w / 2, w / 2]);
+      ctx.roundRect(left + i * (w + gap), top + (down ? travel : 0), w, h, [2, 2, w / 2, w / 2]);
       ctx.fill();
-    }
+    });
     ctx.restore();
   }
 
@@ -277,7 +301,16 @@ export class CanvasPianoRoll {
     this.contentWidth = whiteKeys * keyWidth;
     this.keyboardHeight = Math.min(tallest, Math.max(MIN_KEYBOARD_PX, keyWidth * KEY_LENGTH_RATIO));
     this.longestNote = score.notes.reduce((max, n) => Math.max(max, n.duration), 0);
-    if (score !== this.layoutScore) this.pedalMoments = pedalEvents(score.pedal, PEDAL_CHANGE_GAP_SECONDS);
+    if (score !== this.layoutScore) {
+      this.pedalMoves = {
+        sustain: pedalEvents(score.pedal, PEDAL_CHANGE_GAP_SECONDS),
+        sostenuto: pedalEvents(score.sostenutoPedal),
+        soft: pedalEvents(score.softPedal),
+      };
+      this.pedalMoments = PEDAL_ORDER.flatMap((pedal) => this.pedalMoves[pedal].map((move) => ({ ...move, pedal }))).sort(
+        (a, b) => a.time - b.time,
+      );
+    }
     if (score !== this.layoutScore) this.manualHold = false;
     this.snapCamera = true;
     this.layoutScore = score;

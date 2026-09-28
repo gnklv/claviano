@@ -1,9 +1,17 @@
 import { noteEnd, type Note } from './note';
 
 /*
- * The sustain (damper) pedal. While it is down, released keys keep sounding until it comes up.
- * Notes keep their own length (how long the finger holds the key); the pedal lives beside them.
+ * The three piano pedals. Notes keep their own length (how long the finger holds the key); the
+ * pedals live beside them.
+ * - Right, sustain (damper): while it is down, released keys keep sounding until it comes up.
+ * - Middle, sostenuto: holds only the keys that are down when it is pressed.
+ * - Left, soft (una corda): notes struck while it is down sound quieter and softer.
  */
+
+export type PedalKind = 'sustain' | 'sostenuto' | 'soft';
+
+/** Soft-pedal notes are this much quieter. */
+export const SOFT_PEDAL_LOUDNESS = 0.7;
 
 /** The pedal held down from `start` to `end`, in seconds as played. Spans are sorted and do not overlap. */
 export interface PedalSpan {
@@ -12,16 +20,19 @@ export interface PedalSpan {
 }
 
 /**
- * A pedal mark as printed under the lower staff, at `beat` along the page.
+ * A pedal mark as printed, at `beat` along the page.
  * `start` presses the pedal, `stop` lifts it, `change` lifts and presses again at once.
  */
 export interface PedalMark {
+  readonly pedal: PedalKind;
   readonly beat: number;
   readonly type: 'start' | 'stop' | 'change';
   /** Printed as the "Ped." and "✱" signs. */
   readonly sign: boolean;
   /** Printed as a bracket line under the notes (with a notch at a change). */
   readonly line: boolean;
+  /** The words of a soft pedal mark, like "una corda" or "tre corde". */
+  readonly text?: string;
 }
 
 /** Whether the pedal is down at `time`. */
@@ -31,11 +42,16 @@ export function pedalDownAt(pedal: readonly PedalSpan[], time: number): boolean 
 
 /**
  * How long each note actually sounds, in seconds (same indices as `notes`, which are sorted by start).
- * A key released while the pedal is down sounds on until the pedal comes up. A key released exactly
- * when the pedal goes down is not caught: that is how a pedal change keeps chords apart. Striking
- * the same key again silences what was still sounding of it, as on a real piano.
+ * A key released while the sustain pedal is down sounds on until the pedal comes up. A key released
+ * exactly when the pedal goes down is not caught: that is how a pedal change keeps chords apart.
+ * A key that is down when the sostenuto pedal is pressed sounds on until that pedal comes up.
+ * Striking the same key again silences what was still sounding of it, as on a real piano.
  */
-export function soundingDurations(notes: readonly Note[], pedal: readonly PedalSpan[]): number[] {
+export function soundingDurations(
+  notes: readonly Note[],
+  pedal: readonly PedalSpan[],
+  sostenuto: readonly PedalSpan[] = [],
+): number[] {
   const nextSamePitch = new Map<number, number>(); // pitch → start of the next note of that pitch
   const durations: number[] = new Array(notes.length);
   for (let i = notes.length - 1; i >= 0; i--) {
@@ -43,12 +59,23 @@ export function soundingDurations(notes: readonly Note[], pedal: readonly PedalS
     const released = noteEnd(note);
     const span = spanAt(pedal, released, true);
     let end = span && span.end > released ? span.end : released;
+    end = Math.max(end, sostenutoEnd(sostenuto, note.start, released));
     const next = nextSamePitch.get(note.pitch);
     if (next !== undefined && next > note.start) end = Math.max(released, Math.min(end, next));
     durations[i] = end - note.start;
     nextSamePitch.set(note.pitch, note.start);
   }
   return durations;
+}
+
+/** Where the sostenuto pedal lets go of a key held from `pressed` to `released` (or `released`, if it never catches it). */
+function sostenutoEnd(sostenuto: readonly PedalSpan[], pressed: number, released: number): number {
+  let end = released;
+  for (const span of sostenuto) {
+    if (span.start >= released) break;
+    if (span.start >= pressed) end = Math.max(end, span.end);
+  }
+  return end;
 }
 
 /**

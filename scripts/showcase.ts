@@ -109,6 +109,12 @@ const direction = (words: string, sound: string) =>
  */
 const pedal = (type: 'start' | 'change' | 'stop', style: 'sign' | 'line' | 'both' = 'sign') =>
   `<direction placement="below"><direction-type><pedal type="${type}" line="${style === 'sign' ? 'no' : 'yes'}" sign="${style === 'line' ? 'no' : 'yes'}"/></direction-type><staff>2</staff></direction>`;
+/** The middle (sostenuto) pedal: "Sost." and a line. It ends with a plain pedal stop, as MusicXML has it. */
+const sostenuto = (type: 'start' | 'stop') =>
+  `<direction placement="below"><direction-type><pedal type="${type === 'start' ? 'sostenuto' : 'stop'}" line="yes"/></direction-type><staff>2</staff></direction>`;
+/** The left (soft) pedal, in words: "una corda" presses it, "tre corde" lifts it. */
+const softPedal = (down: boolean) =>
+  `<direction placement="below"><direction-type><words font-style="italic">${down ? 'una corda' : 'tre corde'}</words></direction-type><sound soft-pedal="${down ? 'yes' : 'no'}"/></direction>`;
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
 const key = (fifths: number) => `<key><fifths>${fifths}</fifths></key>`;
 const time = (beats: number, beatType: number) => `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>`;
@@ -227,18 +233,21 @@ const measures: string[] = [
     ${['C5', 'D5', 'Eb5'].map((n, i) => note(n, E, { type: 'eighth', staff: 2, beams: [run(3)[i]] })).join('')}
   </measure>`,
 
-  // 12: back to bass clef; slower and quiet.
+  // 12: back to bass clef; slower and quiet, with the left pedal (una corda): quieter and duller.
   `<measure number="12">
     ${attributes(clef(2, 'F'))}
     ${direction('Slower, piano', 'tempo="60" dynamics="45"')}
+    ${softPedal(true)}
     ${note('Bb4', dotted(H), { type: 'half', dots: 1 })}
     ${backup(dotted(H))}${note('Eb2', dotted(H), { type: 'half', dots: 1, staff: 2 })}
   </measure>`,
 
-  // 13: two sharps, 4/4 again, faster and loud; very high and very low notes (keyboard scrolling on phones).
+  // 13: two sharps, 4/4 again, faster and loud (tre corde: the left pedal comes up); very high and
+  // very low notes (keyboard scrolling on phones).
   `<measure number="13">
     ${attributes(`${key(2)}${time(4, 4)}`)}
     ${direction('Range, forte', 'tempo="90" dynamics="110"')}
+    ${softPedal(false)}
     ${note('D6', Q, { type: 'quarter' })}${note('F#6', Q, { type: 'quarter' })}${note('A6', H, { type: 'half' })}
     ${backup(W)}${note('D2', H, { type: 'half', staff: 2 })}${note('A0', H, { type: 'half', staff: 2 })}
   </measure>`,
@@ -288,40 +297,51 @@ const measures: string[] = [
     ${pedal('stop', 'line')}
   </measure>`,
 
-  // 18–22: repeats and jumps. Played: 18 19 | 18 20 21 | D.S. → 18 20 | To Coda → 22.
-  // 18: segno and ‖:.
+  // 18: the middle (sostenuto) pedal catches the bass note that is down when it is pressed; the
+  // staccato chords after it stay short.
   `<measure number="18">
+    ${direction('Sostenuto', '')}
+    ${rest(Q, { type: 'quarter' })}
+    ${['A4', 'B4', 'C#5'].map((n) => chord([n, 'E5'], Q, { type: 'quarter', articulations: ['staccato'] })).join('')}
+    ${backup(W)}
+    ${sostenuto('start')}${note('D2', Q, { type: 'quarter', staff: 2 })}${rest(Q, { type: 'quarter', staff: 2 })}${rest(H, { type: 'half', staff: 2 })}
+    ${sostenuto('stop')}
+  </measure>`,
+
+  // 19–23: repeats and jumps. Played: 19 20 | 19 21 22 | D.S. → 19 21 | To Coda → 23.
+  // 19: segno and ‖:.
+  `<measure number="19">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 19: first ending, back to ‖:.
-  `<measure number="19">
+  // 20: first ending, back to ‖:.
+  `<measure number="20">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 20: second ending; after the D.S. it leads to the coda.
-  `<measure number="20">
+  // 21: second ending; after the D.S. it leads to the coda.
+  `<measure number="21">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 21: back to the segno.
-  `<measure number="21">
+  // 22: back to the segno.
+  `<measure number="22">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 22: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 23: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="22">
+  `<measure number="23">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

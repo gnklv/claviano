@@ -1,5 +1,5 @@
 import { HANDS, type Hand } from '../../domain/note';
-import { soundingDurations } from '../../domain/pedal';
+import { pedalDownAt, SOFT_PEDAL_LOUDNESS, soundingDurations } from '../../domain/pedal';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
@@ -32,8 +32,10 @@ export class Playback {
   private currentLoop: TimeRange | null = null;
   private readonly enabledHands = new Set<Hand>(HANDS);
   private pedalOn = true;
-  /** How long each note of the score sounds with the pedal (same indices as its notes). */
+  /** How long each note of the score sounds with the pedals (same indices as its notes). */
   private sustained: number[] = [];
+  /** Which notes are struck with the soft pedal down (same indices as its notes). */
+  private softened: boolean[] = [];
 
   /** What the listener hears right now. When paused, `score` is the paused position. */
   private anchor: Anchor = { audio: 0, score: 0 };
@@ -71,7 +73,7 @@ export class Playback {
     return this.enabledHands.has(hand);
   }
 
-  /** Whether the score's sustain pedal is played. Off, every note stops when its key is released. */
+  /** Whether the score's pedals are played. Off, every note stops when its key is released. */
   get pedalEnabled(): boolean {
     return this.pedalOn;
   }
@@ -96,7 +98,8 @@ export class Playback {
   load(score: Score): void {
     this.pause();
     this.currentScore = score;
-    this.sustained = soundingDurations(score.notes, score.pedal);
+    this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
+    this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
     this.currentLoop = null;
     this.anchor = { audio: 0, score: 0 };
     this.emit();
@@ -242,7 +245,9 @@ export class Playback {
         const sounding = this.pedalOn ? this.sustained[index] : note.duration;
         // A loop cuts what would sound past its end; the end of the piece lets it ring (the last pedalled chord).
         const duration = this.currentLoop ? Math.min(sounding, segmentEnd - note.start) : sounding;
-        this.audio.playNote(note.pitch, note.velocity, this.toAudio(note.start), duration / this.currentTempo);
+        const soft = this.pedalOn && this.softened[index];
+        const velocity = soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity;
+        this.audio.playNote(note.pitch, velocity, this.toAudio(note.start), duration / this.currentTempo, soft);
       }
       if (!this.currentLoop || horizon < segmentEnd) return;
 
