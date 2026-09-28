@@ -8,6 +8,13 @@ import type { Ticker } from '../ports/Ticker';
 /** How far ahead of the audio clock notes are handed to the output, in seconds. */
 const LOOKAHEAD = 0.2;
 const MIN_LOOP_LENGTH = 0.1;
+/**
+ * Starting in the middle of notes (after a seek, a pause, a tempo change), the notes still sounding
+ * there are played for what is left of them, as quiet as a string that has rung for a while; tails
+ * shorter than MIN_RESUMED_SECONDS are left out.
+ */
+const RESUMED_LOUDNESS = 0.6;
+const MIN_RESUMED_SECONDS = 0.1;
 export const MIN_TEMPO = 0.1;
 export const MAX_TEMPO = 2;
 
@@ -56,6 +63,8 @@ export class Playback {
   private sustained: number[] = [];
   /** Which notes are struck with the soft pedal down (same indices as its notes). */
   private softened: boolean[] = [];
+  /** The longest a note of the score sounds, pedals included: how far back a note can still be heard. */
+  private longestSounding = 0;
   private metronomeOn = false;
   private countInOn = false;
   /** Every metronome click of the score, and the next one to schedule. */
@@ -164,6 +173,7 @@ export class Playback {
     this.currentScore = score;
     this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
     this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
+    this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i]), 0);
     this.clicks = metronomeClicks(score);
     this.currentLoop = null;
     this.anchor = { audio: 0, score: 0 };
@@ -312,7 +322,24 @@ export class Playback {
     this.scheduleAnchor = this.anchor;
     this.nextNoteIndex = firstNoteAtOrAfter(score, position);
     this.nextClickIndex = firstClickAtOrAfter(this.clicks, position);
+    this.resumeSounding(score, position);
     this.schedule(score);
+  }
+
+  /** Plays the notes struck before `position` that still sound there, for the rest of their length. */
+  private resumeSounding(score: Score, position: number): void {
+    const { notes } = score;
+    for (let i = firstNoteAtOrAfter(score, position - this.longestSounding); i < notes.length; i++) {
+      const note = notes[i];
+      if (note.start >= position) break;
+      if (!this.enabledHands.has(note.hand)) continue;
+      const end = note.start + (this.pedalOn ? this.sustained[i] : note.duration);
+      const left = Math.min(end, this.currentLoop?.end ?? end) - position;
+      if (left < MIN_RESUMED_SECONDS) continue;
+      const soft = this.pedalOn && this.softened[i];
+      const velocity = (soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity) * RESUMED_LOUDNESS;
+      this.audio.playNote(note.pitch, velocity, this.toAudio(position), left / this.currentTempo, soft);
+    }
   }
 
   private click(at: number, accent: boolean): void {

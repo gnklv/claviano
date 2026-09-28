@@ -224,6 +224,17 @@ describe('Playback', () => {
     });
   });
 
+  it('plays on the notes still sounding where it starts, for what is left of them', async () => {
+    const { audio, playback } = setup();
+    playback.load(createScore('held', [note(48, 0, 4, 'left'), note(60, 1, 0.5), note(64, 3, 1)], [0]));
+    playback.seek(2);
+    await playback.play();
+    // The bass (0–4) still sounds at 2: two seconds of it. The note 1–1.5 is over.
+    expect(audio.played[0]).toMatchObject({ pitch: 48, at: 0 });
+    expect(audio.played[0].duration).toBeCloseTo(2);
+    expect(audio.played.map((n) => n.pitch)).not.toContain(60);
+  });
+
   it('keeps the position when paused and resumed', async () => {
     const { audio, playback, advance } = setup();
     await playback.play();

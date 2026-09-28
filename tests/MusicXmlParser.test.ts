@@ -129,6 +129,18 @@ describe('MusicXmlParser', () => {
     expect(beamed[0]).toBe(layout.beams[0].stemUp);
   });
 
+  it('tells apart voices numbered per staff (voice 1 on both staves at once)', () => {
+    const eighth = (step: string, octave: number, staff: number, beam: string) =>
+      note(step, octave, 1, { staff, extra: `<voice>1</voice><type>eighth</type><beam number="1">${beam}</beam>` });
+    // Each hand plays two beamed eighths per beat, both written as voice 1.
+    const upper = [0, 1].map(() => eighth('C', 5, 1, 'begin') + eighth('D', 5, 1, 'end')).join('');
+    const lower = [0, 1].map(() => eighth('C', 3, 2, 'begin') + eighth('D', 3, 2, 'end')).join('');
+    const s = parser.parse(score(`<measure number="1">${attributes(2, 0, 2)}${upper}<backup><duration>4</duration></backup>${lower}</measure>`), 'test');
+    const layout = layoutNotation(s);
+    expect(layout.beams).toHaveLength(4);
+    for (const beam of layout.beams) expect(new Set(beam.chords.map((i) => layout.chords[i].staff)).size).toBe(1);
+  });
+
   it('keeps a beamed group together when its voice crosses to the other staff', () => {
     // As in the Moonlight Sonata: each triplet starts in the bass and goes on in the treble, one voice.
     const eighth = (step: string, octave: number, staff: number, beam: string, stem: string) =>
@@ -159,6 +171,18 @@ describe('MusicXmlParser', () => {
         ['ff', 2, true],
       ]);
       expect(s.notes[1].velocity).toBeGreaterThan(s.notes[0].velocity);
+    });
+
+    it('stresses the note under sfz, and plays fp loud then soft', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${mark('p')}${note('C', 4, 2)}${mark('sfz')}${note('D', 4, 2)}${note('E', 4, 2)}${mark('fp')}${note('F', 4, 1)}${note('G', 4, 1)}</measure>`),
+        'test',
+      );
+      const [before, stressed, after, fp, afterFp] = s.notes.map((n) => n.velocity);
+      expect(stressed).toBeGreaterThan(before);
+      expect(after).toBeCloseTo(before); // sfz changes one note, not the level
+      expect(fp).toBeGreaterThan(before); // forte…
+      expect(afterFp).toBeCloseTo(before); // …then piano
     });
 
     it('reads a hairpin from its start to its stop, and "cresc." as words that sound like one', () => {

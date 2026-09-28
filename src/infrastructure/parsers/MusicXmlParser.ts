@@ -206,6 +206,7 @@ function readPart(part: Element, title: string): Score {
   const dynamicLevels: DynamicLevel[] = [];
   const dynamicMarks: DynamicMark[] = [];
   const hairpins: Hairpin[] = [];
+  const dynamicAccents: DynamicAccent[] = [];
   const openHairpins = new Map<string, { start: number; type: Hairpin['type']; below: boolean }>();
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
@@ -294,6 +295,7 @@ function readPart(part: Element, title: string): Score {
             const dynamicsAt = readDynamics(element, beatAt(cursor + offset), level > 0 ? level : null, openHairpins);
             dynamicMarks.push(...dynamicsAt.marks);
             hairpins.push(...dynamicsAt.hairpins);
+            dynamicAccents.push(...dynamicsAt.accents);
             if (dynamicsAt.level !== null) dynamicLevels.push({ beat: beatAt(cursor + offset), level: dynamicsAt.level });
           } else if (level > 0) {
             dynamicLevels.push({ beat: beatAt(cursor), level });
@@ -395,8 +397,10 @@ function readPart(part: Element, title: string): Score {
   const levels = withHairpinLevels(dynamicLevels, hairpins, DEFAULT_DYNAMICS);
   for (const measure of measures) {
     for (const sound of measure.sounds) {
-      const level = sound.ownDynamics ?? levelAt(levels, hairpins, sound.beat, DEFAULT_DYNAMICS);
-      sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness);
+      // A sforzando (or the f of an fp) on the notes it is written at.
+      const accent = dynamicAccents.find((a) => Math.abs(a.beat - sound.beat) < 1e-6);
+      const level = sound.ownDynamics ?? accent?.level ?? levelAt(levels, hairpins, sound.beat, DEFAULT_DYNAMICS);
+      sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (accent?.factor ?? 1));
     }
   }
 
@@ -476,6 +480,29 @@ function readNavigation(element: Element, sound: Element | null | undefined, nav
   if ((jumps.dacapo || jumps.dalsegno || jumps.fine || jumps.toCoda) && words.length > 0) nav.text = words.join(' ');
 }
 
+/** A sudden stress written as a dynamic, on the notes at `beat`: louder by `factor`, or at `level`. */
+interface DynamicAccent {
+  beat: number;
+  level?: number;
+  factor: number;
+}
+
+/**
+ * Marks that stress a note rather than set a level: sf, sfz, fz, rf… make it louder; fp and sfp
+ * play it forte (sfp stressed too), and from then on piano (sfpp: pianissimo).
+ */
+const STRESS_MARKS: Readonly<Record<string, { factor: number; level?: string; after?: string }>> = {
+  sf: { factor: 1.35 },
+  sfz: { factor: 1.35 },
+  sffz: { factor: 1.5 },
+  fz: { factor: 1.35 },
+  rf: { factor: 1.25 },
+  rfz: { factor: 1.25 },
+  fp: { factor: 1, level: 'f', after: 'p' },
+  sfp: { factor: 1.35, level: 'f', after: 'p' },
+  sfpp: { factor: 1.35, level: 'f', after: 'pp' },
+};
+
 /** Words that make music louder or softer until the next mark, like a hairpin. */
 const CRESCENDO_WORDS = /^(cresc|crescendo)\b/i;
 const DIMINUENDO_WORDS = /^(dim|dimin|diminuendo|decresc|decrescendo)\b/i;
@@ -485,16 +512,18 @@ const WORDS_REACH = 4;
 /**
  * The dynamics a <direction> carries: printed marks (pp, mf, sfz…), hairpins (<wedge>), and the
  * words "cresc." / "dim.", which act like hairpins up to the next mark. A mark sets a level unless
- * the file gives its own (<sound dynamics>, `soundLevel`); sforzando-like marks only accent.
+ * the file gives its own (<sound dynamics>, `soundLevel`); stress marks (sfz, fp…) accent the notes
+ * they are written at (see STRESS_MARKS).
  */
 function readDynamics(
   direction: Element,
   beat: number,
   soundLevel: number | null,
   open: Map<string, { start: number; type: Hairpin['type']; below: boolean }>,
-): { marks: DynamicMark[]; hairpins: Hairpin[]; level: number | null } {
+): { marks: DynamicMark[]; hairpins: Hairpin[]; accents: DynamicAccent[]; level: number | null } {
   const marks: DynamicMark[] = [];
   const hairpins: Hairpin[] = [];
+  const accents: DynamicAccent[] = [];
   const staff = childNumber(direction, 'staff') ?? 1;
   // Marks for the lower staff printed under it; everything else between the staves.
   const below = staff >= 2 && direction.getAttribute('placement') === 'below';
@@ -506,7 +535,13 @@ function readDynamics(
       .join('');
     if (!text) continue;
     marks.push({ beat, below, text, letters: /^[pmfrszn]+$/.test(text) });
-    level ??= MARK_LEVELS[text] ?? null;
+    const stress = STRESS_MARKS[text];
+    if (stress) {
+      accents.push({ beat, factor: stress.factor, level: stress.level ? MARK_LEVELS[stress.level] : undefined });
+      if (stress.after) level ??= MARK_LEVELS[stress.after];
+    } else {
+      level ??= MARK_LEVELS[text] ?? null;
+    }
   }
 
   for (const wedge of direction.querySelectorAll(':scope > direction-type > wedge')) {
@@ -527,7 +562,7 @@ function readDynamics(
     marks.push({ beat, below, text, letters: false });
     hairpins.push({ start: beat, end: beat + WORDS_REACH, type, below, drawn: false });
   }
-  return { marks, hairpins, level };
+  return { marks, hairpins, accents, level };
 }
 
 /** A printed metronome mark: <metronome> with its beat unit (and dot) and the number per minute. */

@@ -99,12 +99,16 @@ function stepBar(delta: number): void {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
-  if (event.target instanceof HTMLInputElement && event.target.type === 'number') return;
+  const input = event.target instanceof HTMLInputElement ? event.target : null;
+  // Typing a bar number is left alone; so are the arrows on a slider (tempo, position), which move it.
+  if (input?.type === 'number') return;
+  const arrow = event.code === 'ArrowLeft' || event.code === 'ArrowRight';
+  if (arrow && input) return;
   if (event.code === 'Space') {
     event.preventDefault();
     if (playback.playing) playback.pause();
     else void playback.play();
-  } else if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
+  } else if (arrow) {
     event.preventDefault();
     stepBar(event.code === 'ArrowLeft' ? -1 : 1);
   }

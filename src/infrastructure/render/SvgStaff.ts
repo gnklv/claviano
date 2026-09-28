@@ -1,6 +1,7 @@
 import {
   barAtBeat,
   clefAt,
+  writtenPositionAt,
   writtenBarNumber,
   writtenBeatAt,
   keySignatureAt,
@@ -191,13 +192,11 @@ const SLUR_HEAD_GAP = 1.2;
 const SLUR_STEM_GAP = 0.6;
 
 /*
- * When the tape leaps (back on a repeat, over the room of a key or time change), it glides there
- * rather than jumps: this is the glide's time constant in seconds (about three of them to arrive).
- * A move of more than JUMP_THRESHOLD_SPACES in one frame counts as a leap; smaller ones are
- * ordinary playback and are followed exactly.
+ * When the tape leaps (back on a repeat, over the room of a key or time change, after a seek or a
+ * drag), it glides there rather than jumps: this is the glide's time constant in seconds (about
+ * three of them to arrive). Ordinary playback is followed exactly, however fast (see render).
  */
 const TAPE_GLIDE_SECONDS = 0.1;
-const JUMP_THRESHOLD_SPACES = 2;
 /**
  * After the tape is dragged by hand it stays put for this long (of playing time) before it goes
  * back to the music, as the falling notes' keyboard does. A position change bigger than
@@ -384,6 +383,8 @@ export class SvgStaff {
   private shownOffset = Number.NaN;
   /** How far the tape trails the music while gliding to it (pixels); 0 when following exactly. */
   private lag = 0;
+  /** The printed bar the music was in at the last frame, to tell playing on from a leap. */
+  private lastBar = 0;
   private lastFrameAt = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
   private gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
@@ -561,17 +562,30 @@ export class SvgStaff {
     // music. A seek (a click, the arrows) goes back at once.
     const seeked = Math.abs(position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
     this.lastPosition = position;
+    const wasManual = this.manual !== null;
     if (this.manual && (seeked || (playing && (this.manual.idle += dt) >= MANUAL_HOLD_SECONDS))) this.manual = null;
+
+    // Where the music went on the page since the last frame: to the next printed bar is playing on;
+    // anything else (a repeat, a D.S., a seek) is a leap, and so is stepping over the room kept at
+    // a bar line for a key, time or repeat sign.
+    const bar = this.score ? writtenPositionAt(this.score, position).bar : 0;
+    const previous = this.lastBar;
+    this.lastBar = bar;
+    const nextBar = bar === previous + 1;
+    const leap =
+      seeked ||
+      (wasManual && !this.manual) ||
+      (bar !== previous && !nextBar) ||
+      (nextBar && ((this.lead[bar] ?? 0) > 0 || (this.tail[previous] ?? 0) > 0));
 
     if (this.manual) {
       this.shownOffset = this.manual.offset;
       this.lag = 0;
     } else {
-      // Follow the music exactly; but when the target leaps (a repeat, a jump, a seek, the end of
-      // a drag), glide to it. The glide shrinks the distance to the music rather than chasing it:
-      // the music keeps moving, and a glide towards a moving target would never quite arrive.
-      const distance = this.shownOffset - target;
-      if (Math.abs(distance - this.lag) > JUMP_THRESHOLD_SPACES * this.space) this.lag = distance;
+      // Follow the music exactly; but on a leap, glide to it. The glide shrinks the distance to the
+      // music rather than chasing it: the music keeps moving, and a glide towards a moving target
+      // would never quite arrive.
+      if (leap) this.lag = this.shownOffset - target;
       this.lag = approach(this.lag, 0, dt, TAPE_GLIDE_SECONDS);
       this.shownOffset = target + this.lag;
     }

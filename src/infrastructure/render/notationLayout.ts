@@ -489,6 +489,23 @@ function shiftExtremes(placed: Placed[]): {
 }
 
 /**
+ * How to tell voices apart. Most files number the voices of the two staves apart (MuseScore 1–4
+ * and 5–8), and a voice may cross to the other staff inside one beam, as the Moonlight Sonata's
+ * triplets do: then the number alone is the voice. Other files start from 1 on each staff; a
+ * number heard on both staves at the same moment is such a per-staff number, and goes with its staff.
+ */
+function voiceKeys(written: readonly WrittenNote[]): (note: WrittenNote) => string {
+  const stavesAt = new Map<string, Set<number>>(); // "voice|beat" → staves
+  for (const note of written) {
+    const key = `${note.voice}|${note.beat}`;
+    stavesAt.set(key, (stavesAt.get(key) ?? new Set<number>()).add(note.staff));
+  }
+  const perStaff = new Set<string>();
+  for (const [key, staves] of stavesAt) if (staves.size > 1) perStaff.add(key.split('|')[0]);
+  return (note) => (perStaff.has(note.voice) ? `${note.staff}|${note.voice}` : note.voice);
+}
+
+/**
  * Lays out printed notes (MusicXML) exactly as written: values, accidentals, stems, beams and
  * tuplets come from the file, and pitches sit where the clef in force puts them.
  */
@@ -500,6 +517,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     else groups.push([note]);
   }
 
+  const voiceOf = voiceKeys(written);
   const entries = groups.map((group) => {
     const first = group[0];
     const staff: Clef = first.staff >= 2 ? 'bass' : 'treble';
@@ -526,10 +544,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       start: Math.min(...group.map((n) => n.start)),
       end: Math.max(...group.map((n) => n.end)),
     };
-    // A voice is its number alone: files number the voices of both staves apart (MuseScore 1–4 and
-    // 5–8), and a voice may cross to the other staff within one beam, as the triplets of the
-    // Moonlight Sonata's last bars do.
-    return { chord, group, voice: first.voice };
+    return { chord, group, voice: voiceOf(first) };
   });
   entries.sort((a, b) => a.chord.beat - b.chord.beat || a.chord.start - b.chord.start);
   const chords = entries.map((entry) => entry.chord);
