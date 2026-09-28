@@ -35,6 +35,9 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 | Tempo | 25–150%, pitch is unaffected |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
+| Click on the staff or the notes | jump there (a click outside the loop turns the loop off) |
+| Drag the staff or the notes | look ahead or back while the music plays on; the view returns after 3 s of playing |
+| Shift+drag on the staff (long press on a phone) | loop those bars |
 | Metronome | a click on every beat (6/8 by dotted quarters), the first of a bar accented |
 | ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
 | ⚙ → Count-in | count the beats leading in before playing ("1 2 3" before a pickup on 4) |
@@ -114,6 +117,9 @@ timer jitter; the view only reads `playback.position` each frame.
       the left and middle pedals light up in the corner
 - [x] Metronome and count-in: clicks along the bars as played (tempo, loop, metre changes,
       pickup, fermatas), a count-in that leads into the beat where the music enters
+- [x] Click to jump: on the staff or the falling notes, to the very place (snapping to a note next
+      to it); drag to look around while the music plays on (the view returns after a while);
+      Shift+drag / long press on the staff to loop bars; with repeats, the pass nearest to now
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

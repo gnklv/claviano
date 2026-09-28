@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Note } from '../src/domain/note';
 import {
-  barIndexOf,
+  barIndexNear,
+  playedBarNear,
+  timeAtPage,
   barLengthInBeats,
   barNumber,
   writtenBeatAt,
@@ -82,7 +84,21 @@ describe('writtenBeatAt', () => {
     });
     expect(writtenBeatAt(repeated, 10)).toBe(2);
     expect(barNumber(repeated, 2)).toBe(1); // the third bar played is printed bar 1 again
-    expect(barIndexOf(repeated, 2)).toBe(1); // bar 2 is first played as the second bar
+    expect(barIndexNear(repeated, 2, 0)).toBe(1); // bar 2 is first played as the second bar
+    expect(barIndexNear(repeated, 2, 13)).toBe(3); // …and again as the fourth
+  });
+
+  it('picks the pass of a repeated bar nearest to a moment, and places a beat on it', () => {
+    const repeated = createScore('test', [{ ...note, duration: 16, beats: 16 }], [0, 4, 8, 12], {
+      barBeats: [0, 4, 8, 12],
+      barWritten: [0, 1, 0, 1],
+      writtenBarBeats: [0, 4],
+      writtenEndBeat: 8,
+    });
+    expect(playedBarNear(repeated, 0, 1)).toBe(0); // on the first pass
+    expect(playedBarNear(repeated, 0, 6)).toBe(0); // after it, nearer than the second
+    expect(playedBarNear(repeated, 0, 7.5)).toBe(2); // nearer the second pass
+    expect(timeAtPage(repeated, 1, 5, 11)).toBe(13); // beat 1 of printed bar 1, second pass
   });
 });
 
@@ -108,11 +124,11 @@ describe('bar numbers', () => {
 
   it('numbers a pickup 0 and the first full bar 1', () => {
     expect([0, 1, 2].map((i) => barNumber(withPickup, i))).toEqual([0, 1, 2]);
-    expect(barIndexOf(withPickup, 1)).toBe(1);
+    expect(barIndexNear(withPickup, 1, 0)).toBe(1);
   });
 
   it('numbers bars from 1 without a pickup', () => {
     expect([0, 1, 2].map((i) => barNumber(score, i))).toEqual([1, 2, 3]);
-    expect(barIndexOf(score, 1)).toBe(0);
+    expect(barIndexNear(score, 1, 0)).toBe(0);
   });
 });

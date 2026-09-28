@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { CanvasPianoRoll } from '../../infrastructure/render/CanvasPianoRoll';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useBarLoop } from '../composables/useBarLoop';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import { readRollColors } from '../theme/readRollColors';
@@ -48,25 +49,55 @@ useAnimationFrame(() => {
   canvas.value?.classList.toggle('scrollable', roll.scrollable);
 });
 
-// --- Manual scrolling of a keyboard wider than the screen ---
+// --- A tap jumps to that moment; a drag looks around: up and down through the music, sideways
+// along a keyboard wider than the screen. The music plays on, and the view goes back to it later. ---
 
-/** The finger or mouse currently dragging the keyboard, and where it was last. */
-let drag: { pointerId: number; x: number } | null = null;
+/** A pointer moves this many pixels before it counts as dragging rather than tapping. */
+const DRAG_PX = 6;
+const loop = useBarLoop(playback);
+
+/** The finger or mouse currently pressed, where it was last, and which way it drags once it does. */
+let press: { pointerId: number; x: number; y: number; startX: number; startY: number; drag: 'none' | 'time' | 'keys' } | null = null;
 
 function onPointerDown(event: PointerEvent): void {
-  if (!roll?.scrollable || drag) return;
-  drag = { pointerId: event.pointerId, x: event.clientX };
+  if (press || event.button !== 0) return;
+  const { clientX: x, clientY: y } = event;
+  press = { pointerId: event.pointerId, x, y, startX: x, startY: y, drag: 'none' };
   canvas.value?.setPointerCapture(event.pointerId);
 }
 
 function onPointerMove(event: PointerEvent): void {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  roll?.scrollBy(drag.x - event.clientX);
-  drag.x = event.clientX;
+  if (!press || event.pointerId !== press.pointerId) return;
+  const { clientX: x, clientY: y } = event;
+  if (press.drag === 'none') {
+    const dx = Math.abs(x - press.startX);
+    const dy = Math.abs(y - press.startY);
+    // The first clear movement decides the direction for the whole drag.
+    if (Math.max(dx, dy) > DRAG_PX) press.drag = dy >= dx ? 'time' : 'keys';
+  }
+  if (press.drag === 'keys') roll?.scrollBy(press.x - x);
+  if (press.drag === 'time') {
+    // Pulling the notes down brings later music into view.
+    const secondsPerPixel = roll?.secondsPerPixel;
+    if (secondsPerPixel) roll?.browseBy((y - press.y) * secondsPerPixel);
+  }
+  press.x = x;
+  press.y = y;
 }
 
-function onPointerEnd(event: PointerEvent): void {
-  if (drag?.pointerId === event.pointerId) drag = null;
+function onPointerUp(event: PointerEvent): void {
+  if (!press || event.pointerId !== press.pointerId) return;
+  const tapped = press.drag === 'none';
+  press = null;
+  if (!tapped) return;
+  const time = roll?.timeAt(event.clientY);
+  if (time === null || time === undefined) return;
+  loop.jumpTo(time);
+  roll?.followMusic();
+}
+
+function onPointerCancel(event: PointerEvent): void {
+  if (press?.pointerId === event.pointerId) press = null;
 }
 
 /** Trackpads scroll sideways directly; with a mouse wheel, hold Shift. */
@@ -84,8 +115,8 @@ function onWheel(event: WheelEvent): void {
     class="roll"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
-    @pointerup="onPointerEnd"
-    @pointercancel="onPointerEnd"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerCancel"
     @wheel="onWheel"
   />
 </template>
@@ -95,8 +126,10 @@ function onWheel(event: WheelEvent): void {
   display: block;
   width: 100%;
   height: 100%;
-  /* Sideways swipes are ours (keyboard scrolling); vertical scroll and pinch zoom stay the browser's. */
-  touch-action: pan-y pinch-zoom;
+  /* Drags are ours (through the music, along the keyboard); pinch zoom stays the browser's. */
+  touch-action: pinch-zoom;
+  /* A tap jumps to that moment of the music. */
+  cursor: pointer;
 }
 
 .roll.scrollable {

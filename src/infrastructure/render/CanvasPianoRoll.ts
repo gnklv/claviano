@@ -43,6 +43,8 @@ export interface RollColors {
   readonly keyBorder: string;
   readonly keyLabel: string;
   readonly pedal: string;
+  /** Where the music is, when the notes are dragged elsewhere. */
+  readonly cursor: string;
   readonly hand: Readonly<Record<Hand, string>>;
 }
 
@@ -58,10 +60,13 @@ const DEFAULT_COLORS: RollColors = {
   keyBorder: '#9a978f',
   keyLabel: '#8a877f',
   pedal: 'rgba(180, 140, 255, 0.85)',
+  cursor: 'rgba(79, 157, 255, 0.9)',
   hand: { right: '#4f9dff', left: '#ff9f43' },
 };
 
 const MUTED_ALPHA = 0.25;
+/** A click within this many pixels of a note's start (its bottom edge) means that note. */
+const NOTE_SNAP_PX = 10;
 /*
  * The pedals. Where a foot moves, a plain label falls with the notes near the right edge
  * ("Pedal ↓", "Pedal ↑", "Pedal ↑↓" for a change, "Left pedal ↓"…; the staff keeps the sheet-music
@@ -140,6 +145,13 @@ export class CanvasPianoRoll {
   private lastRenderAt = 0;
   /** Seconds ahead shown in the current frame; less than the maximum on short screens. */
   private secondsVisible = 4;
+  /**
+   * The notes dragged away from the music (see browseBy), or null while they follow it. While
+   * going back, `returning` is how far from the music they are, in pixels; otherwise false.
+   */
+  private view: { time: number; idle: number; returning: number | false } | null = null;
+  /** What the last frame showed, to turn a click's height into a moment of the music. */
+  private lastFrame: { score: Score; position: number; rollHeight: number; pxPerSecond: number } | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -154,6 +166,36 @@ export class CanvasPianoRoll {
 
   setColors(colors: RollColors): void {
     this.colors = colors;
+  }
+
+  /**
+   * The moment of the music at height `clientY` over the falling notes, or null over the keyboard.
+   * A click on or just beside the bottom of a note means that note: it snaps to the note's start.
+   */
+  timeAt(clientY: number): number | null {
+    const frame = this.lastFrame;
+    if (!frame || frame.score.notes.length === 0) return null;
+    const { score, position, rollHeight, pxPerSecond } = frame;
+    const y = clientY - this.canvas.getBoundingClientRect().top;
+    if (y < 0 || y > rollHeight) return null;
+    const time = position + (rollHeight - y) / pxPerSecond;
+    const snap = NOTE_SNAP_PX / pxPerSecond;
+    let best = time;
+    let bestDistance = snap;
+    for (let i = firstNoteAtOrAfter(score, time - snap); i < score.notes.length; i++) {
+      const start = score.notes[i].start;
+      if (start > time + snap) break;
+      if (Math.abs(start - time) <= bestDistance) {
+        best = start;
+        bestDistance = Math.abs(start - time);
+      }
+    }
+    return Math.min(score.duration, Math.max(0, best));
+  }
+
+  /** How many seconds of music one pixel of height stands for, as last drawn (for dragging the notes). */
+  get secondsPerPixel(): number | null {
+    return this.lastFrame ? 1 / this.lastFrame.pxPerSecond : null;
   }
 
   /** True when the keyboard is wider than the screen and can be scrolled. */
@@ -188,31 +230,96 @@ export class CanvasPianoRoll {
     const rollHeight = height - keyboardHeight;
     this.secondsVisible = Math.min(this.maxSecondsVisible, Math.max(0.5, rollHeight / MIN_PX_PER_SECOND));
     const pxPerSecond = rollHeight / this.secondsVisible;
-    const yOf = (time: number) => rollHeight - (time - frame.position) * pxPerSecond;
 
     const now = performance.now();
     const dt = this.lastRenderAt ? Math.min(0.1, (now - this.lastRenderAt) / 1000) : 0;
     this.lastRenderAt = now;
-    this.updateCamera(frame, dt);
+    const seeked = Math.abs(frame.position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
+    this.lastPosition = frame.position;
+
+    // The notes are drawn at the moment in view: where the music is, unless dragged elsewhere.
+    const shown = { ...frame, position: this.viewTime(frame, dt, pxPerSecond, seeked) };
+    const yOf = (time: number) => rollHeight - (time - shown.position) * pxPerSecond;
+    this.lastFrame = { score: frame.score, position: shown.position, rollHeight, pxPerSecond };
+    this.updateCamera(shown, dt, seeked);
 
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
 
     // Loop and bar lines span the screen; notes and keys move with the camera.
-    this.drawLoop(frame, yOf, rollHeight);
-    this.drawBars(frame, yOf, rollHeight);
+    this.drawLoop(shown, yOf, rollHeight);
+    this.drawBars(shown, yOf, rollHeight);
     ctx.save();
     ctx.translate(-this.scrollX, 0);
-    const active = this.drawNotes(frame, yOf, rollHeight);
-    this.drawKeyboard(rollHeight, keyboardHeight, active, frame.noteLabel);
+    this.drawNotes(shown, yOf, rollHeight);
+    // The keys show what sounds now, even while the notes above are dragged elsewhere.
+    this.drawKeyboard(rollHeight, keyboardHeight, this.soundingAt(frame), frame.noteLabel);
     ctx.restore();
 
     ctx.fillStyle = this.colors.nowLine;
     ctx.fillRect(0, rollHeight - 1, width, 2);
+    // Dragged away: a line marks where the music is, if it is in sight.
+    const playing = yOf(frame.position);
+    if (this.view && playing >= 0 && playing <= rollHeight - 2) {
+      ctx.fillStyle = this.colors.cursor;
+      ctx.fillRect(0, playing - 1, width, 2);
+    }
     if (this.pedalMoments.length > 0) {
-      this.drawPedalMoments(frame, yOf, rollHeight);
+      this.drawPedalMoments(shown, yOf, rollHeight);
       this.drawPedals(frame, rollHeight);
     }
+  }
+
+  /**
+   * Drags the notes up or down by `seconds` of music (down: later music comes into view). The
+   * music plays on; after a while of playing the view goes back to it, like a keyboard scrolled by hand.
+   */
+  browseBy(seconds: number): void {
+    const frame = this.lastFrame;
+    if (!frame) return;
+    const time = Math.min(frame.score.duration, Math.max(0, frame.position + seconds));
+    this.view = { time, idle: 0, returning: false };
+  }
+
+  /** Back to following the music at once (after a jump). */
+  followMusic(): void {
+    this.view = null;
+  }
+
+  /** The moment in view: the music's position, or where the notes were dragged to (easing back after a while). */
+  private viewTime(frame: RollFrame, dt: number, pxPerSecond: number, seeked: boolean): number {
+    const view = this.view;
+    if (!view || seeked) {
+      this.view = null;
+      return frame.position;
+    }
+    if (view.returning !== false) {
+      // Glide back by shrinking the distance to the music, not by chasing the music itself: it keeps
+      // moving, and a glide towards a moving target never quite arrives. In pixels, so the return
+      // looks the same at any zoom.
+      view.returning = approach(view.returning, 0, dt);
+      if (view.returning === 0) {
+        this.view = null;
+        return frame.position;
+      }
+      view.time = frame.position + view.returning / pxPerSecond;
+    } else if (frame.playing) {
+      view.idle += dt;
+      if (view.idle >= MANUAL_HOLD_SECONDS) view.returning = (view.time - frame.position) * pxPerSecond;
+    }
+    return view.time;
+  }
+
+  /** The keys sounding at the music's position, with their hand (muted hands are not shown pressed). */
+  private soundingAt(frame: RollFrame): Map<number, Hand> {
+    const active = new Map<number, Hand>();
+    const { score, position } = frame;
+    for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
+      const note = score.notes[i];
+      if (note.start > position) break;
+      if (noteEnd(note) >= position && frame.isHandEnabled(note.hand)) active.set(note.pitch, note.hand);
+    }
+    return active;
   }
 
   /** A label wherever a foot moves, falling with the notes near the right edge; over them, with a halo to stay legible. */
@@ -322,9 +429,7 @@ export class CanvasPianoRoll {
     return { contentWidth: this.contentWidth, viewWidth: this.width };
   }
 
-  private updateCamera(frame: RollFrame, dt: number): void {
-    const seeked = Math.abs(frame.position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
-    this.lastPosition = frame.position;
+  private updateCamera(frame: RollFrame, dt: number, seeked: boolean): void {
     if (!this.scrollable) {
       this.scrollX = 0;
       return;
@@ -390,11 +495,10 @@ export class CanvasPianoRoll {
     });
   }
 
-  /** Draws visible notes and returns the pitches sounding right now with their hand. */
-  private drawNotes(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): Map<number, Hand> {
+  /** Draws the notes in view. */
+  private drawNotes(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {
     const { ctx } = this;
     const { score, position } = frame;
-    const active = new Map<number, Hand>();
     const until = position + this.secondsVisible;
     const { notes } = score;
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < notes.length; i++) {
@@ -406,7 +510,6 @@ export class CanvasPianoRoll {
       if (!key) continue;
 
       const enabled = frame.isHandEnabled(note.hand);
-      if (note.start <= position && enabled) active.set(note.pitch, note.hand);
 
       const top = yOf(end);
       const bottom = Math.min(rollHeight, yOf(note.start));
@@ -418,7 +521,6 @@ export class CanvasPianoRoll {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    return active;
   }
 
   private drawKeyboard(

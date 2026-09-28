@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createScore } from '../src/domain/score';
-import { barPosition, beatPosition, keySignatureSteps, tapeBars } from '../src/infrastructure/render/staffLayout';
+import { barPosition, beatPosition, keySignatureSteps, pageAt, tapeBars } from '../src/infrastructure/render/staffLayout';
 
 /** Bars at 0, 2 and 4 seconds; the last one ends at 5 seconds (it is shorter). */
 const score = createScore(
@@ -24,6 +24,22 @@ describe('barPosition', () => {
   it('gives a shorter bar the same width as the others', () => {
     expect(barPosition(score, 4.5)).toBe(2.5);
     expect(barPosition(score, 5)).toBe(3);
+  });
+});
+
+describe('pageAt', () => {
+  it('finds the printed bar and the beat at a place on the tape', () => {
+    expect(pageAt(score, 1.5, 1.5)).toEqual({ bar: 1, beat: 6 });
+  });
+
+  it('counts the gap before a bar line to the bar after it, at its first beat', () => {
+    // Bar lines stand a little before the first beat: the caller shifts the bar lookup.
+    expect(pageAt(score, 1.02, 0.98)).toEqual({ bar: 1, beat: 4 });
+  });
+
+  it('is nothing before the tape starts or after it ends', () => {
+    expect(pageAt(score, -0.1, -0.1)).toBeNull();
+    expect(pageAt(score, 9, 9)).toBeNull();
   });
 });
 

@@ -28,7 +28,7 @@ import {
 } from './notationLayout';
 import type { BarNavigation } from '../../domain/notation/navigation';
 import { layoutPedal } from './pedalLayout';
-import { barPosition, beatPosition, keySignatureSteps, tapeBars, type Clef } from './staffLayout';
+import { barPosition, beatPosition, keySignatureSteps, pageAt, tapeBars, type Clef } from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -178,6 +178,13 @@ const SLUR_STEM_GAP = 0.6;
  */
 const TAPE_GLIDE_SECONDS = 0.1;
 const JUMP_THRESHOLD_BARS = 0.5;
+/**
+ * After the tape is dragged by hand it stays put for this long (of playing time) before it goes
+ * back to the music, as the falling notes' keyboard does. A position change bigger than
+ * SEEK_THRESHOLD_SECONDS between frames is a seek, which brings it back at once.
+ */
+const MANUAL_HOLD_SECONDS = 3;
+const SEEK_THRESHOLD_SECONDS = 0.5;
 
 /** Repeat barlines (with their dots), segno and coda signs. */
 const REPEAT_LEFT = '\uE040';
@@ -212,6 +219,9 @@ const PEDAL_HOOK = 1.2;
 const PEDAL_NOTCH = 0.5;
 /** A line ends this far before its release beat: before the bar line (even the final double one) when released on one. */
 const PEDAL_LINE_GAP = 2.4;
+
+/** A click within this many staff spaces of a notehead's centre means that note. */
+const NOTE_SNAP = 1.2;
 
 /** Ties start and end this far clear of the noteheads, and this far off the note's centre. */
 const TIE_GAP = 0.15;
@@ -262,7 +272,8 @@ export class SvgStaff {
   private lastOffset = Number.NaN;
   /** Where the tape is drawn (it trails the target while gliding back on a repeat). */
   private shownOffset = Number.NaN;
-  private gliding = false;
+  /** How far the tape trails the music while gliding to it (pixels); 0 when following exactly. */
+  private lag = 0;
   private lastFrameAt = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
   private gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
@@ -284,6 +295,14 @@ export class SvgStaff {
   private readonly lit = new Set<number>();
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   private handLabels: Record<Hand, string> = { right: 'R.H.', left: 'L.H.' };
+  /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
+  private readonly overlay: SVGGElement = svg('g');
+  private hoverBar: number | null = null;
+  /** The tape dragged by hand (see dragBy), or null while it follows the music. */
+  private manual: { offset: number; idle: number } | null = null;
+  private lastPosition = 0;
+  private lastCursorLeft = Number.NaN;
+  private selection: { from: number; to: number } | null = null;
 
   constructor(private readonly container: HTMLElement) {
     container.style.position = 'relative';
@@ -340,6 +359,40 @@ export class SvgStaff {
     this.drawStrip();
   }
 
+  /**
+   * The place on the page under the pointer: the printed bar, and the beat there. A click just
+   * beside a notehead means that note, so it snaps to the note's beat (otherwise playback would
+   * start a moment after the note is struck). Null outside the tape.
+   */
+  pageAt(clientX: number): { bar: number; beat: number } | null {
+    const score = this.score;
+    if (!score || score.notes.length === 0) return null;
+    const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
+    const px = clientX - this.tapeSvg.getBoundingClientRect().left - offset;
+    const barWidth = this.barWidth();
+    const place = pageAt(score, (px + BAR_LINE_GAP * this.space) / barWidth, px / barWidth);
+    if (!place) return null;
+    let nearest: StaffChord | null = null;
+    for (const chord of this.chords) {
+      const distance = Math.abs(chord.x * barWidth - px);
+      if (distance <= NOTE_SNAP * this.space && (!nearest || distance < Math.abs(nearest.x * barWidth - px))) nearest = chord;
+    }
+    return nearest && barAtBeat(score, nearest.beat) === place.bar ? { bar: place.bar, beat: nearest.beat } : place;
+  }
+
+  /** Lightly shades the printed bar under the pointer (null: none). */
+  setHover(bar: number | null): void {
+    if (bar === this.hoverBar) return;
+    this.hoverBar = bar;
+    this.drawOverlay();
+  }
+
+  /** Shades printed bars `from..to` in the loop colour while they are being dragged over (null: none). */
+  setSelection(selection: { from: number; to: number } | null): void {
+    this.selection = selection;
+    this.drawOverlay();
+  }
+
   /** Call when the container's size changes. */
   resize(): void {
     this.width = this.container.clientWidth;
@@ -353,7 +406,7 @@ export class SvgStaff {
    * Called every frame; touches the DOM only when something changes: the tape moves,
    * or a chord starts or stops sounding. Chords of muted hands are not highlighted.
    */
-  render(position: number, isHandEnabled: (hand: Hand) => boolean = () => true): void {
+  render(position: number, isHandEnabled: (hand: Hand) => boolean = () => true, playing = false): void {
     if (this.score) {
       this.currentBeat = writtenBeatAt(this.score, position);
       if (this.signaturesKey() !== this.shownSignatures) this.drawBackground();
@@ -362,23 +415,61 @@ export class SvgStaff {
     const x = this.score ? barPosition(this.score, position) * this.barWidth() : 0;
     const target = this.cursorX() - x;
 
-    // Follow the music exactly; but when the target leaps (a repeat, a jump, a seek), glide to it.
     const now = performance.now();
     const dt = this.lastFrameAt ? Math.min(0.1, (now - this.lastFrameAt) / 1000) : 0;
     this.lastFrameAt = now;
     if (Number.isNaN(this.shownOffset)) this.shownOffset = target;
-    if (Math.abs(target - this.shownOffset) > JUMP_THRESHOLD_BARS * this.barWidth()) this.gliding = true;
-    if (this.gliding) {
-      this.shownOffset = approach(this.shownOffset, target, dt, TAPE_GLIDE_SECONDS);
-      if (this.shownOffset === target) this.gliding = false;
+
+    // Dragged by hand: the tape stays where it was put; after a while of playing it goes back to the
+    // music. A seek (a click, the arrows) goes back at once.
+    const seeked = Math.abs(position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
+    this.lastPosition = position;
+    if (this.manual && (seeked || (playing && (this.manual.idle += dt) >= MANUAL_HOLD_SECONDS))) this.manual = null;
+
+    if (this.manual) {
+      this.shownOffset = this.manual.offset;
+      this.lag = 0;
     } else {
-      this.shownOffset = target;
+      // Follow the music exactly; but when the target leaps (a repeat, a jump, a seek, the end of
+      // a drag), glide to it. The glide shrinks the distance to the music rather than chasing it:
+      // the music keeps moving, and a glide towards a moving target would never quite arrive.
+      const distance = this.shownOffset - target;
+      if (Math.abs(distance - this.lag) > JUMP_THRESHOLD_BARS * this.barWidth()) this.lag = distance;
+      this.lag = approach(this.lag, 0, dt, TAPE_GLIDE_SECONDS);
+      this.shownOffset = target + this.lag;
+    }
+
+    // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
+    const cursorX = this.manual ? x + this.shownOffset : this.cursorX();
+    const cursorLeft = Math.round((this.gutterWidth() + cursorX - 1) * 10) / 10;
+    if (cursorLeft !== this.lastCursorLeft) {
+      this.lastCursorLeft = cursorLeft;
+      this.cursor.style.left = `${cursorLeft}px`;
+      this.cursor.style.visibility = cursorX < 0 || cursorX > this.width - this.gutterWidth() ? 'hidden' : 'visible';
     }
 
     const offset = Math.round(this.shownOffset * 10) / 10;
     if (offset === this.lastOffset) return;
     this.lastOffset = offset;
     this.strip.setAttribute('transform', `translate(${offset} 0)`);
+  }
+
+  /**
+   * Moves the tape by `dx` pixels by hand (to the right: back in the music). The music plays on;
+   * after a while of playing the tape goes back to it, like a keyboard scrolled by hand.
+   */
+  dragBy(dx: number): void {
+    const score = this.score;
+    if (!score || score.notes.length === 0) return;
+    const current = this.manual?.offset ?? this.shownOffset;
+    // Keep some of the music in sight: the cursor's place stays between the first and the last bar.
+    const lowest = this.cursorX() - tapeBars(score).end * this.barWidth();
+    this.manual = { offset: Math.min(this.cursorX(), Math.max(lowest, current + dx)), idle: 0 };
+  }
+
+  /** Back to following the music (after a jump): the tape glides to it. */
+  followMusic(): void {
+    this.manual = null;
   }
 
   // --- Geometry (pixels) ---
@@ -477,12 +568,14 @@ export class SvgStaff {
     this.drawSignatures();
 
     this.tape.style.left = `${gutter}px`;
+    // Its left is set by render(): it moves with the tape when the tape is dragged away.
     Object.assign(this.cursor.style, {
       left: `${gutter + this.cursorX() - 1}px`,
       top: `${this.trebleTop() - 2 * space}px`,
       height: `${(this.systemBottom() - this.trebleTop()) + 4 * space}px`,
     });
     this.lastOffset = Number.NaN;
+    this.lastCursorLeft = Number.NaN;
   }
 
   /** Key signature and time signature after the clefs, on both staves. */
@@ -532,6 +625,32 @@ export class SvgStaff {
     return text;
   }
 
+  /** The hovered bar (faint) and the bars being selected (in the loop colour), behind the music. */
+  private drawOverlay(): void {
+    this.overlay.replaceChildren();
+    const score = this.score;
+    if (!score || score.notes.length === 0) return;
+    const { space } = this;
+    const barWidth = this.barWidth();
+    const gap = BAR_LINE_GAP * space;
+    const tape = tapeBars(score);
+    const top = this.trebleTop() - 3 * space;
+    const height = this.systemBottom() - this.trebleTop() + 6 * space;
+    const shade = (from: number, to: number, fill: string, opacity: number) => {
+      const x = tape.starts[from] * barWidth - gap;
+      const end = (tape.starts[to] + tape.widths[to]) * barWidth - gap;
+      const rect = svg('rect', { x, y: top, width: end - x, height, fill });
+      rect.style.opacity = String(opacity);
+      this.overlay.append(rect);
+    };
+    if (this.selection) {
+      const { from, to } = this.selection;
+      shade(Math.min(from, to), Math.max(from, to), COLORS.loop, 1);
+    } else if (this.hoverBar !== null && this.hoverBar < tape.starts.length) {
+      shade(this.hoverBar, this.hoverBar, COLORS.loop, 0.5);
+    }
+  }
+
   private drawStrip(): void {
     this.strip.replaceChildren();
     this.lit.clear();
@@ -545,11 +664,15 @@ export class SvgStaff {
     const top = this.trebleTop();
     const bottom = this.systemBottom();
 
+    this.strip.append(this.overlay);
+    this.drawOverlay();
+
     if (this.loop) {
       const start = barPosition(score, this.loop.start) * barWidth - gap;
-      const end = barPosition(score, this.loop.end) * barWidth - gap;
+      // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
+      const end = barPosition(score, Math.max(this.loop.start, this.loop.end - 1e-6)) * barWidth - gap;
       this.strip.append(
-        svg('rect', { x: start, y: top - 3 * space, width: end - start, height: bottom - top + 6 * space, fill: COLORS.loop }),
+        svg('rect', { x: start, y: top - 3 * space, width: Math.max(0, end - start), height: bottom - top + 6 * space, fill: COLORS.loop }),
       );
     }
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import type { Hand } from '../../domain/note';
-import { barAt, barIndexOf, barNumber, barRange } from '../../domain/score';
+import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useBarLoop } from '../composables/useBarLoop';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
@@ -72,23 +73,10 @@ function onSeekEnd(): void {
 
 // --- Bar loop ---
 
-const loopEnabled = ref(false);
-const loopFrom = ref(1);
-const loopTo = ref(4);
-
-watch([loopEnabled, loopFrom, loopTo], () => {
-  const score = playback.score;
-  if (!score) return;
-  playback.setLoop(
-    loopEnabled.value ? barRange(score, barIndexOf(score, loopFrom.value), barIndexOf(score, loopTo.value)) : null,
-  );
-});
-
-// Loading a new score resets the loop in Playback; keep the checkbox in sync.
-watch(
-  () => state.value.score,
-  () => (loopEnabled.value = false),
-);
+const loop = useBarLoop(playback);
+const loopEnabled = loop.enabled;
+const loopFrom = computed({ get: () => loop.from.value, set: (bar: number) => loop.setFrom(bar) });
+const loopTo = computed({ get: () => loop.to.value, set: (bar: number) => loop.setTo(bar) });
 
 function togglePlay(): void {
   if (playback.playing) playback.pause();

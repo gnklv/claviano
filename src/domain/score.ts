@@ -297,11 +297,37 @@ export const writtenBarNumber = (score: Score, written: number): number => writt
 export const barNumber = (score: Score, index: number): number =>
   writtenBarNumber(score, score.barWritten[index] ?? index);
 
-/** The first bar played that carries printed `number` (the inverse of barNumber, first pass). */
-export function barIndexOf(score: Score, number: number): number {
-  const written = number - (hasPickup(score) ? 0 : 1);
-  const index = score.barWritten.indexOf(written);
-  return index >= 0 ? index : Math.min(Math.max(0, written), score.bars.length - 1);
+/**
+ * Which playing of printed bar `written` is nearest to `near` (seconds): with repeats a bar on the
+ * page is played more than once, and a click on it means the pass one is on (or closest to).
+ */
+export function playedBarNear(score: Score, written: number, near: number): number {
+  let best = -1;
+  let bestDistance = Infinity;
+  score.barWritten.forEach((w, i) => {
+    if (w !== written) return;
+    const start = score.bars[i];
+    const end = score.bars[i + 1] ?? score.duration;
+    const distance = near < start ? start - near : near > end ? near - end : 0;
+    if (distance < bestDistance) {
+      best = i;
+      bestDistance = distance;
+    }
+  });
+  return best >= 0 ? best : Math.min(Math.max(0, written), score.bars.length - 1);
+}
+
+/** The bar as played carrying printed `number`, on the pass nearest to `near` (seconds). */
+export const barIndexNear = (score: Score, number: number, near: number): number =>
+  playedBarNear(score, number - (hasPickup(score) ? 0 : 1), near);
+
+/** When `beat` along the page, in printed bar `written`, sounds on the pass nearest to `near`. */
+export function timeAtPage(score: Score, written: number, beat: number, near: number): number {
+  const index = playedBarNear(score, written, near);
+  const start = score.bars[index];
+  const end = score.bars[index + 1] ?? score.duration;
+  const offset = beat - (score.writtenBarBeats[written] ?? 0);
+  return Math.min(end, Math.max(start, secondsAtBeat(score, score.barBeats[index] + offset)));
 }
 
 /** Time range covering bars `from..to` inclusive (zero-based). */
