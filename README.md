@@ -127,5 +127,7 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals
 - [x] Beams: grouped by beat (by three eighths in 3/8, 6/8…), with stubs and stacked levels
-- [ ] Notes on the staff, level 2: chord seconds, durations from the next note (ties and rests
-      are done)
+- [x] Seconds in chords: one head of each second on the other side of the stem, clusters
+      alternating; ledger lines, accidentals and dots make room
+- [ ] 8va / 8vb (MusicXML octave shifts, and for very high or low runs in MIDI)
+- [ ] MIDI note values up to the next note of the same hand

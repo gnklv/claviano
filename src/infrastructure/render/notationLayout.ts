@@ -12,6 +12,12 @@ export interface StaffNote {
   /** Staff step: half spaces from the top line down (see staffLayout). */
   readonly step: number;
   readonly accidental: Accidental | null;
+  /**
+   * Drawn on the other side of the stem. Two notes a second apart cannot sit side by side on one
+   * stem, so one of them moves over: the upper one to the right of an up-stem, the lower one to
+   * the left of a down-stem.
+   */
+  readonly displaced?: boolean;
 }
 
 /** Notes on one staff that start together and look the same share a stem: a chord (or a single note). */
@@ -162,9 +168,29 @@ interface Placed {
  * printed notes are laid out as written; otherwise (MIDI) the notation is inferred.
  */
 export function layoutNotation(score: Score): NotationLayout {
-  return score.written && score.written.length > 0
-    ? layoutWritten(score, score.written, score.rests)
-    : inferNotation(score);
+  const layout =
+    score.written && score.written.length > 0 ? layoutWritten(score, score.written, score.rests) : inferNotation(score);
+  // Stem directions are final only now (beams may have changed them): place the heads of seconds.
+  return { ...layout, chords: layout.chords.map(withSeconds) };
+}
+
+/**
+ * Moves one note of each second to the other side of the stem. Going from the note at the stem's
+ * far end (the bottom for an up-stem, the top for a down-stem), a note a step away from one that
+ * stayed in place moves over; in a cluster (Do–Re–Mi) the heads alternate.
+ */
+export function withSeconds(chord: StaffChord): StaffChord {
+  if (chord.notes.length < 2) return chord;
+  // Notes are sorted from the top down; walk from the stem's far end.
+  const order = chord.stemUp ? [...chord.notes].reverse() : [...chord.notes];
+  let previous: { step: number; displaced: boolean } | null = null;
+  const placed = order.map((note) => {
+    const displaced = previous !== null && !previous.displaced && Math.abs(previous.step - note.step) === 1;
+    previous = { step: note.step, displaced };
+    return displaced ? { ...note, displaced } : note;
+  });
+  if (!placed.some((note) => note.displaced)) return chord;
+  return { ...chord, notes: chord.stemUp ? placed.reverse() : placed };
 }
 
 /**

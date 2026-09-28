@@ -5,7 +5,7 @@ import { createScore, type KeySignature } from '../src/domain/score';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
-import { layoutNotation, ledgerSteps, staffFor } from '../src/infrastructure/render/notationLayout';
+import { layoutNotation, ledgerSteps, staffFor, withSeconds, type StaffChord } from '../src/infrastructure/render/notationLayout';
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
 
@@ -351,5 +351,42 @@ describe('articulations and slurs (MusicXML)', () => {
       at(1, Sol4, { slurs: [{ type: 'stop', number: 1, placement: null }] }),
     ]);
     expect(slurs[0].above).toBe(false);
+  });
+});
+
+describe('withSeconds', () => {
+  const chordOf = (steps: number[], stemUp: boolean) =>
+    ({
+      staff: 'treble',
+      hand: 'right',
+      x: 0,
+      beat: 0,
+      beats: 1,
+      bar: 0,
+      beam: null,
+      handMark: false,
+      notes: steps.map((step) => ({ step, accidental: null })),
+      duration: { value: 'quarter', dots: 0 },
+      stemUp,
+      ledgerSteps: [],
+      start: 0,
+      end: 1,
+    }) satisfies StaffChord;
+  const moved = (chord: StaffChord) => withSeconds(chord).notes.map((n) => !!n.displaced);
+
+  it('moves the upper note of a second right of an up-stem, the lower one left of a down-stem', () => {
+    // Steps grow downwards: [5, 6] is a note and the one a step below it.
+    expect(moved(chordOf([5, 6], true))).toEqual([true, false]);
+    expect(moved(chordOf([5, 6], false))).toEqual([false, true]);
+  });
+
+  it('alternates the heads of a cluster, starting from the far end of the stem', () => {
+    expect(moved(chordOf([3, 4, 5, 6], true))).toEqual([true, false, true, false]);
+    expect(moved(chordOf([3, 4, 5, 6], false))).toEqual([false, true, false, true]);
+  });
+
+  it('leaves chords without seconds alone', () => {
+    const triad = chordOf([2, 4, 6], true);
+    expect(withSeconds(triad)).toBe(triad);
   });
 });

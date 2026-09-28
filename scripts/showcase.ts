@@ -313,40 +313,50 @@ const measures: string[] = [
     ${sostenuto('stop')}
   </measure>`,
 
-  // 19–23: repeats and jumps. Played: 19 20 | 19 21 22 | D.S. → 19 21 | To Coda → 23.
-  // 19: segno and ‖:.
+  // 19: seconds in chords. One head of each second moves to the other side of the stem: the upper
+  // one right of an up-stem (with the dot beyond it), the lower one left of a down-stem (the
+  // natural keeps clear of it); a cluster alternates; ledger lines reach under moved heads.
   `<measure number="19">
+    ${direction('Seconds', '')}
+    ${chord(['A4', 'B4', 'D5'], dotted(H), { type: 'half', dots: 1, stem: 'up' })}${chord(['E5', 'F#5', 'G5'], Q, { type: 'quarter', stem: 'down' })}
+    ${backup(W)}
+    ${chord(['D3', 'E3', 'A3'], H, { type: 'half', staff: 2, stem: 'up' })}${note('B1', H, { type: 'half', staff: 2, stem: 'down' })}${note('C2', H, { type: 'half', staff: 2, stem: 'down', accidental: 'natural', chord: true })}
+  </measure>`,
+
+  // 20–24: repeats and jumps. Played: 20 21 | 20 22 23 | D.S. → 20 22 | To Coda → 24.
+  // 20: segno and ‖:.
+  `<measure number="20">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 20: first ending, back to ‖:.
-  `<measure number="20">
+  // 21: first ending, back to ‖:.
+  `<measure number="21">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 21: second ending; after the D.S. it leads to the coda.
-  `<measure number="21">
+  // 22: second ending; after the D.S. it leads to the coda.
+  `<measure number="22">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 22: back to the segno.
-  `<measure number="22">
+  // 23: back to the segno.
+  `<measure number="23">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 23: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 24: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="23">
+  `<measure number="24">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

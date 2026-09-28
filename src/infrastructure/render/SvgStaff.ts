@@ -862,13 +862,20 @@ export class SvgStaff {
     const group = svg('g');
     group.style.color = COLORS.note;
 
+    // A head moved over for a second sits a head's width away, sharing the stem's edge
+    // (to the right of an up-stem, to the left of a down-stem).
+    const shift = (headWidth - (value === 'whole' ? 0 : stemWidth)) * (chord.stemUp ? 1 : -1);
+    const displaced = chord.notes.some((note) => note.displaced);
+    const headsLeft = displaced && shift < 0 ? left + shift : left;
+    const headsRight = (displaced && shift > 0 ? left + shift : left) + headWidth;
+
     for (const step of chord.ledgerSteps) {
       const y = yOf(step);
       const extension = LEDGER_EXTENSION * space;
       group.append(
         svg('line', {
-          x1: left - extension,
-          x2: left + headWidth + extension,
+          x1: headsLeft - extension,
+          x2: headsRight + extension,
           y1: y,
           y2: y,
           stroke: 'currentColor',
@@ -879,12 +886,13 @@ export class SvgStaff {
 
     for (const note of chord.notes) {
       const y = yOf(note.step);
-      group.append(this.noteGlyph(NOTEHEAD[value], left, y));
-      if (note.accidental) group.append(this.noteGlyph(ACCIDENTAL_GLYPH[note.accidental], left - ACCIDENTAL_OFFSET * space, y));
+      group.append(this.noteGlyph(NOTEHEAD[value], note.displaced ? left + shift : left, y));
+      // Accidentals keep clear of every head, dots follow the rightmost one.
+      if (note.accidental) group.append(this.noteGlyph(ACCIDENTAL_GLYPH[note.accidental], headsLeft - ACCIDENTAL_OFFSET * space, y));
       // A dot goes in a space: for a note on a line, in the space just above.
       if (dots) {
         const dotStep = note.step % 2 === 0 ? note.step - 1 : note.step;
-        group.append(this.noteGlyph(AUGMENTATION_DOT, left + headWidth + DOT_OFFSET * space, yOf(dotStep)));
+        group.append(this.noteGlyph(AUGMENTATION_DOT, headsRight + DOT_OFFSET * space, yOf(dotStep)));
       }
     }
 
