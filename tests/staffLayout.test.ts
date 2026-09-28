@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createScore } from '../src/domain/score';
-import { barPosition, beatPosition, keySignatureSteps, pageAt, tapeBars } from '../src/infrastructure/render/staffLayout';
+import {
+  barPosition,
+  beatPosition,
+  cancelledSteps,
+  keySignatureSteps,
+  pageAt,
+  signatureChanges,
+  tapeBars,
+} from '../src/infrastructure/render/staffLayout';
 
 /** Bars at 0, 2 and 4 seconds; the last one ends at 5 seconds (it is shorter). */
 const score = createScore(
@@ -103,5 +111,43 @@ describe('tapeBars', () => {
       { barBeats: [0, 0.5, 2], timeSignatures: [{ beat: 0, numerator: 3, denominator: 8 }] },
     );
     expect(tapeBars(shortEnd).widths[2]).toBeCloseTo(2 / 3);
+  });
+});
+
+describe('cancelledSteps', () => {
+  it('cancels every old accidental when the kind changes or the key becomes Do major', () => {
+    expect(cancelledSteps(-3, 2, 'treble')).toEqual(keySignatureSteps(-3, 'treble'));
+    expect(cancelledSteps(1, 0, 'bass')).toEqual(keySignatureSteps(1, 'bass'));
+  });
+
+  it('cancels only what the new key drops', () => {
+    expect(cancelledSteps(-3, -1, 'treble')).toEqual(keySignatureSteps(-3, 'treble').slice(1));
+    expect(cancelledSteps(-1, -2, 'treble')).toEqual([]);
+    expect(cancelledSteps(0, 3, 'treble')).toEqual([]);
+  });
+});
+
+describe('signatureChanges', () => {
+  it('finds key and time changes by printed bar, leaving out the opening signatures', () => {
+    const changing = createScore(
+      'test',
+      [{ pitch: 60, start: 0, duration: 12, beat: 0, beats: 12, velocity: 1, hand: 'right' }],
+      [0, 4, 8],
+      {
+        barBeats: [0, 4, 8],
+        keySignatures: [
+          { beat: 0, fifths: 1, minor: false },
+          { beat: 4, fifths: -2, minor: false },
+        ],
+        timeSignatures: [
+          { beat: 0, numerator: 4, denominator: 4 },
+          { beat: 8, numerator: 3, denominator: 4 },
+        ],
+      },
+    );
+    expect(signatureChanges(changing)).toEqual([
+      { bar: 1, key: { from: 1, to: -2 }, time: null },
+      { bar: 2, key: null, time: { beat: 8, numerator: 3, denominator: 4 } },
+    ]);
   });
 });

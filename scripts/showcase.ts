@@ -115,6 +115,9 @@ const sostenuto = (type: 'start' | 'stop') =>
 /** The left (soft) pedal, in words: "una corda" presses it, "tre corde" lifts it. */
 const softPedal = (down: boolean) =>
   `<direction placement="below"><direction-type><words font-style="italic">${down ? 'una corda' : 'tre corde'}</words></direction-type><sound soft-pedal="${down ? 'yes' : 'no'}"/></direction>`;
+/** A printed metronome mark, e.g. a dotted quarter = 60, with the tempo it sounds at in quarters. */
+const metronome = (unit: string, dotted: boolean, perMinute: number, quarters: number) =>
+  `<direction placement="above"><direction-type><metronome><beat-unit>${unit}</beat-unit>${dotted ? '<beat-unit-dot/>' : ''}<per-minute>${perMinute}</per-minute></metronome></direction-type><sound tempo="${quarters}"/></direction>`;
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
 const key = (fifths: number) => `<key><fifths>${fifths}</fifths></key>`;
 const time = (beats: number, beatType: number) => `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>`;
@@ -214,10 +217,12 @@ const measures: string[] = [
     ${backup(W)}${chord(['C3', 'G3'], W, { type: 'whole', staff: 2, tie: 'stop' })}
   </measure>`,
 
-  // 10: a new key (three flats) and a new metre (6/8), beamed by three eighths.
+  // 10: a new key (three flats) and a new metre (6/8), beamed by three eighths; the tempo is
+  // printed in dotted quarters (the same speed: 60 dotted quarters are 90 quarters a minute).
   `<measure number="10">
     ${attributes(`${key(-3)}${time(6, 8)}`)}
     ${direction('Key and time', '')}
+    ${metronome('quarter', true, 60, 90)}
     ${['Bb4', 'C5', 'D5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(3)[i]] })).join('')}
     ${['Eb5', 'F5', 'G5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(3)[i]] })).join('')}
     ${backup(dotted(H))}${note('Eb3', dotted(H), { type: 'half', dots: 1, staff: 2 })}

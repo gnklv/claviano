@@ -2,6 +2,7 @@ import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
 import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
+import type { WrittenDuration } from './notation/noteValue';
 
 export interface TimeRange {
   readonly start: number;
@@ -17,6 +18,14 @@ export interface TimePoint {
   readonly beat: number;
   readonly time: number;
   readonly hold?: boolean;
+}
+
+/** A metronome mark from `beat` (along the page) on, as printed: "♩ = 90", "♩. = 60". */
+export interface TempoMark {
+  readonly beat: number;
+  /** The note that is counted: a quarter, a dotted quarter… */
+  readonly unit: WrittenDuration;
+  readonly perMinute: number;
 }
 
 /** Metre from `beat` on, e.g. 3/4 or 6/8. */
@@ -81,6 +90,8 @@ export interface Score {
    * and fermatas stretch it, so bar starts alone are not enough to place a beat in time.
    */
   readonly timeMap: readonly TimePoint[];
+  /** Metronome marks along the page, sorted by beat; empty when the source gives no tempo. */
+  readonly tempoMarks: readonly TempoMark[];
   /** Marks of all pedals along the page, sorted by beat. */
   readonly pedalMarks: readonly PedalMark[];
 }
@@ -105,6 +116,7 @@ export interface ScoreMusic {
   readonly pedalMarks?: readonly PedalMark[];
   /** Default: time runs evenly within each bar. */
   readonly timeMap?: readonly TimePoint[];
+  readonly tempoMarks?: readonly TempoMark[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -177,6 +189,7 @@ export function createScore(
     sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),
     pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
+    tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
     timeMap: music.timeMap
       ? [...music.timeMap].sort((a, b) => a.beat - b.beat)
       : evenTimeMap(barPairs, { time: duration, beat: endBeat }),
@@ -354,6 +367,16 @@ export function firstNoteAtOrAfter(score: Score, time: number): number {
 /** The time signature in force at `beat`. */
 export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
   score.timeSignatures[Math.max(0, lastIndexAtOrBefore(score.timeSignatures.map((s) => s.beat), beat))];
+
+/** The metronome mark in force at `beat` along the page, if the source gives one. */
+export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
+  let mark: TempoMark | null = null;
+  for (const candidate of score.tempoMarks) {
+    if (candidate.beat > beat + 1e-9) break;
+    mark = candidate;
+  }
+  return mark ?? score.tempoMarks[0] ?? null;
+}
 
 /** The key signature in force at `beat`. */
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>

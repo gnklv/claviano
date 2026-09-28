@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue';
 import type { Hand } from '../../domain/note';
-import { barAt, barNumber } from '../../domain/score';
+import type { NoteValue } from '../../domain/notation/noteValue';
+import { barAt, barNumber, tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
 import { usePlaybackState } from '../composables/usePlaybackState';
@@ -43,6 +44,19 @@ const barLabel = computed(() =>
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
 
+/** Notes for the tempo readout ("♩ = 90"), in the interface's own font. */
+const NOTE_SIGNS: Record<NoteValue, string> = {
+  whole: '𝅝',
+  half: '𝅗𝅥',
+  quarter: '♩',
+  eighth: '♪',
+  sixteenth: '𝅘𝅥𝅯',
+  thirtySecond: '𝅘𝅥𝅰',
+};
+
+/** The tempo the music is played at now, the slider applied: "♩ = 45" at 50% of ♩ = 90. Empty without a tempo mark. */
+const actualTempo = ref('');
+
 /** The metronome's dot flashes with each click it plays (or the count-in plays). */
 const pulse = ref<'none' | 'beat' | 'accent'>('none');
 
@@ -54,6 +68,9 @@ useAnimationFrame(() => {
   const score = playback.score;
   if (!score) return;
   const position = playback.position;
+  const mark = tempoMarkAt(score, writtenBeatAt(score, position));
+  const tempo = mark ? `${NOTE_SIGNS[mark.unit.value]}${mark.unit.dots ? '.' : ''} = ${Math.round(mark.perMinute * playback.tempo)}` : '';
+  if (tempo !== actualTempo.value) actualTempo.value = tempo;
   const bar = barAt(score, position);
   if (bar !== currentBar.value) currentBar.value = bar;
   if (!seeking && seekInput.value && score.duration > 0) {
@@ -121,7 +138,7 @@ function togglePlay(): void {
     <label class="tempo">
       {{ t('tempo') }}
       <input v-model.number="tempoPercent" class="tempo-slider" type="range" min="25" max="150" step="5" />
-      <output class="readout">{{ tempoPercent }}%</output>
+      <output class="readout">{{ tempoPercent }}%<template v-if="actualTempo"> · {{ actualTempo }}</template></output>
     </label>
 
     <div class="practice">

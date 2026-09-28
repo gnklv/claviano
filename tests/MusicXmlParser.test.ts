@@ -77,6 +77,32 @@ describe('MusicXmlParser', () => {
     expect(secondsAtBeat(s, 2)).toBeCloseTo(4); // held twice as long
   });
 
+  describe('tempo marks', () => {
+    const metronome = (unit: string, dot: boolean, perMinute: string, sound = '') =>
+      `<direction><direction-type><metronome><beat-unit>${unit}</beat-unit>${dot ? '<beat-unit-dot/>' : ''}<per-minute>${perMinute}</per-minute></metronome></direction-type>${sound}</direction>`;
+
+    it('reads a printed metronome mark with its unit, and a bare tempo in quarters', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${metronome('quarter', true, '60', '<sound tempo="90"/>')}${note('C', 4, 8)}</measure>
+          <measure number="2">${tempo(120)}${note('D', 4, 8)}</measure>`),
+        'test',
+      );
+      expect(s.tempoMarks).toEqual([
+        { beat: 0, unit: { value: 'quarter', dots: 1 }, perMinute: 60 },
+        { beat: 4, unit: { value: 'quarter', dots: 0 }, perMinute: 120 },
+      ]);
+    });
+
+    it('prefers the printed mark at one place, reads "c. 60", and drops restatements', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(90)}${metronome('half', false, 'c. 45')}${note('C', 4, 8)}</measure>
+          <measure number="2">${metronome('half', false, '45')}${note('D', 4, 8)}</measure>`),
+        'test',
+      );
+      expect(s.tempoMarks).toEqual([{ beat: 0, unit: { value: 'half', dots: 0 }, perMinute: 45 }]);
+    });
+  });
+
   it('plays chord notes together', () => {
     const s = parser.parse(
       score(`<measure number="1">${attributes()}

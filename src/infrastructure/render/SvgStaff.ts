@@ -28,7 +28,17 @@ import {
 } from './notationLayout';
 import type { BarNavigation } from '../../domain/notation/navigation';
 import { layoutPedal } from './pedalLayout';
-import { barPosition, beatPosition, keySignatureSteps, pageAt, tapeBars, type Clef } from './staffLayout';
+import {
+  barPosition,
+  beatPosition,
+  cancelledSteps,
+  keySignatureSteps,
+  pageAt,
+  signatureChanges,
+  tapeBars,
+  type Clef,
+  type SignatureChange,
+} from './staffLayout';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -172,12 +182,13 @@ const SLUR_HEAD_GAP = 1.2;
 const SLUR_STEM_GAP = 0.6;
 
 /*
- * On a repeat the tape goes back. Rather than jump, it glides there: this is the glide's time
- * constant in seconds (about three of them to arrive). A move of more than half a bar in one
- * frame counts as a jump; smaller ones are ordinary playback and are followed exactly.
+ * When the tape leaps (back on a repeat, over the room of a key or time change), it glides there
+ * rather than jumps: this is the glide's time constant in seconds (about three of them to arrive).
+ * A move of more than JUMP_THRESHOLD_SPACES in one frame counts as a leap; smaller ones are
+ * ordinary playback and are followed exactly.
  */
 const TAPE_GLIDE_SECONDS = 0.1;
-const JUMP_THRESHOLD_BARS = 0.5;
+const JUMP_THRESHOLD_SPACES = 2;
 /**
  * After the tape is dragged by hand it stays put for this long (of playing time) before it goes
  * back to the music, as the falling notes' keyboard does. A position change bigger than
@@ -219,6 +230,32 @@ const PEDAL_HOOK = 1.2;
 const PEDAL_NOTCH = 0.5;
 /** A line ends this far before its release beat: before the bar line (even the final double one) when released on one. */
 const PEDAL_LINE_GAP = 2.4;
+
+/*
+ * A key or time change inside the music gets room before the bar's first note: a gap after the bar
+ * line, the cancelling naturals, the new key, the new time signature, and a gap before the note.
+ */
+const CHANGE_GAP_BEFORE = 0.8;
+const CHANGE_GAP_AFTER = 0.4;
+const NATURAL_ADVANCE = 1.0;
+
+/**
+ * Metronome marks: a small note (SMuFL metronome glyphs, at this share of the music font size) and
+ * "= 90", this far over the top line of the treble staff.
+ */
+const TEMPO_MARK_RISE = 3.4;
+const TEMPO_NOTE_SIZE = 2.6;
+const TEMPO_NOTE_WIDTH = 1.3;
+const TEMPO_DOT_WIDTH = 0.3;
+const METRONOME_NOTE: Record<NoteValue, string> = {
+  whole: '\uE1D2',
+  half: '\uE1D3',
+  quarter: '\uE1D5',
+  eighth: '\uE1D7',
+  sixteenth: '\uE1D9',
+  thirtySecond: '\uE1DB',
+};
+const METRONOME_DOT = '\uE1E7';
 
 /** A click within this many staff spaces of a notehead's centre means that note. */
 const NOTE_SNAP = 1.2;
@@ -298,6 +335,13 @@ export class SvgStaff {
   /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
   private readonly overlay: SVGGElement = svg('g');
   private hoverBar: number | null = null;
+  /**
+   * Key and time changes along the page, and the room each printed bar gets before its first note
+   * for them (in staff spaces; 0 without a change). `roomBefore[i]` adds up the room of bars before i.
+   */
+  private changes: SignatureChange[] = [];
+  private room: number[] = [];
+  private roomBefore: number[] = [0];
   /** The tape dragged by hand (see dragBy), or null while it follows the music. */
   private manual: { offset: number; idle: number } | null = null;
   private lastPosition = 0;
@@ -343,6 +387,11 @@ export class SvgStaff {
     this.marks = [...layout.marks];
     this.slurs = [...layout.slurs];
     this.longestChord = this.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
+    this.changes = score ? signatureChanges(score) : [];
+    this.room = (score?.writtenBarBeats ?? []).map(() => 0);
+    for (const change of this.changes) this.room[change.bar] = signatureChangeWidth(change);
+    this.roomBefore = [0];
+    for (const width of this.room) this.roomBefore.push(this.roomBefore[this.roomBefore.length - 1] + width);
     this.currentBeat = 0;
     this.gutterSpaces = this.fitGutter(score);
     this.drawBackground();
@@ -369,13 +418,12 @@ export class SvgStaff {
     if (!score || score.notes.length === 0) return null;
     const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
     const px = clientX - this.tapeSvg.getBoundingClientRect().left - offset;
-    const barWidth = this.barWidth();
-    const place = pageAt(score, (px + BAR_LINE_GAP * this.space) / barWidth, px / barWidth);
+    const place = pageAt(score, ...this.fromPx(px));
     if (!place) return null;
     let nearest: StaffChord | null = null;
     for (const chord of this.chords) {
-      const distance = Math.abs(chord.x * barWidth - px);
-      if (distance <= NOTE_SNAP * this.space && (!nearest || distance < Math.abs(nearest.x * barWidth - px))) nearest = chord;
+      const distance = Math.abs(this.px(chord.x) - px);
+      if (distance <= NOTE_SNAP * this.space && (!nearest || distance < Math.abs(this.px(nearest.x) - px))) nearest = chord;
     }
     return nearest && barAtBeat(score, nearest.beat) === place.bar ? { bar: place.bar, beat: nearest.beat } : place;
   }
@@ -412,7 +460,7 @@ export class SvgStaff {
       if (this.signaturesKey() !== this.shownSignatures) this.drawBackground();
       this.highlight(this.currentBeat, isHandEnabled);
     }
-    const x = this.score ? barPosition(this.score, position) * this.barWidth() : 0;
+    const x = this.score ? this.px(barPosition(this.score, position)) : 0;
     const target = this.cursorX() - x;
 
     const now = performance.now();
@@ -434,7 +482,7 @@ export class SvgStaff {
       // a drag), glide to it. The glide shrinks the distance to the music rather than chasing it:
       // the music keeps moving, and a glide towards a moving target would never quite arrive.
       const distance = this.shownOffset - target;
-      if (Math.abs(distance - this.lag) > JUMP_THRESHOLD_BARS * this.barWidth()) this.lag = distance;
+      if (Math.abs(distance - this.lag) > JUMP_THRESHOLD_SPACES * this.space) this.lag = distance;
       this.lag = approach(this.lag, 0, dt, TAPE_GLIDE_SECONDS);
       this.shownOffset = target + this.lag;
     }
@@ -463,7 +511,7 @@ export class SvgStaff {
     if (!score || score.notes.length === 0) return;
     const current = this.manual?.offset ?? this.shownOffset;
     // Keep some of the music in sight: the cursor's place stays between the first and the last bar.
-    const lowest = this.cursorX() - tapeBars(score).end * this.barWidth();
+    const lowest = this.cursorX() - this.px(tapeBars(score).end);
     this.manual = { offset: Math.min(this.cursorX(), Math.max(lowest, current + dx)), idle: 0 };
   }
 
@@ -510,6 +558,47 @@ export class SvgStaff {
     const tapeWidth = this.width - this.gutterWidth();
     const spaces = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, tapeWidth / BARS_VISIBLE / this.space));
     return spaces * this.space;
+  }
+
+  /**
+   * Pixels along the tape for `x` in bar units (a full bar is 1). Bars with a key or time change
+   * have room for it before their first note, so everything after them moves right by that much.
+   */
+  private px(x: number): number {
+    const score = this.score;
+    if (!score) return x * this.barWidth();
+    const bar = tapeBarAt(tapeBars(score).starts, x);
+    return x * this.barWidth() + (this.roomBefore[bar + 1] ?? 0) * this.space;
+  }
+
+  /** The inverse of px, for finding what is under the pointer: [x for the bar lookup, x for the beat]. */
+  private fromPx(px: number): [number, number] {
+    const score = this.score;
+    if (!score) return [px / this.barWidth(), px / this.barWidth()];
+    const bars = tapeBars(score).starts.length;
+    // The bar whose bar line is at or before the pointer.
+    let bar = 0;
+    while (bar + 1 < bars && this.barLineX(bar + 1) <= px) bar++;
+    const x = (px - (this.roomBefore[bar + 1] ?? 0) * this.space) / this.barWidth();
+    return [tapeBars(score).starts[bar] + (px < this.barLineX(0) ? -1 : 0), x];
+  }
+
+  /** Where bar `index`'s bar line is drawn (index = the number of bars: the final bar line). */
+  private barLineX(index: number): number {
+    const score = this.score;
+    if (!score) return 0;
+    const tape = tapeBars(score);
+    const x = index < tape.starts.length ? tape.starts[index] : tape.end;
+    return x * this.barWidth() + (this.roomBefore[index] ?? this.roomBefore[this.roomBefore.length - 1]) * this.space - BAR_LINE_GAP * this.space;
+  }
+
+  /** An edge of a stretch of music (a loop) at `x` in bar units: at a bar start, that bar's line. */
+  private edgeX(x: number): number {
+    const score = this.score;
+    if (!score) return 0;
+    const starts = tapeBars(score).starts;
+    const bar = tapeBarAt(starts, x);
+    return Math.abs(starts[bar] - x) < 1e-6 ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
   }
 
   /** Cursor position inside the tape. */
@@ -631,14 +720,12 @@ export class SvgStaff {
     const score = this.score;
     if (!score || score.notes.length === 0) return;
     const { space } = this;
-    const barWidth = this.barWidth();
-    const gap = BAR_LINE_GAP * space;
     const tape = tapeBars(score);
     const top = this.trebleTop() - 3 * space;
     const height = this.systemBottom() - this.trebleTop() + 6 * space;
     const shade = (from: number, to: number, fill: string, opacity: number) => {
-      const x = tape.starts[from] * barWidth - gap;
-      const end = (tape.starts[to] + tape.widths[to]) * barWidth - gap;
+      const x = this.barLineX(from);
+      const end = this.barLineX(to + 1);
       const rect = svg('rect', { x, y: top, width: end - x, height, fill });
       rect.style.opacity = String(opacity);
       this.overlay.append(rect);
@@ -659,8 +746,6 @@ export class SvgStaff {
     if (!score || score.notes.length === 0) return;
 
     const { space } = this;
-    const barWidth = this.barWidth();
-    const gap = BAR_LINE_GAP * space;
     const top = this.trebleTop();
     const bottom = this.systemBottom();
 
@@ -668,9 +753,9 @@ export class SvgStaff {
     this.drawOverlay();
 
     if (this.loop) {
-      const start = barPosition(score, this.loop.start) * barWidth - gap;
+      const start = this.edgeX(barPosition(score, this.loop.start));
       // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
-      const end = barPosition(score, Math.max(this.loop.start, this.loop.end - 1e-6)) * barWidth - gap;
+      const end = this.edgeX(barPosition(score, Math.max(this.loop.start, this.loop.end - 1e-6)));
       this.strip.append(
         svg('rect', { x: start, y: top - 3 * space, width: Math.max(0, end - start), height: bottom - top + 6 * space, fill: COLORS.loop }),
       );
@@ -678,7 +763,7 @@ export class SvgStaff {
 
     const tape = tapeBars(score);
     score.writtenBarBeats.forEach((_, index) => {
-      const x = tape.starts[index] * barWidth - gap;
+      const x = this.barLineX(index);
       this.strip.append(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
       const number = svg('text', {
         x: x + space * 0.4,
@@ -691,10 +776,11 @@ export class SvgStaff {
       this.strip.append(number);
     });
 
-    this.strip.append(...this.drawNavigation(score.navigation, tape, barWidth, gap));
+    this.strip.append(...this.drawNavigation(score.navigation));
+    this.strip.append(...this.drawSignatureChanges(score), ...this.drawTempoMarks(score));
 
     // Final bar line: a thin and a thick one.
-    const end = tape.end * barWidth - gap;
+    const end = this.barLineX(tape.starts.length);
     this.strip.append(
       svg('line', { x1: end - space * 0.6, x2: end - space * 0.6, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }),
       svg('line', { x1: end, x2: end, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': space * 0.4 }),
@@ -705,7 +791,7 @@ export class SvgStaff {
       if (change.beat <= 1e-9) continue; // the opening clefs live in the left column
       const bar = barAtBeat(score, change.beat);
       const staffTop = change.staff === 1 ? top : this.bassTop();
-      const x = beatPosition(score, bar, change.beat) * barWidth - 2.6 * space;
+      const x = this.px(beatPosition(score, bar, change.beat)) - 2.6 * space;
       this.strip.append(
         svg('text', {
           x,
@@ -722,34 +808,34 @@ export class SvgStaff {
     const stemEnds = new Map<number, number>();
     const beamLayer = svg('g');
     beamLayer.style.color = COLORS.note;
-    for (const beam of this.beams) beamLayer.append(...this.drawBeam(beam, barWidth, stemEnds));
+    for (const beam of this.beams) beamLayer.append(...this.drawBeam(beam, stemEnds));
     for (const tuplet of this.tuplets) {
-      if (tuplet.showNumber || tuplet.bracket) beamLayer.append(...this.drawTuplet(tuplet, barWidth, stemEnds));
+      if (tuplet.showNumber || tuplet.bracket) beamLayer.append(...this.drawTuplet(tuplet, stemEnds));
     }
 
-    this.chordElements = this.chords.map((chord, index) => this.drawChord(chord, barWidth, stemEnds.get(index)));
+    this.chordElements = this.chords.map((chord, index) => this.drawChord(chord, stemEnds.get(index)));
     // A tie belongs to the chord it starts from, so it lights up with it; so do the chord's marks.
-    for (const tie of this.ties) this.chordElements[tie.from].append(this.drawTie(tie, barWidth));
-    for (const mark of this.marks) this.chordElements[mark.chord].append(this.drawMark(mark, barWidth));
+    for (const tie of this.ties) this.chordElements[tie.from].append(this.drawTie(tie));
+    for (const mark of this.marks) this.chordElements[mark.chord].append(this.drawMark(mark));
     // A slur spans a phrase, so it stays in the ink colour with the beams.
-    for (const phrase of this.slurs) beamLayer.append(this.drawSlur(phrase, barWidth, stemEnds));
+    for (const phrase of this.slurs) beamLayer.append(this.drawSlur(phrase, stemEnds));
 
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
-    for (const rest of this.rests) restLayer.append(...this.drawRest(rest, barWidth));
-    restLayer.append(...this.drawPedal(score, barWidth, stemEnds));
+    for (const rest of this.rests) restLayer.append(...this.drawRest(rest));
+    restLayer.append(...this.drawPedal(score, stemEnds));
 
     this.strip.append(restLayer, ...this.chordElements, beamLayer);
     this.lastOffset = Number.NaN;
   }
 
   /** Where a chord's parts go, in pixels. */
-  private chordGeometry(chord: StaffChord, barWidth: number) {
+  private chordGeometry(chord: StaffChord) {
     const { space } = this;
     const top = chord.staff === 'treble' ? this.trebleTop() : this.bassTop();
     const yOf = (step: number) => top + (step * space) / 2;
     const headWidth = HEAD_WIDTH[chord.duration.value] * space;
-    const left = chord.x * barWidth - headWidth / 2;
+    const left = this.px(chord.x) - headWidth / 2;
     const stemWidth = STEM_WIDTH * space;
     return {
       yOf,
@@ -768,10 +854,10 @@ export class SvgStaff {
    * is a single style change on the group. A beamed chord gets its stem end from the beam
    * and no flags.
    */
-  private drawChord(chord: StaffChord, barWidth: number, beamEnd?: number): SVGGElement {
+  private drawChord(chord: StaffChord, beamEnd?: number): SVGGElement {
     const { space } = this;
     const { value, dots } = chord.duration;
-    const { yOf, headWidth, left, stemWidth, stemX, highest, lowest } = this.chordGeometry(chord, barWidth);
+    const { yOf, headWidth, left, stemWidth, stemX, highest, lowest } = this.chordGeometry(chord);
 
     const group = svg('g');
     group.style.color = COLORS.note;
@@ -837,10 +923,10 @@ export class SvgStaff {
    * A beam and its extra levels (a second beam for sixteenths, a third for thirty-seconds).
    * Records where each of its chords' stems must end.
    */
-  private drawBeam(beam: Beam, barWidth: number, stemEnds: Map<number, number>): SVGPolygonElement[] {
+  private drawBeam(beam: Beam, stemEnds: Map<number, number>): SVGPolygonElement[] {
     const { space } = this;
     const chords = beam.chords.map((index) => this.chords[index]);
-    const geometry = chords.map((chord) => this.chordGeometry(chord, barWidth));
+    const geometry = chords.map((chord) => this.chordGeometry(chord));
     const levels = Math.max(...chords.map((chord) => flagCount(chord.duration.value)));
     const line = beamLine(
       geometry.map((g) => ({ x: g.stemX, noteY: beam.stemUp ? g.highest : g.lowest })),
@@ -895,10 +981,10 @@ export class SvgStaff {
    * A tuplet's number (and bracket, if it has one) beyond the stems on their side: over a beam,
    * or over the notes of an unbeamed group.
    */
-  private drawTuplet(tuplet: Tuplet, barWidth: number, stemEnds: Map<number, number>): SVGElement[] {
+  private drawTuplet(tuplet: Tuplet, stemEnds: Map<number, number>): SVGElement[] {
     const { space } = this;
     const chords = tuplet.chords.map((index) => this.chords[index]);
-    const geometry = chords.map((chord) => this.chordGeometry(chord, barWidth));
+    const geometry = chords.map((chord) => this.chordGeometry(chord));
     // The outermost point of each chord on the tuplet's side: its stem end, or the notehead.
     const outer = tuplet.chords.map((index, i) => {
       const g = geometry[i];
@@ -939,20 +1025,98 @@ export class SvgStaff {
   }
 
   /**
+   * Key and time changes where they happen, as printed: a double bar line before a new key, naturals
+   * cancelling what the old key had, the new key signature, the new time signature.
+   */
+  private drawSignatureChanges(score: Score): SVGElement[] {
+    const { space } = this;
+    const shapes: SVGElement[] = [];
+    const top = this.trebleTop();
+    const bottom = this.systemBottom();
+    for (const change of this.changes) {
+      const line = this.barLineX(change.bar);
+      const beat = score.writtenBarBeats[change.bar];
+      // A ‖: draws its own thick line; otherwise a new key gets a double bar line.
+      if (change.key && !score.navigation[change.bar]?.repeatStart) {
+        const x = line - 0.5 * space;
+        shapes.push(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
+      }
+      const staves: [Clef, number][] = [
+        [clefAt(score, 1, beat), top],
+        [clefAt(score, 2, beat), this.bassTop()],
+      ];
+      let x = line + CHANGE_GAP_BEFORE * space;
+      if (change.key) {
+        const { from, to } = change.key;
+        const naturals = cancelledSteps(from, to, 'treble').length;
+        for (const [clef, staffTop] of staves) {
+          cancelledSteps(from, to, clef).forEach((step, i) => {
+            shapes.push(this.inked(NATURAL, x + i * NATURAL_ADVANCE * space, staffTop + (step * space) / 2));
+          });
+        }
+        x += naturals * NATURAL_ADVANCE * space + (naturals > 0 ? SIGNATURE_GAP * space : 0);
+        const advance = (to >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
+        for (const [clef, staffTop] of staves) {
+          keySignatureSteps(to, clef).forEach((step, i) => {
+            shapes.push(this.inked(to > 0 ? SHARP : FLAT, x + i * advance, staffTop + (step * space) / 2));
+          });
+        }
+        x += keySignatureWidth({ beat, fifths: to, minor: false }) * space;
+      }
+      if (change.time) {
+        const center = x + (timeSignatureWidth(change.time) * space) / 2;
+        for (const [, staffTop] of staves) {
+          const numerator = this.inked(timeDigits(change.time.numerator), center, staffTop + space);
+          const denominator = this.inked(timeDigits(change.time.denominator), center, staffTop + 3 * space);
+          numerator.setAttribute('text-anchor', 'middle');
+          denominator.setAttribute('text-anchor', 'middle');
+          shapes.push(numerator, denominator);
+        }
+      }
+    }
+    return shapes;
+  }
+
+  /** Metronome marks over the treble staff where the tempo is set: "♩ = 90", "♩. = 60". */
+  private drawTempoMarks(score: Score): SVGElement[] {
+    const { space } = this;
+    const shapes: SVGElement[] = [];
+    const y = this.trebleTop() - TEMPO_MARK_RISE * space;
+    for (const mark of score.tempoMarks) {
+      const x = this.px(beatPosition(score, barAtBeat(score, mark.beat), mark.beat)) - 0.5 * space;
+      const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
+      note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
+      const words = svg('text', {
+        x: x + (TEMPO_NOTE_WIDTH + (mark.unit.dots ? TEMPO_DOT_WIDTH : 0)) * space,
+        y,
+        'font-size': space * 1.3,
+        'font-family': "'Times New Roman', Georgia, serif",
+        'font-weight': 'bold',
+      });
+      words.textContent = `= ${mark.perMinute}`;
+      for (const element of [note, words]) element.style.setProperty('fill', COLORS.note);
+      shapes.push(note, words);
+    }
+    return shapes;
+  }
+
+  /** A music glyph (reference line at `y`) in the ink colour, outside the chords that light up. */
+  private inked(codepoint: string, x: number, y: number): SVGTextElement {
+    const glyph = this.noteGlyph(codepoint, x, y);
+    glyph.style.setProperty('fill', COLORS.note);
+    return glyph;
+  }
+
+  /**
    * Repeat signs at bar lines, volta brackets over the treble staff, segno and coda signs, and
    * the words of jumps ("D.C. al Fine", "To Coda") over the ends of their bars.
    */
-  private drawNavigation(
-    navigation: readonly BarNavigation[],
-    tape: { starts: readonly number[]; widths: readonly number[] },
-    barWidth: number,
-    gap: number,
-  ): SVGElement[] {
+  private drawNavigation(navigation: readonly BarNavigation[]): SVGElement[] {
     const { space } = this;
     const shapes: SVGElement[] = [];
     const staves = [this.trebleTop(), this.bassTop()];
-    const barStart = (i: number) => tape.starts[i] * barWidth - gap;
-    const barEnd = (i: number) => (tape.starts[i] + tape.widths[i]) * barWidth - gap;
+    const barStart = (i: number) => this.barLineX(i);
+    const barEnd = (i: number) => this.barLineX(i + 1);
     const top = this.trebleTop();
     const ink = (element: SVGElement) => {
       element.style.setProperty('fill', COLORS.note);
@@ -1021,15 +1185,15 @@ export class SvgStaff {
    * middle one ("Sost." and a line); each sits clear of the low notes, stems and marks above it, and
    * a line keeps one height all along. The left one in words between the staves.
    */
-  private drawPedal(score: Score, barWidth: number, stemEnds: Map<number, number>): SVGElement[] {
+  private drawPedal(score: Score, stemEnds: Map<number, number>): SVGElement[] {
     const { space } = this;
     const { signs, lines, words } = layoutPedal(score);
     const shapes: SVGElement[] = [];
     const baseline = (left: number, right: number) =>
-      Math.max(this.systemBottom() + PEDAL_DROP * space, this.bassFloor(left, right, barWidth, stemEnds) + PEDAL_CLEARANCE * space);
+      Math.max(this.systemBottom() + PEDAL_DROP * space, this.bassFloor(left, right, stemEnds) + PEDAL_CLEARANCE * space);
 
     // "Ped." / "Sost." start a little before their beat, under the left edge of the note they go with.
-    const pressLeft = (x: number) => x * barWidth - 0.5 * space;
+    const pressLeft = (x: number) => this.px(x) - 0.5 * space;
     const signWidth = (pedal: 'sustain' | 'sostenuto') => (pedal === 'sustain' ? PEDAL_PRESS_WIDTH : PEDAL_SOSTENUTO_WIDTH) * space;
     // A sign followed by a line sits at the line's height.
     const lineBaselines = new Map<string, number>();
@@ -1044,14 +1208,14 @@ export class SvgStaff {
       // ⌊ (or "Ped." and then the line), ∧ at each change, and ⌋ just before the release.
       const left = pressLeft(line.from);
       const from = left + (line.afterSign ? signWidth(line.pedal) + 0.3 * space : 0);
-      const to = Math.max(from + space, line.to * barWidth - PEDAL_LINE_GAP * space);
+      const to = Math.max(from + space, this.px(line.to) - PEDAL_LINE_GAP * space);
       let y = baseline(left, to);
       if (line.pedal === 'sustain') sustainSpans.push([left, to]);
       else if (sustainSpans.some(([a, b]) => a < to && b > left)) y += PEDAL_ROW * space;
       if (line.afterSign) lineBaselines.set(`${line.pedal} ${line.from}`, y);
       const points = line.afterSign ? [`${from},${y}`] : [`${from},${y - hook}`, `${from},${y}`];
       for (const change of line.changes) {
-        const at = change * barWidth;
+        const at = this.px(change);
         if (at - notch <= from || at + notch >= to) continue;
         points.push(`${at - notch},${y}`, `${at},${y - hook}`, `${at + notch},${y}`);
       }
@@ -1064,11 +1228,11 @@ export class SvgStaff {
     for (const sign of signs) {
       const release = sign.kind === 'release';
       const pedal = sign.kind === 'sostenuto' ? 'sostenuto' : 'sustain';
-      const left = release ? sign.x * barWidth - (PEDAL_RELEASE_BEFORE + 0.9) * space : pressLeft(sign.x);
+      const left = release ? this.px(sign.x) - (PEDAL_RELEASE_BEFORE + 0.9) * space : pressLeft(sign.x);
       const y =
         (!release && lineBaselines.get(`${pedal} ${sign.x}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
       const codepoint = release ? PEDAL_RELEASE : pedal === 'sostenuto' ? PEDAL_SOSTENUTO : PEDAL_PRESS;
-      const glyph = this.noteGlyph(codepoint, release ? sign.x * barWidth - PEDAL_RELEASE_BEFORE * space : left, y);
+      const glyph = this.noteGlyph(codepoint, release ? this.px(sign.x) - PEDAL_RELEASE_BEFORE * space : left, y);
       if (release) glyph.setAttribute('text-anchor', 'middle');
       glyph.style.setProperty('fill', COLORS.note);
       shapes.push(glyph);
@@ -1093,13 +1257,13 @@ export class SvgStaff {
 
 
   /** The lowest point (largest y) of the lower staff's notes, down stems and marks under them between two x's. */
-  private bassFloor(left: number, right: number, barWidth: number, stemEnds: Map<number, number>): number {
+  private bassFloor(left: number, right: number, stemEnds: Map<number, number>): number {
     const { space } = this;
     let floor = this.systemBottom();
     const bottoms = new Map<number, number>(); // chord → its lowest point
     this.chords.forEach((chord, index) => {
       if (chord.staff !== 'bass') return;
-      const g = this.chordGeometry(chord, barWidth);
+      const g = this.chordGeometry(chord);
       if (g.left + g.headWidth < left || g.left > right) return;
       let bottom = g.lowest + space / 2;
       if (!chord.stemUp && chord.duration.value !== 'whole') bottom = Math.max(bottom, stemEnds.get(index) ?? g.lowest + STEM_LENGTH * space);
@@ -1108,18 +1272,18 @@ export class SvgStaff {
     });
     for (const mark of this.marks) {
       if (mark.above || !bottoms.has(mark.chord)) continue;
-      floor = Math.max(floor, this.chordGeometry(this.chords[mark.chord], barWidth).yOf(mark.step) + MARK_DEPTH * space);
+      floor = Math.max(floor, this.chordGeometry(this.chords[mark.chord]).yOf(mark.step) + MARK_DEPTH * space);
     }
     return floor;
   }
 
   /** A rest glyph (with its dot), centred on its beat. */
-  private drawRest(rest: StaffRest, barWidth: number): SVGTextElement[] {
+  private drawRest(rest: StaffRest): SVGTextElement[] {
     const { space } = this;
     const top = rest.staff === 'treble' ? this.trebleTop() : this.bassTop();
     const { value, dots } = rest.duration;
     const width = REST_WIDTH[value] * space;
-    const left = rest.x * barWidth - width / 2;
+    const left = this.px(rest.x) - width / 2;
     const y = top + (rest.step * space) / 2;
     const glyphs = [this.noteGlyph(REST[value], left, y)];
     if (dots) glyphs.push(this.noteGlyph(AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));
@@ -1127,8 +1291,8 @@ export class SvgStaff {
   }
 
   /** An articulation or fermata, centred over (or under) the notehead. */
-  private drawMark(mark: StaffMark, barWidth: number): SVGTextElement {
-    const { yOf, left, headWidth } = this.chordGeometry(this.chords[mark.chord], barWidth);
+  private drawMark(mark: StaffMark): SVGTextElement {
+    const { yOf, left, headWidth } = this.chordGeometry(this.chords[mark.chord]);
     const [above, below] = MARK_GLYPHS[mark.kind];
     const glyph = this.noteGlyph(mark.above ? above : below, left + headWidth / 2, yOf(mark.step));
     glyph.setAttribute('text-anchor', 'middle');
@@ -1139,12 +1303,12 @@ export class SvgStaff {
    * A phrasing slur. Each end sits just beyond its notehead, or beyond the stem end when the slur
    * is on the stem side; the curve then rises (or sinks) to clear every chord in between.
    */
-  private drawSlur(phrase: StaffSlur, barWidth: number, stemEnds: Map<number, number>): SVGPathElement {
+  private drawSlur(phrase: StaffSlur, stemEnds: Map<number, number>): SVGPathElement {
     const { space } = this;
     const direction = phrase.above ? -1 : 1;
     const outerPoint = (index: number) => {
       const chord = this.chords[index];
-      const g = this.chordGeometry(chord, barWidth);
+      const g = this.chordGeometry(chord);
       const stemmed = chord.duration.value !== 'whole';
       if (stemmed && chord.stemUp === phrase.above) {
         const stemEnd =
@@ -1168,10 +1332,10 @@ export class SvgStaff {
   }
 
   /** A tie: a crescent from one notehead to the next, curving away from the stems. */
-  private drawTie(tie: Tie, barWidth: number): SVGPathElement {
+  private drawTie(tie: Tie): SVGPathElement {
     const { space } = this;
-    const from = this.chordGeometry(this.chords[tie.from], barWidth);
-    const to = this.chordGeometry(this.chords[tie.to], barWidth);
+    const from = this.chordGeometry(this.chords[tie.from]);
+    const to = this.chordGeometry(this.chords[tie.to]);
     const y = from.yOf(tie.step) + (tie.above ? -1 : 1) * TIE_OFFSET * space;
     const shape = arc({
       x1: from.left + from.headWidth + TIE_GAP * space,
@@ -1236,4 +1400,33 @@ function keySignatureWidth({ fifths }: KeySignature): number {
 /** Width of a time signature in staff spaces, set by its longer number (e.g. 12 in 12/8). */
 function timeSignatureWidth({ numerator, denominator }: TimeSignature): number {
   return Math.max(digitCount(numerator), digitCount(denominator)) * TIME_DIGIT_WIDTH;
+}
+
+/** The bar (index into `starts`) whose start is at or before `x` on the tape. */
+function tapeBarAt(starts: readonly number[], x: number): number {
+  let lo = 0;
+  let hi = starts.length - 1;
+  let result = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (starts[mid] <= x + 1e-9) {
+      result = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return result;
+}
+
+/** The room a key or time change needs before the bar's first note, in staff spaces. */
+function signatureChangeWidth(change: SignatureChange): number {
+  let width = CHANGE_GAP_BEFORE + CHANGE_GAP_AFTER;
+  if (change.key) {
+    const naturals = cancelledSteps(change.key.from, change.key.to, 'treble').length;
+    width += naturals * NATURAL_ADVANCE + (naturals > 0 ? SIGNATURE_GAP : 0);
+    width += keySignatureWidth({ beat: 0, fifths: change.key.to, minor: false });
+  }
+  if (change.time) width += timeSignatureWidth(change.time) + SIGNATURE_GAP;
+  return width;
 }

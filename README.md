@@ -32,7 +32,7 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 |---|---|
 | Space | play / pause |
 | ← → | previous / next bar |
-| Tempo | 25–150%, pitch is unaffected |
+| Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45) |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
 | Click on the staff or the notes | jump there (a click outside the loop turns the loop off) |
@@ -120,6 +120,9 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Click to jump: on the staff or the falling notes, to the very place (snapping to a note next
       to it); drag to look around while the music plays on (the view returns after a while);
       Shift+drag / long press on the staff to loop bars; with repeats, the pass nearest to now
+- [x] Key and time changes printed where they happen (double bar line, cancelling naturals, new
+      signatures, with room before the bar's first note); metronome marks (♩ = 90, ♩. = 60) from
+      MusicXML and MIDI, and the actual tempo next to the tempo slider
 - [x] View modes: staff / falling notes / both
 - [x] Light and dark themes, following the system by default
 - [x] Notes on the staff, level 1: heads, stems, flags, dots, ledger lines, accidentals

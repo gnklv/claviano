@@ -5,7 +5,7 @@ import type { Accidental, Alteration, Letter } from '../../domain/notation/spell
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
-import { createScore, type KeySignature, type Score, type TimePoint, type TimeSignature } from '../../domain/score';
+import { createScore, type KeySignature, type Score, type TempoMark, type TimePoint, type TimeSignature } from '../../domain/score';
 
 /*
  * MusicXML (https://www.w3.org/2021/06/musicxml40/): the notation format of MuseScore, Finale,
@@ -184,6 +184,8 @@ function readPart(part: Element, title: string): Score {
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
   const pedalMarks: PedalMark[] = [];
+  /** `printed`: from a <metronome>; otherwise worked out from a <sound tempo>, in quarters. */
+  const tempoMarks: (TempoMark & { printed: boolean })[] = [];
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
   for (const measureElement of part.querySelectorAll(':scope > measure')) {
@@ -254,6 +256,11 @@ function readPart(part: Element, title: string): Score {
           const sound = element.nodeName === 'sound' ? element : element.querySelector(':scope > sound');
           const tempo = Number(sound?.getAttribute('tempo'));
           if (tempo > 0) measure.tempos.push({ beat: beatAt(cursor), bpm: tempo });
+          const mark = element.nodeName === 'direction' ? metronomeMark(element, beatAt(cursor)) : null;
+          if (mark) tempoMarks.push({ ...mark, printed: true });
+          else if (tempo > 0) {
+            tempoMarks.push({ beat: beatAt(cursor), unit: { value: 'quarter', dots: 0 }, perMinute: Math.round(tempo), printed: false });
+          }
           const level = Number(sound?.getAttribute('dynamics'));
           if (level > 0) dynamics = level;
           readNavigation(element, sound, nav);
@@ -368,6 +375,7 @@ function readPart(part: Element, title: string): Score {
       sostenutoPedal: performance.pedals.sostenuto,
       softPedal: performance.pedals.soft,
       timeMap: performance.timeMap,
+      tempoMarks: distinctTempoMarks(tempoMarks),
       pedalMarks,
       timeSignatures,
       keySignatures,
@@ -403,6 +411,37 @@ function readNavigation(element: Element, sound: Element | null | undefined, nav
   // The words that go with a jump ("D.C. al Fine", "To Coda") are printed over the bar.
   const words = [...(types?.querySelectorAll(':scope > words') ?? [])].map((w) => w.textContent?.trim()).filter(Boolean);
   if ((jumps.dacapo || jumps.dalsegno || jumps.fine || jumps.toCoda) && words.length > 0) nav.text = words.join(' ');
+}
+
+/** A printed metronome mark: <metronome> with its beat unit (and dot) and the number per minute. */
+function metronomeMark(direction: Element, beat: number): TempoMark | null {
+  const metronome = direction.querySelector(':scope > direction-type > metronome');
+  if (!metronome) return null;
+  const value = NOTE_TYPES[childText(metronome, 'beat-unit') ?? ''];
+  // Sometimes "c. 60" or "60-66": the first number is the one to show.
+  const perMinute = parseFloat((childText(metronome, 'per-minute') ?? '').replace(/^[^\d]*/, ''));
+  if (!value || !(perMinute > 0)) return null;
+  const dots = metronome.querySelector(':scope > beat-unit-dot') ? 1 : 0;
+  return { beat, unit: { value, dots }, perMinute: Math.round(perMinute) };
+}
+
+/**
+ * Marks in page order, without repeats of the one in force (files often restate the tempo). At one
+ * place a printed mark wins over one worked out from a bare <sound tempo>.
+ */
+function distinctTempoMarks(marks: (TempoMark & { printed: boolean })[]): TempoMark[] {
+  const result: (TempoMark & { printed: boolean })[] = [];
+  for (const mark of [...marks].sort((a, b) => a.beat - b.beat)) {
+    const last = result.at(-1);
+    if (last && Math.abs(last.beat - mark.beat) < 1e-9) {
+      if (last.printed && !mark.printed) continue;
+      result.pop();
+    }
+    const previous = result.at(-1);
+    const same = previous && previous.perMinute === mark.perMinute && previous.unit.value === mark.unit.value && previous.unit.dots === mark.unit.dots;
+    if (!same) result.push(mark);
+  }
+  return result.map(({ beat, unit, perMinute }) => ({ beat, unit, perMinute }));
 }
 
 /**

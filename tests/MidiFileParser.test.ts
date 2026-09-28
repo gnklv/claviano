@@ -103,6 +103,24 @@ describe('MidiFileParser', () => {
     expect(second.duration).toBeCloseTo(1);
   });
 
+  it('prints tempo changes that hold for a bar, not the wobble of live playing', () => {
+    const at = (delta: number, bpm: number): Event => [delta, ...tempo(bpm).slice(1)] as Event;
+    const file = midiFile(480, [
+      track([
+        tempo(100),
+        at(480 * 4, 101), // bar 2: a wobble for one beat…
+        at(480, 100.2), // …back to 100 (rounds the same: nothing new to print)
+        at(480 * 3, 72), // bar 3: a real change, held to the end
+        [0, 0x90, 60, 100],
+        [480 * 8, 0x80, 60, 0],
+      ]),
+    ]);
+    expect(parser.parse(file, 'test').tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
+      [0, 100],
+      [8, 72],
+    ]);
+  });
+
   it('builds bars from the time signature', () => {
     const file = midiFile(480, [
       track([tempo(120), timeSignature(3, 2), [0, 0x90, 60, 100], [480 * 9, 0x80, 60, 0]]),

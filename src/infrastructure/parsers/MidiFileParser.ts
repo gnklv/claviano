@@ -162,6 +162,11 @@ export class MidiFileParser implements ScoreParser {
       sostenutoPedal: inSeconds(sostenuto),
       softPedal: inSeconds(soft),
       // Time runs evenly between bar starts and tempo changes.
+      tempoMarks: tempoMarks(midi.tempos, bars, midi.lastTick).map(({ tick, perMinute }) => ({
+        beat: toBeats(tick),
+        unit: { value: 'quarter', dots: 0 },
+        perMinute,
+      })),
       timeMap: [...new Set([...bars, ...midi.tempos.map((t) => t.tick), midi.lastTick])]
         .sort((a, b) => a - b)
         .map((tick) => ({ beat: toBeats(tick), time: toSeconds(tick) })),
@@ -409,4 +414,24 @@ function softPedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
     text: type === 'start' ? 'una corda' : 'tre corde',
   });
   return spans.flatMap((span) => [mark(span.start, 'start'), mark(span.end, 'stop')]);
+}
+
+/**
+ * The tempo changes worth printing, in quarters per minute. Recordings of live playing change the
+ * tempo almost every beat; a change is shown only when it holds for at least a bar.
+ */
+function tempoMarks(tempos: TempoEvent[], bars: number[], lastTick: number): { tick: number; perMinute: number }[] {
+  const sorted = [...tempos].sort((a, b) => a.tick - b.tick);
+  const marks: { tick: number; perMinute: number }[] = [];
+  sorted.forEach((tempo, i) => {
+    const perMinute = Math.round(60_000_000 / tempo.usPerQuarter);
+    if (marks.at(-1)?.perMinute === perMinute) return;
+    const until = sorted[i + 1]?.tick ?? lastTick;
+    let bar = 0;
+    while (bar + 1 < bars.length && bars[bar + 1] <= tempo.tick) bar++;
+    const barLength = (bars[bar + 1] ?? lastTick) - (bars[bar] ?? 0);
+    if (marks.length > 0 && until - tempo.tick < barLength) return;
+    marks.push({ tick: tempo.tick, perMinute });
+  });
+  return marks;
 }

@@ -11,6 +11,7 @@ import { barNumber, hasPickup } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { layoutNotation } from '../src/infrastructure/render/notationLayout';
 import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
+import { signatureChanges } from '../src/infrastructure/render/staffLayout';
 import { soundingDurations } from '../src/domain/pedal';
 
 // Tests run from the project root; in happy-dom import.meta.url is not a file path.
@@ -210,5 +211,24 @@ describe('showcase score', () => {
     expect(chords).toHaveLength(6);
     for (const { n, i } of chords) expect(durations[i]).toBeCloseTo(n.duration); // staccato stays short
     expect(layoutPedal(score).signs.filter((s) => s.kind === 'sostenuto')).toHaveLength(1);
+  });
+});
+
+describe('showcase score: changes along the way', () => {
+  it('prints the key and time changes of bars 10 and 13 where they happen', () => {
+    const changes = signatureChanges(score).filter((c) => c.key || c.time);
+    expect(changes.map((c) => [c.bar, c.key, c.time && `${c.time.numerator}/${c.time.denominator}`])).toEqual([
+      [10, { from: 0, to: -3 }, '6/8'],
+      [13, { from: -3, to: 2 }, '4/4'],
+    ]);
+  });
+
+  it('prints the tempo: 90 at the start, a dotted quarter in 6/8, 60 in bar 12, 90 again in bar 13', () => {
+    expect(score.tempoMarks.map((m) => [m.beat, `${m.unit.value}${m.unit.dots ? '.' : ''}`, m.perMinute])).toEqual([
+      [0, 'quarter', 90],
+      [score.writtenBarBeats[10], 'quarter.', 60],
+      [score.writtenBarBeats[12], 'quarter', 60],
+      [score.writtenBarBeats[13], 'quarter', 90],
+    ]);
   });
 });
