@@ -547,8 +547,14 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const closeBeam = () => {
       if (beam.length >= 2) {
         const index = beams.length;
-        beams.push({ chords: beam, stemUp: chords[beam[0]].stemUp });
-        for (const i of beam) chords[i] = { ...chords[i], beam: index };
+        // On one staff, a beamed group points all its stems one way: as the file says for its first
+        // note, or by where the group sits on the staff. A group across both staves keeps each stem.
+        const oneStaff = beam.every((i) => chords[i].staff === chords[beam[0]].staff);
+        const written = entries[beam[0]].group[0].stem;
+        const steps = beam.flatMap((i) => chords[i].notes.map((n) => n.step));
+        const stemUp = written ? written === 'up' : oneStaff ? stemUpFor(Math.min(...steps), Math.max(...steps)) : chords[beam[0]].stemUp;
+        beams.push({ chords: beam, stemUp });
+        for (const i of beam) chords[i] = { ...chords[i], beam: index, stemUp: oneStaff ? stemUp : chords[i].stemUp };
       }
       beam = [];
     };

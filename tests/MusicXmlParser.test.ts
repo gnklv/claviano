@@ -115,6 +115,20 @@ describe('MusicXmlParser', () => {
     expect(s.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
   });
 
+  it('points all stems of a beamed group on one staff the same way when the file does not say', () => {
+    // G4 A♭4 B♭4 on the treble staff: alone, the lower notes would take stems up and B♭4 down.
+    const eighth = (step: string, alter: number, beam: string) =>
+      note(step, 4, 1, { alter, extra: `<type>eighth</type><beam number="1">${beam}</beam>` });
+    const s = parser.parse(
+      score(`<measure number="1">${attributes(2, -3, 3)}${eighth('G', 0, 'begin')}${eighth('A', -1, 'continue')}${eighth('B', -1, 'end')}${rest(3)}</measure>`),
+      'test',
+    );
+    const layout = layoutNotation(s);
+    const beamed = layout.beams[0].chords.map((i) => layout.chords[i].stemUp);
+    expect(new Set(beamed).size).toBe(1);
+    expect(beamed[0]).toBe(layout.beams[0].stemUp);
+  });
+
   it('keeps a beamed group together when its voice crosses to the other staff', () => {
     // As in the Moonlight Sonata: each triplet starts in the bass and goes on in the treble, one voice.
     const eighth = (step: string, octave: number, staff: number, beam: string, stem: string) =>

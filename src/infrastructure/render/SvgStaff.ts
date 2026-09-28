@@ -1029,8 +1029,8 @@ export class SvgStaff {
     const geometry = chords.map((chord) => this.chordGeometry(chord));
     const levels = Math.max(...chords.map((chord) => flagCount(chord.duration.value)));
     const minStem = (MIN_BEAMED_STEM + (levels - 1) * BEAM_SPACING) * space;
-    // Stems both ways (a group across both staves): a level beam between the notes.
-    const kneed = chords.some((chord) => chord.stemUp !== beam.stemUp);
+    // A group across both staves with stems both ways: a beam between the staves.
+    const kneed = new Set(chords.map((chord) => chord.staff)).size > 1 && chords.some((chord) => chord.stemUp !== beam.stemUp);
     const plain = kneed
       ? kneeBeamLine(
           chords.map((chord, i) => {
