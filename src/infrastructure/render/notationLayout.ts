@@ -3,7 +3,8 @@ import { writtenDuration, type WrittenDuration } from '../../domain/notation/not
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
 import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
-import { barAtBeat, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
+import { beatsOf } from '../../domain/metronome';
+import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
 import { groupBeams } from './beams';
 import { beatPosition, tapeBars, type Clef } from './staffLayout';
 
@@ -227,7 +228,7 @@ function inferNotation(score: Score): NotationLayout {
       accidental: null,
     };
   });
-  const { placed, shifts } = shiftExtremes(sounding);
+  const { placed, shifts } = shiftExtremes(writtenLengths(score, sounding));
 
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
@@ -304,6 +305,40 @@ function inferNotation(score: Score): NotationLayout {
     }),
   );
   return { chords: beamed, octaveShifts, beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+}
+
+/**
+ * For MIDI: how long to write each note. A key is often let go well before the next note (staccato,
+ * or just a light touch), and writing what was held would turn a row of quarters into sixteenths.
+ * So a note is written up to the next note played (by either hand: the other hand often carries the
+ * rhythm in between, as in Bach's C major prelude); with none later in the bar, up to the end of
+ * the beat it sounds in (rests are not written, so no long values are invented). A note held
+ * longer than that, like a bass under a melody, keeps its length. Never past the bar line.
+ */
+function writtenLengths(score: Score, placed: Placed[]): Placed[] {
+  const onsets = [...new Set(placed.map((p) => p.beat))].sort((a, b) => a - b);
+  const nextOnset = (beat: number): number | undefined => {
+    let lo = 0;
+    let hi = onsets.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (onsets[mid] <= beat + 1e-9) lo = mid + 1;
+      else hi = mid;
+    }
+    return onsets[lo];
+  };
+
+  return placed.map((p) => {
+    const barStart = score.writtenBarBeats[p.bar];
+    const barEnd = score.writtenBarBeats[p.bar + 1] ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
+    const next = nextOnset(p.beat);
+    const { length } = beatsOf(timeSignatureAt(score, p.beat));
+    const endOfBeat = barStart + Math.ceil((p.beat + p.beats - barStart) / length - 1e-9) * length;
+    const until = next !== undefined && next <= barEnd + 1e-9 ? next : endOfBeat;
+    const end = Math.min(barEnd, Math.max(p.beat + p.beats, until));
+    const beats = end - p.beat;
+    return beats === p.beats ? p : { ...p, beats, duration: writtenDuration(beats) };
+  });
 }
 
 /** More ledger lines than this above the treble staff or below the bass staff, and MIDI notes go under 8va / 8vb. */

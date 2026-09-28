@@ -413,3 +413,40 @@ describe('octave shifts for MIDI', () => {
     expect(layoutNotation(score).octaveShifts).toEqual([]);
   });
 });
+
+describe('MIDI note values', () => {
+  /** 4/4 at 60 BPM: a beat is a second. */
+  const key = (p: number, beat: number, beats: number, hand: Hand = 'right'): Note => ({
+    pitch: p,
+    start: beat,
+    duration: beats,
+    beat,
+    beats,
+    velocity: 0.8,
+    hand,
+  });
+  const values = (notes: Note[]) =>
+    layoutNotation(createScore('midi', notes, [0, 4])).chords.map((c) => `${c.beat}:${c.duration.value}${c.duration.dots ? '.' : ''}`);
+
+  it('writes short-played quarters as quarters: up to the next note', () => {
+    const staccato = [0, 1, 2, 3].map((beat) => key(pitch('Do', 5), beat, 0.3));
+    expect(values(staccato)).toEqual(['0:quarter', '1:quarter', '2:quarter', '3:quarter']);
+  });
+
+  it('counts the other hand as the next note', () => {
+    expect(values([key(pitch('Do', 5), 0, 0.2), key(pitch('Do', 3), 0.5, 0.5, 'left')])).toEqual(['0:eighth', '0.5:eighth']);
+  });
+
+  it('with no note after it in the bar, goes to the end of its beat, not further', () => {
+    expect(values([key(pitch('Do', 5), 0, 0.4)])).toEqual(['0:quarter']);
+  });
+
+  it('keeps a note held longer, like a bass under a melody', () => {
+    const notes = [key(pitch('Do', 3), 0, 4, 'left'), key(pitch('Mi', 3), 1, 0.3, 'left'), key(pitch('Sol', 3), 2, 0.3, 'left')];
+    expect(values(notes)).toEqual(['0:whole', '1:quarter', '2:quarter']);
+  });
+
+  it('stops at the bar line', () => {
+    expect(values([key(pitch('Do', 5), 3, 0.3), key(pitch('Re', 5), 5, 1)])).toEqual(['3:quarter', '5:quarter']);
+  });
+});

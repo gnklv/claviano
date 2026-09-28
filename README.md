@@ -131,4 +131,5 @@ timer jitter; the view only reads `playback.position` each frame.
       alternating; ledger lines, accidentals and dots make room
 - [x] 8va / 8vb: MusicXML octave shifts printed with their bracket (notes an octave nearer, sound
       unchanged); in MIDI, runs beyond three ledger lines go under 8va / 8vb (15ma when needed)
-- [ ] MIDI note values up to the next note of the same hand
+- [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
+      note held longer keeps its length; so a short-played quarter is still written as a quarter
