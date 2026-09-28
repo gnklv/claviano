@@ -67,6 +67,70 @@ describe('MusicXmlParser', () => {
     expect(secondsAtBeat(s, 3)).toBeCloseTo(2.5); // twice as fast from beat 2
   });
 
+  it('moves a tempo change by its offset', () => {
+    // Written before the half note, but meant from its second beat (offset of one quarter).
+    const later = `<direction><direction-type><words>T</words></direction-type><offset>2</offset><sound tempo="120"/></direction>`;
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${tempo(60)}${note('C', 4, 4)}${later}${note('D', 4, 4)}</measure>`),
+      'test',
+    );
+    expect(secondsAtBeat(s, 2)).toBeCloseTo(2);
+    expect(secondsAtBeat(s, 3)).toBeCloseTo(3); // still slow up to beat 3
+    expect(secondsAtBeat(s, 4)).toBeCloseTo(3.5);
+    expect(s.tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
+      [0, 60],
+      [3, 120],
+    ]);
+  });
+
+  it('joins a piano written as two one-staff parts', () => {
+    // The right hand counts in halves of a quarter, the left in quarters of one.
+    const file = bytes(`<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Piano RH</part-name></score-part>
+    <score-part id="P2"><part-name>Piano LH</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>2</divisions><key><fifths>0</fifths></key><time><beats>2</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+      ${tempo(60)}
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type></note>
+    </measure>
+    <measure number="2">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>half</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes><divisions>4</divisions><key><fifths>0</fifths></key><time><beats>2</beats><beat-type>4</beat-type></time><clef><sign>F</sign><line>4</line></clef></attributes>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>8</duration><voice>1</voice><type>half</type></note>
+    </measure>
+    <measure number="2">
+      <note><pitch><step>G</step><octave>2</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type><dot/></note>
+      <note><pitch><step>B</step><octave>2</octave></pitch><duration>2</duration><voice>1</voice><type>eighth</type></note>
+    </measure>
+  </part>
+</score-partwise>`);
+    const s = parser.parse(file, 'test');
+    const played = (hand: string) => s.notes.filter((n) => n.hand === hand).map((n) => [n.pitch, n.beat, n.beats]);
+    expect(played('right')).toEqual([
+      [pitch('Mi', 5), 0, 1],
+      [pitch('Re', 5), 1, 1],
+      [pitch('Do', 5), 2, 2],
+    ]);
+    expect(played('left')).toEqual([
+      [pitch('Do', 3), 0, 2],
+      [pitch('Sol', 2), 2, 1.5],
+      [pitch('Si', 2), 3.5, 0.5],
+    ]);
+    expect(s.bars).toHaveLength(2);
+    // Drawn on the lower staff, in the bass clef.
+    const lower = layoutNotation(s).chords.filter((c) => c.staff === 'bass');
+    expect(lower.map((c) => c.beat)).toEqual([0, 2, 3.5]);
+  });
+
   it('marks a fermata in the time map as held', () => {
     const s = parser.parse(
       score(`<measure number="1">${attributes()}${tempo(60)}${note('C', 4, 4, { extra: '<type>half</type><notations><fermata/></notations>' })}${note('D', 4, 4)}</measure>`),

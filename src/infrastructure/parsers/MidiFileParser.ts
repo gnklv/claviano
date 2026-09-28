@@ -219,6 +219,9 @@ function readMidi(reader: ByteReader): MidiData {
   return data;
 }
 
+/** Data bytes after a system common or real-time status (the rest have none). */
+const SYSTEM_MESSAGE_DATA: Record<number, number> = { 0xf1: 1, 0xf2: 2, 0xf3: 1 };
+
 function readTrack(reader: ByteReader, end: number, track: number, data: MidiData): void {
   let tick = 0;
   let runningStatus = 0;
@@ -268,6 +271,13 @@ function readTrack(reader: ByteReader, end: number, track: number, data: MidiDat
 
     if (status === 0xf0 || status === 0xf7) {
       reader.skip(reader.vlq());
+      continue;
+    }
+
+    // Other system messages don't belong in a file, but some writers leave them in. They carry
+    // a fixed number of data bytes and are not channel messages: running status stays as it was.
+    if (status > 0xf0) {
+      reader.skip(SYSTEM_MESSAGE_DATA[status] ?? 0);
       continue;
     }
 

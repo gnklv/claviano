@@ -86,6 +86,25 @@ describe('MidiFileParser', () => {
     ]);
   });
 
+  it('skips stray system messages without losing running status', () => {
+    const file = midiFile(96, [
+      track([
+        [0, 0x90, 60, 80],
+        [0, 0xf8], // timing clock: no data
+        [0, 0xf2, 0x10, 0x20], // song position: two data bytes
+        [0, 0xf3, 5], // song select: one
+        [96, 60, 0], // still note-on running status
+        [0, 62, 80],
+        [96, 62, 0],
+      ]),
+    ]);
+    const score = parser.parse(file, 'test');
+    expect(score.notes.map((n) => [n.pitch, n.start, n.duration])).toEqual([
+      [60, 0, 0.5],
+      [62, 0.5, 0.5],
+    ]);
+  });
+
   it('applies tempo changes in the middle of the piece', () => {
     const file = midiFile(480, [
       track([

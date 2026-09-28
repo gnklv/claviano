@@ -6,6 +6,7 @@ import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, W
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
 import { lastAtOrBefore } from '../../domain/search';
+import { pianoPart } from './pianoParts';
 import { levelAt, MARK_LEVELS, withHairpinLevels, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
 import {
   createScore,
@@ -23,7 +24,8 @@ import {
  * become one), and the notes as printed for the staff (value, tuplet, accidental, stem, beams).
  *
  * Only uncompressed files (.musicxml, .xml); compressed .mxl archives are not read.
- * Not yet: grace notes (skipped), more than one part (the first one is read).
+ * Not yet: grace notes (skipped), more than one part (the first one is read; a piano written as
+ * two one-staff parts is joined into one, see pianoParts).
  */
 
 const DEFAULT_TEMPO = 120;
@@ -105,7 +107,7 @@ export class MusicXmlParser implements ScoreParser {
     }
     if (root.nodeName !== 'score-partwise') throw new InvalidMusicXmlError('Not a MusicXML score');
 
-    const part = root.querySelector(':scope > part');
+    const part = pianoPart(root);
     if (!part) throw new InvalidMusicXmlError('The score has no parts');
     return readPart(part, workTitle(root) ?? title);
   }
@@ -277,17 +279,19 @@ function readPart(part: Element, title: string): Score {
         case 'direction':
         case 'sound': {
           const sound = element.nodeName === 'sound' ? element : element.querySelector(':scope > sound');
+          // A direction may sit before the note it belongs to, shifted by its <offset>; a <sound>
+          // may carry one of its own.
+          const offset = element.nodeName === 'direction' ? (childNumber(element, 'offset') ?? 0) : 0;
+          const soundOffset = (sound && childNumber(sound, 'offset')) ?? offset;
           const tempo = Number(sound?.getAttribute('tempo'));
-          if (tempo > 0) measure.tempos.push({ beat: beatAt(cursor), bpm: tempo });
-          const mark = element.nodeName === 'direction' ? metronomeMark(element, beatAt(cursor)) : null;
+          if (tempo > 0) measure.tempos.push({ beat: beatAt(cursor + soundOffset), bpm: tempo });
+          const mark = element.nodeName === 'direction' ? metronomeMark(element, beatAt(cursor + offset)) : null;
           if (mark) tempoMarks.push({ ...mark, printed: true });
           else if (tempo > 0) {
-            tempoMarks.push({ beat: beatAt(cursor), unit: { value: 'quarter', dots: 0 }, perMinute: Math.round(tempo), printed: false });
+            tempoMarks.push({ beat: beatAt(cursor + soundOffset), unit: { value: 'quarter', dots: 0 }, perMinute: Math.round(tempo), printed: false });
           }
           const level = Number(sound?.getAttribute('dynamics'));
           readNavigation(element, sound, nav);
-          // A direction may sit before the note it belongs to, shifted by its <offset>.
-          const offset = element.nodeName === 'direction' ? (childNumber(element, 'offset') ?? 0) : 0;
           const pedal = readPedal(element, sound, beatAt(cursor + offset), pedalState);
           measure.pedal.push(...pedal.events);
           pedalMarks.push(...pedal.marks);
