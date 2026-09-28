@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+import { layoutNotation } from '../src/infrastructure/render/notationLayout';
 import { isHeldAt, secondsAtBeat } from '../src/domain/score';
 
 const parser = new MusicXmlParser();
@@ -112,6 +113,25 @@ describe('MusicXmlParser', () => {
     expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 7), pitch('Do', 5)]);
     expect(s.written!.map((n) => n.pitch.octave)).toEqual([6, 5]);
     expect(s.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
+  });
+
+  it('keeps a beamed group together when its voice crosses to the other staff', () => {
+    // As in the Moonlight Sonata: each triplet starts in the bass and goes on in the treble, one voice.
+    const eighth = (step: string, octave: number, staff: number, beam: string, stem: string) =>
+      note(step, octave, 1, { staff, extra: `<voice>1</voice><type>eighth</type><stem>${stem}</stem><beam number="1">${beam}</beam>` });
+    const group = eighth('G', 3, 2, 'begin', 'up') + eighth('E', 4, 1, 'continue', 'down') + eighth('C', 4, 1, 'end', 'down');
+    const s = parser.parse(
+      score(`<measure number="1">${attributes(2, 0, 3)}${group}${group}${group}</measure>
+        <measure number="2">${group}${group}${group}</measure>`),
+      'test',
+    );
+    const layout = layoutNotation(s);
+    expect(layout.beams).toHaveLength(6);
+    for (const beam of layout.beams) {
+      const chords = beam.chords.map((i) => layout.chords[i]);
+      expect(chords.map((c) => c.staff)).toEqual(['bass', 'treble', 'treble']);
+      expect(new Set(chords.map((c) => c.bar)).size).toBe(1); // never across a bar line
+    }
   });
 
   it('plays chord notes together', () => {

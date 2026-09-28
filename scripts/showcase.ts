@@ -195,12 +195,13 @@ const measures: string[] = [
     ${note('C3', H, { type: 'half', staff: 2 })}
   </measure>`,
 
-  // 6: chords and two voices on one staff (stems up and down), a rest moved aside, a whole-bar rest.
+  // 6: chords and two voices on one staff (stems up and down), a rest moved aside, a whole-bar rest;
+  // where the voices meet a second apart (Re5 over Do5), the up-stem voice moves right.
   `<measure number="6">
     ${direction('Voices', '')}
     ${chord(['E5', 'G5', 'C6'], H, { type: 'half', stem: 'up' })}${chord(['D5', 'F5', 'B5'], H, { type: 'half', stem: 'up' })}
     ${backup(W)}
-    ${note('G4', Q, { type: 'quarter', voice: 2, stem: 'down' })}${rest(Q, { type: 'quarter', voice: 2 })}${note('A4', H, { type: 'half', voice: 2, stem: 'down' })}
+    ${note('G4', Q, { type: 'quarter', voice: 2, stem: 'down' })}${rest(Q, { type: 'quarter', voice: 2 })}${note('C5', H, { type: 'half', voice: 2, stem: 'down' })}
     ${backup(W)}${rest(W, { staff: 2, measure: true })}
   </measure>`,
 

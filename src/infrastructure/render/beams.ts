@@ -107,3 +107,70 @@ export function beamLine(
   line = { ...line, y0: line.y0 + direction * shortfall };
   return line;
 }
+
+/**
+ * A beam whose stems point both ways, as when a group runs across both staves (the Moonlight
+ * Sonata's triplets start in the bass and go on in the treble): up-stems from the notes below,
+ * down-stems from the notes above, meeting a beam in the gap between them. The beam follows the
+ * melody down or up, half as steeply (or a quarter), and lies in the middle of the room it has
+ * there (every stem at least `minStem` long); where a slant leaves no such room, it lies level.
+ */
+export function kneeBeamLine(points: readonly (StemPoint & { readonly stemUp: boolean })[], minStem: number): BeamLine {
+  const first = points[0];
+  const last = points[points.length - 1];
+  const melody = last.x > first.x ? (last.noteY - first.noteY) / (last.x - first.x) : 0;
+  for (const slope of [melody / 2, melody / 4, 0]) {
+    // For this slope, how high and how low the beam may start (y grows downwards).
+    const along = (p: StemPoint) => slope * (p.x - first.x);
+    const lowest = Math.max(...points.filter((p) => !p.stemUp).map((p) => p.noteY + minStem - along(p)));
+    const highest = Math.min(...points.filter((p) => p.stemUp).map((p) => p.noteY - minStem - along(p)));
+    if (lowest <= highest || slope === 0) return { x0: first.x, y0: (lowest + highest) / 2, slope };
+  }
+  return { x0: first.x, y0: first.noteY, slope: 0 }; // not reached: the level try always returns
+}
+
+/** A notehead of another voice, in pixels: where it is and how far up and down it reaches. */
+export interface BeamObstacle {
+  readonly x: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
+/**
+ * Moves a beam off the noteheads of another voice on its staff. Two voices beamed at once (stems
+ * up in one, down in the other) easily put a beam across the other voice's notes. The beam first
+ * moves towards its own notes, as far as its stems stay at least `shortestStem` long; if that is
+ * not enough, it moves away, past the other notes. `band` is the beam's height with all its levels.
+ */
+export function avoidNotes(
+  line: BeamLine,
+  points: readonly StemPoint[],
+  stemUp: boolean,
+  obstacles: readonly BeamObstacle[],
+  { band, clearance, shortestStem }: { band: number; clearance: number; shortestStem: number },
+): BeamLine {
+  // The beam's extent at x: from its outer edge (the line) inwards, towards the notes.
+  const extent = (l: BeamLine, x: number) => (stemUp ? [beamY(l, x), beamY(l, x) + band] : [beamY(l, x) - band, beamY(l, x)]);
+  const hits = obstacles.filter((o) => {
+    const [top, bottom] = extent(line, o.x);
+    return o.bottom + clearance > top && o.top - clearance < bottom;
+  });
+  if (hits.length === 0) return line;
+
+  const moved = (shift: number): BeamLine => ({ ...line, y0: line.y0 + shift });
+  const stemsLongEnough = (l: BeamLine) =>
+    points.every((p) => (stemUp ? p.noteY - beamY(l, p.x) : beamY(l, p.x) - p.noteY) >= shortestStem);
+
+  // Towards the notes: the beam's inner edge ends up clear of the other voice.
+  const inward = stemUp
+    ? Math.max(...hits.map((o) => o.bottom + clearance - beamY(line, o.x)))
+    : Math.min(...hits.map((o) => o.top - clearance - beamY(line, o.x)));
+  const closer = moved(inward);
+  if (stemsLongEnough(closer)) return closer;
+
+  // Away from the notes, past the other voice.
+  const outward = stemUp
+    ? Math.min(...hits.map((o) => o.top - clearance - band - beamY(line, o.x)))
+    : Math.max(...hits.map((o) => o.bottom + clearance + band - beamY(line, o.x)));
+  return moved(outward);
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { NoteValue } from '../src/domain/notation/noteValue';
 import type { TimeSignature } from '../src/domain/score';
-import { beamLine, beamY, groupBeams, type BeamCandidate } from '../src/infrastructure/render/beams';
+import { avoidNotes, beamLine, beamY, groupBeams, kneeBeamLine, type BeamCandidate } from '../src/infrastructure/render/beams';
 
 const FOUR_FOUR: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
 const THREE_EIGHT: TimeSignature = { beat: 0, numerator: 3, denominator: 8 };
@@ -75,5 +75,59 @@ describe('beamLine', () => {
   it('hangs below the notes when stems go down', () => {
     const line = beamLine([{ x: 0, noteY: 40 }, { x: 50, noteY: 40 }], false, sizes);
     expect(line.y0).toBe(75);
+  });
+});
+
+describe('kneeBeamLine', () => {
+  it('follows the melody down, half as steeply, in the middle of the gap', () => {
+    // Treble notes at y 40 and 50 (stems down) going down to a bass note at y 100 (stem up).
+    const points = [
+      { x: 0, noteY: 40, stemUp: false },
+      { x: 10, noteY: 50, stemUp: false },
+      { x: 20, noteY: 100, stemUp: true },
+    ];
+    const line = kneeBeamLine(points, 10);
+    expect(line.slope).toBe(1.5); // the melody falls 60 over 20: 3, halved
+    // Room: at least 60 under the second note, at most 90 over the bass note — the middle of it.
+    expect(beamY(line, 10) - 50).toBeGreaterThanOrEqual(10);
+    expect(100 - beamY(line, 20)).toBeGreaterThanOrEqual(10);
+  });
+
+  it('lies level between the notes when a slant leaves no room', () => {
+    // A bass note at y 100 (stem up), then down-stem notes at 80 and 40.
+    const line = kneeBeamLine(
+      [
+        { x: 0, noteY: 100, stemUp: true },
+        { x: 10, noteY: 80, stemUp: false },
+        { x: 20, noteY: 40, stemUp: false },
+      ],
+      10,
+    );
+    expect(line.slope).toBe(0);
+    expect(line.y0).toBe(90); // under the note at 80, over the bass note at 100
+  });
+});
+
+describe('avoidNotes', () => {
+  // An up-stem beam over notes at y 100, its outer edge at y 60 (stems of 40), 6 thick.
+  const line = { x0: 0, y0: 60, slope: 0 };
+  const points = [
+    { x: 0, noteY: 100 },
+    { x: 20, noteY: 100 },
+  ];
+  const options = { band: 6, clearance: 2, shortestStem: 20 };
+
+  it('leaves a beam alone when no other note is in its way', () => {
+    expect(avoidNotes(line, points, true, [{ x: 10, top: 20, bottom: 30 }], options)).toBe(line);
+  });
+
+  it('moves towards its own notes, shortening the stems, when that clears the other voice', () => {
+    // A head from 55 to 65 sits on the beam: move down until the beam starts at 67.
+    expect(avoidNotes(line, points, true, [{ x: 10, top: 55, bottom: 65 }], options).y0).toBe(67);
+  });
+
+  it('moves past the other voice when the stems would get too short', () => {
+    // Clearing a head from 64 to 82 below would leave 16-long stems: go above it instead.
+    expect(avoidNotes(line, points, true, [{ x: 10, top: 64, bottom: 82 }], options).y0).toBe(56);
   });
 });

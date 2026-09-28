@@ -80,6 +80,12 @@ describe('showcase score', () => {
     expect(wholeBar).toBeDefined();
   });
 
+  it('moves the up-stem voice right where the voices of bar 6 meet a second apart', () => {
+    const upper = chordsIn(6).filter((c) => c.stemUp);
+    expect(upper.map((c) => !!c.voiceShift)).toEqual([false, true]); // Re5 (with Fa5 Si5) over Do5
+    expect(chordsIn(6).filter((c) => !c.stemUp).every((c) => !c.voiceShift)).toBe(true);
+  });
+
   it('has rests of every value', () => {
     const values = new Set(layout.rests.map((r) => r.duration.value));
     expect(values).toEqual(new Set(['whole', 'half', 'quarter', 'eighth', 'sixteenth', 'thirtySecond']));

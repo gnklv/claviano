@@ -38,6 +38,11 @@ export interface StaffChord {
    * "L.H." / "R.H." (л. р. / п. р.) so the reader knows which hand plays it.
    */
   readonly handMark: boolean;
+  /**
+   * Moved right by a notehead's width: the up-stem voice where two voices on one staff meet a
+   * second apart, so their heads do not sit on each other.
+   */
+  readonly voiceShift?: boolean;
   /** Sorted from the top of the staff down. */
   readonly notes: readonly StaffNote[];
   readonly duration: WrittenDuration;
@@ -182,7 +187,97 @@ export function layoutNotation(score: Score): NotationLayout {
   const layout =
     score.written && score.written.length > 0 ? layoutWritten(score, score.written, score.rests) : inferNotation(score);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
-  return { ...layout, chords: layout.chords.map(withSeconds) };
+  return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
+}
+
+/**
+ * Two voices on one staff at once should point their stems apart: the upper one up, the lower one
+ * down. Files sometimes have it the other way round, typically where a voice crosses in from the
+ * other staff (the Moonlight Sonata's triplets coming down into the bass over a low G♯); then the
+ * stems of both voices cross each other and their beams. Where a stem-down voice stands wholly
+ * above a stem-up voice (every note of it higher), side by side on the tape, both turn round, a
+ * beamed group as a whole.
+ */
+export function untangleVoices(chords: readonly StaffChord[], beams: readonly Beam[]): { chords: StaffChord[]; beams: Beam[] } {
+  // A beamed group moves as one; other chords on their own. Whole notes have no stems to cross,
+  // and a beam across both staves already points its stems apart.
+  const units: { chords: number[]; beam: number | null }[] = [
+    ...beams.map((beam, index) => ({ chords: [...beam.chords], beam: index })),
+    ...chords.flatMap((chord, index) => (chord.beam === null ? [{ chords: [index], beam: null }] : [])),
+  ];
+  const described = units
+    .map((unit) => {
+      const members = unit.chords.map((i) => chords[i]);
+      const steps = members.flatMap((c) => c.notes.map((n) => n.step));
+      return {
+        ...unit,
+        staff: members[0].staff,
+        stemUp: members[0].stemUp,
+        // Where it is drawn: from its first chord to its last (stems cross only side by side).
+        first: Math.min(...members.map((c) => c.beat)),
+        last: Math.max(...members.map((c) => c.beat)),
+        // Steps grow downwards: `top` is the highest note, `bottom` the lowest.
+        top: Math.min(...steps),
+        bottom: Math.max(...steps),
+        mixed: members.some((c) => c.stemUp !== members[0].stemUp || c.staff !== members[0].staff),
+        stemless: members.every((c) => c.duration.value === 'whole'),
+      };
+    })
+    .filter((unit) => !unit.mixed && !unit.stemless);
+
+  const flip = new Set<(typeof described)[number]>();
+  for (const down of described) {
+    if (down.stemUp) continue;
+    for (const up of described) {
+      if (!up.stemUp || up.staff !== down.staff) continue;
+      // Drawn over the same stretch (one after the other is how a single voice turns its stems).
+      const together = down.first <= up.last && up.first <= down.last;
+      // Only a voice wholly above the other: a melody that dips to its accompaniment's note keeps its stems.
+      if (together && down.bottom < up.top) {
+        flip.add(down);
+        flip.add(up);
+      }
+    }
+  }
+  if (flip.size === 0) return { chords: [...chords], beams: [...beams] };
+
+  const result = [...chords];
+  const resultBeams = [...beams];
+  for (const unit of flip) {
+    for (const i of unit.chords) result[i] = { ...result[i], stemUp: !unit.stemUp };
+    if (unit.beam !== null) resultBeams[unit.beam] = { ...resultBeams[unit.beam], stemUp: !unit.stemUp };
+  }
+  return { chords: result, beams: resultBeams };
+}
+
+/**
+ * Two voices on one staff starting together: where a note of one is a second from a note of the
+ * other, their heads would sit on each other, so one voice moves right by a head. With stems apart
+ * it is the up-stem voice; with stems the same way, the voice with the upper note of the second
+ * (as the upper note of a second in a chord goes right).
+ */
+export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
+  const result = [...chords];
+  const byPlace = new Map<string, number[]>();
+  chords.forEach((chord, i) => {
+    const key = `${chord.staff}|${chord.beat}`;
+    byPlace.set(key, [...(byPlace.get(key) ?? []), i]);
+  });
+  for (const indices of byPlace.values()) {
+    for (const a of indices) {
+      for (const b of indices) {
+        if (a >= b) continue;
+        // The second between them, if any: the upper note's chord and the lower one's.
+        const pair = chords[a].notes.flatMap((x) => chords[b].notes.filter((y) => Math.abs(x.step - y.step) === 1).map((y) => [x, y]));
+        if (pair.length === 0) continue;
+        const [x, y] = pair[0];
+        const upper = x.step < y.step ? a : b; // steps grow downwards
+        const moved = chords[a].stemUp !== chords[b].stemUp ? (chords[a].stemUp ? a : b) : upper;
+        result[moved] = { ...result[moved], voiceShift: true };
+      }
+    }
+  }
+  return result;
 }
 
 /**
@@ -304,7 +399,8 @@ function inferNotation(score: Score): NotationLayout {
       octaves,
     }),
   );
-  return { chords: beamed, octaveShifts, beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+  const untangled = untangleVoices(beamed, beams);
+  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
 }
 
 /**
@@ -430,7 +526,10 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       start: Math.min(...group.map((n) => n.start)),
       end: Math.max(...group.map((n) => n.end)),
     };
-    return { chord, group, voice: `${first.staff}|${first.voice}` };
+    // A voice is its number alone: files number the voices of both staves apart (MuseScore 1–4 and
+    // 5–8), and a voice may cross to the other staff within one beam, as the triplets of the
+    // Moonlight Sonata's last bars do.
+    return { chord, group, voice: first.voice };
   });
   entries.sort((a, b) => a.chord.beat - b.chord.beat || a.chord.start - b.chord.start);
   const chords = entries.map((entry) => entry.chord);
@@ -478,8 +577,12 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     }
     closeBeam();
   }
+  // Stems as written, unless two voices cross their stems (see untangleVoices); marks, ties and
+  // slurs then follow the stems as drawn.
+  const untangled = untangleVoices(chords, beams);
+  const drawn = untangled.chords;
   return {
-    chords,
+    chords: drawn,
     octaveShifts: score.octaveShifts.map(
       (shift): StaffOctaveShift => ({
         staff: shift.staff >= 2 ? 'bass' : 'treble',
@@ -488,12 +591,12 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
         octaves: shift.octaves,
       }),
     ),
-    beams,
-    tuplets,
+    beams: untangled.beams,
+    tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]].stemUp })),
     rests: layoutRests(score, rests, written),
-    ties: layoutTies(entries.map((entry) => entry.group), chords),
-    marks: layoutMarks(score, entries.map((entry) => entry.group), chords, written, rests),
-    slurs: layoutSlurs(entries.map((entry) => entry.group), chords),
+    ties: layoutTies(entries.map((entry) => entry.group), drawn),
+    marks: layoutMarks(score, entries.map((entry) => entry.group), drawn, written, rests),
+    slurs: layoutSlurs(entries.map((entry) => entry.group), drawn),
   };
 }
 

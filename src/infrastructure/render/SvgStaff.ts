@@ -13,7 +13,7 @@ import {
 import type { Hand } from '../../domain/note';
 import { flagCount, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental } from '../../domain/notation/spelling';
-import { beamLine, beamY } from './beams';
+import { avoidNotes, beamLine, beamY, kneeBeamLine, type BeamObstacle } from './beams';
 import { approach } from './keyboardCamera';
 import { arc, slur } from './curves';
 import {
@@ -96,6 +96,14 @@ const BEAM_STUB = 1.2;
 /** A beam tilts at most this much from end to end, and every stem keeps at least MIN_BEAMED_STEM. */
 const BEAM_MAX_RISE = 1;
 const MIN_BEAMED_STEM = 2.5;
+/**
+ * A beam keeps this far from another voice's notes, and may shorten its stems down to
+ * SHORTEST_BEAMED_STEM to do so before it moves past them instead.
+ */
+const BEAM_CLEARANCE = 0.4;
+const SHORTEST_BEAMED_STEM = 2;
+/** Stems of a beam across both staves may be this short: the gap between the staves is narrow. */
+const SHORTEST_KNEED_STEM = 1.2;
 const DOT_OFFSET = 0.35;
 /** The cursor stands at this share of the tape's width, leaving room to read ahead. */
 const CURSOR_AT = 0.3;
@@ -197,6 +205,17 @@ const JUMP_THRESHOLD_SPACES = 2;
  */
 const MANUAL_HOLD_SECONDS = 3;
 const SEEK_THRESHOLD_SECONDS = 0.5;
+
+/**
+ * Bar numbers: this far right of the bar line and over the top line, clear of notes by this much;
+ * and how wide two digits are, in staff spaces.
+ */
+const BAR_NUMBER_INSET = 0.4;
+const BAR_NUMBER_RISE = 1.2;
+const BAR_NUMBER_CLEARANCE = 0.6;
+const BAR_NUMBER_WIDTH = 1.6;
+/** A volta bracket's line stays this far above a bar number's baseline (its label hangs below the line). */
+const VOLTA_OVER_NUMBER = 2.6;
 
 /**
  * Room for repeat signs, in staff spaces: the ‖: and :‖ glyphs are REPEAT_GLYPH_WIDTH wide and
@@ -354,6 +373,8 @@ export class SvgStaff {
   private marks: StaffMark[] = [];
   private slurs: StaffSlur[] = [];
   private octaveShifts: StaffOctaveShift[] = [];
+  /** Where each bar number was drawn (its baseline), for volta brackets to clear. */
+  private barNumberY: number[] = [];
   /**
    * Where octave brackets were drawn (their baselines): 8va over the treble staff, for tempo marks
    * to clear, and 8vb under the bass staff, for the pedal marks to clear.
@@ -804,18 +825,8 @@ export class SvgStaff {
     score.writtenBarBeats.forEach((_, index) => {
       const x = this.barLineX(index);
       this.strip.append(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
-      const number = svg('text', {
-        x: x + space * 0.4,
-        y: top - space * 1.2,
-        fill: COLORS.barNumber,
-        'font-size': space * 1.1,
-        'font-family': 'system-ui, sans-serif',
-      });
-      number.textContent = String(writtenBarNumber(score, index));
-      this.strip.append(number);
     });
 
-    this.strip.append(...this.drawNavigation(score.navigation));
     this.strip.append(...this.drawSignatureChanges(score));
 
     // Final bar line: a thin and a thick one.
@@ -862,6 +873,8 @@ export class SvgStaff {
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
     for (const rest of this.rests) restLayer.append(...this.drawRest(rest));
+    // Bar numbers clear the notes, and volta brackets clear the bar numbers.
+    restLayer.append(...this.drawBarNumbers(score, stemEnds), ...this.drawNavigation(score.navigation));
     // Octave brackets first: the tempo marks go over the 8va ones, the pedal under the 8vb ones.
     this.octaveBrackets = [];
     for (const shift of this.octaveShifts) restLayer.append(...this.drawOctaveShift(shift, stemEnds));
@@ -878,7 +891,7 @@ export class SvgStaff {
     const top = chord.staff === 'treble' ? this.trebleTop() : this.bassTop();
     const yOf = (step: number) => top + (step * space) / 2;
     const headWidth = HEAD_WIDTH[chord.duration.value] * space;
-    const left = this.px(chord.x) - headWidth / 2;
+    const left = this.px(chord.x) - headWidth / 2 + (chord.voiceShift ? headWidth : 0);
     const stemWidth = STEM_WIDTH * space;
     return {
       yOf,
@@ -930,8 +943,12 @@ export class SvgStaff {
     for (const note of chord.notes) {
       const y = yOf(note.step);
       group.append(this.noteGlyph(NOTEHEAD[value], note.displaced ? left + shift : left, y));
-      // Accidentals keep clear of every head, dots follow the rightmost one.
-      if (note.accidental) group.append(this.noteGlyph(ACCIDENTAL_GLYPH[note.accidental], headsLeft - ACCIDENTAL_OFFSET * space, y));
+      // Accidentals keep clear of every head (a voice moved aside for a second keeps them left of the
+      // other voice's head too); dots follow the rightmost head.
+      if (note.accidental) {
+        const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0);
+        group.append(this.noteGlyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - ACCIDENTAL_OFFSET * space, y));
+      }
       // A dot goes in a space: for a note on a line, in the space just above.
       if (dots) {
         const dotStep = note.step % 2 === 0 ? note.step - 1 : note.step;
@@ -979,15 +996,40 @@ export class SvgStaff {
     const chords = beam.chords.map((index) => this.chords[index]);
     const geometry = chords.map((chord) => this.chordGeometry(chord));
     const levels = Math.max(...chords.map((chord) => flagCount(chord.duration.value)));
-    const line = beamLine(
-      geometry.map((g) => ({ x: g.stemX, noteY: beam.stemUp ? g.highest : g.lowest })),
-      beam.stemUp,
-      {
-        stem: (STEM_LENGTH + Math.max(0, levels - 2) * BEAM_SPACING) * space,
-        minStem: (MIN_BEAMED_STEM + (levels - 1) * BEAM_SPACING) * space,
-        maxRise: BEAM_MAX_RISE * space,
-      },
-    );
+    const minStem = (MIN_BEAMED_STEM + (levels - 1) * BEAM_SPACING) * space;
+    // Stems both ways (a group across both staves): a level beam between the notes.
+    const kneed = chords.some((chord) => chord.stemUp !== beam.stemUp);
+    const plain = kneed
+      ? kneeBeamLine(
+          chords.map((chord, i) => {
+            const g = geometry[i];
+            return { x: g.stemX, noteY: chord.stemUp ? g.highest : g.lowest, stemUp: chord.stemUp };
+          }),
+          SHORTEST_KNEED_STEM * space,
+        )
+      : beamLine(
+          geometry.map((g) => ({ x: g.stemX, noteY: beam.stemUp ? g.highest : g.lowest })),
+          beam.stemUp,
+          {
+            stem: (STEM_LENGTH + Math.max(0, levels - 2) * BEAM_SPACING) * space,
+            minStem,
+            maxRise: BEAM_MAX_RISE * space,
+          },
+        );
+    // Clear of another voice's notes under the beam (a beam across both staves has none in its way).
+    const line = kneed
+      ? plain
+      : avoidNotes(
+          plain,
+          geometry.map((g) => ({ x: g.stemX, noteY: beam.stemUp ? g.highest : g.lowest })),
+          beam.stemUp,
+          this.otherVoiceHeads(beam, geometry),
+          {
+            band: (BEAM_THICKNESS + (levels - 1) * BEAM_SPACING) * space,
+            clearance: BEAM_CLEARANCE * space,
+            shortestStem: SHORTEST_BEAMED_STEM * space,
+          },
+        );
     beam.chords.forEach((index, i) => stemEnds.set(index, beamY(line, geometry[i].stemX)));
 
     // Extra beams stack towards the notes: down under an up-stem beam, up over a down-stem one.
@@ -1026,6 +1068,26 @@ export class SvgStaff {
       }
     }
     return shapes;
+  }
+
+  /** Noteheads of the other chords on a beam's staff, within its reach: what the beam must keep off. */
+  private otherVoiceHeads(beam: Beam, geometry: ReturnType<SvgStaff['chordGeometry']>[]): BeamObstacle[] {
+    const { space } = this;
+    const staff = this.chords[beam.chords[0]].staff;
+    const left = Math.min(...geometry.map((g) => g.left)) - space;
+    const right = Math.max(...geometry.map((g) => g.left + g.headWidth)) + space;
+    const own = new Set(beam.chords);
+    const heads: BeamObstacle[] = [];
+    this.chords.forEach((chord, index) => {
+      if (own.has(index) || chord.staff !== staff) return;
+      const g = this.chordGeometry(chord);
+      if (g.left + g.headWidth < left || g.left > right) return;
+      for (const note of chord.notes) {
+        const y = g.yOf(note.step);
+        heads.push({ x: g.left + g.headWidth / 2, top: y - space / 2, bottom: y + space / 2 });
+      }
+    });
+    return heads;
   }
 
   /**
@@ -1207,7 +1269,9 @@ export class SvgStaff {
       if (nav.endingLabel) {
         let last = i;
         while (last + 1 < navigation.length && navigation[last + 1].ending && !navigation[last + 1].endingLabel) last++;
-        const y = top - 4.6 * space;
+        // Over the bar numbers under it (they may have risen over high notes).
+        const numbers = this.barNumberY.slice(i, last + 1);
+        const y = Math.min(top - 4.6 * space, ...numbers.map((numberY) => numberY - VOLTA_OVER_NUMBER * space));
         const hook = 1.6 * space;
         const left = barStart(i) + 0.3 * space;
         const right = barEnd(last) - 0.3 * space;
@@ -1310,6 +1374,31 @@ export class SvgStaff {
     return shapes;
   }
 
+
+  /**
+   * Bar numbers over the treble staff, just after each bar line; raised over a high note or stem
+   * at the start of the bar, so they never sit on it.
+   */
+  private drawBarNumbers(score: Score, stemEnds: Map<number, number>): SVGElement[] {
+    const { space } = this;
+    const top = this.trebleTop();
+    this.barNumberY = [];
+    return score.writtenBarBeats.map((_, index) => {
+      const x = this.barLineX(index) + BAR_NUMBER_INSET * space;
+      const ink = this.inkExtent('treble', x, x + BAR_NUMBER_WIDTH * space, stemEnds);
+      const y = Math.min(top - BAR_NUMBER_RISE * space, ink.top - BAR_NUMBER_CLEARANCE * space);
+      this.barNumberY.push(y);
+      const number = svg('text', {
+        x,
+        y,
+        fill: COLORS.barNumber,
+        'font-size': space * 1.1,
+        'font-family': 'system-ui, sans-serif',
+      });
+      number.textContent = String(writtenBarNumber(score, index));
+      return number;
+    });
+  }
 
   /**
    * An octave shift bracket: "8va" and a dashed line clear of the notes under it, ending with a

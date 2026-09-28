@@ -5,7 +5,15 @@ import { createScore, type KeySignature } from '../src/domain/score';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
-import { layoutNotation, ledgerSteps, staffFor, withSeconds, type StaffChord } from '../src/infrastructure/render/notationLayout';
+import {
+  layoutNotation,
+  ledgerSteps,
+  shiftVoicesApart,
+  staffFor,
+  untangleVoices,
+  withSeconds,
+  type StaffChord,
+} from '../src/infrastructure/render/notationLayout';
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
 
@@ -448,5 +456,95 @@ describe('MIDI note values', () => {
 
   it('stops at the bar line', () => {
     expect(values([key(pitch('Do', 5), 3, 0.3), key(pitch('Re', 5), 5, 1)])).toEqual(['3:quarter', '5:quarter']);
+  });
+});
+
+describe('shiftVoicesApart', () => {
+  const chord = (steps: number[], stemUp: boolean, beat = 0) =>
+    ({
+      staff: 'treble',
+      hand: 'right',
+      x: 0,
+      beat,
+      beats: 1,
+      bar: 0,
+      beam: null,
+      handMark: false,
+      notes: steps.map((step) => ({ step, accidental: null })),
+      duration: { value: 'quarter', dots: 0 },
+      stemUp,
+      ledgerSteps: [],
+      start: beat,
+      end: beat + 1,
+    }) satisfies StaffChord;
+
+  it('moves the up-stem voice right when the voices meet a second apart', () => {
+    const shifted = shiftVoicesApart([chord([4], true), chord([5], false)]);
+    expect(shifted.map((c) => !!c.voiceShift)).toEqual([true, false]);
+  });
+
+  it('leaves voices a third apart, or not starting together, where they are', () => {
+    expect(shiftVoicesApart([chord([4], true), chord([6], false)]).some((c) => c.voiceShift)).toBe(false);
+    expect(shiftVoicesApart([chord([4], true), chord([5], false, 1)]).some((c) => c.voiceShift)).toBe(false);
+  });
+});
+
+describe('untangleVoices', () => {
+  const chord = (steps: number[], stemUp: boolean, beat: number, beam: number | null = null) =>
+    ({
+      staff: 'bass',
+      hand: 'left',
+      x: 0,
+      beat,
+      beats: 1 / 3,
+      bar: 0,
+      beam,
+      handMark: false,
+      notes: steps.map((step) => ({ step, accidental: null })),
+      duration: { value: 'eighth', dots: 0 },
+      stemUp,
+      ledgerSteps: [],
+      start: beat,
+      end: beat + 1 / 3,
+    }) satisfies StaffChord;
+
+  it('turns round a stem-down group standing wholly above a stem-up one, and that one too', () => {
+    // As in the Moonlight Sonata, bar 63: a triplet high in the bass (stems down) over a low G♯ (stems up).
+    const chords = [chord([0], false, 3, 0), chord([1], false, 3 + 1 / 3, 0), chord([2], false, 3 + 2 / 3, 0), chord([8], true, 3)];
+    const beams = [{ chords: [0, 1, 2], stemUp: false }];
+    const result = untangleVoices(chords, beams);
+    expect(result.chords.map((c) => c.stemUp)).toEqual([true, true, true, false]);
+    expect(result.beams[0].stemUp).toBe(true);
+  });
+
+  it('keeps the stems of a melody that dips to its accompaniment, and of groups one after the other', () => {
+    const dipping = [chord([4, 6], false, 0), chord([4], true, 0)]; // they share a note
+    expect(untangleVoices(dipping, []).chords.map((c) => c.stemUp)).toEqual([false, true]);
+    const inTurn = [chord([8], true, 0), chord([2], false, 0.25)]; // one after the other
+    expect(untangleVoices(inTurn, []).chords.map((c) => c.stemUp)).toEqual([true, false]);
+  });
+});
+
+describe('shiftVoicesApart, stems the same way', () => {
+  it('moves the voice with the upper note of the second', () => {
+    const chord = (steps: number[]) =>
+      ({
+        staff: 'bass',
+        hand: 'left',
+        x: 0,
+        beat: 3,
+        beats: 1,
+        bar: 0,
+        beam: null,
+        handMark: false,
+        notes: steps.map((step) => ({ step, accidental: null })),
+        duration: { value: 'quarter', dots: 0 },
+        stemUp: true,
+        ledgerSteps: [],
+        start: 3,
+        end: 4,
+      }) satisfies StaffChord;
+    // Si♯3 (step -1) over La3 (step 0), both stems up: Si♯3's voice moves right.
+    expect(shiftVoicesApart([chord([0]), chord([-1])]).map((c) => !!c.voiceShift)).toEqual([false, true]);
   });
 });
