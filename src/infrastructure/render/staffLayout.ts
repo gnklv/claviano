@@ -63,18 +63,11 @@ export function beatPosition(score: Score, bar: number, beat: number): number {
   return bars.starts[bar] + ((beat - score.writtenBarBeats[bar]) / barLength(score, bar)) * bars.widths[bar];
 }
 
-/**
- * The page position at `x` on the tape (bar units), the inverse of beatPosition: the printed bar
- * whose start is at or before `barX` (bar lines stand a little before the bar's first beat, so the
- * caller passes that shifted x), and the beat at `x` within it.
- */
-export function pageAt(score: Score, barX: number, x: number): { bar: number; beat: number } | null {
+/** The beat at `x` on the tape (bar units) within printed bar `bar`, the inverse of beatPosition. */
+export function beatAtPosition(score: Score, bar: number, x: number): number {
   const bars = tapeBars(score);
-  if (bars.starts.length === 0 || barX < 0 || barX > bars.end) return null;
-  let bar = 0;
-  while (bar + 1 < bars.starts.length && bars.starts[bar + 1] <= barX) bar++;
   const fraction = Math.min(1, Math.max(0, (x - bars.starts[bar]) / bars.widths[bar]));
-  return { bar, beat: score.writtenBarBeats[bar] + fraction * barLength(score, bar) };
+  return score.writtenBarBeats[bar] + fraction * barLength(score, bar);
 }
 
 export type { Clef } from '../../domain/notation/written';
