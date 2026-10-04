@@ -3,6 +3,7 @@ import { createApp } from 'vue';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { Playback } from './application/use-cases/Playback';
 import { odeToJoy } from './demo/odeToJoy';
+import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
@@ -13,9 +14,14 @@ import App from './ui/App.vue';
 import { depsKey } from './ui/deps';
 import './ui/styles.css';
 
-const playback = new Playback(new WebAudioSynth(), new IntervalTicker());
+// The piano's samples load in the background; until they are in (or if they never are), the synth plays.
+const audioContext = new AudioContext();
+const piano = new SamplerPiano(audioContext, new WebAudioSynth(audioContext));
+piano.load(`${import.meta.env.BASE_URL}piano/`).catch((error: unknown) => console.warn('Piano samples not loaded; playing the synth.', error));
+
+const playback = new Playback(piano, new IntervalTicker());
 const musicXml = new MusicXmlParser();
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback } });
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } });
 
 createApp(App)
   .provide(depsKey, {
