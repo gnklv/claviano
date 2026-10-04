@@ -1,42 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { AudioOutput, NoteToPlay } from '../src/application/ports/AudioOutput';
-import type { Ticker } from '../src/application/ports/Ticker';
 import { Playback } from '../src/application/use-cases/Playback';
 import type { Hand, Note } from '../src/domain/note';
 import { createScore } from '../src/domain/score';
-
-class FakeAudio implements AudioOutput {
-  time = 0;
-  played: NoteToPlay[] = [];
-  stops = 0;
-  now = () => this.time;
-  resume = async () => {};
-  playNote(note: NoteToPlay): void {
-    this.played.push(note);
-  }
-  pedalMoves: { at: number; down: boolean }[] = [];
-  playPedal(at: number, down: boolean): void {
-    this.pedalMoves.push({ at, down });
-  }
-  clicks: { at: number; accent: boolean }[] = [];
-  playClick(at: number, accent: boolean): void {
-    this.clicks.push({ at, accent });
-  }
-  stopAll(): void {
-    this.stops++;
-  }
-}
-
-class FakeTicker implements Ticker {
-  private callback: (() => void) | null = null;
-  start(onTick: () => void): () => void {
-    this.callback = onTick;
-    return () => (this.callback = null);
-  }
-  tick(): void {
-    this.callback?.();
-  }
-}
+import { FakeAudio, FakeTicker } from './fakes';
 
 /** At 60 BPM a beat lasts one second, so seconds and beats coincide. */
 const note = (pitch: number, start: number, duration = 0.5, hand: Hand = 'right'): Note => ({
