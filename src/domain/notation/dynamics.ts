@@ -24,6 +24,13 @@ export interface Hairpin {
   readonly drawn: boolean;
 }
 
+/** A sudden stress written as a dynamic (sf, fp…), on the notes at `beat`: louder by `factor`, or at `level`. */
+export interface DynamicAccent {
+  readonly beat: number;
+  readonly level?: number;
+  readonly factor: number;
+}
+
 /** A level set at `beat` along the page, from a mark or a <sound dynamics>. */
 export interface DynamicLevel {
   readonly beat: number;

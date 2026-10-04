@@ -64,9 +64,15 @@ src/
                      (pedal.ts) are kept beside the notes, which keep the length of the key.
                      A time map (beat → second, with tempo changes and fermatas) places the
                      metronome's clicks and the count-in (metronome.ts).
-    notation/          Music theory for the staff: spelling (Fa♯ or Sol♭), accidentals per bar,
-                       note values (quarter, dotted eighth…), quantization to a 1/32 grid,
-                       and navigation: the performance order of repeats and jumps.
+    notation/          Music theory, independent of file formats and of drawing.
+                       notation.ts — the notation of a piece: everything printed on its pages
+                       (notes, rests, signatures, marks), as a reader of any format fills it in.
+                       performance.ts — performNotation: playing what is written. Grace notes
+                       and ornaments as quick notes (grace.ts, ornaments.ts), articulation and
+                       dynamics as length and loudness (dynamics.ts), ties, fermatas, repeats
+                       and jumps (navigation.ts), tempo and pedal marks as time.
+                       Also for writing notes down: spelling (Fa♯ or Sol♭), accidentals per
+                       bar, note values (quarter, dotted eighth…), quantization to a 1/32 grid.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
@@ -75,8 +81,8 @@ src/
                        (pedals from controllers 64, 66 and 67).
                        MusicXmlParser — MusicXML (.musicxml/.xml, and compressed .mxl through
                        a ZIP reader and Inflate written from scratch: zip.ts, inflate.ts) via DOMParser:
-                       sounding notes for playback (ties merged) and the notes as printed
-                       (value, tuplet, accidental, stem, beams, clef, pedal) for the staff.
+                       it only takes down what the file says is printed, as the domain's
+                       Notation; the domain then plays it.
     audio/             SamplerPiano — a piano played from samples (public/piano): three
                        loudness layers, every third key recorded and the others shifted in
                        pitch; the open piece's notes are fetched first, and last the small

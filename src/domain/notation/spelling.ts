@@ -15,6 +15,12 @@ export interface SpelledPitch {
   readonly alteration: Alteration;
 }
 
+/** Semitones of each letter above Do. */
+const LETTER_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+
+/** The MIDI note a spelled pitch names: Do4 is 60. */
+export const midiOf = (pitch: SpelledPitch): number => 12 * (pitch.octave + 1) + LETTER_SEMITONES[pitch.letter] + pitch.alteration;
+
 /** Letter of each white key by pitch class; black keys are undefined. */
 const WHITE_KEY_LETTERS: (Letter | undefined)[] = [0, undefined, 1, undefined, 2, 3, undefined, 4, undefined, 5, undefined, 6];
 

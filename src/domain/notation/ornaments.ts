@@ -1,4 +1,4 @@
-import { keyAlteration, type Accidental, type Alteration, type Letter, type SpelledPitch } from './spelling';
+import { keyAlteration, midiOf, type Accidental, type Alteration, type Letter, type SpelledPitch } from './spelling';
 
 /*
  * Ornaments: signs over a note that stand for several quick notes around it. How they are played
@@ -37,7 +37,6 @@ export const QUICK_BEATS = 0.125;
 /** The notes of a turn are no slower than sixteenths. */
 const TURN_BEATS = 0.25;
 
-const LETTER_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
 const ACCIDENTAL_ALTERATION: Record<Accidental, Alteration> = { 'double-flat': -2, flat: -1, natural: 0, sharp: 1, 'double-sharp': 2 };
 
 /**
@@ -49,7 +48,7 @@ export function neighbour(pitch: SpelledPitch, direction: 1 | -1, fifths: number
   const letter = (((index % 7) + 7) % 7) as Letter;
   const octave = Math.floor(index / 7);
   const alteration = accidental ? ACCIDENTAL_ALTERATION[accidental] : keyAlteration(letter, fifths);
-  return 12 * (octave + 1) + LETTER_SEMITONES[letter] + alteration;
+  return midiOf({ letter, octave, alteration });
 }
 
 /** `pitches` one after another from `offset`, each `each` long; the last one lasts to the end of `beats`. */
