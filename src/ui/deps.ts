@@ -1,10 +1,10 @@
 import { inject, type InjectionKey } from 'vue';
 import type { Instrument } from '../application/ports/Instrument';
+import type { RollView } from '../application/ports/RollView';
+import type { StaffView } from '../application/ports/StaffView';
 import type { LoadScore } from '../application/use-cases/LoadScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Score } from '../domain/score';
-import type { CanvasPianoRoll } from '../infrastructure/render/CanvasPianoRoll';
-import type { SvgStaff } from '../infrastructure/render/SvgStaff';
 import type { MessageKey } from './i18n/en';
 
 /** A built-in piece to try the player without a file of one's own. */
@@ -21,8 +21,8 @@ export interface AppDeps {
   /** The piano's sound: whether it has loaded. */
   readonly instrument: Instrument;
   readonly loadScore: LoadScore;
-  readonly createRoll: (canvas: HTMLCanvasElement) => CanvasPianoRoll;
-  readonly createStaff: (container: HTMLElement) => SvgStaff;
+  readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
+  readonly createStaff: (container: HTMLElement) => StaffView;
   readonly demos: readonly Demo[];
 }
 

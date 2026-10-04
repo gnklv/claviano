@@ -1,3 +1,4 @@
+import type { StaffView } from '../../application/ports/StaffView';
 import {
   barAtBeat,
   clefAt,
@@ -82,7 +83,7 @@ const NOTE_SNAP = 1.2;
  * slides left, and the cursor on top. The whole tape is built once per score; during playback
  * only its transform changes, which is cheap for the browser.
  */
-export class SvgStaff {
+export class SvgStaff implements StaffView {
   private readonly background: SVGSVGElement;
   private readonly tape: HTMLDivElement;
   private readonly tapeSvg: SVGSVGElement;

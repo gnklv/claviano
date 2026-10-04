@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
-import type { CanvasPianoRoll } from '../../infrastructure/render/CanvasPianoRoll';
+import type { RollView } from '../../application/ports/RollView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
 import { useDeps } from '../deps';
@@ -20,7 +20,7 @@ const PEDAL_LABELS = {
 const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
-let roll: CanvasPianoRoll | null = null;
+let roll: RollView | null = null;
 const resizeObserver = new ResizeObserver(() => roll?.resize());
 
 onMounted(() => {

@@ -6,7 +6,7 @@ import ts from 'typescript-eslint';
 /*
  * Mistakes, not style: the recommended rules of ESLint, typescript-eslint and the Vue plugin
  * (formatting is left alone), and the borders between the layers:
- * domain ← application ← infrastructure, ui.
+ * domain ← application ← infrastructure, ui (which do not know each other; main.ts joins them).
  */
 
 /** Imports a layer must not make, by the folders they would reach into. */
@@ -42,4 +42,5 @@ export default ts.config(
   { files: ['src/domain/**'], rules: noImportsFrom('The domain', ['application', 'infrastructure', 'ui', 'demo']) },
   { files: ['src/application/**'], rules: noImportsFrom('The application', ['infrastructure', 'ui', 'demo']) },
   { files: ['src/infrastructure/**'], rules: noImportsFrom('The infrastructure', ['ui']) },
+  { files: ['src/ui/**'], rules: noImportsFrom('The UI', ['infrastructure']) },
 );

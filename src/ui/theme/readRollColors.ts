@@ -1,4 +1,4 @@
-import type { RollColors } from '../../infrastructure/render/CanvasPianoRoll';
+import type { RollColors } from '../../application/ports/RollView';
 
 /** Resolves the current theme's CSS variables into plain colors for the canvas. */
 export function readRollColors(): RollColors {

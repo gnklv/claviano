@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
-import type { SvgStaff } from '../../infrastructure/render/SvgStaff';
+import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
 import { usePlaybackState } from '../composables/usePlaybackState';
@@ -14,7 +14,7 @@ const { t, locale } = useI18n();
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
-let staff: SvgStaff | null = null;
+let staff: StaffView | null = null;
 const resizeObserver = new ResizeObserver(() => staff?.resize());
 
 onMounted(() => {

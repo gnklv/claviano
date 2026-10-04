@@ -1,51 +1,15 @@
 import { noteEnd, type Hand } from '../../domain/note';
 import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { isBlackKey } from '../../domain/pitch';
-import { barNumber, firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
+import { barNumber, firstNoteAtOrAfter, type Score } from '../../domain/score';
+import type { PedalMove, RollColors, RollFrame, RollView } from '../../application/ports/RollView';
 import { approach, clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
 import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
-
-/** A move of one of the three pedals. */
-export interface PedalMove extends PedalEvent {
-  readonly pedal: PedalKind;
-}
-
-export interface RollFrame {
-  readonly score: Score;
-  readonly position: number;
-  /** The camera only returns to following the music while it is playing. */
-  readonly playing: boolean;
-  readonly loop: TimeRange | null;
-  readonly isHandEnabled: (hand: Hand) => boolean;
-  /** Whether the score's pedal is played; when it is not, the pedal marks are dimmed. */
-  readonly pedalEnabled: boolean;
-  /** How to label a key on screen; the UI supplies it in the current language. */
-  readonly noteLabel: (midi: number) => string;
-  /** How to label a pedal move ("Pedal ↓"), in the current language. */
-  readonly pedalLabel: (move: PedalMove) => string;
-}
 
 interface KeyRect {
   readonly x: number;
   readonly width: number;
   readonly black: boolean;
-}
-
-/** Canvas cannot use CSS variables, so the UI resolves the theme's colors and passes them in. */
-export interface RollColors {
-  readonly background: string;
-  readonly barLine: string;
-  readonly barNumber: string;
-  readonly loop: string;
-  readonly nowLine: string;
-  readonly whiteKey: string;
-  readonly blackKey: string;
-  readonly keyBorder: string;
-  readonly keyLabel: string;
-  readonly pedal: string;
-  /** Where the music is, when the notes are dragged elsewhere. */
-  readonly cursor: string;
-  readonly hand: Readonly<Record<Hand, string>>;
 }
 
 /** Used until the UI supplies the theme's colors. */
@@ -117,7 +81,7 @@ const SEEK_THRESHOLD_SECONDS = 0.5;
  * would make keys too narrow, the keyboard scrolls: a camera follows the music (keyboardCamera),
  * and the user can scroll by hand with scrollBy().
  */
-export class CanvasPianoRoll {
+export class CanvasPianoRoll implements RollView {
   private readonly ctx: CanvasRenderingContext2D;
   private width = 0;
   private height = 0;
