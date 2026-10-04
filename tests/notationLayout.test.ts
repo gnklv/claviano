@@ -4,12 +4,12 @@ import { pitch } from '../src/domain/pitch';
 import { createScore, type KeySignature } from '../src/domain/score';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
+import { staffFor } from '../src/domain/notation/staffPosition';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
 import {
   layoutNotation,
   ledgerSteps,
   shiftVoicesApart,
-  staffFor,
   untangleVoices,
   withSeconds,
   type StaffChord,

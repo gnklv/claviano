@@ -1,13 +1,12 @@
-import { noteEnd, type Hand } from '../../domain/note';
-import { flagCount, writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
-import { quantize } from '../../domain/notation/quantize';
+import type { Hand } from '../../domain/note';
+import { flagCount, type WrittenDuration } from '../../domain/notation/noteValue';
 import type { OrnamentKind } from '../../domain/notation/ornaments';
-import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
+import type { Accidental } from '../../domain/notation/spelling';
+import { BOTTOM_LINE_STEP, HOME_STAFF, MIDDLE_LINE_STEP, staffStep } from '../../domain/notation/staffPosition';
+import { transcribe } from '../../domain/notation/transcription';
 import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
-import { beatsOf } from '../../domain/metronome';
-import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type Score } from '../../domain/score';
+import { barAtBeat, type Score } from '../../domain/score';
 import { lastAtOrBefore } from '../../domain/search';
-import { groupBeams } from './beams';
 import { beatPosition, tapeBars, type Clef } from './staffLayout';
 
 /** One notehead of a chord. */
@@ -194,58 +193,13 @@ export interface NotationLayout {
   readonly arpeggios: readonly StaffArpeggio[];
 }
 
-/** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
-const TOP_LINE: Record<Clef, number> = { treble: 5 * 7 + 3, bass: 3 * 7 + 5 };
-const MIDDLE_LINE_STEP = 4;
-const BOTTOM_LINE_STEP = 8;
-
-export const staffStep = (pitch: SpelledPitch, clef: Clef): number => TOP_LINE[clef] - (pitch.octave * 7 + pitch.letter);
-
-/** How many ledger lines a note at `step` needs. */
-const ledgerLineCount = (step: number): number =>
-  step < 0 ? Math.floor(-step / 2) : step > BOTTOM_LINE_STEP ? Math.floor((step - BOTTOM_LINE_STEP) / 2) : 0;
-
-/** More ledger lines than this, and a note may move to the other staff. */
-const MAX_LEDGER_LINES = 2;
-
-/** Each hand's home staff. */
-const HOME_STAFF: Record<Hand, Clef> = { right: 'treble', left: 'bass' };
-
 /**
- * Right hand on the treble staff, left hand on the bass staff — unless the note is far outside
- * its staff (more than two ledger lines) and fits the other one better. Then it is written on the
- * other staff, as scores do when hands cross; a hand mark and its stem direction tell which hand
- * plays it.
- */
-export function staffFor(hand: Hand, pitch: SpelledPitch): Clef {
-  const own = HOME_STAFF[hand];
-  const other: Clef = own === 'treble' ? 'bass' : 'treble';
-  const ownLedgers = ledgerLineCount(staffStep(pitch, own));
-  return ownLedgers > MAX_LEDGER_LINES && ledgerLineCount(staffStep(pitch, other)) < ownLedgers ? other : own;
-}
-
-interface Placed {
-  readonly staff: Clef;
-  readonly hand: Hand;
-  readonly bar: number;
-  readonly beat: number;
-  readonly beats: number;
-  readonly x: number;
-  readonly pitch: number;
-  readonly spelled: SpelledPitch;
-  readonly duration: WrittenDuration;
-  readonly start: number;
-  readonly end: number;
-  accidental: Accidental | null;
-}
-
-/**
- * Turns a score into what the staff draws. When the source carries notation (MusicXML), the
- * printed notes are laid out as written; otherwise (MIDI) the notation is inferred.
+ * Turns a score into what the staff draws: its notation, laid out. A score with only its played
+ * notes (MIDI) is written down first, by the domain's rules (see transcribe).
  */
 export function layoutNotation(score: Score): NotationLayout {
-  const layout =
-    score.written && score.written.length > 0 ? layoutWritten(score, score.written, score.rests) : inferNotation(score);
+  const notated = score.written && score.written.length > 0 ? score : { ...score, ...transcribe(score) };
+  const layout = layoutWritten(notated, notated.written ?? [], notated.rests);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
   return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
 }
@@ -376,195 +330,6 @@ export function withSeconds(chord: StaffChord): StaffChord {
 }
 
 /**
- * Infers notation from sounding notes (MIDI): quantization, spelling, accidentals by the rules,
- * note values, stem directions, ledger lines and beams by beat. No ties, rests or tuplets.
- */
-function inferNotation(score: Score): NotationLayout {
-  const sounding: Placed[] = score.notes.map((note) => {
-    const { beat, beats } = quantize(note.beat, note.beats);
-    const bar = barAtBeat(score, beat);
-    const spelled = spell(note.pitch, keySignatureAt(score, beat).fifths);
-    return {
-      staff: staffFor(note.hand, spelled),
-      hand: note.hand,
-      bar,
-      beat,
-      beats,
-      x: beatPosition(score, bar, beat),
-      pitch: note.pitch,
-      spelled,
-      duration: writtenDuration(beats),
-      start: note.start,
-      end: noteEnd(note),
-      accidental: null,
-    };
-  });
-  const { placed, shifts } = shiftExtremes(writtenLengths(score, sounding));
-
-  // Accidentals follow the rules per bar and per staff, in time order.
-  for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
-    group.sort((a, b) => a.beat - b.beat || a.pitch - b.pitch);
-    const fifths = keySignatureAt(score, score.writtenBarBeats[group[0].bar]).fifths;
-    barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i].accidental = accidental));
-  }
-
-  // Where both hands meet on one staff within a bar, they are written as two voices:
-  // right hand stems up, left hand stems down, never sharing a stem or a beam.
-  const handsInBar = new Map<string, Set<Hand>>();
-  for (const p of placed) {
-    const key = `${p.staff}|${p.bar}`;
-    handsInBar.set(key, (handsInBar.get(key) ?? new Set<Hand>()).add(p.hand));
-  }
-  const voiceStem = (staff: Clef, bar: number, hand: Hand): boolean | null =>
-    (handsInBar.get(`${staff}|${bar}`)?.size ?? 0) > 1 ? hand === 'right' : null;
-
-  const chordGroups = groupBy(placed, (p) => `${p.staff}|${p.hand}|${p.beat}|${p.duration.value}|${p.duration.dots}`);
-  const chords = [...chordGroups.values()].map(
-    (group): StaffChord => {
-      const notes = group
-        .map((p) => ({ step: staffStep(p.spelled, p.staff), accidental: p.accidental }))
-        .sort((a, b) => a.step - b.step);
-      const top = notes[0].step;
-      const bottom = notes[notes.length - 1].step;
-      const { staff, hand, bar } = group[0];
-      return {
-        staff,
-        hand,
-        x: group[0].x,
-        beat: group[0].beat,
-        beats: Math.max(...group.map((p) => p.beats)),
-        bar,
-        beam: null,
-        handMark: false,
-        notes,
-        duration: group[0].duration,
-        stemUp: voiceStem(staff, bar, hand) ?? stemUpFor(top, bottom),
-        ledgerSteps: ledgerSteps(top, bottom),
-        start: Math.min(...group.map((p) => p.start)),
-        end: Math.max(...group.map((p) => p.end)),
-      };
-    },
-  );
-  chords.sort((a, b) => a.beat - b.beat || a.start - b.start);
-  markHandCrossings(chords);
-
-  // Beams: groups of flagged chords of one hand; each group takes one stem direction.
-  const groups = groupBeams(
-    chords.map((chord) => ({
-      staff: `${chord.staff}|${chord.hand}`,
-      bar: chord.bar,
-      beat: chord.beat,
-      barBeat: score.writtenBarBeats[chord.bar],
-      duration: chord.duration,
-      timeSignature: timeSignatureAt(score, chord.beat),
-    })),
-  );
-  const beamed = [...chords];
-  const beams: Beam[] = groups.map((indices, beamIndex) => {
-    const steps = indices.flatMap((i) => chords[i].notes.map((n) => n.step));
-    const first = chords[indices[0]];
-    const stemUp = voiceStem(first.staff, first.bar, first.hand) ?? stemUpFor(Math.min(...steps), Math.max(...steps));
-    for (const i of indices) beamed[i] = { ...chords[i], stemUp, beam: beamIndex };
-    return { chords: [...indices].sort((a, b) => chords[a].beat - chords[b].beat), stemUp };
-  });
-  const octaveShifts = shifts.map(
-    ({ staff, start, end, octaves }): StaffOctaveShift => ({
-      staff,
-      from: beatPosition(score, barAtBeat(score, start), start),
-      to: beatPosition(score, barAtBeat(score, end), end),
-      octaves,
-    }),
-  );
-  const untangled = untangleVoices(beamed, beams);
-  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [] };
-}
-
-/**
- * For MIDI: how long to write each note. A key is often let go well before the next note (staccato,
- * or just a light touch), and writing what was held would turn a row of quarters into sixteenths.
- * So a note is written up to the next note played (by either hand: the other hand often carries the
- * rhythm in between, as in Bach's C major prelude); with none later in the bar, up to the end of
- * the beat it sounds in (rests are not written, so no long values are invented). A note held
- * longer than that, like a bass under a melody, keeps its length. Never past the bar line.
- */
-function writtenLengths(score: Score, placed: Placed[]): Placed[] {
-  const onsets = [...new Set(placed.map((p) => p.beat))].sort((a, b) => a - b);
-  const nextOnset = (beat: number): number | undefined => {
-    let lo = 0;
-    let hi = onsets.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (onsets[mid] <= beat + 1e-9) lo = mid + 1;
-      else hi = mid;
-    }
-    return onsets[lo];
-  };
-
-  return placed.map((p) => {
-    const barStart = score.writtenBarBeats[p.bar];
-    const barEnd = score.writtenBarBeats[p.bar + 1] ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
-    const next = nextOnset(p.beat);
-    const { length } = beatsOf(timeSignatureAt(score, p.beat));
-    const endOfBeat = barStart + Math.ceil((p.beat + p.beats - barStart) / length - 1e-9) * length;
-    const until = next !== undefined && next <= barEnd + 1e-9 ? next : endOfBeat;
-    const end = Math.min(barEnd, Math.max(p.beat + p.beats, until));
-    const beats = end - p.beat;
-    return beats === p.beats ? p : { ...p, beats, duration: writtenDuration(beats) };
-  });
-}
-
-/** More ledger lines than this above the treble staff or below the bass staff, and MIDI notes go under 8va / 8vb. */
-const MAX_LEDGER_LINES_BEFORE_SHIFT = 3;
-
-/**
- * For MIDI: runs of notes far above the treble staff (or below the bass staff) are written an
- * octave (or two) nearer under an 8va (8vb) bracket, rather than on a ladder of ledger lines.
- * A run is the notes, in time order on one staff, that go that far; the first one that does not
- * ends it. Notes starting together are shifted together.
- */
-function shiftExtremes(placed: Placed[]): {
-  placed: Placed[];
-  shifts: { staff: Clef; start: number; end: number; octaves: number }[];
-} {
-  const shifts: { staff: Clef; start: number; end: number; octaves: number }[] = [];
-  const result = [...placed];
-  const limit = 2 * MAX_LEDGER_LINES_BEFORE_SHIFT + 2; // steps beyond the outer line
-  // How far past the limit a note is (in steps, > 0 means too far), on its own staff's outer side.
-  const beyond = (p: Placed) =>
-    p.staff === 'treble' ? -limit - staffStep(p.spelled, 'treble') : staffStep(p.spelled, 'bass') - BOTTOM_LINE_STEP - limit;
-
-  for (const staff of ['treble', 'bass'] as const) {
-    const onStaff = result.map((p, index) => ({ p, index })).filter(({ p }) => p.staff === staff);
-    const byBeat = [...groupBy(onStaff, ({ p }) => String(p.beat)).values()].sort((a, b) => a[0].p.beat - b[0].p.beat);
-
-    let run: { index: number; p: Placed }[] = [];
-    const close = () => {
-      if (run.length === 0) return;
-      // One octave, or two when one still leaves the notes too far out.
-      const farthest = Math.max(...run.map(({ p }) => beyond(p)));
-      const octaves = farthest >= 7 ? 2 : 1;
-      const signed = staff === 'treble' ? octaves : -octaves;
-      for (const { index, p } of run) {
-        result[index] = { ...p, spelled: { ...p.spelled, octave: p.spelled.octave - signed } };
-      }
-      shifts.push({
-        staff,
-        start: Math.min(...run.map(({ p }) => p.beat)),
-        end: Math.max(...run.map(({ p }) => p.beat + p.beats)),
-        octaves: signed,
-      });
-      run = [];
-    };
-    for (const notes of byBeat) {
-      if (notes.some(({ p }) => beyond(p) >= 0)) run.push(...notes);
-      else close();
-    }
-    close();
-  }
-  return { placed: result, shifts };
-}
-
-/**
  * How to tell voices apart. Most files number the voices of the two staves apart (MuseScore 1–4
  * and 5–8), and a voice may cross to the other staff inside one beam, as the Moonlight Sonata's
  * triplets do: then the number alone is the voice. Other files start from 1 on each staff; a
@@ -582,7 +347,7 @@ function voiceKeys(written: readonly WrittenNote[]): (note: WrittenNote) => stri
 }
 
 /**
- * Lays out printed notes (MusicXML) exactly as written: values, accidentals, stems, beams and
+ * Lays out printed notes exactly as written: values, accidentals, stems, beams and
  * tuplets come from the file, and pitches sit where the clef in force puts them.
  */
 function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): NotationLayout {
@@ -624,6 +389,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   });
   entries.sort((a, b) => a.chord.beat - b.chord.beat || a.chord.start - b.chord.start);
   const chords = entries.map((entry) => entry.chord);
+  markHandCrossings(chords);
 
   // Walk each voice in order, following the file's beam and tuplet marks.
   const beams: Beam[] = [];

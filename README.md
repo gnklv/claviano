@@ -71,8 +71,10 @@ src/
                        and ornaments as quick notes (grace.ts, ornaments.ts), articulation and
                        dynamics as length and loudness (dynamics.ts), ties, fermatas, repeats
                        and jumps (navigation.ts), tempo and pedal marks as time.
-                       Also for writing notes down: spelling (Fa♯ or Sol♭), accidentals per
-                       bar, note values (quarter, dotted eighth…), quantization to a 1/32 grid.
+                       transcription.ts — transcribe: writing down what was played (a MIDI
+                       file): quantization to a 1/32 grid, note values up to the next note,
+                       spelling (Fa♯ or Sol♭) and accidentals per bar, the staff for each hand
+                       (staffPosition.ts), 8va for far runs, beams by the beat (beaming.ts).
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
@@ -99,8 +101,8 @@ src/
                        fall as plain labels ("Pedal ↓", "Left pedal ↑"…) beside three pedals.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
-                       the notes laid out by notationLayout (as written for MusicXML,
-                       inferred for MIDI) and beamed by beams.ts; sounding notes light up.
+                       the notation laid out by notationLayout (for MIDI the domain writes
+                       it down first) and beamed by beams.ts; sounding notes light up.
                        Pedal marks ("Ped." / "✱" or a bracket line, "Sost.", "una corda")
                        come from pedalLayout.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { NoteValue } from '../src/domain/notation/noteValue';
 import type { TimeSignature } from '../src/domain/score';
-import { avoidNotes, beamLine, beamY, groupBeams, kneeBeamLine, type BeamCandidate } from '../src/infrastructure/render/beams';
+import { groupBeams, type BeamCandidate } from '../src/domain/notation/beaming';
+import { avoidNotes, beamLine, beamY, kneeBeamLine } from '../src/infrastructure/render/beams';
 
 const FOUR_FOUR: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
 const THREE_EIGHT: TimeSignature = { beat: 0, numerator: 3, denominator: 8 };
