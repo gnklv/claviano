@@ -23,8 +23,8 @@ export interface Notation {
   readonly timeSignatures: readonly TimeSignature[];
   /** The tempo from a place on, in quarter notes per minute. */
   readonly tempos: readonly TempoChange[];
-  /** Tempo marks: `printed` as a metronome mark, or only meant (a tempo with no mark on the page). */
-  readonly tempoMarks: readonly (TempoMark & { readonly printed: boolean })[];
+  /** Tempo marks (see TempoMark.printed for those the source only implies). */
+  readonly tempoMarks: readonly TempoMark[];
   /** The pedals going down and coming up, and their marks as printed. */
   readonly pedalMoves: readonly PedalMove[];
   readonly pedalMarks: readonly PedalMark[];

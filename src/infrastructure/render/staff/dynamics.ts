@@ -55,7 +55,7 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     return y <= room ? y : lower();
   };
 
-  for (const mark of score.dynamics) {
+  for (const mark of score.notation.dynamics) {
     const at = x(mark.beat);
     if (mark.letters) {
       const width = mark.text.length * DYNAMIC_LETTER_WIDTH * space;
@@ -77,9 +77,9 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     }
   }
 
-  for (const hairpin of score.hairpins) {
+  for (const hairpin of score.notation.hairpins) {
     // Clear of a mark at either end: start after it, end before it.
-    const markAt = (beat: number) => score.dynamics.find((m) => m.letters && Math.abs(m.beat - beat) < 1e-6);
+    const markAt = (beat: number) => score.notation.dynamics.find((m) => m.letters && Math.abs(m.beat - beat) < 1e-6);
     const startMark = markAt(hairpin.start);
     const endMark = markAt(hairpin.end);
     const from = x(hairpin.start) + (startMark ? (startMark.text.length * DYNAMIC_LETTER_WIDTH) / 2 + 0.4 : -0.5) * space;

@@ -39,24 +39,13 @@ chords: 39
   {"staff":"bass","hand":"left","x":7.5,"beat":30,"beats":2,"bar":7,"notes":[{"step":1},{"step":5}],"duration":{"value":"half","dots":0}}
   {"staff":"treble","hand":"right","x":7.5,"beat":30,"beats":2,"bar":7,"notes":[{"step":10}],"duration":{"value":"half","dots":0},"stemUp":true,"ledgerSteps":[10]}
 octaveShifts: 0
-
 beams: 0
-
 tuplets: 0
-
 rests: 0
-
 ties: 0
-
 marks: 0
-
 slurs: 0
-
 graces: 0
-
 ornaments: 0
-
 tremolos: 0
-
 arpeggios: 0
-

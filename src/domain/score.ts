@@ -3,7 +3,8 @@ import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
 import type { Clef, ClefChange, WrittenGraces, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
-import type { DynamicMark, Hairpin } from './notation/dynamics';
+import type { DynamicLevel, DynamicMark, Hairpin } from './notation/dynamics';
+import type { Notation } from './notation/notation';
 import { firstAtOrAfter, lastAtOrBefore } from './search';
 
 export interface TimeRange {
@@ -28,6 +29,8 @@ export interface TempoMark {
   /** The note that is counted: a quarter, a dotted quarter… */
   readonly unit: WrittenDuration;
   readonly perMinute: number;
+  /** As a reader gives it: printed as a metronome mark, or only meant (a tempo with no mark on the page). */
+  readonly printed?: boolean;
 }
 
 /**
@@ -67,9 +70,11 @@ export interface GraceSound {
 }
 
 /*
- * A score has two timelines. The performance: notes and bars in the order they are played, with
- * repeats unrolled — playback, falling notes, loops and seeking use it. The page: each printed
- * bar once — the staff uses it. `barWritten` links them. Without repeats (and for MIDI) they match.
+ * A score is a piece twice over. As played: its notes in time, bars in the order they are played
+ * (repeats unrolled), the pedals, the time map — playback, falling notes, loops and seeking use
+ * these. And as printed: its `notation`, each bar once — the staff uses that. `barWritten` links
+ * the two. A notation file is played by the domain (performNotation), a performance is written
+ * down by it (transcribed): either way a score has both.
  */
 export interface Score {
   readonly title: string;
@@ -79,34 +84,11 @@ export interface Score {
   readonly bars: readonly number[];
   /** Start of every bar as played, in quarter notes; same indices as `bars`. */
   readonly barBeats: readonly number[];
-  /** For every bar as played, the printed bar it is (index into `writtenBarBeats`). */
+  /** For every bar as played, the printed bar it is (index into `notation.bars`). */
   readonly barWritten: readonly number[];
-  /** Start of every printed bar, in quarter notes along the page. */
-  readonly writtenBarBeats: readonly number[];
-  /** Where the music ends along the page, in quarter notes. */
-  readonly writtenEndBeat: number;
-  /** Repeat signs, voltas and jumps per printed bar; empty when there are none. */
-  readonly navigation: readonly BarNavigation[];
-  /** Sorted by beat, the first one at beat 0. */
-  readonly timeSignatures: readonly TimeSignature[];
-  /** Sorted by beat, the first one at beat 0. */
-  readonly keySignatures: readonly KeySignature[];
   readonly duration: number;
   /** Where the last note ends, in quarter notes. */
   readonly endBeat: number;
-  /** The notes as printed, when the source has notation (MusicXML); the staff then uses them. */
-  readonly written: readonly WrittenNote[] | null;
-  /** Clefs per staff, sorted by beat; empty means treble on the upper staff and bass on the lower. */
-  readonly clefs: readonly ClefChange[];
-  /** Printed rests, when the source has notation (MusicXML). */
-  readonly rests: readonly WrittenRest[];
-  /** Printed grace notes (MusicXML), in page order; they sound as ordinary notes of the score. */
-  readonly graces: readonly WrittenGraces[];
-  /**
-   * When each group of grace notes sounds along the page (same indices as `graces`): the first
-   * one from `beat`, each for `each` quarter notes. For lighting them up as they sound.
-   */
-  readonly graceSounds: readonly GraceSound[];
   /** When the sustain pedal is down, as played; sorted. */
   readonly pedal: readonly PedalSpan[];
   /** When the middle (sostenuto) and left (soft) pedals are down, as played; sorted. */
@@ -117,15 +99,16 @@ export interface Score {
    * and fermatas stretch it, so bar starts alone are not enough to place a beat in time.
    */
   readonly timeMap: readonly TimePoint[];
-  /** Metronome marks along the page, sorted by beat; empty when the source gives no tempo. */
-  readonly tempoMarks: readonly TempoMark[];
-  /** Printed octave shifts (MusicXML), sorted by start; the written notes are already shifted. */
-  readonly octaveShifts: readonly OctaveShift[];
-  /** Printed dynamics (MusicXML): marks and words, and hairpins, along the page, sorted. */
-  readonly dynamics: readonly DynamicMark[];
-  readonly hairpins: readonly Hairpin[];
-  /** Marks of all pedals along the page, sorted by beat. */
-  readonly pedalMarks: readonly PedalMark[];
+  /**
+   * When each group of grace notes sounds along the page (same indices as `notation.graces`): the
+   * first one from `beat`, each for `each` quarter notes. For lighting them up as they sound.
+   */
+  readonly graceSounds: readonly GraceSound[];
+  /**
+   * The piece as printed. Its key and time signatures are sorted with the first at beat 0; its
+   * other lists are sorted along the page.
+   */
+  readonly notation: Notation;
 }
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
@@ -154,6 +137,10 @@ export interface ScoreMusic {
   readonly octaveShifts?: readonly OctaveShift[];
   readonly dynamics?: readonly DynamicMark[];
   readonly hairpins?: readonly Hairpin[];
+  /** What only playing the notation needs (see Notation): kept with it. */
+  readonly tempos?: Notation['tempos'];
+  readonly pedalMoves?: Notation['pedalMoves'];
+  readonly dynamicLevels?: readonly DynamicLevel[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -198,43 +185,55 @@ export function createScore(
   if (barPairs[0]?.time !== 0) barPairs.unshift({ time: 0, beat: 0, written: 0 });
   const barBeats = barPairs.map((bar) => bar.beat);
 
+  const timeSignatures = fromBeatZero(
+    music.timeSignatures,
+    DEFAULT_TIME_SIGNATURE,
+    (a, b) => a.numerator === b.numerator && a.denominator === b.denominator,
+  );
+  // The printed bars: where each starts along the page, and how long it is. The last one has no
+  // next bar to measure against: it lasts until the music ends, but no longer than its metre allows.
+  const starts = music.writtenBarBeats ?? barBeats;
+  const end = music.writtenEndBeat ?? endBeat;
+  const writtenBars = starts.map((start, index) => {
+    const next = starts[index + 1];
+    const nominal = barLengthInBeats(timeSignatures[Math.max(0, lastAtOrBefore(timeSignatures, start + 1e-9, (t) => t.beat))]);
+    const length = next !== undefined ? next - start : end - start > 0 ? Math.min(nominal, end - start) : nominal;
+    return { start, length, navigation: music.navigation?.[index] ?? {} };
+  });
+
   return {
     title,
     notes: sortedNotes,
     bars: barPairs.map((bar) => bar.time),
     barBeats,
     barWritten: music.barWritten ? barPairs.map((bar) => bar.written) : barBeats.map((_, i) => i),
-    writtenBarBeats: music.writtenBarBeats ?? barBeats,
-    writtenEndBeat: music.writtenEndBeat ?? endBeat,
-    navigation: music.navigation ?? [],
-    timeSignatures: fromBeatZero(
-      music.timeSignatures,
-      DEFAULT_TIME_SIGNATURE,
-      (a, b) => a.numerator === b.numerator && a.denominator === b.denominator,
-    ),
-    keySignatures: fromBeatZero(
-      music.keySignatures,
-      DEFAULT_KEY_SIGNATURE,
-      (a, b) => a.fifths === b.fifths && a.minor === b.minor,
-    ),
     duration,
     endBeat,
-    written: music.written ?? null,
-    clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
-    rests: music.rests ?? [],
-    graces: music.graces ?? [],
-    graceSounds: music.graceSounds ?? [],
     pedal: [...(music.pedal ?? [])].sort((a, b) => a.start - b.start),
     sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),
-    pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
-    tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
-    octaveShifts: [...(music.octaveShifts ?? [])].sort((a, b) => a.start - b.start),
-    dynamics: [...(music.dynamics ?? [])].sort((a, b) => a.beat - b.beat),
-    hairpins: [...(music.hairpins ?? [])].sort((a, b) => a.start - b.start),
     timeMap: music.timeMap
       ? [...music.timeMap].sort((a, b) => a.beat - b.beat)
       : evenTimeMap(barPairs, { time: duration, beat: endBeat }),
+    graceSounds: music.graceSounds ?? [],
+    notation: {
+      title,
+      bars: writtenBars,
+      notes: music.written ?? [],
+      graces: music.graces ?? [],
+      rests: music.rests ?? [],
+      clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
+      keySignatures: fromBeatZero(music.keySignatures, DEFAULT_KEY_SIGNATURE, (a, b) => a.fifths === b.fifths && a.minor === b.minor),
+      timeSignatures,
+      tempos: music.tempos ?? [],
+      tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
+      pedalMoves: music.pedalMoves ?? [],
+      pedalMarks: [...(music.pedalMarks ?? [])].sort((a, b) => a.beat - b.beat),
+      octaveShifts: [...(music.octaveShifts ?? [])].sort((a, b) => a.start - b.start),
+      dynamics: [...(music.dynamics ?? [])].sort((a, b) => a.beat - b.beat),
+      hairpins: [...(music.hairpins ?? [])].sort((a, b) => a.start - b.start),
+      dynamicLevels: music.dynamicLevels ?? [],
+    },
   };
 }
 
@@ -295,19 +294,15 @@ export const barAt = (score: Score, time: number): number =>
 
 /** The printed bar that contains `beat` (quarter notes along the page). */
 export const barAtBeat = (score: Score, beat: number): number =>
-  Math.max(0, lastAtOrBefore(score.writtenBarBeats, beat + 1e-9, itself));
+  Math.max(0, lastAtOrBefore(score.notation.bars, beat + 1e-9, (bar) => bar.start));
 
-/**
- * How many quarter notes printed bar `index` lasts. The last bar has no next bar to measure
- * against: it lasts until the music ends, but no longer than its time signature allows.
- */
-export function barLength(score: Score, index: number): number {
-  const start = score.writtenBarBeats[index];
-  const next = score.writtenBarBeats[index + 1];
-  if (next !== undefined) return next - start;
-  const nominal = barLengthInBeats(timeSignatureAt(score, start));
-  const untilEnd = score.writtenEndBeat - start;
-  return untilEnd > 0 ? Math.min(nominal, untilEnd) : nominal;
+/** How many quarter notes printed bar `index` lasts. */
+export const barLength = (score: Score, index: number): number => score.notation.bars[index].length;
+
+/** Where the music ends along the page, in quarter notes: the end of the last printed bar. */
+export function pageEnd(score: Score): number {
+  const last = score.notation.bars.at(-1);
+  return last ? last.start + last.length : 0;
 }
 
 /**
@@ -315,7 +310,7 @@ export function barLength(score: Score, index: number): number {
  * like the two sixteenths before the first full bar of Für Elise.
  */
 export const hasPickup = (score: Score): boolean =>
-  score.writtenBarBeats.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
+  score.notation.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
 
 /** The number printed on printed bar `written`: a pickup is bar 0, the first full bar is 1. */
 export const writtenBarNumber = (score: Score, written: number): number => written + (hasPickup(score) ? 0 : 1);
@@ -353,7 +348,7 @@ export function timeAtPage(score: Score, written: number, beat: number, near: nu
   const index = playedBarNear(score, written, near);
   const start = score.bars[index];
   const end = score.bars[index + 1] ?? score.duration;
-  const offset = beat - (score.writtenBarBeats[written] ?? 0);
+  const offset = beat - (score.notation.bars[written]?.start ?? 0);
   return Math.min(end, Math.max(start, secondsAtBeat(score, score.barBeats[index] + offset)));
 }
 
@@ -371,17 +366,17 @@ export const firstNoteAtOrAfter = (score: Score, time: number): number =>
 
 /** The time signature in force at `beat`. */
 export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
-  score.timeSignatures[Math.max(0, lastAtOrBefore(score.timeSignatures, beat, (s) => s.beat))];
+  score.notation.timeSignatures[Math.max(0, lastAtOrBefore(score.notation.timeSignatures, beat, (s) => s.beat))];
 
 /** The metronome mark in force at `beat` along the page, if the source gives one. */
 export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
-  const index = lastAtOrBefore(score.tempoMarks, beat + 1e-9, (mark) => mark.beat);
-  return score.tempoMarks[Math.max(0, index)] ?? null;
+  const index = lastAtOrBefore(score.notation.tempoMarks, beat + 1e-9, (mark) => mark.beat);
+  return score.notation.tempoMarks[Math.max(0, index)] ?? null;
 }
 
 /** The key signature in force at `beat`. */
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>
-  score.keySignatures[Math.max(0, lastAtOrBefore(score.keySignatures, beat, (s) => s.beat))];
+  score.notation.keySignatures[Math.max(0, lastAtOrBefore(score.notation.keySignatures, beat, (s) => s.beat))];
 
 /** Where `time` (seconds, as played) falls on the page: the printed bar and how far through it. */
 export function writtenPositionAt(score: Score, time: number): { bar: number; fraction: number } {
@@ -395,7 +390,7 @@ export function writtenPositionAt(score: Score, time: number): { bar: number; fr
 /** The beat along the page (quarter notes) that is sounding at `time`. */
 export function writtenBeatAt(score: Score, time: number): number {
   const { bar, fraction } = writtenPositionAt(score, time);
-  return score.writtenBarBeats[bar] + fraction * barLength(score, bar);
+  return score.notation.bars[bar].start + fraction * barLength(score, bar);
 }
 
 /**
@@ -415,13 +410,14 @@ export function barStarts(timeSignatures: readonly TimeSignature[], end: number)
 }
 
 /** How many quarter notes a bar of this metre lasts: 3/4 → 3, 6/8 → 3, 2/2 → 4. */
-export const barLengthInBeats = ({ numerator, denominator }: TimeSignature): number =>
-  (numerator * 4) / denominator;
+export function barLengthInBeats({ numerator, denominator }: TimeSignature): number {
+  return (numerator * 4) / denominator;
+}
 
 /** The clef in force on a staff (1 upper, 2 lower) at `beat`. */
 export function clefAt(score: Score, staff: number, beat: number): Clef {
   let clef: Clef = staff === 1 ? 'treble' : 'bass';
-  for (const change of score.clefs) {
+  for (const change of score.notation.clefs) {
     if (change.beat > beat + 1e-9) break;
     if (change.staff === staff) clef = change.clef;
   }

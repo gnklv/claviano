@@ -199,7 +199,10 @@ export function performNotation(notation: Notation): Score {
       sostenutoPedal: performance.pedals.sostenuto,
       softPedal: performance.pedals.soft,
       timeMap: performance.timeMap,
-      tempoMarks: distinctTempoMarks([...notation.tempoMarks]),
+      tempoMarks: distinctTempoMarks(notation.tempoMarks),
+      tempos: notation.tempos,
+      pedalMoves: notation.pedalMoves,
+      dynamicLevels: notation.dynamicLevels,
       octaveShifts: notation.octaveShifts,
       dynamics: notation.dynamics,
       hairpins: hairpins.filter((h) => h.drawn),
@@ -237,8 +240,8 @@ const FERMATA_HOLD = 2;
  * Marks in page order, without repeats of the one in force (files often restate the tempo). At one
  * place a printed mark wins over one worked out from a bare <sound tempo>.
  */
-function distinctTempoMarks(marks: (TempoMark & { printed: boolean })[]): TempoMark[] {
-  const result: (TempoMark & { printed: boolean })[] = [];
+function distinctTempoMarks(marks: readonly TempoMark[]): TempoMark[] {
+  const result: TempoMark[] = [];
   for (const mark of [...marks].sort((a, b) => a.beat - b.beat)) {
     const last = result.at(-1);
     if (last && Math.abs(last.beat - mark.beat) < 1e-9) {

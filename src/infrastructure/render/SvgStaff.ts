@@ -505,7 +505,7 @@ function graceRoom(
     const principal = grace.principal === null ? null : chords[grace.principal];
     const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
     if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
-    else if (Math.abs(principal.beat - score.writtenBarBeats[principal.bar]) < 1e-6) {
+    else if (Math.abs(principal.beat - score.notation.bars[principal.bar].start) < 1e-6) {
       lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
     }
   }

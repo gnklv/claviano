@@ -44,14 +44,14 @@ describe('createScore', () => {
         { beat: 8, fifths: 2, minor: false },
       ],
     });
-    expect(s.keySignatures).toEqual([
+    expect(s.notation.keySignatures).toEqual([
       { beat: 0, fifths: 0, minor: true },
       { beat: 8, fifths: 2, minor: false },
     ]);
   });
 
   it('adds a default key signature at the start when the first one comes later', () => {
-    expect(score.keySignatures[0]).toEqual({ beat: 0, fifths: 0, minor: false });
+    expect(score.notation.keySignatures[0]).toEqual({ beat: 0, fifths: 0, minor: false });
   });
 });
 

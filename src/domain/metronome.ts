@@ -31,7 +31,7 @@ export function beatsOf({ numerator, denominator }: TimeSignature): { count: num
 /** The time signature of bar `index` as played (signatures are placed along the page). */
 function signatureOfBar(score: Score, index: number): TimeSignature {
   const written = score.barWritten[index] ?? index;
-  return timeSignatureAt(score, score.writtenBarBeats[written] ?? score.barBeats[index]);
+  return timeSignatureAt(score, score.notation.bars[written]?.start ?? score.barBeats[index]);
 }
 
 /**

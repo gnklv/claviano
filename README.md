@@ -62,13 +62,14 @@ Clean architecture: dependencies point inwards only.
 
 ```
 src/
-  domain/            Note, Score, solfège pitch helpers. No dependencies. Notes carry two clocks:
-                     seconds (playback) and beats in quarter notes (notation); scores carry
-                     time and key signatures, and two timelines: bars as played (repeats
-                     unrolled) and bars as printed, linked by barWritten. The three pedals
-                     (pedal.ts) are kept beside the notes, which keep the length of the key.
-                     A time map (beat → second, with tempo changes and fermatas) places the
-                     metronome's clicks and the count-in (metronome.ts).
+  domain/            Note, Score, solfège pitch helpers. No dependencies. A score is a piece
+                     twice over. As played: notes with two clocks (seconds for playback, beats
+                     in quarter notes), bars in the order they are played (repeats unrolled),
+                     the three pedals (pedal.ts) and a time map (beat → second, with tempo
+                     changes and fermatas), which also places the metronome's clicks and the
+                     count-in (metronome.ts). And as printed: score.notation, each bar once,
+                     linked to the played bars by barWritten. Every score has both: a notation
+                     file is played by the domain, a performance is written down by it.
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.

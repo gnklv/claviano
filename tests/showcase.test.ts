@@ -101,9 +101,9 @@ describe('showcase score', () => {
   });
 
   it('changes key, metre, clef, tempo and loudness along the way', () => {
-    expect(score.keySignatures.map((k) => k.fifths)).toEqual([0, -3, 2]);
-    expect(score.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4']);
-    expect(score.clefs.filter((c) => c.staff === 2).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
+    expect(score.notation.keySignatures.map((k) => k.fifths)).toEqual([0, -3, 2]);
+    expect(score.notation.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4']);
+    expect(score.notation.clefs.filter((c) => c.staff === 2).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
     // Bars 10 and 12 are both 6/8, but bar 12 is at 60 instead of 90, so it lasts longer.
     // (With the pickup, a bar's index equals its printed number.)
     const seconds = (bar: number) => score.bars[bar + 1] - score.bars[bar];
@@ -225,12 +225,12 @@ describe('showcase score', () => {
     // Printed bars are played in this order from bar 23 on (the pickup is bar 0, so index = number).
     const tail = score.barWritten.slice(score.barWritten.indexOf(23));
     expect(tail).toEqual([23, 24, 23, 25, 26, 23, 25, 27]);
-    expect(score.writtenBarBeats).toHaveLength(28);
-    expect(score.navigation[23]).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
-    expect(score.navigation[24]).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
-    expect(score.navigation[25]).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
-    expect(score.navigation[26]).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
-    expect(score.navigation[27]).toMatchObject({ coda: true, codaSign: true });
+    expect(score.notation.bars).toHaveLength(28);
+    expect(score.notation.bars[23].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
+    expect(score.notation.bars[24].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
+    expect(score.notation.bars[25].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
+    expect(score.notation.bars[26].navigation).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
+    expect(score.notation.bars[27].navigation).toMatchObject({ coda: true, codaSign: true });
   });
 
   it('holds the fermata of bar 15: its half note sounds twice as long, and the bar lasts longer', () => {
@@ -311,23 +311,23 @@ describe('showcase score: changes along the way', () => {
   });
 
   it('prints the tempo: 90 at the start, a dotted quarter in 6/8, 60 in bar 12, 90 again in bar 13', () => {
-    expect(score.tempoMarks.map((m) => [m.beat, `${m.unit.value}${m.unit.dots ? '.' : ''}`, m.perMinute])).toEqual([
+    expect(score.notation.tempoMarks.map((m) => [m.beat, `${m.unit.value}${m.unit.dots ? '.' : ''}`, m.perMinute])).toEqual([
       [0, 'quarter', 90],
-      [score.writtenBarBeats[10], 'quarter.', 60],
-      [score.writtenBarBeats[12], 'quarter', 60],
-      [score.writtenBarBeats[13], 'quarter', 90],
+      [score.notation.bars[10].start, 'quarter.', 60],
+      [score.notation.bars[12].start, 'quarter', 60],
+      [score.notation.bars[13].start, 'quarter', 90],
     ]);
   });
 
   it('prints the high notes of bar 13 under 8va and its A0 under 8vb, sounding where they should', () => {
-    const start = score.writtenBarBeats[13];
-    const end = score.writtenBarBeats[14];
-    expect(score.octaveShifts).toEqual([
+    const start = score.notation.bars[13].start;
+    const end = score.notation.bars[14].start;
+    expect(score.notation.octaveShifts).toEqual([
       { staff: 1, start, end, octaves: 1 },
       { staff: 2, start: start + 2, end, octaves: -1 },
     ]);
     // Printed an octave nearer…
-    const printed = score.written!.filter((n) => n.beat >= start && n.beat < end).map((n) => `${'CDEFGAB'[n.pitch.letter]}${n.pitch.octave}`);
+    const printed = score.notation.notes.filter((n) => n.beat >= start && n.beat < end).map((n) => `${'CDEFGAB'[n.pitch.letter]}${n.pitch.octave}`);
     expect(printed).toEqual(['D5', 'F5', 'A5', 'D2', 'A1']);
     // …but played where written in the file.
     expect(score.notes.some((n) => n.pitch === pitch('La', 6))).toBe(true);
@@ -339,13 +339,13 @@ describe('showcase score: changes along the way', () => {
   });
 
   it('prints p and f in bars 12 and 13, a crescendo in bar 3 and a diminuendo in bar 5', () => {
-    expect(score.dynamics.map((d) => [d.text, d.beat])).toEqual([
-      ['p', score.writtenBarBeats[12]],
-      ['f', score.writtenBarBeats[13]],
+    expect(score.notation.dynamics.map((d) => [d.text, d.beat])).toEqual([
+      ['p', score.notation.bars[12].start],
+      ['f', score.notation.bars[13].start],
     ]);
-    expect(score.hairpins.map((h) => [h.type, h.start, h.end])).toEqual([
-      ['crescendo', score.writtenBarBeats[3], score.writtenBarBeats[4]],
-      ['diminuendo', score.writtenBarBeats[5], score.writtenBarBeats[6]],
+    expect(score.notation.hairpins.map((h) => [h.type, h.start, h.end])).toEqual([
+      ['crescendo', score.notation.bars[3].start, score.notation.bars[4].start],
+      ['diminuendo', score.notation.bars[5].start, score.notation.bars[6].start],
     ]);
   });
 

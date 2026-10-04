@@ -258,4 +258,17 @@ tremolos: 2
   {"chord":150,"strokes":2,"to":151}
 arpeggios: 1
   {"chords":[152,153]}
-pedal: {"signs":[{"x":12.25,"kind":"press"},{"x":13.25,"kind":"release"},{"x":15.25,"kind":"press"},{"x":16.25,"kind":"release"},{"x":26.25,"kind":"press"},{"x":17.25,"kind":"sostenuto"}],"lines":[{"pedal":"sustain","from":16.25,"to":17.25,"changes":[16.75]},{"pedal":"sustain","from":26.25,"to":27.25,"afterSign":true},{"pedal":"sostenuto","from":17.25,"to":18.25,"afterSign":true}],"words":[{"x":11.25,"text":"una corda"},{"x":12.25,"text":"tre corde"}]}
+pedal.signs: 6
+  {"x":12.25,"kind":"press"}
+  {"x":13.25,"kind":"release"}
+  {"x":15.25,"kind":"press"}
+  {"x":16.25,"kind":"release"}
+  {"x":26.25,"kind":"press"}
+  {"x":17.25,"kind":"sostenuto"}
+pedal.lines: 3
+  {"pedal":"sustain","from":16.25,"to":17.25,"changes":[16.75]}
+  {"pedal":"sustain","from":26.25,"to":27.25,"afterSign":true}
+  {"pedal":"sostenuto","from":17.25,"to":18.25,"afterSign":true}
+pedal.words: 2
+  {"x":11.25,"text":"una corda"}
+  {"x":12.25,"text":"tre corde"}

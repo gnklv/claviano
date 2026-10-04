@@ -1,5 +1,6 @@
 import type { Hand, Note } from '../domain/note';
 import { pitch } from '../domain/pitch';
+import { transcribed } from '../domain/notation/transcription';
 import { createScore, type Score } from '../domain/score';
 
 /** [pitch, beats]; pitch null is a rest. */
@@ -71,14 +72,17 @@ export function odeToJoy(title: string, bpm = 100): Score {
   const secondsPerBeat = 60 / bpm;
   const barCount = 8;
   const barBeats = Array.from({ length: barCount }, (_, i) => i * 4);
-  return createScore(
-    title,
-    [...sequence(melody, 'right', secondsPerBeat), ...chords(bass, 'left', secondsPerBeat)],
-    barBeats.map((beat) => beat * secondsPerBeat),
-    {
-      barBeats,
-      timeSignatures: [{ beat: 0, numerator: 4, denominator: 4 }],
-      keySignatures: [{ beat: 0, fifths: 0, minor: false }], // Do major
-    },
+  // Given as played notes, like a MIDI file: the domain writes them down.
+  return transcribed(
+    createScore(
+      title,
+      [...sequence(melody, 'right', secondsPerBeat), ...chords(bass, 'left', secondsPerBeat)],
+      barBeats.map((beat) => beat * secondsPerBeat),
+      {
+        barBeats,
+        timeSignatures: [{ beat: 0, numerator: 4, denominator: 4 }],
+        keySignatures: [{ beat: 0, fifths: 0, minor: false }], // Do major
+      },
+    ),
   );
 }

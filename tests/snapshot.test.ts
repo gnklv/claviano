@@ -28,14 +28,22 @@ function tidy(value: unknown): unknown {
   return value;
 }
 
-/** One line for each item of each list, so a change touches only the lines it is about. */
-function readable(value: object): string {
-  const parts = Object.entries(value).map(([key, item]) => {
-    const tidied = tidy(item);
-    if (Array.isArray(tidied)) return `${key}: ${tidied.length}\n${tidied.map((element) => `  ${JSON.stringify(element)}`).join('\n')}`;
-    return `${key}: ${JSON.stringify(tidied)}`;
-  });
-  return `${parts.join('\n')}\n`;
+/**
+ * One line for each item of each list, so a change touches only the lines it is about. An object
+ * of lists (the score's notation) is opened up the same way, its lists named "notation.notes"….
+ */
+function readable(value: object, prefix = ''): string {
+  return Object.entries(value)
+    .map(([key, item]) => {
+      const name = prefix + key;
+      if (Array.isArray(item)) {
+        const tidied = tidy(item) as unknown[];
+        return `${name}: ${tidied.length}\n${tidied.map((element) => `  ${JSON.stringify(element)}\n`).join('')}`;
+      }
+      const lists = item !== null && typeof item === 'object' && Object.values(item).some(Array.isArray);
+      return lists ? readable(item as object, `${name}.`) : `${name}: ${JSON.stringify(tidy(item))}\n`;
+    })
+    .join('');
 }
 
 const load = (file: string): ArrayBuffer => {

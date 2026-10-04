@@ -70,7 +70,7 @@ describe('performNotation', () => {
       [64, 2, 2],
     ]);
     // The notation is kept beside the notes, as it was written.
-    expect(score.written!.map((n) => [n.bar, n.beat, n.beats])).toEqual([
+    expect(score.notation.notes.map((n) => [n.bar, n.beat, n.beats])).toEqual([
       [0, 0, 1],
       [0, 1, 1],
       [0, 2, 2],
@@ -102,7 +102,7 @@ describe('performNotation', () => {
       [62, 8],
     ]);
     expect(score.barWritten).toEqual([0, 0, 1]);
-    expect(score.written).toHaveLength(2);
+    expect(score.notation.notes).toHaveLength(2);
   });
 
   it('plays louder after a forte mark, and holds a note under a fermata twice as long', () => {
@@ -131,7 +131,7 @@ describe('performNotation', () => {
       [62, 0, 1],
       [60, 1, 1],
     ]);
-    expect(score.graces).toMatchObject([{ bar: 0, beat: 0, leadsTo: 0 }]);
+    expect(score.notation.graces).toMatchObject([{ bar: 0, beat: 0, leadsTo: 0 }]);
     // Its place in time is kept apart from what is written.
     expect(score.graceSounds).toEqual([{ beat: 0, each: 1 }]);
   });

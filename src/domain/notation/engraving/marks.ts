@@ -1,4 +1,4 @@
-import type { Score } from '../../score';
+import { pageEnd, type Score } from '../../score';
 import { BOTTOM_LINE_STEP } from '../staffPosition';
 import type { Articulation, WrittenNote, WrittenRest } from '../written';
 import { voicesByStaffAndBar } from './chords';
@@ -108,7 +108,7 @@ export function layoutOrnaments(
       if (above) reached.above = step - 4;
       else reached.below = step + 4;
       const delayed = mark.kind === 'delayed-turn' || mark.kind === 'delayed-inverted-turn';
-      const barEnd = (score.writtenBarBeats[chord.bar + 1] ?? score.writtenEndBeat) - 1e-9;
+      const barEnd = (score.notation.bars[chord.bar + 1]?.start ?? pageEnd(score)) - 1e-9;
       ornaments.push({
         chord: index,
         kind: mark.kind,

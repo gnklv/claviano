@@ -85,10 +85,9 @@ export class StaffGeometry {
   setScore(score: Score | null, graceRoom: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> } = NO_GRACES): void {
     this.score = score;
     this.changes = score ? signatureChanges(score) : [];
-    const navigation = score?.navigation ?? [];
-    const bars = score?.writtenBarBeats ?? [];
-    this.lead = bars.map((_, i) => (navigation[i]?.repeatStart ? REPEAT_LEAD : 0));
-    this.tail = bars.map((_, i) => (navigation[i]?.repeatEnd ? REPEAT_TAIL : 0));
+    const bars = score?.notation.bars ?? [];
+    this.lead = bars.map((bar) => (bar.navigation.repeatStart ? REPEAT_LEAD : 0));
+    this.tail = bars.map((bar) => (bar.navigation.repeatEnd ? REPEAT_TAIL : 0));
     for (const change of this.changes) this.lead[change.bar] += signatureChangeWidth(change);
     // Grace notes before a bar's first note stand between the bar line and it; those after its last note, before the next line.
     for (const [bar, room] of graceRoom.lead) this.lead[bar] += Math.max(0, room - GRACE_ROOM_AT_BAR_LINE);
@@ -200,8 +199,8 @@ export function timeSignatureWidth({ numerator, denominator }: TimeSignature): n
 /** Room for the clefs plus the widest key and time signatures that occur in the piece. */
 function fitGutter(score: Score | null): number {
   if (!score || score.notes.length === 0) return CLEF_AREA + GUTTER_END_GAP;
-  const keyWidth = Math.max(...score.keySignatures.map((key) => keySignatureWidth(key)));
-  const timeWidth = Math.max(...score.timeSignatures.map((time) => timeSignatureWidth(time)));
+  const keyWidth = Math.max(...score.notation.keySignatures.map((key) => keySignatureWidth(key)));
+  const timeWidth = Math.max(...score.notation.timeSignatures.map((time) => timeSignatureWidth(time)));
   return CLEF_AREA + keyWidth + timeWidth + GUTTER_END_GAP;
 }
 

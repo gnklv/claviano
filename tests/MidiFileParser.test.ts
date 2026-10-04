@@ -134,7 +134,7 @@ describe('MidiFileParser', () => {
         [480 * 8, 0x80, 60, 0],
       ]),
     ]);
-    expect(parser.parse(file, 'test').tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
+    expect(parser.parse(file, 'test').notation.tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
       [0, 100],
       [8, 72],
     ]);
@@ -172,7 +172,7 @@ describe('MidiFileParser', () => {
         [480 * 6, 0x80, 60, 0],
       ]),
     ]);
-    expect(parser.parse(file, 'test').timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 8 }]);
+    expect(parser.parse(file, 'test').notation.timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 8 }]);
   });
 
   it('reads key signatures: sharps, flats and changes during the piece', () => {
@@ -186,7 +186,7 @@ describe('MidiFileParser', () => {
         [480, 0x80, 62, 0],
       ]),
     ]);
-    expect(parser.parse(file, 'test').keySignatures).toEqual([
+    expect(parser.parse(file, 'test').notation.keySignatures).toEqual([
       { beat: 0, fifths: 3, minor: false },
       { beat: 4, fifths: -2, minor: true },
     ]);
@@ -194,8 +194,8 @@ describe('MidiFileParser', () => {
 
   it('defaults to 4/4 in Do major when the file says nothing', () => {
     const score = parser.parse(midiFile(480, [track([[0, 0x90, 60, 100], [480, 0x80, 60, 0]])]), 'test');
-    expect(score.timeSignatures).toEqual([{ beat: 0, numerator: 4, denominator: 4 }]);
-    expect(score.keySignatures).toEqual([{ beat: 0, fifths: 0, minor: false }]);
+    expect(score.notation.timeSignatures).toEqual([{ beat: 0, numerator: 4, denominator: 4 }]);
+    expect(score.notation.keySignatures).toEqual([{ beat: 0, fifths: 0, minor: false }]);
   });
 
   it('assigns hands by track, the higher track being the right hand', () => {
@@ -255,7 +255,7 @@ describe('MidiFileParser', () => {
           pedal(0, false),
         ]),
       ]);
-      const marks = parser.parse(file, 'test').pedalMarks;
+      const marks = parser.parse(file, 'test').notation.pedalMarks;
       expect(marks.map((m) => [m.type, m.beat])).toEqual([
         ['start', 0],
         ['change', 2],
@@ -275,7 +275,7 @@ describe('MidiFileParser', () => {
       expect(score.sostenutoPedal).toEqual([{ start: 0, end: 1 }]);
       expect(score.softPedal).toEqual([{ start: 0, end: 1 }]);
       expect(score.pedal).toEqual([]);
-      expect(score.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
+      expect(score.notation.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
         ['sostenuto', 'start', undefined],
         ['soft', 'start', 'una corda'],
         ['sostenuto', 'stop', undefined],

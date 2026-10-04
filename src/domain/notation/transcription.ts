@@ -45,7 +45,17 @@ interface Placed {
 /** Each hand's voice on each staff, numbered as notation programs do: 1–4 above, 5–8 below. */
 const VOICES: Record<Clef, Record<Hand, string>> = { treble: { right: '1', left: '2' }, bass: { right: '5', left: '6' } };
 
-/** The notation of a score that only has its played notes: the notes as written, and the octave shifts they stand under. */
+/**
+ * A score that only has its played notes (a performance: MIDI), with its notation written down:
+ * the notes, and the octave shifts they stand under. Its bars, signatures and marks are already
+ * there, from what the performance says of them.
+ */
+export function transcribed(score: Score): Score {
+  const { written, octaveShifts } = transcribe(score);
+  return { ...score, notation: { ...score.notation, notes: written, octaveShifts } };
+}
+
+/** The played notes of a score as written notes, and the octave shifts they stand under. */
 export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts: OctaveShift[] } {
   const sounding: Placed[] = score.notes.map((note) => {
     const { beat, beats } = quantize(note.beat, note.beats);
@@ -68,7 +78,7 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
     group.sort((a, b) => a.beat - b.beat || a.pitch - b.pitch);
-    const fifths = keySignatureAt(score, score.writtenBarBeats[group[0].bar]).fifths;
+    const fifths = keySignatureAt(score, score.notation.bars[group[0].bar].start).fifths;
     barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i].accidental = accidental));
   }
 
@@ -94,7 +104,7 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
       staff: `${first.staff}|${first.hand}`,
       bar: first.bar,
       beat: first.beat,
-      barBeat: score.writtenBarBeats[first.bar],
+      barBeat: score.notation.bars[first.bar].start,
       duration: first.duration,
       timeSignature: timeSignatureAt(score, first.beat),
     })),
@@ -163,8 +173,8 @@ function writtenLengths(score: Score, placed: Placed[]): Placed[] {
   };
 
   return placed.map((p) => {
-    const barStart = score.writtenBarBeats[p.bar];
-    const barEnd = score.writtenBarBeats[p.bar + 1] ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
+    const barStart = score.notation.bars[p.bar].start;
+    const barEnd = score.notation.bars[p.bar + 1]?.start ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
     const next = nextOnset(p.beat);
     const { length } = beatsOf(timeSignatureAt(score, p.beat));
     const endOfBeat = barStart + Math.ceil((p.beat + p.beats - barStart) / length - 1e-9) * length;

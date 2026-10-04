@@ -7,7 +7,11 @@ import { spell } from '../src/domain/notation/spelling';
 import { staffFor } from '../src/domain/notation/staffPosition';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
 import { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds, type StaffChord } from '../src/domain/notation/engraving';
-import { layoutNotation } from '../src/infrastructure/render/notationLayout';
+import { transcribed } from '../src/domain/notation/transcription';
+import { layoutNotation as layout } from '../src/infrastructure/render/notationLayout';
+
+/** Lays a score out; one given only as played notes is written down first, as the MIDI reader does. */
+const layoutNotation = (score: Parameters<typeof layout>[0]) => layout(score.notation.notes.length > 0 ? score : transcribed(score));
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
 

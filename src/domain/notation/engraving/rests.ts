@@ -40,7 +40,7 @@ export function layoutRests(score: Score, rests: readonly WrittenRest[], written
     return {
       staff: rest.staff >= 2 ? 'bass' : 'treble',
       // A whole-bar rest stands in the middle of its bar.
-      x: rest.measure ? place(bar, score.writtenBarBeats[bar] + barLength(score, bar) / 2) : place(bar, rest.beat),
+      x: rest.measure ? place(bar, score.notation.bars[bar].start + barLength(score, bar) / 2) : place(bar, rest.beat),
       step,
       duration,
     };

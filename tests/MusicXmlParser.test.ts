@@ -106,7 +106,7 @@ describe('MusicXmlParser', () => {
     expect(secondsAtBeat(s, 2)).toBeCloseTo(2);
     expect(secondsAtBeat(s, 3)).toBeCloseTo(3); // still slow up to beat 3
     expect(secondsAtBeat(s, 4)).toBeCloseTo(3.5);
-    expect(s.tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
+    expect(s.notation.tempoMarks.map((m) => [m.beat, m.perMinute])).toEqual([
       [0, 60],
       [3, 120],
     ]);
@@ -181,7 +181,7 @@ describe('MusicXmlParser', () => {
           <measure number="2">${tempo(120)}${note('D', 4, 8)}</measure>`),
         'test',
       );
-      expect(s.tempoMarks).toEqual([
+      expect(s.notation.tempoMarks).toEqual([
         { beat: 0, unit: { value: 'quarter', dots: 1 }, perMinute: 60 },
         { beat: 4, unit: { value: 'quarter', dots: 0 }, perMinute: 120 },
       ]);
@@ -193,7 +193,7 @@ describe('MusicXmlParser', () => {
           <measure number="2">${metronome('half', false, '45')}${note('D', 4, 8)}</measure>`),
         'test',
       );
-      expect(s.tempoMarks).toEqual([{ beat: 0, unit: { value: 'half', dots: 0 }, perMinute: 45 }]);
+      expect(s.notation.tempoMarks).toEqual([{ beat: 0, unit: { value: 'half', dots: 0 }, perMinute: 45 }]);
     });
   });
 
@@ -204,8 +204,8 @@ describe('MusicXmlParser', () => {
       'test',
     );
     expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 7), pitch('Do', 5)]);
-    expect(s.written!.map((n) => n.pitch.octave)).toEqual([6, 5]);
-    expect(s.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
+    expect(s.notation.notes.map((n) => n.pitch.octave)).toEqual([6, 5]);
+    expect(s.notation.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
   });
 
   it('points all stems of a beamed group on one staff the same way when the file does not say', () => {
@@ -259,7 +259,7 @@ describe('MusicXmlParser', () => {
 
     it('reads marks, and sets the loudness from them when the file gives no <sound dynamics>', () => {
       const s = parser.parse(score(`<measure number="1">${attributes()}${mark('p')}${note('C', 4, 4)}${mark('ff')}${note('D', 4, 4)}</measure>`), 'test');
-      expect(s.dynamics.map((d) => [d.text, d.beat, d.letters])).toEqual([
+      expect(s.notation.dynamics.map((d) => [d.text, d.beat, d.letters])).toEqual([
         ['p', 0, true],
         ['ff', 2, true],
       ]);
@@ -284,8 +284,8 @@ describe('MusicXmlParser', () => {
         score(`<measure number="1">${attributes()}${mark('p')}${wedge('crescendo')}${note('C', 4, 2)}${note('D', 4, 2)}${wedge('stop')}${mark('f')}${note('E', 4, 2)}${words}${note('F', 4, 2)}</measure>`),
         'test',
       );
-      expect(s.hairpins).toEqual([{ start: 0, end: 2, type: 'crescendo', below: false, drawn: true }]);
-      expect(s.dynamics.map((d) => [d.text, d.letters])).toEqual([
+      expect(s.notation.hairpins).toEqual([{ start: 0, end: 2, type: 'crescendo', below: false, drawn: true }]);
+      expect(s.notation.dynamics.map((d) => [d.text, d.letters])).toEqual([
         ['p', true],
         ['f', true],
         ['cresc.', false],
@@ -336,8 +336,8 @@ describe('MusicXmlParser', () => {
         <measure number="2">${note('A', 4, 6)}</measure>`),
       'test',
     );
-    expect(s.keySignatures).toEqual([{ beat: 0, fifths: 1, minor: false }]);
-    expect(s.timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 4 }]);
+    expect(s.notation.keySignatures).toEqual([{ beat: 0, fifths: 1, minor: false }]);
+    expect(s.notation.timeSignatures).toEqual([{ beat: 0, numerator: 3, denominator: 4 }]);
     expect(s.barBeats).toEqual([0, 1, 4]); // the pickup lasts one quarter, not three
   });
 
@@ -374,10 +374,10 @@ describe('MusicXmlParser', () => {
         [pitch('Si', 4), 1.875, 0.125],
         [pitch('Do', 5), 2, 2],
       ]);
-      expect(s.graces).toMatchObject([{ bar: 0, beat: 2, leadsTo: 1, notes: [{ slash: true, value: 'eighth' }] }]);
+      expect(s.notation.graces).toMatchObject([{ bar: 0, beat: 2, leadsTo: 1, notes: [{ slash: true, value: 'eighth' }] }]);
       expect(s.graceSounds).toEqual([{ beat: 1.875, each: 0.125 }]);
       // On the page the bar's notes are where they were.
-      expect(s.written!.map((n) => n.beat)).toEqual([0, 2]);
+      expect(s.notation.notes.map((n) => n.beat)).toEqual([0, 2]);
     });
 
     it('gives an appoggiatura half of the note it leads to', () => {
@@ -410,8 +410,8 @@ describe('MusicXmlParser', () => {
         [pitch('Si', 4), 1.875, 0.125],
         [pitch('Re', 5), 1.875, 0.125],
       ]);
-      expect(s.graces).toHaveLength(1);
-      expect(s.graces[0].notes.map((g) => g.chord)).toEqual([false, false, true]);
+      expect(s.notation.graces).toHaveLength(1);
+      expect(s.notation.graces[0].notes.map((g) => g.chord)).toEqual([false, false, true]);
     });
 
     it('plays grace notes at the very start on the beat, and those after a bar\'s last note before the bar line', () => {
@@ -426,7 +426,7 @@ describe('MusicXmlParser', () => {
         [pitch('Re', 5), 3.875, 0.125],
         [pitch('Mi', 5), 4, 4],
       ]);
-      expect(s.graces.map((g) => [g.bar, g.beat])).toEqual([
+      expect(s.notation.graces.map((g) => [g.bar, g.beat])).toEqual([
         [0, 0],
         [0, 4],
       ]);
@@ -452,8 +452,8 @@ describe('MusicXmlParser', () => {
       const [b, cSharp] = [pitch('Si', 4), pitch('Do#', 5)];
       expect(s.notes.map((n) => n.pitch)).toEqual([b, cSharp, b, cSharp, b, cSharp, b]);
       expect(s.notes[6]).toMatchObject({ beat: 0.75, beats: 0.25 });
-      expect(s.written).toHaveLength(1);
-      expect(s.written![0]).toMatchObject({ beats: 1, ornaments: [{ kind: 'trill' }], trillLine: false });
+      expect(s.notation.notes).toHaveLength(1);
+      expect(s.notation.notes[0]).toMatchObject({ beats: 1, ornaments: [{ kind: 'trill' }], trillLine: false });
     });
 
     it('follows the accidental printed with the sign', () => {
@@ -462,13 +462,13 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 5), pitch('Reb', 5), pitch('Do', 5)]);
-      expect(s.written![0].ornaments[0]).toMatchObject({ kind: 'inverted-mordent', accidentalAbove: 'flat' });
+      expect(s.notation.notes[0].ornaments[0]).toMatchObject({ kind: 'inverted-mordent', accidentalAbove: 'flat' });
     });
 
     it('repeats a note with tremolo strokes on its stem', () => {
       const s = parser.parse(score(`<measure number="1">${attributes()}${ornamented('C', 5, 4, '<tremolo type="single">2</tremolo>')}${rest(4)}</measure>`), 'test');
       expect(sounds(s)).toEqual(Array.from({ length: 8 }, (_, i) => [pitch('Do', 5), i * 0.25, 0.25]));
-      expect(s.written![0].tremolo).toEqual({ type: 'single', strokes: 2 });
+      expect(s.notation.notes[0].tremolo).toEqual({ type: 'single', strokes: 2 });
     });
 
     it('plays the two notes of a tremolo in turn over both their lengths', () => {
@@ -558,7 +558,7 @@ describe('MusicXmlParser', () => {
         ${triplet('G', '<beam number="1">end</beam><notations><tuplet type="stop"/></notations>')}
         <note><rest/><duration>9</duration></note></measure>`),
       'test',
-    ).written!;
+    ).notation.notes;
 
     it('keeps value, tuplet, stem, beams and printed accidentals', () => {
       expect(printed).toHaveLength(3);
@@ -582,7 +582,7 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(tied.notes).toHaveLength(1);
-      expect(tied.written!.map((n) => n.duration.value)).toEqual(['quarter', 'half']);
+      expect(tied.notation.notes.map((n) => n.duration.value)).toEqual(['quarter', 'half']);
     });
 
     it('reads rests: value, whole-bar rests and placement', () => {
@@ -596,7 +596,7 @@ describe('MusicXmlParser', () => {
           <measure number="2"><note><rest measure="yes"/><duration>8</duration><staff>2</staff></note>${note('C', 5, 8)}</measure>`),
         'test',
       );
-      expect(s.rests).toEqual([
+      expect(s.notation.rests).toEqual([
         expect.objectContaining({ staff: 1, beat: 0, duration: { value: 'eighth', dots: 0 }, measure: false, displayPitch: null }),
         expect.objectContaining({ voice: '2', duration: { value: 'quarter', dots: 1 }, displayPitch: { letter: 2, octave: 5 } }),
         expect.objectContaining({ staff: 2, beat: 4, measure: true, clef: 'bass' }),
@@ -609,7 +609,7 @@ describe('MusicXmlParser', () => {
           ${note('G', 4, 4, { extra: '<type>half</type><tie type="start"/>' })}${note('G', 4, 4, { extra: '<type>half</type><tie type="stop"/>' })}</measure>`),
         'test',
       );
-      expect(s.written!.map((n) => [n.tieStart, n.tieStop])).toEqual([
+      expect(s.notation.notes.map((n) => [n.tieStart, n.tieStop])).toEqual([
         [true, false],
         [false, true],
       ]);
@@ -623,12 +623,12 @@ describe('MusicXmlParser', () => {
           ${note('E', 5, 4, { extra: '<type>half</type><notations><slur type="stop" number="1"/><fermata type="inverted"/></notations>' })}</measure>`),
         'test',
       );
-      expect(s.written!.map((n) => [n.articulations, n.fermata, n.slurs.map((m) => m.type)])).toEqual([
+      expect(s.notation.notes.map((n) => [n.articulations, n.fermata, n.slurs.map((m) => m.type)])).toEqual([
         [['staccato'], null, ['start']],
         [['marcato'], null, []],
         [[], 'inverted', ['stop']],
       ]);
-      expect(s.written![0].slurs[0].placement).toBe('above');
+      expect(s.notation.notes[0].slurs[0].placement).toBe('above');
       expect(s.notes[0].duration).toBeCloseTo(0.5); // a staccato quarter at 60 BPM
       expect(s.notes[1].velocity).toBeGreaterThan(s.notes[2].velocity);
     });
@@ -640,8 +640,8 @@ describe('MusicXmlParser', () => {
           <measure number="2"><attributes><clef number="2"><sign>G</sign><line>2</line></clef></attributes>${note('E', 5, 8, { staff: 2 })}</measure>`),
         'test',
       );
-      expect(s.clefs).toContainEqual({ staff: 2, beat: 4, clef: 'treble' });
-      expect(s.written!.map((n) => n.clef)).toEqual(['bass', 'treble']);
+      expect(s.notation.clefs).toContainEqual({ staff: 2, beat: 4, clef: 'treble' });
+      expect(s.notation.notes.map((n) => n.clef)).toEqual(['bass', 'treble']);
     });
   });
 
@@ -668,11 +668,11 @@ describe('MusicXmlParser', () => {
       );
       expect(s.barWritten).toEqual([0, 1, 2, 0, 1, 3, 4]);
       expect(firstNotes(s)).toEqual([60, 62, 64, 60, 62, 65, 67].map((p) => p + 0));
-      expect(s.writtenBarBeats).toEqual([0, 4, 8, 12, 16]);
-      expect(s.written).toHaveLength(5); // printed once each
-      expect(s.navigation[0]).toMatchObject({ repeatStart: true });
-      expect(s.navigation[2]).toMatchObject({ ending: [1], endingLabel: '1.', endingClosed: true, repeatEnd: { times: 2 } });
-      expect(s.navigation[3]).toMatchObject({ ending: [2], endingClosed: false });
+      expect(s.notation.bars.map((bar) => bar.start)).toEqual([0, 4, 8, 12, 16]);
+      expect(s.notation.notes).toHaveLength(5); // printed once each
+      expect(s.notation.bars[0].navigation).toMatchObject({ repeatStart: true });
+      expect(s.notation.bars[2].navigation).toMatchObject({ ending: [1], endingLabel: '1.', endingClosed: true, repeatEnd: { times: 2 } });
+      expect(s.notation.bars[3].navigation).toMatchObject({ ending: [2], endingClosed: false });
     });
 
     it('closes a volta the file leaves open when the next ‖: comes', () => {
@@ -685,7 +685,7 @@ describe('MusicXmlParser', () => {
           ${bar(4, whole('F'), repeatStart + repeatEnd)}`),
         'test',
       );
-      expect(s.navigation[3].ending).toBeUndefined();
+      expect(s.notation.bars[3].navigation.ending).toBeUndefined();
       expect(s.barWritten).toEqual([0, 1, 0, 2, 3, 3]);
     });
 
@@ -698,7 +698,7 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.barWritten).toEqual([0, 1, 2, 0, 1]);
-      expect(s.navigation[2]).toMatchObject({ jump: 'dacapo', text: 'D.C. al Fine' });
+      expect(s.notation.bars[2].navigation).toMatchObject({ jump: 'dacapo', text: 'D.C. al Fine' });
     });
 
     it('follows D.S. al Coda with signs only printed', () => {
@@ -715,8 +715,8 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.barWritten).toEqual([0, 1, 2, 3, 1, 2, 4]);
-      expect(s.navigation[1]).toMatchObject({ segno: true, segnoSign: true });
-      expect(s.navigation[4]).toMatchObject({ coda: true, codaSign: true });
+      expect(s.notation.bars[1].navigation).toMatchObject({ segno: true, segnoSign: true });
+      expect(s.notation.bars[4].navigation).toMatchObject({ coda: true, codaSign: true });
     });
 
     it('holds a fermata and moves what follows later', () => {
@@ -754,7 +754,7 @@ describe('MusicXmlParser', () => {
         { start: 0, end: 2 },
         { start: 2, end: 4 },
       ]);
-      expect(s.pedalMarks).toEqual([
+      expect(s.notation.pedalMarks).toEqual([
         { pedal: 'sustain', beat: 0, type: 'start', sign: true, line: false },
         { pedal: 'sustain', beat: 2, type: 'change', sign: false, line: true },
         { pedal: 'sustain', beat: 4, type: 'stop', sign: true, line: false },
@@ -778,7 +778,7 @@ describe('MusicXmlParser', () => {
         'test',
       );
       expect(s.pedal).toEqual([{ start: 0, end: 2 }]);
-      expect(s.pedalMarks).toEqual([]);
+      expect(s.notation.pedalMarks).toEqual([]);
     });
 
     it('does not let the stop of a middle (sostenuto) pedal lift the sustain pedal', () => {
@@ -791,7 +791,7 @@ describe('MusicXmlParser', () => {
       );
       expect(s.pedal).toEqual([{ start: 0, end: 4 }]);
       expect(s.sostenutoPedal).toEqual([{ start: 1, end: 2 }]);
-      expect(s.pedalMarks.map((m) => [m.pedal, m.type, m.beat])).toEqual([
+      expect(s.notation.pedalMarks.map((m) => [m.pedal, m.type, m.beat])).toEqual([
         ['sustain', 'start', 0],
         ['sostenuto', 'start', 1],
         ['sostenuto', 'stop', 2],
@@ -820,7 +820,7 @@ describe('MusicXmlParser', () => {
         { start: 0, end: 2 },
         { start: 3, end: 4 },
       ]);
-      expect(s.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
+      expect(s.notation.pedalMarks.map((m) => [m.pedal, m.type, m.text])).toEqual([
         ['soft', 'start', 'una corda'],
         ['soft', 'stop', 'tre corde'],
       ]);
@@ -838,7 +838,7 @@ describe('MusicXmlParser', () => {
         { start: 0, end: 4 },
         { start: 4, end: 8 },
       ]);
-      expect(s.pedalMarks).toHaveLength(2); // printed once
+      expect(s.notation.pedalMarks).toHaveLength(2); // printed once
     });
   });
 });

@@ -1,7 +1,6 @@
 import { barAtBeat, type Score } from '../../score';
 import { groupBy } from '../../group';
 import { staffStep } from '../staffPosition';
-import { transcribe } from '../transcription';
 import type { Clef, WrittenNote, WrittenRest } from '../written';
 import { ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, untangleVoices, voiceKeys, withSeconds } from './chords';
 import { layoutGraces } from './graces';
@@ -28,13 +27,9 @@ import type { Beam, NotationLayout, Place, StaffChord, StaffOctaveShift, Tuplet 
 export type * from './types';
 export { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds } from './chords';
 
-/**
- * Engraves a score: its notation, set on the staves. A score with only its played notes (MIDI) is
- * written down first (see transcribe).
- */
+/** Engraves a score: its notation, set on the staves. */
 export function engrave(score: Score, place: Place): NotationLayout {
-  const notated = score.written && score.written.length > 0 ? score : { ...score, ...transcribe(score) };
-  const layout = layoutWritten(notated, notated.written ?? [], notated.rests, place);
+  const layout = layoutWritten(score, score.notation.notes, score.notation.rests, place);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
   return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
 }
@@ -140,7 +135,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   const marks = layoutMarks(score, groupsInOrder, drawn, written, rests);
   return {
     chords: drawn,
-    octaveShifts: score.octaveShifts.map(
+    octaveShifts: score.notation.octaveShifts.map(
       (shift): StaffOctaveShift => ({
         staff: shift.staff >= 2 ? 'bass' : 'treble',
         from: place(barAtBeat(score, shift.start), shift.start),

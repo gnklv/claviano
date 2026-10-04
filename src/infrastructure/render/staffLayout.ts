@@ -21,7 +21,7 @@ export function tapeBars(score: Score): TapeBars {
   const starts: number[] = [];
   const widths: number[] = [];
   let position = 0;
-  score.writtenBarBeats.forEach((start, index) => {
+  score.notation.bars.forEach(({ start }, index) => {
     const nominal = barLengthInBeats(timeSignatureAt(score, start));
     const width = Math.min(1, Math.max(MIN_BAR_SHARE, barLength(score, index) / nominal));
     starts.push(position);
@@ -52,14 +52,14 @@ export function barPosition(score: Score, time: number): number {
 /** Where a musical position (bar index and beat) falls on the tape, in bar units. */
 export function beatPosition(score: Score, bar: number, beat: number): number {
   const bars = tapeBars(score);
-  return bars.starts[bar] + ((beat - score.writtenBarBeats[bar]) / barLength(score, bar)) * bars.widths[bar];
+  return bars.starts[bar] + ((beat - score.notation.bars[bar].start) / barLength(score, bar)) * bars.widths[bar];
 }
 
 /** The beat at `x` on the tape (bar units) within printed bar `bar`, the inverse of beatPosition. */
 export function beatAtPosition(score: Score, bar: number, x: number): number {
   const bars = tapeBars(score);
   const fraction = Math.min(1, Math.max(0, (x - bars.starts[bar]) / bars.widths[bar]));
-  return score.writtenBarBeats[bar] + fraction * barLength(score, bar);
+  return score.notation.bars[bar].start + fraction * barLength(score, bar);
 }
 
 export type { Clef } from '../../domain/notation/written';

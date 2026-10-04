@@ -15,7 +15,7 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[], place:
   const groups: StaffGrace[] = [];
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
-  score.graces.forEach((written, index) => {
+  score.notation.graces.forEach((written, index) => {
     const sound = score.graceSounds[index] ?? { beat: written.beat, each: 0 };
     let slot = -1;
     for (const grace of written.notes) {

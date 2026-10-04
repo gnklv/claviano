@@ -52,10 +52,10 @@ export function signatureChanges(score: Score): SignatureChange[] {
     byBar.set(bar, entry);
     return entry;
   };
-  score.keySignatures.forEach((key, i) => {
-    if (i > 0 && key.beat > 1e-9) at(key.beat).key = { from: score.keySignatures[i - 1].fifths, to: key.fifths };
+  score.notation.keySignatures.forEach((key, i) => {
+    if (i > 0 && key.beat > 1e-9) at(key.beat).key = { from: score.notation.keySignatures[i - 1].fifths, to: key.fifths };
   });
-  score.timeSignatures.forEach((time, i) => {
+  score.notation.timeSignatures.forEach((time, i) => {
     if (i > 0 && time.beat > 1e-9) at(time.beat).time = time;
   });
   return [...byBar].sort((a, b) => a[0] - b[0]).map(([bar, change]) => ({ bar, ...change }));

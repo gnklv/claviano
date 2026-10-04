@@ -86,7 +86,7 @@ export function drawBarLines({ score, geometry }: StaffContext): { lines: SVGEle
   const line = (x: number, width: number) => svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': width });
   const end = geometry.barLineX(tapeBars(score).starts.length);
   return {
-    lines: score.writtenBarBeats.map((_, index) => line(geometry.barLineX(index), 1)),
+    lines: score.notation.bars.map((_, index) => line(geometry.barLineX(index), 1)),
     final: [line(end - space * 0.6, 1), line(end, space * 0.4)],
   };
 }
@@ -95,7 +95,7 @@ export function drawBarLines({ score, geometry }: StaffContext): { lines: SVGEle
 export function drawClefChanges({ score, geometry }: StaffContext): SVGElement[] {
   const { space } = geometry;
   const shapes: SVGElement[] = [];
-  for (const change of score.clefs) {
+  for (const change of score.notation.clefs) {
     if (change.beat <= 1e-9) continue; // the opening clefs live in the left column
     const bar = barAtBeat(score, change.beat);
     const staffTop = change.staff === 1 ? geometry.trebleTop() : geometry.bassTop();
@@ -123,9 +123,9 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
   const bottom = geometry.systemBottom();
   for (const change of geometry.changes) {
     const line = geometry.barLineX(change.bar);
-    const beat = score.writtenBarBeats[change.bar];
+    const beat = score.notation.bars[change.bar].start;
     // A ‖: draws its own thick line; otherwise a new key gets a double bar line.
-    if (change.key && !score.navigation[change.bar]?.repeatStart) {
+    if (change.key && !score.notation.bars[change.bar]?.navigation.repeatStart) {
       const x = line - 0.5 * space;
       shapes.push(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
     }
@@ -133,7 +133,7 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
       [clefAt(score, 1, beat), top],
       [clefAt(score, 2, beat), geometry.bassTop()],
     ];
-    let x = line + (score.navigation[change.bar]?.repeatStart ? REPEAT_GLYPH_WIDTH * space : 0) + CHANGE_GAP_BEFORE * space;
+    let x = line + (score.notation.bars[change.bar]?.navigation.repeatStart ? REPEAT_GLYPH_WIDTH * space : 0) + CHANGE_GAP_BEFORE * space;
     if (change.key) {
       const { from, to } = change.key;
       const naturals = cancelledSteps(from, to, 'treble').length;
@@ -173,7 +173,7 @@ export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes
   const { space } = geometry;
   const top = geometry.trebleTop();
   const y: number[] = [];
-  const shapes = score.writtenBarBeats.map((_, index) => {
+  const shapes = score.notation.bars.map((_, index) => {
     const x = geometry.barLineX(index) + BAR_NUMBER_INSET * space;
     const reach = ink.extent('treble', x, x + BAR_NUMBER_WIDTH * space);
     const numberY = Math.min(top - BAR_NUMBER_RISE * space, reach.top - BAR_NUMBER_CLEARANCE * space);
@@ -198,7 +198,7 @@ export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes
  */
 export function drawNavigation({ score, geometry }: StaffContext, barNumberY: readonly number[]): SVGElement[] {
   const { space } = geometry;
-  const { navigation } = score;
+  const navigation = score.notation.bars.map((bar) => bar.navigation);
   const shapes: SVGElement[] = [];
   const staves = [geometry.trebleTop(), geometry.bassTop()];
   const barStart = (i: number) => geometry.barLineX(i);
@@ -300,7 +300,7 @@ export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOct
 export function drawTempoMarks({ score, geometry }: StaffContext, brackets: readonly OctaveBracket[]): SVGElement[] {
   const { space } = geometry;
   const shapes: SVGElement[] = [];
-  for (const mark of score.tempoMarks) {
+  for (const mark of score.notation.tempoMarks) {
     const x = geometry.px(beatPosition(score, barAtBeat(score, mark.beat), mark.beat)) - 0.5 * space;
     // Over an 8va bracket if there is one here.
     const bracket = brackets.find((b) => b.staff === 'treble' && b.above && x < b.right && x + 5 * space > b.left);

@@ -1,4 +1,4 @@
-import { barAtBeat, type Score } from '../score';
+import { barAtBeat, pageEnd, type Score } from '../score';
 import type { Place } from './engraving';
 
 /*
@@ -62,7 +62,7 @@ export function engravePedal(score: Score, place: Place): PedalLayout {
       if (style.sign) signs.push({ x: x(beat), kind: pressSign });
     };
 
-    for (const mark of score.pedalMarks) {
+    for (const mark of score.notation.pedalMarks) {
       if (mark.pedal !== pedal) continue;
       if (mark.type === 'start') {
         close(mark.beat); // a missing release: the new press implies it
@@ -80,10 +80,10 @@ export function engravePedal(score: Score, place: Place): PedalLayout {
         close(mark.beat);
       }
     }
-    close(score.writtenEndBeat);
+    close(pageEnd(score));
   }
 
-  const words = score.pedalMarks.flatMap((mark) => (mark.pedal === 'soft' && mark.text ? [{ x: x(mark.beat), text: mark.text }] : []));
+  const words = score.notation.pedalMarks.flatMap((mark) => (mark.pedal === 'soft' && mark.text ? [{ x: x(mark.beat), text: mark.text }] : []));
 
   const layout = { signs, lines, words };
   layoutCache.set(score, layout);

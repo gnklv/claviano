@@ -1,6 +1,6 @@
 import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
-import { writePedalMarks, writeTempoMarks } from '../../domain/notation/transcription';
+import { transcribed, writePedalMarks, writeTempoMarks } from '../../domain/notation/transcription';
 import { pedalSpans, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { barStarts, createScore, type Score } from '../../domain/score';
 import { lastAtOrBefore } from '../../domain/search';
@@ -155,7 +155,7 @@ export class MidiFileParser implements ScoreParser {
     const inSeconds = (spans: PedalSpan[]) => spans.map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) }));
     const inBeats = (spans: PedalSpan[]) => spans.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }));
     const [sustain, sostenuto, soft] = pedals;
-    return createScore(title, notes, bars.map(toSeconds), {
+    const score = createScore(title, notes, bars.map(toSeconds), {
       barBeats,
       pedal: inSeconds(sustain),
       sostenutoPedal: inSeconds(sostenuto),
@@ -173,6 +173,8 @@ export class MidiFileParser implements ScoreParser {
       timeSignatures,
       keySignatures: midi.keySignatures.map(({ tick, fifths, minor }) => ({ beat: toBeats(tick), fifths, minor })),
     });
+    // A MIDI file says what was played; the domain writes it down as notes.
+    return transcribed(score);
   }
 }
 
