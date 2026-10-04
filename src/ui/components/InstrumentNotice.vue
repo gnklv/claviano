@@ -6,12 +6,14 @@ import { useI18n } from '../i18n/useI18n';
 /** A small note over the music while the piano's sound is not in yet (a simpler synth plays meanwhile). */
 const { instrument } = useDeps();
 const { t } = useI18n();
-const status = ref(instrument.status);
-onScopeDispose(instrument.onStatusChange(() => (status.value = instrument.status)));
+// Nothing to say while the piano is turned off: the synth is what was asked for.
+const shown = () => (instrument.enabled && instrument.status !== 'ready' ? instrument.status : null);
+const status = ref(shown());
+onScopeDispose(instrument.onChange(() => (status.value = shown())));
 </script>
 
 <template>
-  <div v-if="status !== 'ready'" class="notice" role="status">
+  <div v-if="status" class="notice" role="status">
     {{ t(status === 'loading' ? 'instrumentLoading' : 'instrumentUnavailable') }}
   </div>
 </template>

@@ -67,6 +67,10 @@ export class SamplerPiano implements AudioOutput, Instrument {
   private preferred: readonly number[] | null = null;
   private failed = false;
   private currentStatus: InstrumentStatus = 'loading';
+  private on = true;
+  /** Where the samples are (see start), and whether fetching them has begun. */
+  private baseUrl: string | null = null;
+  private started = false;
 
   constructor(
     private readonly ctx: AudioContext,
@@ -86,7 +90,19 @@ export class SamplerPiano implements AudioOutput, Instrument {
     return this.currentStatus;
   }
 
-  onStatusChange(listener: () => void): () => void {
+  /** Off: the fallback plays instead, and no more samples are fetched. */
+  get enabled(): boolean {
+    return this.on;
+  }
+
+  setEnabled(enabled: boolean): void {
+    if (enabled === this.on) return;
+    this.on = enabled;
+    this.notify();
+    this.begin();
+  }
+
+  onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
@@ -97,8 +113,27 @@ export class SamplerPiano implements AudioOutput, Instrument {
     this.fetchMore();
   }
 
-  /** Starts fetching the samples under `baseUrl` (where manifest.json is), in the background. */
-  async load(baseUrl: string): Promise<void> {
+  /**
+   * Tells where the samples are: under `baseUrl`, beside their manifest.json. They are fetched in
+   * the background, from now if the piano is on, or from when it is turned on.
+   */
+  start(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+    this.begin();
+  }
+
+  /** Begins or goes on fetching, if the piano is on and it is known where from. */
+  private begin(): void {
+    if (!this.on || this.baseUrl === null) return;
+    if (this.started) {
+      this.fetchMore();
+    } else {
+      this.started = true;
+      void this.load(this.baseUrl);
+    }
+  }
+
+  private async load(baseUrl: string): Promise<void> {
     try {
       const manifest = (await (await fetchOk(`${baseUrl}manifest.json`)).json()) as PianoManifest;
       const base = Math.max(0, manifest.layers.findIndex((layer) => layer.id === manifest.base));
@@ -128,7 +163,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
   /** Keeps CONCURRENT_FETCHES samples on their way, the needed ones first. */
   private fetchMore(): void {
     const { set } = this;
-    if (!set || this.failed) return;
+    if (!set || this.failed || !this.on) return;
     const order = fetchOrder(set.pitches, this.needed(set), set.layers.length, set.base).filter(
       ([layer, pitch]) => !this.asked.has(`${layer}:${pitch}`),
     );
@@ -173,6 +208,10 @@ export class SamplerPiano implements AudioOutput, Instrument {
     const status: InstrumentStatus = ready ? 'ready' : this.failed ? 'unavailable' : 'loading';
     if (status === this.currentStatus) return;
     this.currentStatus = status;
+    this.notify();
+  }
+
+  private notify(): void {
     for (const listener of this.listeners) listener();
   }
 
@@ -188,7 +227,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
     const base = set ? this.samples[set.base].get(recorded) : undefined;
-    if (!set || !base || this.currentStatus !== 'ready') {
+    if (!set || !base || !this.on || this.currentStatus !== 'ready') {
       this.fallback.playNote(pitch, velocity, at, duration, soft);
       return;
     }

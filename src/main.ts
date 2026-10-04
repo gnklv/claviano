@@ -21,7 +21,7 @@ const audioContext = new AudioContext();
 const piano = new SamplerPiano(audioContext, new WebAudioSynth(audioContext));
 // In the built app a service worker keeps the samples on disk; they are fetched once it is in place.
 const offline = import.meta.env.PROD ? startOfflineCache(import.meta.env.BASE_URL) : Promise.resolve();
-void offline.then(() => piano.load(`${import.meta.env.BASE_URL}piano/`));
+void offline.then(() => piano.start(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
 // The notes of the piece that is open are fetched first.

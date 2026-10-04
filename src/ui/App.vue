@@ -26,10 +26,10 @@ const ERROR_MESSAGES: Record<ScoreLoadErrorCode, MessageKey> = {
   'unsupported-feature': 'errorUnsupportedFeature',
 };
 
-const { playback, loadScore, demos } = useDeps();
+const { playback, instrument, loadScore, demos } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
-rememberPracticeSettings(playback);
+rememberPracticeSettings(playback, instrument);
 const viewMode = useViewMode();
 const dragging = ref(false);
 
