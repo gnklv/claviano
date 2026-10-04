@@ -2,6 +2,7 @@ import { countIn, metronomeClicks, type Click } from '../../domain/metronome';
 import { HANDS, type Hand } from '../../domain/note';
 import { pedalDownAt, SOFT_PEDAL_LOUDNESS, soundingDurations } from '../../domain/pedal';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
+import { firstAtOrAfter } from '../../domain/search';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
 
@@ -70,6 +71,9 @@ export class Playback {
   /** Every metronome click of the score, and the next one to schedule. */
   private clicks: Click[] = [];
   private nextClickIndex = 0;
+  /** Every move of the sustain pedal in the score (down, up), in order, and the next one to schedule. */
+  private pedalMoves: { time: number; down: boolean }[] = [];
+  private nextPedalIndex = 0;
   /** The count-in in progress: its clicks' audio times and the numbers counted, and when the music comes in. */
   private counting: { times: number[]; counts: number[]; end: number } | null = null;
   /** Clicks recently handed to the output, oldest first. */
@@ -175,6 +179,13 @@ export class Playback {
     this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
     this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i]), 0);
     this.clicks = metronomeClicks(score);
+    this.pedalMoves = score.pedal
+      .flatMap((span) => [
+        { time: span.start, down: true },
+        { time: span.end, down: false },
+      ])
+      // At a pedal change the foot comes up, then goes down.
+      .sort((a, b) => a.time - b.time || Number(a.down) - Number(b.down));
     this.currentLoop = null;
     this.anchor = { audio: 0, score: 0 };
     this.emit();
@@ -322,6 +333,7 @@ export class Playback {
     this.scheduleAnchor = this.anchor;
     this.nextNoteIndex = firstNoteAtOrAfter(score, position);
     this.nextClickIndex = firstClickAtOrAfter(this.clicks, position);
+    this.nextPedalIndex = firstAtOrAfter(this.pedalMoves, position, (move) => move.time);
     this.resumeSounding(score, position);
     this.schedule(score);
   }
@@ -338,7 +350,9 @@ export class Playback {
       if (left < MIN_RESUMED_SECONDS) continue;
       const soft = this.pedalOn && this.softened[i];
       const velocity = (soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity) * RESUMED_LOUDNESS;
-      this.audio.playNote(note.pitch, velocity, this.toAudio(position), left / this.currentTempo, soft);
+      // The key may be up already, the pedal alone holding the note.
+      const held = Math.min(left, Math.max(0, note.start + note.duration - position));
+      this.audio.playNote(note.pitch, velocity, this.toAudio(position), left / this.currentTempo, soft, held / this.currentTempo);
     }
   }
 
@@ -375,7 +389,16 @@ export class Playback {
         const duration = this.currentLoop ? Math.min(sounding, segmentEnd - note.start) : sounding;
         const soft = this.pedalOn && this.softened[index];
         const velocity = soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity;
-        this.audio.playNote(note.pitch, velocity, this.toAudio(note.start), duration / this.currentTempo, soft);
+        const held = Math.min(note.duration, duration);
+        this.audio.playNote(note.pitch, velocity, this.toAudio(note.start), duration / this.currentTempo, soft, held / this.currentTempo);
+      }
+      // As with the clicks: the index moves on even with the pedal off. The pedal coming up at the
+      // end of the piece or after its last note is heard too, like the last chord ringing on.
+      const ending = !this.currentLoop && horizon >= score.duration;
+      const pedalDue = (time: number) => time < horizon || ending;
+      while (this.nextPedalIndex < this.pedalMoves.length && pedalDue(this.pedalMoves[this.nextPedalIndex].time)) {
+        const move = this.pedalMoves[this.nextPedalIndex++];
+        if (this.pedalOn) this.audio.playPedal(this.toAudio(move.time), move.down);
       }
       // The index moves on even with the metronome off, so switching it on joins in at the right beat.
       while (this.nextClickIndex < this.clicks.length && this.clicks[this.nextClickIndex].time < horizon) {
@@ -390,6 +413,7 @@ export class Playback {
       this.scheduleAnchor = wrap;
       this.nextNoteIndex = firstNoteAtOrAfter(score, wrap.score);
       this.nextClickIndex = firstClickAtOrAfter(this.clicks, wrap.score);
+      this.nextPedalIndex = firstAtOrAfter(this.pedalMoves, wrap.score, (move) => move.time);
     }
   }
 

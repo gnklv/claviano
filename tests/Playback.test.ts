@@ -7,12 +7,16 @@ import { createScore } from '../src/domain/score';
 
 class FakeAudio implements AudioOutput {
   time = 0;
-  played: { pitch: number; at: number; duration: number; velocity: number; soft: boolean }[] = [];
+  played: { pitch: number; at: number; duration: number; velocity: number; soft: boolean; held?: number }[] = [];
   stops = 0;
   now = () => this.time;
   resume = async () => {};
-  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
-    this.played.push({ pitch, at, duration, velocity, soft });
+  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false, held?: number): void {
+    this.played.push({ pitch, at, duration, velocity, soft, held });
+  }
+  pedalMoves: { at: number; down: boolean }[] = [];
+  playPedal(at: number, down: boolean): void {
+    this.pedalMoves.push({ at, down });
   }
   clicks: { at: number; accent: boolean }[] = [];
   playClick(at: number, accent: boolean): void {
@@ -138,6 +142,32 @@ describe('Playback', () => {
       [48, 2],
       [64, 1],
     ]);
+  });
+
+  it('tells how long each key is held under the pedal, and when the pedal moves', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(pedalled);
+    await playback.play();
+    const startedAt = audio.played[0].at;
+    advance(2.5);
+    // The bass sounds for two seconds, but its key is down for half a second.
+    expect(audio.played.map((n) => [n.pitch, n.duration, n.held])).toEqual([
+      [48, 2, 0.5],
+      [64, 1, 0.5],
+    ]);
+    expect(audio.pedalMoves).toEqual([
+      { at: startedAt, down: true },
+      { at: startedAt + 2, down: false },
+    ]);
+  });
+
+  it('makes no pedal noise with the pedal off', async () => {
+    const { audio, playback, advance } = setup();
+    playback.load(pedalled);
+    playback.setPedalEnabled(false);
+    await playback.play();
+    advance(2.5);
+    expect(audio.pedalMoves).toEqual([]);
   });
 
   it('plays notes as long as their keys with the pedal off', async () => {

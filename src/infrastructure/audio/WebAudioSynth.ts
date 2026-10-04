@@ -96,6 +96,9 @@ export class WebAudioSynth implements AudioOutput {
     };
   }
 
+  /** The synth has no pedal noise. */
+  playPedal(): void {}
+
   playClick(at: number, accent: boolean): void {
     const { ctx } = this;
     const start = Math.max(at, ctx.currentTime);

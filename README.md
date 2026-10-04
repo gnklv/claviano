@@ -29,8 +29,8 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 **Piano sound.** The samples in `public/piano` come from the
 [Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (a Yamaha C5)
 by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-They were changed for the web: three of the sixteen loudness layers, tails shortened to 12 seconds,
-converted to MP3. `scripts/samples.ts` (`npm run samples`) rebuilds them from the original.
+They were changed for the web: three of the sixteen loudness layers and the sounds of keys and the
+pedal coming up, tails shortened to 12 seconds, converted to MP3. `scripts/samples.ts` (`npm run samples`) rebuilds them from the original.
 
 ## Controls
 
@@ -78,7 +78,8 @@ src/
                        (value, tuplet, accidental, stem, beams, clef, pedal) for the staff.
     audio/             SamplerPiano — a piano played from samples (public/piano): three
                        loudness layers, every third key recorded and the others shifted in
-                       pitch; the open piece's notes are fetched first.
+                       pitch; the open piece's notes are fetched first, and last the small
+                       sounds of keys, dampers and the pedal coming up.
                        WebAudioSynth — additive synth with a piano-like envelope: plays until
                        the samples are in, and the metronome.
     offline/           offlineCache — starts the service worker (public/sw.js) that keeps the

@@ -4,7 +4,7 @@
  *
  * The original has 16 loudness layers of 30 notes each (every minor third from the lowest A; the
  * notes between are played from their neighbour, a semitone up or down), as 1.1 GB of WAV. Here:
- * three layers (soft, medium, loud), tails cut short, MP3 (the one format every browser decodes).
+ * three layers (soft, medium, loud) and the sounds of keys and the pedal coming up, tails cut short, MP3 (the one format every browser decodes).
  *
  * Needs ffmpeg, and the original unpacked (44.1 kHz, 16 bit) from
  * https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html
@@ -57,35 +57,64 @@ let total = 0;
 /** A fingerprint of every file: the set's version, so browsers keep the samples until they change. */
 const contents = createHash('sha1');
 
-const layers = LAYERS.map(({ layer, velocity }) => {
-  const folder = `v${layer}`;
-  mkdirSync(join(OUT, folder), { recursive: true });
+/** Encodes one original file into the set; `trim`: cut and fade it as a note's tail. Returns its size. */
+function encode(source: string, path: string, trim: { seconds: number; fade: number } | null): number {
+  mkdirSync(join(OUT, path, '..'), { recursive: true });
+  execFileSync('ffmpeg', [
+    '-v', 'error', '-y',
+    '-i', join(SOURCE, source),
+    ...(trim ? ['-t', String(trim.seconds), '-af', `afade=t=out:st=${trim.seconds - trim.fade}:d=${trim.fade}`] : []),
+    '-map_metadata', '-1',
+    '-c:a', 'libmp3lame', '-q:a', String(MP3_QUALITY),
+    join(OUT, path),
+  ]);
+  const content = readFileSync(join(OUT, path));
+  total += content.length;
+  contents.update(path).update(content);
+  return content.length;
+}
+
+/** The original's files named `<prefix><note><suffix>.wav`, as notes of the set in `folder`, lowest first. */
+function notesOf(prefix: string, suffix: string, folder: string, trim: { seconds: number; fade: number } | null) {
   const notes = files
     .flatMap((file) => {
-      const match = new RegExp(`^([A-G]#?\\d)v${layer}\\.wav$`).exec(file);
+      const match = new RegExp(`^${prefix}([A-G]#?\\d)${suffix}\\.wav$`).exec(file);
       return match ? [{ file, pitch: midiPitch(match[1]) }] : [];
     })
     .sort((a, b) => a.pitch - b.pitch)
-    .map(({ file, pitch }) => {
-      const path = `${folder}/${pitch}.mp3`;
-      execFileSync('ffmpeg', [
-        '-v', 'error', '-y',
-        '-i', join(SOURCE, file),
-        '-t', String(MAX_SECONDS),
-        '-af', `afade=t=out:st=${MAX_SECONDS - FADE_SECONDS}:d=${FADE_SECONDS}`,
-        '-map_metadata', '-1',
-        '-c:a', 'libmp3lame', '-q:a', String(MP3_QUALITY),
-        join(OUT, path),
-      ]);
-      const content = readFileSync(join(OUT, path));
-      const bytes = content.length;
-      total += bytes;
-      contents.update(path).update(content);
-      return { pitch, file: path, bytes };
-    });
-  console.log(`${folder}: ${notes.length} notes, ${Math.round(notes.reduce((sum, n) => sum + n.bytes, 0) / 1024)} KB`);
-  return { id: folder, velocity, notes };
+    .map(({ file, pitch }) => ({ pitch, file: `${folder}/${pitch}.mp3`, bytes: encode(file, `${folder}/${pitch}.mp3`, trim) }));
+  console.log(`${folder}: ${notes.length} files, ${Math.round(notes.reduce((sum, n) => sum + n.bytes, 0) / 1024)} KB`);
+  return notes;
+}
+
+const layers = LAYERS.map(({ layer, velocity }) => ({
+  id: `v${layer}`,
+  velocity,
+  notes: notesOf('', `v${layer}`, `v${layer}`, { seconds: MAX_SECONDS, fade: FADE_SECONDS }),
+}));
+
+/*
+ * The small sounds of the instrument itself, fetched last: the knock of each key coming up (the
+ * original's rel1…rel88, from the lowest A), the strings' short ring as the damper lands (softer
+ * and louder strikes, every third key up to where the piano has dampers), and the pedal's noise.
+ */
+const release = Array.from({ length: 88 }, (_, i) => {
+  const pitch = 21 + i;
+  return { pitch, file: `release/${pitch}.mp3`, bytes: encode(`rel${i + 1}.wav`, `release/${pitch}.mp3`, null) };
 });
+const extras = {
+  release,
+  resonance: {
+    /** Strikes softer than this MIDI velocity ring from `soft`, the others from `loud`. */
+    splitVelocity: 45,
+    soft: notesOf('harmS', '', 'resonance-soft', null),
+    loud: notesOf('harmL', '', 'resonance-loud', null),
+  },
+  pedal: {
+    down: [1, 2].map((n) => (encode(`pedalD${n}.wav`, `pedal/down${n}.mp3`, { seconds: 4, fade: 1.5 }), `pedal/down${n}.mp3`)),
+    up: [1, 2].map((n) => (encode(`pedalU${n}.wav`, `pedal/up${n}.mp3`, null), `pedal/up${n}.mp3`)),
+  },
+};
 
 const manifest = {
   name: 'Salamander Grand Piano V3',
@@ -94,10 +123,11 @@ const manifest = {
   license: 'CC BY 3.0',
   licenseUrl: 'https://creativecommons.org/licenses/by/3.0/',
   source: 'https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html',
-  changes: 'A selection of the loudness layers, tails shortened, converted to MP3.',
+  changes: 'A selection of the loudness layers and release sounds, tails shortened, converted to MP3.',
   version: contents.digest('hex').slice(0, 8),
   base: `v${BASE_LAYER}`,
   layers,
+  extras,
 };
 writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`public/piano: ${Math.round(total / 1024)} KB`);

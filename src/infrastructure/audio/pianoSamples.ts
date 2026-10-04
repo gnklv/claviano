@@ -15,6 +15,27 @@ export interface PianoManifest {
   readonly layers: readonly PianoLayer[];
   /** The id of the layer to fetch first: the piano plays from it alone until the others are in. */
   readonly base: string;
+  /** The small sounds of the instrument itself; fetched last. */
+  readonly extras: PianoExtras;
+}
+
+interface PianoFile {
+  readonly pitch: number;
+  readonly file: string;
+}
+
+export interface PianoExtras {
+  /** The knock of each key coming up. */
+  readonly release: readonly PianoFile[];
+  /** The strings' short ring as the damper lands, for softer and louder strikes (every third key). */
+  readonly resonance: {
+    /** Strikes softer than this MIDI velocity ring from `soft`. */
+    readonly splitVelocity: number;
+    readonly soft: readonly PianoFile[];
+    readonly loud: readonly PianoFile[];
+  };
+  /** The sustain pedal's noise going down and coming up: a few takes of each, picked at random. */
+  readonly pedal: { readonly down: readonly string[]; readonly up: readonly string[] };
 }
 
 /** One loudness the piano was recorded at. */
@@ -131,3 +152,32 @@ export function sampleLevel(channels: readonly Float32Array[], sampleRate: numbe
 export function velocityGain(velocity: number, recorded: number): number {
   return (Math.max(0.05, velocity) / recorded) ** 1.6;
 }
+
+/*
+ * How loud the instrument's small sounds are, in dB, as the original's own settings (.sfz) have
+ * them: barely there, as on a real piano. Our notes play about 7 dB louder than the .sfz plays
+ * them at a medium strike, so these are raised by as much to keep the proportion.
+ */
+const OUR_LEVEL_DB = 7;
+const RELEASE_DB = -37 + OUR_LEVEL_DB;
+/** The knock is softer by this many dB for each second the key was held. */
+const RELEASE_DECAY_DB = 2;
+const RESONANCE_DB = -4 + OUR_LEVEL_DB;
+/** The ring is softer by this many dB for each second the note has sounded: less of it is left. */
+const RESONANCE_DECAY_DB = 7;
+const PEDAL_DB = -20 + OUR_LEVEL_DB;
+
+const fromDb = (db: number): number => 10 ** (db / 20);
+
+/** The gain of a key's knock as it comes up, struck at `velocity` (0–1) and held for `seconds`. */
+export function releaseGain(velocity: number, seconds: number): number {
+  return fromDb(RELEASE_DB - RELEASE_DECAY_DB * seconds) * (0.2 + 0.8 * velocity * velocity);
+}
+
+/** The gain of the strings' ring as the damper lands on a note struck at `velocity`, `seconds` after the strike. */
+export function resonanceGain(velocity: number, seconds: number): number {
+  return fromDb(RESONANCE_DB - RESONANCE_DECAY_DB * seconds) * (0.1 + 0.9 * velocity * velocity);
+}
+
+/** The gain of the pedal's noise. */
+export const PEDAL_GAIN = fromDb(PEDAL_DB);

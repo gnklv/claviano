@@ -5,8 +5,8 @@
   "license": "CC BY 3.0",
   "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
   "source": "https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html",
-  "changes": "A selection of the loudness layers, tails shortened, converted to MP3.",
-  "version": "568659b1",
+  "changes": "A selection of the loudness layers and release sounds, tails shortened, converted to MP3.",
+  "version": "28e47635",
   "base": "v8",
   "layers": [
     {
@@ -486,5 +486,696 @@
         }
       ]
     }
-  ]
+  ],
+  "extras": {
+    "release": [
+      {
+        "pitch": 21,
+        "file": "release/21.mp3",
+        "bytes": 5572
+      },
+      {
+        "pitch": 22,
+        "file": "release/22.mp3",
+        "bytes": 5519
+      },
+      {
+        "pitch": 23,
+        "file": "release/23.mp3",
+        "bytes": 5467
+      },
+      {
+        "pitch": 24,
+        "file": "release/24.mp3",
+        "bytes": 5571
+      },
+      {
+        "pitch": 25,
+        "file": "release/25.mp3",
+        "bytes": 5806
+      },
+      {
+        "pitch": 26,
+        "file": "release/26.mp3",
+        "bytes": 5414
+      },
+      {
+        "pitch": 27,
+        "file": "release/27.mp3",
+        "bytes": 5598
+      },
+      {
+        "pitch": 28,
+        "file": "release/28.mp3",
+        "bytes": 5546
+      },
+      {
+        "pitch": 29,
+        "file": "release/29.mp3",
+        "bytes": 5441
+      },
+      {
+        "pitch": 30,
+        "file": "release/30.mp3",
+        "bytes": 5544
+      },
+      {
+        "pitch": 31,
+        "file": "release/31.mp3",
+        "bytes": 5285
+      },
+      {
+        "pitch": 32,
+        "file": "release/32.mp3",
+        "bytes": 5518
+      },
+      {
+        "pitch": 33,
+        "file": "release/33.mp3",
+        "bytes": 5362
+      },
+      {
+        "pitch": 34,
+        "file": "release/34.mp3",
+        "bytes": 5624
+      },
+      {
+        "pitch": 35,
+        "file": "release/35.mp3",
+        "bytes": 5467
+      },
+      {
+        "pitch": 36,
+        "file": "release/36.mp3",
+        "bytes": 5780
+      },
+      {
+        "pitch": 37,
+        "file": "release/37.mp3",
+        "bytes": 5362
+      },
+      {
+        "pitch": 38,
+        "file": "release/38.mp3",
+        "bytes": 5414
+      },
+      {
+        "pitch": 39,
+        "file": "release/39.mp3",
+        "bytes": 5883
+      },
+      {
+        "pitch": 40,
+        "file": "release/40.mp3",
+        "bytes": 5545
+      },
+      {
+        "pitch": 41,
+        "file": "release/41.mp3",
+        "bytes": 5310
+      },
+      {
+        "pitch": 42,
+        "file": "release/42.mp3",
+        "bytes": 5648
+      },
+      {
+        "pitch": 43,
+        "file": "release/43.mp3",
+        "bytes": 5520
+      },
+      {
+        "pitch": 44,
+        "file": "release/44.mp3",
+        "bytes": 5571
+      },
+      {
+        "pitch": 45,
+        "file": "release/45.mp3",
+        "bytes": 5518
+      },
+      {
+        "pitch": 46,
+        "file": "release/46.mp3",
+        "bytes": 5779
+      },
+      {
+        "pitch": 47,
+        "file": "release/47.mp3",
+        "bytes": 5337
+      },
+      {
+        "pitch": 48,
+        "file": "release/48.mp3",
+        "bytes": 5232
+      },
+      {
+        "pitch": 49,
+        "file": "release/49.mp3",
+        "bytes": 5545
+      },
+      {
+        "pitch": 50,
+        "file": "release/50.mp3",
+        "bytes": 5284
+      },
+      {
+        "pitch": 51,
+        "file": "release/51.mp3",
+        "bytes": 5517
+      },
+      {
+        "pitch": 52,
+        "file": "release/52.mp3",
+        "bytes": 5466
+      },
+      {
+        "pitch": 53,
+        "file": "release/53.mp3",
+        "bytes": 5597
+      },
+      {
+        "pitch": 54,
+        "file": "release/54.mp3",
+        "bytes": 5621
+      },
+      {
+        "pitch": 55,
+        "file": "release/55.mp3",
+        "bytes": 5153
+      },
+      {
+        "pitch": 56,
+        "file": "release/56.mp3",
+        "bytes": 5361
+      },
+      {
+        "pitch": 57,
+        "file": "release/57.mp3",
+        "bytes": 5570
+      },
+      {
+        "pitch": 58,
+        "file": "release/58.mp3",
+        "bytes": 5256
+      },
+      {
+        "pitch": 59,
+        "file": "release/59.mp3",
+        "bytes": 5361
+      },
+      {
+        "pitch": 60,
+        "file": "release/60.mp3",
+        "bytes": 5414
+      },
+      {
+        "pitch": 61,
+        "file": "release/61.mp3",
+        "bytes": 5179
+      },
+      {
+        "pitch": 62,
+        "file": "release/62.mp3",
+        "bytes": 5335
+      },
+      {
+        "pitch": 63,
+        "file": "release/63.mp3",
+        "bytes": 5074
+      },
+      {
+        "pitch": 64,
+        "file": "release/64.mp3",
+        "bytes": 5467
+      },
+      {
+        "pitch": 65,
+        "file": "release/65.mp3",
+        "bytes": 5752
+      },
+      {
+        "pitch": 66,
+        "file": "release/66.mp3",
+        "bytes": 5362
+      },
+      {
+        "pitch": 67,
+        "file": "release/67.mp3",
+        "bytes": 5362
+      },
+      {
+        "pitch": 68,
+        "file": "release/68.mp3",
+        "bytes": 5387
+      },
+      {
+        "pitch": 69,
+        "file": "release/69.mp3",
+        "bytes": 5648
+      },
+      {
+        "pitch": 70,
+        "file": "release/70.mp3",
+        "bytes": 5544
+      },
+      {
+        "pitch": 71,
+        "file": "release/71.mp3",
+        "bytes": 5389
+      },
+      {
+        "pitch": 72,
+        "file": "release/72.mp3",
+        "bytes": 5153
+      },
+      {
+        "pitch": 73,
+        "file": "release/73.mp3",
+        "bytes": 5544
+      },
+      {
+        "pitch": 74,
+        "file": "release/74.mp3",
+        "bytes": 5649
+      },
+      {
+        "pitch": 75,
+        "file": "release/75.mp3",
+        "bytes": 5152
+      },
+      {
+        "pitch": 76,
+        "file": "release/76.mp3",
+        "bytes": 5048
+      },
+      {
+        "pitch": 77,
+        "file": "release/77.mp3",
+        "bytes": 5230
+      },
+      {
+        "pitch": 78,
+        "file": "release/78.mp3",
+        "bytes": 5310
+      },
+      {
+        "pitch": 79,
+        "file": "release/79.mp3",
+        "bytes": 5545
+      },
+      {
+        "pitch": 80,
+        "file": "release/80.mp3",
+        "bytes": 5334
+      },
+      {
+        "pitch": 81,
+        "file": "release/81.mp3",
+        "bytes": 5335
+      },
+      {
+        "pitch": 82,
+        "file": "release/82.mp3",
+        "bytes": 5596
+      },
+      {
+        "pitch": 83,
+        "file": "release/83.mp3",
+        "bytes": 5440
+      },
+      {
+        "pitch": 84,
+        "file": "release/84.mp3",
+        "bytes": 5075
+      },
+      {
+        "pitch": 85,
+        "file": "release/85.mp3",
+        "bytes": 5466
+      },
+      {
+        "pitch": 86,
+        "file": "release/86.mp3",
+        "bytes": 5362
+      },
+      {
+        "pitch": 87,
+        "file": "release/87.mp3",
+        "bytes": 5413
+      },
+      {
+        "pitch": 88,
+        "file": "release/88.mp3",
+        "bytes": 5310
+      },
+      {
+        "pitch": 89,
+        "file": "release/89.mp3",
+        "bytes": 5440
+      },
+      {
+        "pitch": 90,
+        "file": "release/90.mp3",
+        "bytes": 5413
+      },
+      {
+        "pitch": 91,
+        "file": "release/91.mp3",
+        "bytes": 5570
+      },
+      {
+        "pitch": 92,
+        "file": "release/92.mp3",
+        "bytes": 5623
+      },
+      {
+        "pitch": 93,
+        "file": "release/93.mp3",
+        "bytes": 5571
+      },
+      {
+        "pitch": 94,
+        "file": "release/94.mp3",
+        "bytes": 5361
+      },
+      {
+        "pitch": 95,
+        "file": "release/95.mp3",
+        "bytes": 5492
+      },
+      {
+        "pitch": 96,
+        "file": "release/96.mp3",
+        "bytes": 4918
+      },
+      {
+        "pitch": 97,
+        "file": "release/97.mp3",
+        "bytes": 5413
+      },
+      {
+        "pitch": 98,
+        "file": "release/98.mp3",
+        "bytes": 5309
+      },
+      {
+        "pitch": 99,
+        "file": "release/99.mp3",
+        "bytes": 5701
+      },
+      {
+        "pitch": 100,
+        "file": "release/100.mp3",
+        "bytes": 5650
+      },
+      {
+        "pitch": 101,
+        "file": "release/101.mp3",
+        "bytes": 5206
+      },
+      {
+        "pitch": 102,
+        "file": "release/102.mp3",
+        "bytes": 5754
+      },
+      {
+        "pitch": 103,
+        "file": "release/103.mp3",
+        "bytes": 5544
+      },
+      {
+        "pitch": 104,
+        "file": "release/104.mp3",
+        "bytes": 5492
+      },
+      {
+        "pitch": 105,
+        "file": "release/105.mp3",
+        "bytes": 5674
+      },
+      {
+        "pitch": 106,
+        "file": "release/106.mp3",
+        "bytes": 5467
+      },
+      {
+        "pitch": 107,
+        "file": "release/107.mp3",
+        "bytes": 5440
+      },
+      {
+        "pitch": 108,
+        "file": "release/108.mp3",
+        "bytes": 5285
+      }
+    ],
+    "resonance": {
+      "splitVelocity": 45,
+      "soft": [
+        {
+          "pitch": 21,
+          "file": "resonance-soft/21.mp3",
+          "bytes": 9484
+        },
+        {
+          "pitch": 24,
+          "file": "resonance-soft/24.mp3",
+          "bytes": 9848
+        },
+        {
+          "pitch": 27,
+          "file": "resonance-soft/27.mp3",
+          "bytes": 9042
+        },
+        {
+          "pitch": 30,
+          "file": "resonance-soft/30.mp3",
+          "bytes": 9302
+        },
+        {
+          "pitch": 33,
+          "file": "resonance-soft/33.mp3",
+          "bytes": 9744
+        },
+        {
+          "pitch": 36,
+          "file": "resonance-soft/36.mp3",
+          "bytes": 9926
+        },
+        {
+          "pitch": 39,
+          "file": "resonance-soft/39.mp3",
+          "bytes": 9250
+        },
+        {
+          "pitch": 42,
+          "file": "resonance-soft/42.mp3",
+          "bytes": 9432
+        },
+        {
+          "pitch": 45,
+          "file": "resonance-soft/45.mp3",
+          "bytes": 9770
+        },
+        {
+          "pitch": 48,
+          "file": "resonance-soft/48.mp3",
+          "bytes": 9380
+        },
+        {
+          "pitch": 51,
+          "file": "resonance-soft/51.mp3",
+          "bytes": 9146
+        },
+        {
+          "pitch": 54,
+          "file": "resonance-soft/54.mp3",
+          "bytes": 8990
+        },
+        {
+          "pitch": 57,
+          "file": "resonance-soft/57.mp3",
+          "bytes": 9432
+        },
+        {
+          "pitch": 60,
+          "file": "resonance-soft/60.mp3",
+          "bytes": 8860
+        },
+        {
+          "pitch": 63,
+          "file": "resonance-soft/63.mp3",
+          "bytes": 8652
+        },
+        {
+          "pitch": 66,
+          "file": "resonance-soft/66.mp3",
+          "bytes": 8860
+        },
+        {
+          "pitch": 69,
+          "file": "resonance-soft/69.mp3",
+          "bytes": 8730
+        },
+        {
+          "pitch": 72,
+          "file": "resonance-soft/72.mp3",
+          "bytes": 8834
+        },
+        {
+          "pitch": 75,
+          "file": "resonance-soft/75.mp3",
+          "bytes": 8912
+        },
+        {
+          "pitch": 78,
+          "file": "resonance-soft/78.mp3",
+          "bytes": 8444
+        },
+        {
+          "pitch": 81,
+          "file": "resonance-soft/81.mp3",
+          "bytes": 8496
+        },
+        {
+          "pitch": 84,
+          "file": "resonance-soft/84.mp3",
+          "bytes": 9120
+        },
+        {
+          "pitch": 87,
+          "file": "resonance-soft/87.mp3",
+          "bytes": 8964
+        }
+      ],
+      "loud": [
+        {
+          "pitch": 21,
+          "file": "resonance-loud/21.mp3",
+          "bytes": 13670
+        },
+        {
+          "pitch": 24,
+          "file": "resonance-loud/24.mp3",
+          "bytes": 14373
+        },
+        {
+          "pitch": 27,
+          "file": "resonance-loud/27.mp3",
+          "bytes": 13644
+        },
+        {
+          "pitch": 30,
+          "file": "resonance-loud/30.mp3",
+          "bytes": 14557
+        },
+        {
+          "pitch": 33,
+          "file": "resonance-loud/33.mp3",
+          "bytes": 14867
+        },
+        {
+          "pitch": 36,
+          "file": "resonance-loud/36.mp3",
+          "bytes": 14086
+        },
+        {
+          "pitch": 39,
+          "file": "resonance-loud/39.mp3",
+          "bytes": 14008
+        },
+        {
+          "pitch": 42,
+          "file": "resonance-loud/42.mp3",
+          "bytes": 14347
+        },
+        {
+          "pitch": 45,
+          "file": "resonance-loud/45.mp3",
+          "bytes": 14087
+        },
+        {
+          "pitch": 48,
+          "file": "resonance-loud/48.mp3",
+          "bytes": 13436
+        },
+        {
+          "pitch": 51,
+          "file": "resonance-loud/51.mp3",
+          "bytes": 13748
+        },
+        {
+          "pitch": 54,
+          "file": "resonance-loud/54.mp3",
+          "bytes": 13462
+        },
+        {
+          "pitch": 57,
+          "file": "resonance-loud/57.mp3",
+          "bytes": 13281
+        },
+        {
+          "pitch": 60,
+          "file": "resonance-loud/60.mp3",
+          "bytes": 13724
+        },
+        {
+          "pitch": 63,
+          "file": "resonance-loud/63.mp3",
+          "bytes": 13228
+        },
+        {
+          "pitch": 66,
+          "file": "resonance-loud/66.mp3",
+          "bytes": 13385
+        },
+        {
+          "pitch": 69,
+          "file": "resonance-loud/69.mp3",
+          "bytes": 13698
+        },
+        {
+          "pitch": 72,
+          "file": "resonance-loud/72.mp3",
+          "bytes": 13202
+        },
+        {
+          "pitch": 75,
+          "file": "resonance-loud/75.mp3",
+          "bytes": 13332
+        },
+        {
+          "pitch": 78,
+          "file": "resonance-loud/78.mp3",
+          "bytes": 13462
+        },
+        {
+          "pitch": 81,
+          "file": "resonance-loud/81.mp3",
+          "bytes": 12838
+        },
+        {
+          "pitch": 84,
+          "file": "resonance-loud/84.mp3",
+          "bytes": 12448
+        },
+        {
+          "pitch": 87,
+          "file": "resonance-loud/87.mp3",
+          "bytes": 12734
+        }
+      ]
+    },
+    "pedal": {
+      "down": [
+        "pedal/down1.mp3",
+        "pedal/down2.mp3"
+      ],
+      "up": [
+        "pedal/up1.mp3",
+        "pedal/up2.mp3"
+      ]
+    }
+  }
 }

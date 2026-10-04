@@ -6,7 +6,10 @@ import {
   nearestRecorded,
   neededRecorded,
   onsetSeconds,
+  PEDAL_GAIN,
   playbackRate,
+  releaseGain,
+  resonanceGain,
   sampleLevel,
   velocityGain,
 } from '../src/infrastructure/audio/pianoSamples';
@@ -128,5 +131,23 @@ describe('velocityGain', () => {
 
   it('never goes silent', () => {
     expect(velocityGain(0, 0.5)).toBeGreaterThan(0);
+  });
+});
+
+describe('the small sounds', () => {
+  it('are far quieter than the notes', () => {
+    expect(releaseGain(1, 0)).toBeLessThan(0.05);
+    expect(PEDAL_GAIN).toBeLessThan(0.3);
+  });
+
+  it('are softer after a softer strike', () => {
+    expect(releaseGain(0.3, 0.5)).toBeLessThan(releaseGain(0.9, 0.5));
+    expect(resonanceGain(0.3, 0.5)).toBeLessThan(resonanceGain(0.9, 0.5));
+  });
+
+  it('are softer the longer the note has sounded', () => {
+    expect(releaseGain(0.6, 3)).toBeLessThan(releaseGain(0.6, 0.2));
+    // A second of sounding takes 7 dB off the ring.
+    expect(resonanceGain(0.6, 1) / resonanceGain(0.6, 0)).toBeCloseTo(10 ** (-7 / 20));
   });
 });

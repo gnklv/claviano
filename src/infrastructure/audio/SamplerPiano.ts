@@ -6,7 +6,10 @@ import {
   nearestRecorded,
   neededRecorded,
   onsetSeconds,
+  PEDAL_GAIN,
   playbackRate,
+  releaseGain,
+  resonanceGain,
   sampleLevel,
   velocityGain,
   type PianoManifest,
@@ -34,6 +37,20 @@ interface SampleSet {
   readonly base: number;
   /** The recorded pitches, lowest first (the same in every layer). */
   readonly pitches: readonly number[];
+  /** The small sounds, in the order they are fetched (after all the notes): where from, and where to keep each. */
+  readonly extras: readonly { readonly file: string; readonly keep: (sample: Sample) => void }[];
+  /** Strikes softer than this (0–1) ring from the soft resonances. */
+  readonly resonanceSplit: number;
+}
+
+/** The instrument's small sounds that are in. */
+interface Extras {
+  /** The knock of each key coming up, by pitch. */
+  readonly release: Map<number, Sample>;
+  /** The strings' ring as the damper lands, by recorded pitch: for softer strikes, for louder ones. */
+  readonly resonance: readonly [Map<number, Sample>, Map<number, Sample>];
+  readonly pedalDown: Sample[];
+  readonly pedalUp: Sample[];
 }
 
 /** Samples fetched at once: enough to fill the connection, few enough for the needed ones to come first. */
@@ -51,17 +68,19 @@ const SOFT_CUTOFF_HZ = 2200;
  * those of the piece's notes first, the base layer before the others. Until the base layer has
  * all of the piece's notes, and if they never arrive (offline, a blocked request), a fallback
  * output plays instead: the whole piece, not note by note, so the two sounds never mix. A soft or
- * a loud note whose own layer is not in yet is played from the base layer. The metronome's clicks
- * always come from the fallback.
+ * a loud note whose own layer is not in yet is played from the base layer. Last come the small
+ * sounds of the instrument itself: keys and dampers coming up, the pedal's noise. The metronome's
+ * clicks always come from the fallback.
  */
 export class SamplerPiano implements AudioOutput, Instrument {
   private readonly output: AudioNode;
   private readonly voices = new Set<Voice>();
   private readonly listeners = new Set<() => void>();
   private set: SampleSet | null = null;
-  /** The samples that are in: for each layer, by recorded pitch; and those asked for ("layer:pitch"). */
+  /** The samples that are in: for each layer, by recorded pitch; and the files asked for. */
   private samples: Map<number, Sample>[] = [];
   private readonly asked = new Set<string>();
+  private readonly extras: Extras = { release: new Map(), resonance: [new Map(), new Map()], pedalDown: [], pedalUp: [] };
   private fetching = 0;
   /** The pitches of the piece being played; null before any piece: then every sample counts. */
   private preferred: readonly number[] | null = null;
@@ -146,6 +165,8 @@ export class SamplerPiano implements AudioOutput, Instrument {
         })),
         base,
         pitches: manifest.layers[base].notes.map((note) => note.pitch),
+        extras: this.extrasToFetch(manifest),
+        resonanceSplit: manifest.extras.resonance.splitVelocity / 127,
       };
     } catch (error) {
       this.fail(error);
@@ -160,19 +181,36 @@ export class SamplerPiano implements AudioOutput, Instrument {
     return this.preferred ? neededRecorded(set.pitches, this.preferred) : new Set(set.pitches);
   }
 
-  /** Keeps CONCURRENT_FETCHES samples on their way, the needed ones first. */
+  /** The small sounds in the order to fetch them: the pedal's few, the resonances, then every key's knock. */
+  private extrasToFetch(manifest: PianoManifest): SampleSet['extras'] {
+    const { extras } = this;
+    const { release, resonance, pedal } = manifest.extras;
+    const versioned = (file: string) => `${file}?v=${manifest.version}`;
+    return [
+      ...pedal.down.map((file) => ({ file: versioned(file), keep: (sample: Sample) => void extras.pedalDown.push(sample) })),
+      ...pedal.up.map((file) => ({ file: versioned(file), keep: (sample: Sample) => void extras.pedalUp.push(sample) })),
+      ...[resonance.soft, resonance.loud].flatMap((notes, kind) =>
+        notes.map(({ pitch, file }) => ({ file: versioned(file), keep: (sample: Sample) => void extras.resonance[kind].set(pitch, sample) })),
+      ),
+      ...release.map(({ pitch, file }) => ({ file: versioned(file), keep: (sample: Sample) => void extras.release.set(pitch, sample) })),
+    ];
+  }
+
+  /** Keeps CONCURRENT_FETCHES samples on their way: the needed notes first, the small sounds last. */
   private fetchMore(): void {
     const { set } = this;
     if (!set || this.failed || !this.on) return;
-    const order = fetchOrder(set.pitches, this.needed(set), set.layers.length, set.base).filter(
-      ([layer, pitch]) => !this.asked.has(`${layer}:${pitch}`),
-    );
-    for (const [layer, pitch] of order.slice(0, CONCURRENT_FETCHES - this.fetching)) {
-      this.asked.add(`${layer}:${pitch}`);
+    const notes = fetchOrder(set.pitches, this.needed(set), set.layers.length, set.base).map(([layer, pitch]) => ({
+      file: set.layers[layer].files.get(pitch)!,
+      keep: (sample: Sample) => void this.samples[layer].set(pitch, sample),
+    }));
+    const waiting = [...notes, ...set.extras].filter(({ file }) => !this.asked.has(file));
+    for (const { file, keep } of waiting.slice(0, CONCURRENT_FETCHES - this.fetching)) {
+      this.asked.add(file);
       this.fetching++;
-      this.fetchSample(set.baseUrl + set.layers[layer].files.get(pitch)!)
+      this.fetchSample(set.baseUrl + file)
         .then((sample) => {
-          this.samples[layer].set(pitch, sample);
+          keep(sample);
           this.fetching--;
           this.update();
           this.fetchMore();
@@ -223,12 +261,12 @@ export class SamplerPiano implements AudioOutput, Instrument {
     if (this.ctx.state !== 'running') await this.ctx.resume();
   }
 
-  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
+  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false, held = duration): void {
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
     const base = set ? this.samples[set.base].get(recorded) : undefined;
     if (!set || !base || !this.on || this.currentStatus !== 'ready') {
-      this.fallback.playNote(pitch, velocity, at, duration, soft);
+      this.fallback.playNote(pitch, velocity, at, duration, soft, held);
       return;
     }
     // The layer recorded nearest to this strike gives the tone: mellow when soft, bright when loud.
@@ -262,6 +300,40 @@ export class SamplerPiano implements AudioOutput, Instrument {
     this.voices.add(voice);
     source.start(start, sample.onset);
     source.stop(end + RELEASE * 6);
+    source.onended = () => {
+      gain.disconnect();
+      this.voices.delete(voice);
+    };
+
+    // The key comes up (unless it was up already): its knock, softer the longer it was held.
+    const knock = this.extras.release.get(pitch);
+    if (knock && held > 0) this.playOnce(knock, start + Math.min(held, end - start), releaseGain(velocity, held));
+    // The damper lands and the sound stops: what is left of the strings' ring.
+    const rings = this.extras.resonance[velocity < set.resonanceSplit ? 0 : 1];
+    const from = nearestRecorded([...rings.keys()], pitch);
+    const ring = rings.get(from);
+    // The top strings have no dampers: nothing to land.
+    if (ring && Math.abs(pitch - from) <= 1) this.playOnce(ring, end, resonanceGain(velocity, end - start), playbackRate(from, pitch));
+  }
+
+  playPedal(at: number, down: boolean): void {
+    const takes = down ? this.extras.pedalDown : this.extras.pedalUp;
+    if (!this.on || this.currentStatus !== 'ready' || takes.length === 0) return;
+    this.playOnce(takes[Math.floor(Math.random() * takes.length)], Math.max(at, this.ctx.currentTime), PEDAL_GAIN);
+  }
+
+  /** Plays a small sound through at a set loudness. */
+  private playOnce(sample: Sample, at: number, level: number, rate = 1): void {
+    const { ctx } = this;
+    const source = ctx.createBufferSource();
+    source.buffer = sample.buffer;
+    source.playbackRate.value = rate;
+    const gain = ctx.createGain();
+    gain.gain.value = level;
+    source.connect(gain).connect(this.output);
+    const voice: Voice = { source, gain };
+    this.voices.add(voice);
+    source.start(at, sample.onset);
     source.onended = () => {
       gain.disconnect();
       this.voices.delete(voice);
