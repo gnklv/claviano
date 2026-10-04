@@ -48,8 +48,8 @@ pedal coming up, tails shortened to 12 seconds, converted to MP3. `scripts/sampl
 | ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
 | ⚙ → Count-in | count the beats leading in before playing ("1 2 3" before a pickup on 4) |
 
-Drag a MIDI (`.mid`) or uncompressed MusicXML (`.musicxml`) file onto the window, or use
-"Open file". In MuseScore, export as *Uncompressed MusicXML*; compressed `.mxl` is not read.
+Drag a MIDI (`.mid`) or MusicXML file (`.musicxml`, or compressed `.mxl`) onto the window, or use
+"Open file".
 
 ## Architecture
 
@@ -73,7 +73,8 @@ src/
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
                        (pedals from controllers 64, 66 and 67).
-                       MusicXmlParser — uncompressed MusicXML (.musicxml/.xml) via DOMParser:
+                       MusicXmlParser — MusicXML (.musicxml/.xml, and compressed .mxl through
+                       a ZIP reader and Inflate written from scratch: zip.ts, inflate.ts) via DOMParser:
                        sounding notes for playback (ties merged) and the notes as printed
                        (value, tuplet, accidental, stem, beams, clef, pedal) for the staff.
     audio/             SamplerPiano — a piano played from samples (public/piano): three

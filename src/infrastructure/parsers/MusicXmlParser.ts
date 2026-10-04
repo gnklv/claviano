@@ -7,6 +7,7 @@ import { performanceOrder, type BarNavigation } from '../../domain/notation/navi
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
 import { lastAtOrBefore } from '../../domain/search';
 import { pianoPart } from './pianoParts';
+import { InvalidZipError, isZip, readZip } from './zip';
 import { levelAt, MARK_LEVELS, withHairpinLevels, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
 import {
   createScore,
@@ -23,7 +24,7 @@ import {
  * Sibelius and others. It gives two views of the music: sounding notes for playback (tied notes
  * become one), and the notes as printed for the staff (value, tuplet, accidental, stem, beams).
  *
- * Only uncompressed files (.musicxml, .xml); compressed .mxl archives are not read.
+ * Plain files (.musicxml, .xml) and compressed ones (.mxl, a ZIP archive with the score inside).
  * Not yet: grace notes (skipped), more than one part (the first one is read; a piano written as
  * two one-staff parts is joined into one, see pianoParts).
  */
@@ -94,11 +95,11 @@ export class InvalidMusicXmlError extends ScoreLoadError {
 
 export class MusicXmlParser implements ScoreParser {
   canParse(fileName: string): boolean {
-    return /\.(musicxml|xml)$/i.test(fileName);
+    return /\.(musicxml|xml|mxl)$/i.test(fileName);
   }
 
   parse(data: ArrayBuffer, title: string): Score {
-    const xml = new TextDecoder().decode(data);
+    const xml = new TextDecoder().decode(isZip(data) ? scoreInArchive(data) : data);
     const document = new DOMParser().parseFromString(xml, 'application/xml');
     if (document.querySelector('parsererror')) throw new InvalidMusicXmlError('Not well-formed XML');
     const root = document.documentElement;
@@ -110,6 +111,31 @@ export class MusicXmlParser implements ScoreParser {
     const part = pianoPart(root);
     if (!part) throw new InvalidMusicXmlError('The score has no parts');
     return readPart(part, workTitle(root) ?? title);
+  }
+}
+
+/**
+ * The score inside a compressed MusicXML file (.mxl): a ZIP archive whose META-INF/container.xml
+ * names the score among its files (there may be others: images, a second copy as a PDF…).
+ */
+function scoreInArchive(data: ArrayBuffer): Uint8Array {
+  try {
+    const files = readZip(data);
+    const container = files.get('META-INF/container.xml');
+    const listed = container
+      ? new DOMParser()
+          .parseFromString(new TextDecoder().decode(container()), 'application/xml')
+          .querySelector('rootfile')
+          ?.getAttribute('full-path')
+      : null;
+    // Without a container (it is required, but not every writer knows): the first score-like file.
+    const name = listed ?? [...files.keys()].find((file) => /\.(musicxml|xml)$/i.test(file) && !file.startsWith('META-INF/'));
+    const score = name ? files.get(name) : undefined;
+    if (!score) throw new InvalidMusicXmlError('The archive has no score');
+    return score();
+  } catch (error) {
+    if (error instanceof InvalidZipError) throw new InvalidMusicXmlError(error.message);
+    throw error;
   }
 }
 

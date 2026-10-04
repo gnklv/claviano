@@ -62,7 +62,7 @@ export const ru: Dictionary = {
   loopBars: 'Цикл тактов',
 
   openError: 'Не удалось открыть «{file}»: {reason}',
-  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите MIDI (.mid) или несжатый MusicXML (.musicxml)',
+  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите MIDI (.mid) или MusicXML (.musicxml, .mxl)',
   errorInvalidFile: 'файл повреждён или это не MIDI / MusicXML',
   errorUnsupportedFeature: 'такой вид файлов пока не поддерживается',
   errorUnknown: 'непредвиденная ошибка',

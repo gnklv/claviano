@@ -68,7 +68,7 @@ export const en = {
   loopBars: 'Loop bars',
 
   openError: 'Could not open “{file}”: {reason}',
-  errorUnsupportedFormat: 'this file type is not supported, choose MIDI (.mid) or uncompressed MusicXML (.musicxml)',
+  errorUnsupportedFormat: 'this file type is not supported, choose MIDI (.mid) or MusicXML (.musicxml, .mxl)',
   errorInvalidFile: 'the file is damaged or is not MIDI / MusicXML',
   errorUnsupportedFeature: 'this kind of file is not supported yet',
   errorUnknown: 'unexpected error',

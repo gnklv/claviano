@@ -4,6 +4,7 @@ import { pitch } from '../src/domain/pitch';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { layoutNotation } from '../src/infrastructure/render/notationLayout';
 import { isHeldAt, secondsAtBeat } from '../src/domain/score';
+import { zip } from './zipWriter';
 
 const parser = new MusicXmlParser();
 const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
@@ -35,11 +36,39 @@ const rest = (duration: number) => `<note><rest/><duration>${duration}</duration
 const tempo = (bpm: number) => `<direction><direction-type><words>T</words></direction-type><sound tempo="${bpm}"/></direction>`;
 
 describe('MusicXmlParser', () => {
-  it('recognises uncompressed MusicXML files only', () => {
+  it('recognises MusicXML files, plain and compressed', () => {
     expect(parser.canParse('piece.musicxml')).toBe(true);
     expect(parser.canParse('piece.XML')).toBe(true);
-    expect(parser.canParse('piece.mxl')).toBe(false);
+    expect(parser.canParse('piece.mxl')).toBe(true);
     expect(parser.canParse('piece.mid')).toBe(false);
+  });
+
+  describe('compressed files (.mxl)', () => {
+    const plain = score(`<measure number="1">${attributes()}${note('C', 4, 4)}${note('E', 4, 4)}</measure>`);
+    const container = (path: string) =>
+      `<?xml version="1.0"?><container><rootfiles><rootfile full-path="${path}"/></rootfiles></container>`;
+
+    it('reads the score the archive\'s container names', () => {
+      const archive = zip([
+        { name: 'META-INF/container.xml', data: container('scores/piece.xml') },
+        { name: 'notes.xml', data: '<not-a-score/>' },
+        { name: 'scores/piece.xml', data: new Uint8Array(plain) },
+      ]);
+      const s = parser.parse(archive, 'test');
+      expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 4), pitch('Mi', 4)]);
+    });
+
+    it('reads a score stored without compression, and one with no container', () => {
+      const archive = zip([{ name: 'piece.musicxml', data: new Uint8Array(plain), stored: true }]);
+      expect(parser.parse(archive, 'test').notes).toHaveLength(2);
+    });
+
+    it('rejects an archive without a score, or a broken one', () => {
+      expect(() => parser.parse(zip([{ name: 'readme.txt', data: 'hello' }]), 'test')).toThrow(/no score/);
+      const broken = new Uint8Array(zip([{ name: 'piece.xml', data: new Uint8Array(plain) }]));
+      broken.fill(0xff, 40, 80); // garbage in the compressed data
+      expect(() => parser.parse(broken.buffer, 'test')).toThrow();
+    });
   });
 
   it('reads pitches, beats and seconds', () => {
