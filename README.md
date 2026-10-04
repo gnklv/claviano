@@ -74,7 +74,8 @@ src/
                        transcription.ts — transcribe: writing down what was played (a MIDI
                        file): quantization to a 1/32 grid, note values up to the next note,
                        spelling (Fa♯ or Sol♭) and accidentals per bar, the staff for each hand
-                       (staffPosition.ts), 8va for far runs, beams by the beat (beaming.ts).
+                       (staffPosition.ts), 8va for far runs, beams by the beat (beaming.ts);
+                       pedals as bracket lines, tempo marks where the tempo holds for a bar.
                        engraving/ — engrave: how the notation is set on the staves, in staff
                        steps, by chapter: chords.ts (stems, seconds, voices, ledger lines),
                        marks.ts (articulations, fermatas, ornaments, tremolos, rolled chords),
@@ -87,7 +88,8 @@ src/
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
-                       (pedals from controllers 64, 66 and 67).
+                       (pedals from controllers 64, 66 and 67): notes, tempo and pedals as
+                       played; what to print of them is the domain's (transcription.ts).
                        MusicXmlParser — MusicXML (.musicxml/.xml, and compressed .mxl through
                        a ZIP reader and Inflate written from scratch: zip.ts, inflate.ts) via DOMParser:
                        it only takes down what the file says is printed, as the domain's

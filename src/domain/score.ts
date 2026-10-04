@@ -385,6 +385,22 @@ export function writtenBeatAt(score: Score, time: number): number {
   return score.writtenBarBeats[bar] + fraction * barLength(score, bar);
 }
 
+/**
+ * Where the bars start, in quarter notes, for music of `end` quarter notes with these time
+ * signatures (4/4 until the first one): each bar is as long as the metre in force says.
+ */
+export function barStarts(timeSignatures: readonly TimeSignature[], end: number): number[] {
+  const sorted = [...timeSignatures].sort((a, b) => a.beat - b.beat);
+  if (sorted.length === 0 || sorted[0].beat > 0) sorted.unshift({ beat: 0, numerator: 4, denominator: 4 });
+  const bars: number[] = [];
+  sorted.forEach((signature, i) => {
+    const until = sorted[i + 1]?.beat ?? end;
+    const length = barLengthInBeats(signature);
+    for (let beat = signature.beat; beat < until - 1e-9; beat += length) bars.push(beat);
+  });
+  return bars;
+}
+
 /** How many quarter notes a bar of this metre lasts: 3/4 → 3, 6/8 → 3, 2/2 → 4. */
 export const barLengthInBeats = ({ numerator, denominator }: TimeSignature): number =>
   (numerator * 4) / denominator;

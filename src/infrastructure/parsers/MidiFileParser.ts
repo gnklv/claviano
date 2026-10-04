@@ -1,7 +1,8 @@
 import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
 import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
-import { pedalSpans, type PedalKind, type PedalMark, type PedalSpan } from '../../domain/pedal';
-import { createScore, type Score } from '../../domain/score';
+import { writePedalMarks, writeTempoMarks } from '../../domain/notation/transcription';
+import { pedalSpans, type PedalKind, type PedalSpan } from '../../domain/pedal';
+import { barStarts, createScore, type Score } from '../../domain/score';
 import { lastAtOrBefore } from '../../domain/search';
 
 export class InvalidMidiError extends ScoreLoadError {
@@ -15,12 +16,6 @@ const DEFAULT_US_PER_QUARTER = 500_000; // 120 BPM
 const DRUM_CHANNEL = 9;
 /** Controllers of the three pedals (right, middle, left); values from 64 up mean down. */
 const PEDAL_CONTROLLERS: Record<number, PedalKind> = { 64: 'sustain', 66: 'sostenuto', 67: 'soft' };
-/**
- * Players change the pedal by lifting it and pressing it again a moment later. A gap this short
- * (in quarter notes) is drawn as one change rather than a release and a new press.
- */
-const PEDAL_CHANGE_GAP = 0.25;
-
 interface RawNote {
   track: number;
   pitch: number;
@@ -147,7 +142,10 @@ export class MidiFileParser implements ScoreParser {
       };
     });
 
-    const bars = barTicks(midi.timeSignatures, midi.ticksPerQuarter, midi.lastTick);
+    const timeSignatures = midi.timeSignatures.map(({ tick, numerator, denominator }) => ({ beat: toBeats(tick), numerator, denominator }));
+    // Where the bar lines fall, what to print of the tempo and the pedals: the domain's rules.
+    const barBeats = barStarts(timeSignatures, toBeats(midi.lastTick));
+    const bars = barBeats.map((beat) => beat * midi.ticksPerQuarter);
     const pedals = (['sustain', 'sostenuto', 'soft'] as const).map((kind) =>
       mergedPedal(
         midi.pedal.filter((event) => event.pedal === kind),
@@ -158,29 +156,21 @@ export class MidiFileParser implements ScoreParser {
     const inBeats = (spans: PedalSpan[]) => spans.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }));
     const [sustain, sostenuto, soft] = pedals;
     return createScore(title, notes, bars.map(toSeconds), {
-      barBeats: bars.map(toBeats),
+      barBeats,
       pedal: inSeconds(sustain),
       sostenutoPedal: inSeconds(sostenuto),
       softPedal: inSeconds(soft),
+      tempoMarks: writeTempoMarks(
+        midi.tempos.map((tempo) => ({ beat: toBeats(tempo.tick), perMinute: 60_000_000 / tempo.usPerQuarter })),
+        barBeats,
+        toBeats(midi.lastTick),
+      ),
       // Time runs evenly between bar starts and tempo changes.
-      tempoMarks: tempoMarks(midi.tempos, bars, midi.lastTick).map(({ tick, perMinute }) => ({
-        beat: toBeats(tick),
-        unit: { value: 'quarter', dots: 0 },
-        perMinute,
-      })),
       timeMap: [...new Set([...bars, ...midi.tempos.map((t) => t.tick), midi.lastTick])]
         .sort((a, b) => a - b)
         .map((tick) => ({ beat: toBeats(tick), time: toSeconds(tick) })),
-      pedalMarks: [
-        ...pedalMarks('sustain', inBeats(sustain)),
-        ...pedalMarks('sostenuto', inBeats(sostenuto)),
-        ...softPedalMarks(inBeats(soft)),
-      ],
-      timeSignatures: midi.timeSignatures.map(({ tick, numerator, denominator }) => ({
-        beat: toBeats(tick),
-        numerator,
-        denominator,
-      })),
+      pedalMarks: writePedalMarks({ sustain: inBeats(sustain), sostenuto: inBeats(sostenuto), soft: inBeats(soft) }),
+      timeSignatures,
       keySignatures: midi.keySignatures.map(({ tick, fifths, minor }) => ({ beat: toBeats(tick), fifths, minor })),
     });
   }
@@ -336,20 +326,6 @@ function tickToSecondsConverter(tempos: TempoEvent[], ticksPerQuarter: number): 
   };
 }
 
-function barTicks(signatures: TimeSignatureEvent[], ticksPerQuarter: number, lastTick: number): number[] {
-  const sorted = [...signatures].sort((a, b) => a.tick - b.tick);
-  if (sorted.length === 0 || sorted[0].tick > 0) sorted.unshift({ tick: 0, numerator: 4, denominator: 4 });
-
-  const bars: number[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    const { tick, numerator, denominator } = sorted[i];
-    const until = sorted[i + 1]?.tick ?? lastTick;
-    const ticksPerBar = (ticksPerQuarter * 4 * numerator) / denominator;
-    for (let t = tick; t < until; t += ticksPerBar) bars.push(t);
-  }
-  return bars;
-}
-
 /**
  * Piano MIDI files usually keep each hand in its own track; the higher one is the right hand.
  * With any other layout we fall back to splitting by pitch.
@@ -392,54 +368,4 @@ function mergedPedal(events: PedalEvent[], lastTick: number): PedalSpan[] {
     else merged.push({ ...span });
   }
   return merged;
-}
-
-/**
- * How a pedal is drawn on the staff: MIDI has no notation, so as a bracket line ("Sost." and a line
- * for the middle pedal), where a quick lift and press becomes a change (a notch) at the moment of the lift.
- */
-function pedalMarks(pedal: 'sustain' | 'sostenuto', spans: { start: number; end: number }[]): PedalMark[] {
-  const marks: PedalMark[] = [];
-  const sign = pedal === 'sostenuto';
-  const mark = (beat: number, type: PedalMark['type']): PedalMark => ({ pedal, beat, type, sign, line: true });
-  spans.forEach((span, i) => {
-    const previous = spans[i - 1];
-    if (previous && span.start - previous.end <= PEDAL_CHANGE_GAP) marks[marks.length - 1] = mark(previous.end, 'change');
-    else marks.push(mark(span.start, 'start'));
-    marks.push(mark(span.end, 'stop'));
-  });
-  return marks;
-}
-
-/** The soft pedal is written in words: "una corda" (one string) to press, "tre corde" (three strings) to lift. */
-function softPedalMarks(spans: { start: number; end: number }[]): PedalMark[] {
-  const mark = (beat: number, type: 'start' | 'stop'): PedalMark => ({
-    pedal: 'soft',
-    beat,
-    type,
-    sign: false,
-    line: false,
-    text: type === 'start' ? 'una corda' : 'tre corde',
-  });
-  return spans.flatMap((span) => [mark(span.start, 'start'), mark(span.end, 'stop')]);
-}
-
-/**
- * The tempo changes worth printing, in quarters per minute. Recordings of live playing change the
- * tempo almost every beat; a change is shown only when it holds for at least a bar.
- */
-function tempoMarks(tempos: TempoEvent[], bars: number[], lastTick: number): { tick: number; perMinute: number }[] {
-  const sorted = [...tempos].sort((a, b) => a.tick - b.tick);
-  const marks: { tick: number; perMinute: number }[] = [];
-  sorted.forEach((tempo, i) => {
-    const perMinute = Math.round(60_000_000 / tempo.usPerQuarter);
-    if (marks.at(-1)?.perMinute === perMinute) return;
-    const until = sorted[i + 1]?.tick ?? lastTick;
-    let bar = 0;
-    while (bar + 1 < bars.length && bars[bar + 1] <= tempo.tick) bar++;
-    const barLength = (bars[bar + 1] ?? lastTick) - (bars[bar] ?? 0);
-    if (marks.length > 0 && until - tempo.tick < barLength) return;
-    marks.push({ tick: tempo.tick, perMinute });
-  });
-  return marks;
 }

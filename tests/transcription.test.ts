@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Hand, Note } from '../src/domain/note';
-import { transcribe } from '../src/domain/notation/transcription';
+import { transcribe, writePedalMarks, writeTempoMarks } from '../src/domain/notation/transcription';
 import { pitch } from '../src/domain/pitch';
-import { createScore } from '../src/domain/score';
+import { barStarts, createScore } from '../src/domain/score';
 
 /** 60 BPM, bars of 4/4: a beat is a second. `held`: how long the key was down, in beats. */
 const played = (name: Parameters<typeof pitch>[0], octave: number, beat: number, held: number, hand: Hand = 'right'): Note => ({
@@ -55,5 +55,67 @@ describe('transcribe', () => {
     const { written: notes, octaveShifts } = transcribe(createScore('high', [played('Do', 7, 0, 1), played('Re', 7, 1, 1), played('Do', 5, 2, 2)], [0, 4]));
     expect(notes.map((n) => n.pitch.octave)).toEqual([6, 6, 5]);
     expect(octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
+  });
+});
+
+describe('writePedalMarks', () => {
+  it('writes the right pedal as a bracket line, a quick lift and press as a change', () => {
+    const marks = writePedalMarks({
+      sustain: [
+        { start: 0, end: 2 },
+        { start: 2.1, end: 4 }, // pressed again at once: a change
+        { start: 6, end: 8 }, // after a rest: a new press
+      ],
+      sostenuto: [],
+      soft: [],
+    });
+    expect(marks.map((m) => [m.beat, m.type, m.line, m.sign])).toEqual([
+      [0, 'start', true, false],
+      [2, 'change', true, false],
+      [4, 'stop', true, false],
+      [6, 'start', true, false],
+      [8, 'stop', true, false],
+    ]);
+  });
+
+  it('writes the middle pedal with its sign, and the left one in words', () => {
+    const marks = writePedalMarks({ sustain: [], sostenuto: [{ start: 0, end: 4 }], soft: [{ start: 4, end: 8 }] });
+    expect(marks.map((m) => [m.pedal, m.type, m.sign, m.text])).toEqual([
+      ['sostenuto', 'start', true, undefined],
+      ['sostenuto', 'stop', true, undefined],
+      ['soft', 'start', false, 'una corda'],
+      ['soft', 'stop', false, 'tre corde'],
+    ]);
+  });
+});
+
+describe('writeTempoMarks', () => {
+  const bars = [0, 4, 8, 12];
+
+  it('marks the opening tempo and a change that holds for a bar', () => {
+    const marks = writeTempoMarks([{ beat: 0, perMinute: 119.6 }, { beat: 4, perMinute: 60 }], bars, 16);
+    expect(marks.map((m) => [m.beat, m.perMinute, m.unit.value])).toEqual([
+      [0, 120, 'quarter'],
+      [4, 60, 'quarter'],
+    ]);
+  });
+
+  it('leaves out the wavering of live playing, and a tempo stated again', () => {
+    const marks = writeTempoMarks(
+      [{ beat: 0, perMinute: 100 }, { beat: 1, perMinute: 97 }, { beat: 2, perMinute: 103 }, { beat: 3, perMinute: 100 }, { beat: 8, perMinute: 100 }],
+      bars,
+      16,
+    );
+    expect(marks.map((m) => [m.beat, m.perMinute])).toEqual([[0, 100]]);
+  });
+});
+
+describe('barStarts', () => {
+  it('makes each bar as long as its metre: 4/4, then 3/4', () => {
+    expect(barStarts([{ beat: 0, numerator: 4, denominator: 4 }, { beat: 8, numerator: 3, denominator: 4 }], 14)).toEqual([0, 4, 8, 11]);
+  });
+
+  it('counts in 4/4 when no metre is given', () => {
+    expect(barStarts([], 9)).toEqual([0, 4, 8]);
   });
 });

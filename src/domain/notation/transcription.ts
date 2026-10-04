@@ -1,7 +1,8 @@
 import { groupBy } from '../group';
 import { beatsOf } from '../metronome';
 import { noteEnd, type Hand } from '../note';
-import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type OctaveShift, type Score } from '../score';
+import type { PedalMark, PedalSpan } from '../pedal';
+import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type OctaveShift, type Score, type TempoMark } from '../score';
 import { groupBeams } from './beaming';
 import { writtenDuration, type WrittenDuration } from './noteValue';
 import { quantize } from './quantize';
@@ -19,6 +20,9 @@ import type { BeamMark, Clef, WrittenNote } from './written';
  *   outside its staff; both hands on one staff are two voices, stems apart.
  * - Runs far above or below the staves go under 8va / 8vb.
  * - Accidentals follow the rules of the bar; eighths and shorter are beamed by the beat.
+ *
+ * - The pedals are written as bracket lines, a quick lift and press as a change; the left pedal in
+ *   words. A tempo is marked where it changes and stays for at least a bar.
  *
  * Not written: ties, rests, tuplets, dynamics, slurs. A performance does not say them.
  */
@@ -220,4 +224,63 @@ function shiftExtremes(placed: Placed[]): {
     close();
   }
   return { placed: result, shifts };
+}
+
+/**
+ * Players change the pedal by lifting it and pressing it again a moment later. A gap this short
+ * (in quarter notes) is written as one change rather than a release and a new press.
+ */
+const PEDAL_CHANGE_GAP = 0.25;
+
+/**
+ * The pedal marks for a performance, from when each pedal was down (in quarter notes). The right
+ * pedal as a bracket line, the middle one as "Sost." and a line, a quick lift and press as a
+ * change (a notch) at the moment of the lift; the left pedal in words, "una corda" … "tre corde".
+ */
+export function writePedalMarks(pedals: { sustain: readonly PedalSpan[]; sostenuto: readonly PedalSpan[]; soft: readonly PedalSpan[] }): PedalMark[] {
+  const lined = (pedal: 'sustain' | 'sostenuto', spans: readonly PedalSpan[]): PedalMark[] => {
+    const marks: PedalMark[] = [];
+    const mark = (beat: number, type: PedalMark['type']): PedalMark => ({ pedal, beat, type, sign: pedal === 'sostenuto', line: true });
+    spans.forEach((span, i) => {
+      const previous = spans[i - 1];
+      if (previous && span.start - previous.end <= PEDAL_CHANGE_GAP) marks[marks.length - 1] = mark(previous.end, 'change');
+      else marks.push(mark(span.start, 'start'));
+      marks.push(mark(span.end, 'stop'));
+    });
+    return marks;
+  };
+  const words = (beat: number, type: 'start' | 'stop'): PedalMark => ({
+    pedal: 'soft',
+    beat,
+    type,
+    sign: false,
+    line: false,
+    text: type === 'start' ? 'una corda' : 'tre corde',
+  });
+  return [
+    ...lined('sustain', pedals.sustain),
+    ...lined('sostenuto', pedals.sostenuto),
+    ...pedals.soft.flatMap((span) => [words(span.start, 'start'), words(span.end, 'stop')]),
+  ];
+}
+
+/**
+ * The tempo marks for a performance, in quarters per minute. Live playing changes the tempo almost
+ * every beat; a change is marked only when it holds for at least a bar (of `bars`, the bar starts;
+ * `end` is where the music ends). The opening tempo is always marked.
+ */
+export function writeTempoMarks(tempos: readonly { beat: number; perMinute: number }[], bars: readonly number[], end: number): TempoMark[] {
+  const sorted = [...tempos].sort((a, b) => a.beat - b.beat);
+  const marks: TempoMark[] = [];
+  sorted.forEach((tempo, i) => {
+    const perMinute = Math.round(tempo.perMinute);
+    if (marks.at(-1)?.perMinute === perMinute) return;
+    const until = sorted[i + 1]?.beat ?? end;
+    let bar = 0;
+    while (bar + 1 < bars.length && bars[bar + 1] <= tempo.beat + 1e-9) bar++;
+    const barLength = (bars[bar + 1] ?? end) - (bars[bar] ?? 0);
+    if (marks.length > 0 && until - tempo.beat < barLength - 1e-9) return;
+    marks.push({ beat: tempo.beat, unit: { value: 'quarter', dots: 0 }, perMinute });
+  });
+  return marks;
 }
