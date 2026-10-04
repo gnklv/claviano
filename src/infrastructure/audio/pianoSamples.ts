@@ -4,6 +4,8 @@
  * a little faster or slower.
  */
 
+import type { NoteToPrepare } from '../../application/ports/Instrument';
+
 /** public/piano/manifest.json. */
 export interface PianoManifest {
   readonly name: string;
@@ -56,13 +58,6 @@ export function nearestRecorded(recorded: readonly number[], pitch: number): num
   return best;
 }
 
-/** The recorded pitches a piece with these `pitches` is played from. */
-export function neededRecorded(recorded: readonly number[], pitches: Iterable<number>): Set<number> {
-  const needed = new Set<number>();
-  for (const pitch of pitches) needed.add(nearestRecorded(recorded, pitch));
-  return needed;
-}
-
 /** The middle of the keyboard, where most music is. */
 const MIDDLE_PITCH = 60;
 
@@ -78,20 +73,117 @@ export function loadOrder(recorded: readonly number[], needed: ReadonlySet<numbe
   ];
 }
 
+/** The sample set as the player uses it: its files, by what each is for. */
+export interface SampleSet {
+  /** The loudness layers, softest first: their files by recorded pitch. */
+  readonly layers: readonly ReadonlyMap<number, string>[];
+  /** The velocity (0–1) each layer was recorded at. */
+  readonly recorded: readonly number[];
+  /** The layer the piano can play from alone, until a note's own layer is in. */
+  readonly base: number;
+  /** The recorded pitches, lowest first (the same in every layer). */
+  readonly pitches: readonly number[];
+  /** The knock of each key coming up, by key. */
+  readonly release: ReadonlyMap<number, string>;
+  /** The strings' ring as the damper lands: for strikes softer than `split` (0–1) and for the others, by recorded pitch. */
+  readonly resonance: { readonly split: number; readonly pitches: readonly number[]; readonly soft: ReadonlyMap<number, string>; readonly loud: ReadonlyMap<number, string> };
+  /** The pedal's noise going down and coming up: a few takes of each. */
+  readonly pedal: { readonly down: readonly string[]; readonly up: readonly string[] };
+  /** Every file of the set. */
+  readonly files: readonly string[];
+}
+
+/** Reads a manifest into the set; the files' addresses carry the set's version, for caching. */
+export function describeSet(manifest: PianoManifest): SampleSet {
+  const versioned = (file: string) => `${file}?v=${manifest.version}`;
+  const byPitch = (notes: readonly PianoFile[]) => new Map(notes.map((note) => [note.pitch, versioned(note.file)]));
+  const base = Math.max(0, manifest.layers.findIndex((layer) => layer.id === manifest.base));
+  const layers = manifest.layers.map((layer) => byPitch(layer.notes));
+  const { release, resonance, pedal } = manifest.extras;
+  const set = {
+    layers,
+    recorded: manifest.layers.map((layer) => (layer.velocity[0] + layer.velocity[1]) / 2 / 127),
+    base,
+    pitches: manifest.layers[base].notes.map((note) => note.pitch),
+    release: byPitch(release),
+    resonance: { split: resonance.splitVelocity / 127, pitches: resonance.soft.map((note) => note.pitch), soft: byPitch(resonance.soft), loud: byPitch(resonance.loud) },
+    pedal: { down: pedal.down.map(versioned), up: pedal.up.map(versioned) },
+  };
+  return {
+    ...set,
+    files: [...layers.flatMap((layer) => [...layer.values()]), ...set.pedal.down, ...set.pedal.up, ...set.resonance.soft.values(), ...set.resonance.loud.values(), ...set.release.values()],
+  };
+}
+
+/** After its key is released a note still fades for a moment: this much more of the sample is kept. */
+const RELEASE_TAIL_SECONDS = 1;
 /**
- * The order to fetch all the layers' samples in, as [layer, pitch]: what the piece needs from the
- * base layer (then the piano can play), the same notes of the other layers (then it plays them in
- * full colour), and after that the rest of the keyboard, the base layer first.
+ * The base layer plays a note whose own layer is not decoded yet (just after a piece is opened),
+ * or one struck otherwise than expected: for that, this much of it is always kept.
  */
-export function fetchOrder(recorded: readonly number[], needed: ReadonlySet<number>, layers: number, base: number): [number, number][] {
-  const order = loadOrder(recorded, needed);
-  const count = recorded.filter((pitch) => needed.has(pitch)).length;
-  const others = Array.from({ length: layers }, (_, layer) => layer).filter((layer) => layer !== base);
-  const of = (pitches: number[]): [number, number][] => [
-    ...pitches.map((pitch): [number, number] => [base, pitch]),
-    ...others.flatMap((layer) => pitches.map((pitch): [number, number] => [layer, pitch])),
-  ];
-  return [...of(order.slice(0, count)), ...of(order.slice(count))];
+const STAND_IN_SECONDS = 3;
+/** Lengths to keep a sample at, in seconds: a note needing 2.3 s gets 3, so small changes of tempo do not ask for it again. */
+const KEPT_LENGTHS = [1, 2, 3, 4, 6, 8];
+
+/** The length to keep of a sample that must sound for `seconds`: the next of KEPT_LENGTHS, or all of it. */
+export const keptLength = (seconds: number): number => KEPT_LENGTHS.find((length) => length >= seconds) ?? Infinity;
+
+/** The small sounds (knocks, rings, the pedal) are barely heard: the first seconds of each are enough, and in mono. */
+const SMALL_SOUND_SECONDS = 2;
+
+/** What the notes need decoded. */
+export interface SamplesWanted {
+  /** The files, in the order to get them, with how many seconds of each to keep (Infinity: all of it). */
+  readonly files: Map<string, number>;
+  /** With these alone the piano can play: the base layer of the notes' pitches. */
+  readonly required: Set<string>;
+  /** Kept in mono: the small sounds. */
+  readonly mono: Set<string>;
+}
+
+/**
+ * The samples to have decoded for these notes, in the order to get them: the base layer of the
+ * notes' pitches, each note's own layer, then the pedal's noise, the strings' rings and the keys'
+ * knocks. Decoded sound takes a lot of memory (a 12-second stereo sample is 4.6 MB): only what the
+ * notes need is kept, and of each sample no more than the longest note played from it sounds.
+ */
+export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): SamplesWanted {
+  const pitches = new Set<number>();
+  const lengths = new Map<string, number>(); // file of a note's own layer → seconds of it needed
+  const rings = new Set<string>();
+  const knocks = new Set<string>();
+  for (const note of notes) {
+    const recorded = nearestRecorded(set.pitches, note.pitch);
+    pitches.add(recorded);
+    // A sample played faster is used up faster.
+    const seconds = note.seconds * playbackRate(recorded, note.pitch) + RELEASE_TAIL_SECONDS;
+    const own = set.layers[layerFor(set.recorded, note.velocity)].get(recorded)!;
+    lengths.set(own, Math.max(lengths.get(own) ?? 0, seconds));
+    const knock = set.release.get(note.pitch);
+    if (knock) knocks.add(knock);
+    const from = nearestRecorded(set.resonance.pitches, note.pitch);
+    const ring = (note.velocity < set.resonance.split ? set.resonance.soft : set.resonance.loud).get(from);
+    if (ring && Math.abs(note.pitch - from) <= 1) rings.add(ring);
+  }
+
+  const files = new Map<string, number>();
+  const required = new Set<string>();
+  const inOrder = loadOrder(set.pitches, pitches).slice(0, pitches.size);
+  for (const pitch of inOrder) {
+    // The base layer: as long as its own notes need, and at least enough to stand in for another layer.
+    const file = set.layers[set.base].get(pitch)!;
+    files.set(file, keptLength(Math.max(lengths.get(file) ?? 0, STAND_IN_SECONDS)));
+    required.add(file);
+  }
+  for (const pitch of inOrder) {
+    for (const layer of set.layers) {
+      const file = layer.get(pitch)!;
+      if (lengths.has(file) && !files.has(file)) files.set(file, keptLength(lengths.get(file)!));
+    }
+  }
+  const small = notes.length > 0 ? [...set.pedal.down, ...set.pedal.up, ...rings, ...knocks] : [];
+  for (const file of small) files.set(file, SMALL_SOUND_SECONDS);
+  return { files, required, mono: new Set(small) };
 }
 
 /** The layer to play a key struck at `velocity` (0–1) from: the one recorded nearest to it. */

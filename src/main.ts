@@ -2,7 +2,7 @@
 import { createApp } from 'vue';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { Playback } from './application/use-cases/Playback';
-import type { Score } from './domain/score';
+import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
@@ -24,14 +24,7 @@ const offline = import.meta.env.PROD ? startOfflineCache(import.meta.env.BASE_UR
 void offline.then(() => piano.start(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
-// The notes of the piece that is open are fetched first.
-let preferredFor: Score | null = null;
-playback.onChange(() => {
-  const { score } = playback;
-  if (!score || score === preferredFor) return;
-  preferredFor = score;
-  piano.prefer(score.notes.map((note) => note.pitch));
-});
+keepInstrumentPrepared(playback, piano);
 const musicXml = new MusicXmlParser();
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } });
 

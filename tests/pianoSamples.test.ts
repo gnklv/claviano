@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fetchOrder,
+  describeSet,
+  keptLength,
   layerFor,
   loadOrder,
   nearestRecorded,
-  neededRecorded,
   onsetSeconds,
   PEDAL_GAIN,
   playbackRate,
   releaseGain,
   resonanceGain,
   sampleLevel,
+  samplesWanted,
   velocityGain,
 } from '../src/infrastructure/audio/pianoSamples';
 
@@ -33,13 +34,6 @@ describe('nearestRecorded', () => {
   });
 });
 
-describe('neededRecorded', () => {
-  it('is the recorded notes a piece is played from', () => {
-    // C4 and C#4 share a sample; D4 comes from D#4.
-    expect([...neededRecorded(recorded, [60, 61, 62, 60])]).toEqual([60, 63]);
-  });
-});
-
 describe('loadOrder', () => {
   it('fetches what the piece needs first, then the rest, each from the middle outwards', () => {
     const order = loadOrder(recorded, new Set([21, 72, 63]));
@@ -53,20 +47,104 @@ describe('loadOrder', () => {
   });
 });
 
-describe('fetchOrder', () => {
-  it('fetches the piece from the base layer, then from the others, then the rest of the keyboard', () => {
-    // Three layers, the middle one the base; the piece needs two recorded notes.
-    const order = fetchOrder(recorded, new Set([60, 63]), 3, 1);
-    expect(order.slice(0, 6)).toEqual([
-      [1, 60],
-      [1, 63],
-      [0, 60],
-      [0, 63],
-      [2, 60],
-      [2, 63],
+/** A set like the real one: three layers of every third key, knocks for every key, rings up to D#6, two takes of the pedal. */
+const set = describeSet({
+  name: 'Test',
+  author: '',
+  license: '',
+  version: '1',
+  base: 'mid',
+  layers: [
+    { id: 'soft', velocity: [37, 43], notes: recorded.map((pitch) => ({ pitch, file: `soft/${pitch}.mp3`, bytes: 1 })) },
+    { id: 'mid', velocity: [57, 64], notes: recorded.map((pitch) => ({ pitch, file: `mid/${pitch}.mp3`, bytes: 1 })) },
+    { id: 'loud', velocity: [97, 104], notes: recorded.map((pitch) => ({ pitch, file: `loud/${pitch}.mp3`, bytes: 1 })) },
+  ],
+  extras: {
+    release: Array.from({ length: 88 }, (_, i) => ({ pitch: 21 + i, file: `release/${21 + i}.mp3` })),
+    resonance: {
+      splitVelocity: 45,
+      soft: recorded.filter((pitch) => pitch <= 87).map((pitch) => ({ pitch, file: `ring-soft/${pitch}.mp3` })),
+      loud: recorded.filter((pitch) => pitch <= 87).map((pitch) => ({ pitch, file: `ring-loud/${pitch}.mp3` })),
+    },
+    pedal: { down: ['pedal/down1.mp3', 'pedal/down2.mp3'], up: ['pedal/up1.mp3', 'pedal/up2.mp3'] },
+  },
+});
+
+describe('describeSet', () => {
+  it('lists every file, each with the version in its address', () => {
+    expect(set.files).toHaveLength(3 * 30 + 88 + 2 * 23 + 4);
+    expect(set.layers[set.base].get(60)).toBe('mid/60.mp3?v=1');
+    expect(set.recorded.map((v) => v.toFixed(2))).toEqual(['0.31', '0.48', '0.79']);
+  });
+});
+
+describe('samplesWanted', () => {
+  const file = (name: string) => `${name}.mp3?v=1`;
+
+  it('wants the base layer of the notes\' pitches, each note\'s own layer, and the small sounds, in that order', () => {
+    // Middle C and C sharp share a sample; the high one is struck hard.
+    const { files, required, mono } = samplesWanted(set, [
+      { pitch: 60, velocity: 0.5, seconds: 1 },
+      { pitch: 61, velocity: 0.5, seconds: 1 },
+      { pitch: 72, velocity: 0.9, seconds: 1 },
     ]);
-    expect(order[6]).toEqual([1, 57]);
-    expect(order).toHaveLength(90);
+    expect([...files.keys()]).toEqual([
+      file('mid/60'),
+      file('mid/72'),
+      file('loud/72'),
+      file('pedal/down1'),
+      file('pedal/down2'),
+      file('pedal/up1'),
+      file('pedal/up2'),
+      file('ring-loud/60'),
+      file('ring-loud/72'),
+      file('release/60'),
+      file('release/61'),
+      file('release/72'),
+    ]);
+    // With these alone the piano can play.
+    expect([...required]).toEqual([file('mid/60'), file('mid/72')]);
+    // The small sounds are kept in mono, the notes in stereo.
+    expect(mono.has(file('release/60'))).toBe(true);
+    expect(mono.has(file('pedal/down1'))).toBe(true);
+    expect(mono.has(file('mid/60'))).toBe(false);
+  });
+
+  it('keeps of each sample only as long as its longest note sounds, a faster-played one used up sooner', () => {
+    const { files } = samplesWanted(set, [
+      { pitch: 60, velocity: 0.5, seconds: 0.5 },
+      { pitch: 60, velocity: 0.5, seconds: 2.5 },
+      { pitch: 61, velocity: 0.5, seconds: 4.9 }, // a semitone up: 4.9 s of music is 5.2 s of the sample
+      { pitch: 21, velocity: 0.5, seconds: 20 },
+    ]);
+    expect(files.get(file('mid/60'))).toBe(8); // 5.2 s and a second for the release: the next length is 8
+    expect(files.get(file('mid/21'))).toBe(Infinity); // all of it
+    expect(files.get(file('release/60'))).toBe(2); // of the small sounds, the first two seconds
+  });
+
+  it('keeps each layer as long as its own notes need; the base layer at least three seconds, to stand in', () => {
+    const { files } = samplesWanted(set, [
+      { pitch: 60, velocity: 0.3, seconds: 7 }, // soft and long
+      { pitch: 60, velocity: 0.9, seconds: 0.5 }, // loud and short
+    ]);
+    expect(files.get(file('soft/60'))).toBe(8);
+    expect(files.get(file('loud/60'))).toBe(2);
+    expect(files.get(file('mid/60'))).toBe(3);
+  });
+
+  it('rounds lengths up to a few steps, so a little slower tempo asks for nothing new', () => {
+    expect([0.4, 1, 1.2, 2.9, 3.5, 5, 7.9, 9].map(keptLength)).toEqual([1, 1, 2, 3, 4, 6, 8, Infinity]);
+  });
+
+  it('wants nothing when there is nothing to play', () => {
+    const { files, required } = samplesWanted(set, []);
+    expect(files.size).toBe(0);
+    expect(required.size).toBe(0);
+  });
+
+  it('has no ring for the top keys, whose strings have no dampers', () => {
+    const { files } = samplesWanted(set, [{ pitch: 100, velocity: 0.5, seconds: 1 }]);
+    expect([...files.keys()].some((name) => name.startsWith('ring'))).toBe(false);
   });
 });
 

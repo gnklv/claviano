@@ -84,8 +84,9 @@ src/
                        signatures.ts for key signatures and where the key and metre change.
                        No pixels: horizontal places are the caller's.
   application/
-    ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
-    use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
+    ports/           AudioOutput, Instrument, Ticker, ScoreParser — interfaces the core needs.
+    use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore,
+                     PrepareInstrument (what the instrument must be ready to play).
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
                        (pedals from controllers 64, 66 and 67): notes, tempo and pedals as
@@ -96,8 +97,11 @@ src/
                        Notation; the domain then plays it.
     audio/             SamplerPiano — a piano played from samples (public/piano): three
                        loudness layers, every third key recorded and the others shifted in
-                       pitch; the open piece's notes are fetched first, and last the small
-                       sounds of keys, dampers and the pedal coming up.
+                       pitch, and the small sounds of keys, dampers and the pedal coming up.
+                       The files (6 MB) are kept as fetched; decoded sound is large (the whole
+                       set would take 400 MB), so only what the open piece needs is decoded,
+                       and of each sample no more than its longest note sounds (pianoSamples:
+                       samplesWanted). PrepareInstrument tells it the notes and the tempo.
                        WebAudioSynth — additive synth with a piano-like envelope: plays until
                        the samples are in, and the metronome.
     offline/           offlineCache — starts the service worker (public/sw.js) that keeps the

@@ -1,26 +1,31 @@
 import type { AudioOutput } from '../../application/ports/AudioOutput';
-import type { Instrument, InstrumentStatus } from '../../application/ports/Instrument';
+import type { Instrument, InstrumentStatus, NoteToPrepare } from '../../application/ports/Instrument';
 import {
-  fetchOrder,
+  describeSet,
   layerFor,
   nearestRecorded,
-  neededRecorded,
   onsetSeconds,
   PEDAL_GAIN,
   playbackRate,
   releaseGain,
   resonanceGain,
   sampleLevel,
+  samplesWanted,
   velocityGain,
   type PianoManifest,
+  type SampleSet,
+  type SamplesWanted,
 } from './pianoSamples';
 
+/** A decoded sample, ready to play. */
 interface Sample {
   readonly buffer: AudioBuffer;
   /** Where the sound starts in the buffer (see onsetSeconds). */
   readonly onset: number;
   /** How loud it is by itself (see sampleLevel). */
   readonly level: number;
+  /** How many seconds of it were kept (Infinity: all of it). */
+  readonly seconds: number;
 }
 
 interface Voice {
@@ -28,33 +33,8 @@ interface Voice {
   readonly gain: GainNode;
 }
 
-/** The sample set: its loudness layers (softest first) and the pitches each is recorded at. */
-interface SampleSet {
-  readonly baseUrl: string;
-  /** For each layer, its files by recorded pitch and the velocity (0–1) it was recorded at. */
-  readonly layers: readonly { readonly files: ReadonlyMap<number, string>; readonly recorded: number }[];
-  /** The layer fetched first: the piano plays from it alone until the others are in. */
-  readonly base: number;
-  /** The recorded pitches, lowest first (the same in every layer). */
-  readonly pitches: readonly number[];
-  /** The small sounds, in the order they are fetched (after all the notes): where from, and where to keep each. */
-  readonly extras: readonly { readonly file: string; readonly keep: (sample: Sample) => void }[];
-  /** Strikes softer than this (0–1) ring from the soft resonances. */
-  readonly resonanceSplit: number;
-}
-
-/** The instrument's small sounds that are in. */
-interface Extras {
-  /** The knock of each key coming up, by pitch. */
-  readonly release: Map<number, Sample>;
-  /** The strings' ring as the damper lands, by recorded pitch: for softer strikes, for louder ones. */
-  readonly resonance: readonly [Map<number, Sample>, Map<number, Sample>];
-  readonly pedalDown: Sample[];
-  readonly pedalUp: Sample[];
-}
-
-/** Samples fetched at once: enough to fill the connection, few enough for the needed ones to come first. */
-const CONCURRENT_FETCHES = 4;
+/** Files fetched or decoded at once: enough to fill the connection, few enough for the needed ones to come first. */
+const CONCURRENT_TASKS = 4;
 /** A sample that fails to arrive is asked for this many times in all. */
 const FETCH_ATTEMPTS = 2;
 const MASTER_GAIN = 0.5;
@@ -62,28 +42,38 @@ const MASTER_GAIN = 0.5;
 const RELEASE = 0.12;
 /** With the soft pedal the tone is duller: frequencies above this are turned down. */
 const SOFT_CUTOFF_HZ = 2200;
+/** A sample cut short ends with a fade this long, so it never stops with a click. */
+const CUT_FADE_SECONDS = 0.05;
+/** A decoded sample is cut down only when it is more than this many times longer than the notes need. */
+const SPARE_LENGTH = 2;
 
 /**
- * A piano played from recorded samples (see pianoSamples). The samples arrive over the network,
- * those of the piece's notes first, the base layer before the others. Until the base layer has
- * all of the piece's notes, and if they never arrive (offline, a blocked request), a fallback
- * output plays instead: the whole piece, not note by note, so the two sounds never mix. A soft or
- * a loud note whose own layer is not in yet is played from the base layer. Last come the small
- * sounds of the instrument itself: keys and dampers coming up, the pedal's noise. The metronome's
- * clicks always come from the fallback.
+ * A piano played from recorded samples (see pianoSamples).
+ *
+ * The files are small (6 MB for the whole set) but decoded sound is large: all of it would take
+ * 400 MB. So the files are fetched and kept as they are, and only what the notes about to be
+ * played need is decoded: the base layer of their pitches, each note's own layer, and no more
+ * seconds of a sample than its longest note sounds (see samplesWanted). Another piece, or a slower
+ * tempo, decodes what it needs and lets go of the rest.
+ *
+ * Until the base layer has all of the piece's notes, and if the files never arrive (offline, a
+ * blocked request), a fallback output plays instead: the whole piece, not note by note, so the
+ * two sounds never mix. A note whose own layer is not decoded yet is played from the base layer.
+ * The metronome's clicks always come from the fallback.
  */
 export class SamplerPiano implements AudioOutput, Instrument {
   private readonly output: AudioNode;
   private readonly voices = new Set<Voice>();
   private readonly listeners = new Set<() => void>();
   private set: SampleSet | null = null;
-  /** The samples that are in: for each layer, by recorded pitch; and the files asked for. */
-  private samples: Map<number, Sample>[] = [];
-  private readonly asked = new Set<string>();
-  private readonly extras: Extras = { release: new Map(), resonance: [new Map(), new Map()], pedalDown: [], pedalUp: [] };
-  private fetching = 0;
-  /** The pitches of the piece being played; null before any piece: then every sample counts. */
-  private preferred: readonly number[] | null = null;
+  /** The files as fetched, and the decoded samples, both by file. */
+  private readonly bytes = new Map<string, ArrayBuffer>();
+  private readonly decoded = new Map<string, Sample>();
+  /** Files being fetched or decoded now. */
+  private readonly busy = new Set<string>();
+  /** The notes to be ready for, and what they need (see samplesWanted). */
+  private notes: readonly NoteToPrepare[] = [];
+  private wanted: SamplesWanted = { files: new Map(), required: new Set(), mono: new Set() };
   private failed = false;
   private currentStatus: InstrumentStatus = 'loading';
   private on = true;
@@ -126,10 +116,9 @@ export class SamplerPiano implements AudioOutput, Instrument {
     return () => this.listeners.delete(listener);
   }
 
-  prefer(pitches: Iterable<number>): void {
-    this.preferred = [...new Set(pitches)];
-    this.update();
-    this.fetchMore();
+  prepare(notes: readonly NoteToPrepare[]): void {
+    this.notes = notes;
+    this.plan();
   }
 
   /**
@@ -145,7 +134,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
   private begin(): void {
     if (!this.on || this.baseUrl === null) return;
     if (this.started) {
-      this.fetchMore();
+      this.work();
     } else {
       this.started = true;
       void this.load(this.baseUrl);
@@ -154,82 +143,110 @@ export class SamplerPiano implements AudioOutput, Instrument {
 
   private async load(baseUrl: string): Promise<void> {
     try {
-      const manifest = (await (await fetchOk(`${baseUrl}manifest.json`)).json()) as PianoManifest;
-      const base = Math.max(0, manifest.layers.findIndex((layer) => layer.id === manifest.base));
-      this.samples = manifest.layers.map(() => new Map());
-      this.set = {
-        baseUrl,
-        layers: manifest.layers.map((layer) => ({
-          files: new Map(layer.notes.map((note) => [note.pitch, `${note.file}?v=${manifest.version}`])),
-          recorded: (layer.velocity[0] + layer.velocity[1]) / 2 / 127,
-        })),
-        base,
-        pitches: manifest.layers[base].notes.map((note) => note.pitch),
-        extras: this.extrasToFetch(manifest),
-        resonanceSplit: manifest.extras.resonance.splitVelocity / 127,
-      };
+      this.set = describeSet((await (await fetchOk(`${baseUrl}manifest.json`)).json()) as PianoManifest);
     } catch (error) {
       this.fail(error);
       return;
     }
+    this.plan();
+  }
+
+  /** Works out what the notes need, lets go of what they do not, and goes on getting the rest. */
+  private plan(): void {
+    if (!this.set) return;
+    this.wanted = samplesWanted(this.set, this.notes);
+    for (const [file, sample] of this.decoded) {
+      const seconds = this.wanted.files.get(file);
+      if (seconds === undefined) this.decoded.delete(file);
+      // Much longer than the notes now need (another piece): cut down, which costs no decoding.
+      // A little longer is left alone, so moving the tempo back and forth decodes nothing again.
+      else if (sample.seconds > SPARE_LENGTH * seconds) this.decoded.set(file, { ...sample, buffer: this.cut(sample.buffer, sample.onset + seconds, false), seconds });
+    }
     this.update();
-    this.fetchMore();
+    this.work();
   }
 
-  /** The recorded pitches the piece is played from (all of them before any piece). */
-  private needed(set: SampleSet): Set<number> {
-    return this.preferred ? neededRecorded(set.pitches, this.preferred) : new Set(set.pitches);
+  /** Enough of `file` is decoded for the notes. */
+  private has(file: string): boolean {
+    return (this.decoded.get(file)?.seconds ?? -1) >= (this.wanted.files.get(file) ?? Infinity);
   }
 
-  /** The small sounds in the order to fetch them: the pedal's few, the resonances, then every key's knock. */
-  private extrasToFetch(manifest: PianoManifest): SampleSet['extras'] {
-    const { extras } = this;
-    const { release, resonance, pedal } = manifest.extras;
-    const versioned = (file: string) => `${file}?v=${manifest.version}`;
-    return [
-      ...pedal.down.map((file) => ({ file: versioned(file), keep: (sample: Sample) => void extras.pedalDown.push(sample) })),
-      ...pedal.up.map((file) => ({ file: versioned(file), keep: (sample: Sample) => void extras.pedalUp.push(sample) })),
-      ...[resonance.soft, resonance.loud].flatMap((notes, kind) =>
-        notes.map(({ pitch, file }) => ({ file: versioned(file), keep: (sample: Sample) => void extras.resonance[kind].set(pitch, sample) })),
-      ),
-      ...release.map(({ pitch, file }) => ({ file: versioned(file), keep: (sample: Sample) => void extras.release.set(pitch, sample) })),
-    ];
-  }
-
-  /** Keeps CONCURRENT_FETCHES samples on their way: the needed notes first, the small sounds last. */
-  private fetchMore(): void {
+  /**
+   * Keeps CONCURRENT_TASKS files on their way. First what the notes need, in order: fetched if it
+   * is not here yet, then decoded. After that the rest of the set is fetched (not decoded), so
+   * another piece finds its files here and the offline cache has them all.
+   */
+  private work(): void {
     const { set } = this;
-    if (!set || this.failed || !this.on) return;
-    const notes = fetchOrder(set.pitches, this.needed(set), set.layers.length, set.base).map(([layer, pitch]) => ({
-      file: set.layers[layer].files.get(pitch)!,
-      keep: (sample: Sample) => void this.samples[layer].set(pitch, sample),
-    }));
-    const waiting = [...notes, ...set.extras].filter(({ file }) => !this.asked.has(file));
-    for (const { file, keep } of waiting.slice(0, CONCURRENT_FETCHES - this.fetching)) {
-      this.asked.add(file);
-      this.fetching++;
-      this.fetchSample(set.baseUrl + file)
-        .then((sample) => {
-          keep(sample);
-          this.fetching--;
+    if (!set || this.failed || !this.on || this.baseUrl === null) return;
+    const baseUrl = this.baseUrl;
+    const run = (file: string, task: Promise<void>) => {
+      this.busy.add(file);
+      task
+        .then(() => {
+          this.busy.delete(file);
           this.update();
-          this.fetchMore();
+          this.work();
         })
         .catch((error: unknown) => this.fail(error));
+    };
+    for (const file of this.wanted.files.keys()) {
+      if (this.busy.size >= CONCURRENT_TASKS) return;
+      if (this.busy.has(file) || this.has(file)) continue;
+      run(file, this.bytes.has(file) ? this.decode(file) : this.fetchBytes(baseUrl, file));
+    }
+    for (const file of set.files) {
+      if (this.busy.size >= CONCURRENT_TASKS) return;
+      if (!this.busy.has(file) && !this.bytes.has(file)) run(file, this.fetchBytes(baseUrl, file));
     }
   }
 
-  private async fetchSample(url: string, attempt = 1): Promise<Sample> {
+  private async fetchBytes(baseUrl: string, file: string, attempt = 1): Promise<void> {
     try {
-      const data = await (await fetchOk(url)).arrayBuffer();
-      const buffer = await this.ctx.decodeAudioData(data);
-      const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
-      const onset = onsetSeconds(channels, buffer.sampleRate);
-      return { buffer, onset, level: sampleLevel(channels, buffer.sampleRate, onset) };
+      this.bytes.set(file, await (await fetchOk(baseUrl + file)).arrayBuffer());
     } catch (error) {
       if (attempt >= FETCH_ATTEMPTS) throw error;
-      return this.fetchSample(url, attempt + 1);
+      await this.fetchBytes(baseUrl, file, attempt + 1);
     }
+  }
+
+  /** Decodes a fetched file and keeps as much of it as the notes need now. */
+  private async decode(file: string): Promise<void> {
+    const seconds = this.wanted.files.get(file) ?? Infinity;
+    // Decoding takes the bytes away: it gets a copy, the file stays for another time.
+    const full = await this.ctx.decodeAudioData(this.bytes.get(file)!.slice(0));
+    const channels = Array.from({ length: full.numberOfChannels }, (_, i) => full.getChannelData(i));
+    const onset = onsetSeconds(channels, full.sampleRate);
+    const level = sampleLevel(channels, full.sampleRate, onset);
+    // The notes may have changed meanwhile: what is not needed any more is not kept.
+    if (this.wanted.files.has(file)) {
+      this.decoded.set(file, { buffer: this.cut(full, onset + seconds, this.wanted.mono.has(file)), onset, level, seconds });
+    }
+  }
+
+  /**
+   * The first `seconds` of a decoded sample, faded out at the cut, its channels mixed into one for
+   * `mono`; the sample itself if there is nothing to cut or mix.
+   */
+  private cut(full: AudioBuffer, seconds: number, mono: boolean): AudioBuffer {
+    const length = Math.min(full.length, Math.ceil(seconds * full.sampleRate));
+    const channels = mono ? 1 : full.numberOfChannels;
+    if (length === full.length && channels === full.numberOfChannels) return full;
+    const short = this.ctx.createBuffer(channels, length, full.sampleRate);
+    const fade = length < full.length ? Math.min(length, Math.floor(CUT_FADE_SECONDS * full.sampleRate)) : 0;
+    for (let channel = 0; channel < channels; channel++) {
+      const data = short.getChannelData(channel);
+      data.set(full.getChannelData(channel).subarray(0, length));
+      if (mono) {
+        for (let other = 1; other < full.numberOfChannels; other++) {
+          const more = full.getChannelData(other);
+          for (let i = 0; i < length; i++) data[i] += more[i];
+        }
+        for (let i = 0; i < length; i++) data[i] /= full.numberOfChannels;
+      }
+      for (let i = 0; i < fade; i++) data[length - 1 - i] *= i / fade;
+    }
+    return short;
   }
 
   private fail(error: unknown): void {
@@ -240,8 +257,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   private update(): void {
-    const { set } = this;
-    const ready = set !== null && [...this.needed(set)].every((pitch) => this.samples[set.base].has(pitch));
+    const ready = this.set !== null && [...this.wanted.required].every((file) => this.decoded.has(file));
     // What is already in keeps playing even if the rest fails to arrive.
     const status: InstrumentStatus = ready ? 'ready' : this.failed ? 'unavailable' : 'loading';
     if (status === this.currentStatus) return;
@@ -264,13 +280,14 @@ export class SamplerPiano implements AudioOutput, Instrument {
   playNote(pitch: number, velocity: number, at: number, duration: number, soft = false, held = duration): void {
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
-    const base = set ? this.samples[set.base].get(recorded) : undefined;
+    const sampleOf = (layer: number) => this.decoded.get(set?.layers[layer].get(recorded) ?? '');
+    const base = set ? sampleOf(set.base) : undefined;
     if (!set || !base || !this.on || this.currentStatus !== 'ready') {
       this.fallback.playNote(pitch, velocity, at, duration, soft, held);
       return;
     }
     // The layer recorded nearest to this strike gives the tone: mellow when soft, bright when loud.
-    const own = this.samples[layerFor(set.layers.map((layer) => layer.recorded), velocity)].get(recorded);
+    const own = sampleOf(layerFor(set.recorded, velocity));
     const sample = own && own.level > 0 ? own : base;
     const start = Math.max(at, ctx.currentTime);
     const end = start + Math.max(duration, 0.05);
@@ -282,7 +299,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
     // The sample carries the note's own decay; the gain only sets its loudness and the release.
     const gain = ctx.createGain();
     // As loud as the base layer would be at this velocity, whichever layer plays: only the tone differs.
-    const level = velocityGain(velocity, set.layers[set.base].recorded) * (base.level / sample.level);
+    const level = velocityGain(velocity, set.recorded[set.base]) * (base.level / sample.level);
     gain.gain.setValueAtTime(level, start);
     gain.gain.setTargetAtTime(0, end, RELEASE);
     gain.connect(this.output);
@@ -306,20 +323,22 @@ export class SamplerPiano implements AudioOutput, Instrument {
     };
 
     // The key comes up (unless it was up already): its knock, softer the longer it was held.
-    const knock = this.extras.release.get(pitch);
+    const knock = this.decoded.get(set.release.get(pitch) ?? '');
     if (knock && held > 0) this.playOnce(knock, start + Math.min(held, end - start), releaseGain(velocity, held));
     // The damper lands and the sound stops: what is left of the strings' ring.
-    const rings = this.extras.resonance[velocity < set.resonanceSplit ? 0 : 1];
-    const from = nearestRecorded([...rings.keys()], pitch);
-    const ring = rings.get(from);
+    const rings = velocity < set.resonance.split ? set.resonance.soft : set.resonance.loud;
+    const from = nearestRecorded(set.resonance.pitches, pitch);
+    const ring = this.decoded.get(rings.get(from) ?? '');
     // The top strings have no dampers: nothing to land.
     if (ring && Math.abs(pitch - from) <= 1) this.playOnce(ring, end, resonanceGain(velocity, end - start), playbackRate(from, pitch));
   }
 
   playPedal(at: number, down: boolean): void {
-    const takes = down ? this.extras.pedalDown : this.extras.pedalUp;
-    if (!this.on || this.currentStatus !== 'ready' || takes.length === 0) return;
-    this.playOnce(takes[Math.floor(Math.random() * takes.length)], Math.max(at, this.ctx.currentTime), PEDAL_GAIN);
+    if (!this.set || !this.on || this.currentStatus !== 'ready') return;
+    // One of the takes, at random: the same noise every time would sound like a machine.
+    const takes = down ? this.set.pedal.down : this.set.pedal.up;
+    const take = this.decoded.get(takes[Math.floor(Math.random() * takes.length)] ?? '');
+    if (take) this.playOnce(take, Math.max(at, this.ctx.currentTime), PEDAL_GAIN);
   }
 
   /** Plays a small sound through at a set loudness. */
