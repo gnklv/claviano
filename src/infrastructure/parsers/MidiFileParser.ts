@@ -75,12 +75,12 @@ class ByteReader {
 
   peek(): number {
     this.ensure(1);
-    return this.bytes[this.pos];
+    return this.bytes[this.pos]!;
   }
 
   u8(): number {
     this.ensure(1);
-    return this.bytes[this.pos++];
+    return this.bytes[this.pos++]!;
   }
 
   u16(): number {
@@ -154,7 +154,7 @@ export class MidiFileParser implements ScoreParser {
     );
     const inSeconds = (spans: PedalSpan[]) => spans.map((span) => ({ start: toSeconds(span.start), end: toSeconds(span.end) }));
     const inBeats = (spans: PedalSpan[]) => spans.map((span) => ({ start: toBeats(span.start), end: toBeats(span.end) }));
-    const [sustain, sostenuto, soft] = pedals;
+    const [sustain = [], sostenuto = [], soft = []] = pedals;
     const score = createScore(title, notes, bars.map(toSeconds), {
       barBeats,
       pedal: inSeconds(sustain),
@@ -309,21 +309,21 @@ function readTrack(reader: ByteReader, end: number, track: number, data: MidiDat
 
 function tickToSecondsConverter(tempos: TempoEvent[], ticksPerQuarter: number): (tick: number) => number {
   const sorted = [...tempos].sort((a, b) => a.tick - b.tick);
-  if (sorted.length === 0 || sorted[0].tick > 0) {
+  if (!sorted[0] || sorted[0].tick > 0) {
     sorted.unshift({ tick: 0, usPerQuarter: DEFAULT_US_PER_QUARTER });
   }
 
   const segments: { tick: number; seconds: number; secondsPerTick: number }[] = [];
   let seconds = 0;
-  for (let i = 0; i < sorted.length; i++) {
-    const secondsPerTick = sorted[i].usPerQuarter / 1e6 / ticksPerQuarter;
-    if (i > 0) seconds += (sorted[i].tick - segments[i - 1].tick) * segments[i - 1].secondsPerTick;
-    segments.push({ tick: sorted[i].tick, seconds, secondsPerTick });
+  for (const tempo of sorted) {
+    const previous = segments.at(-1);
+    if (previous) seconds += (tempo.tick - previous.tick) * previous.secondsPerTick;
+    segments.push({ tick: tempo.tick, seconds, secondsPerTick: tempo.usPerQuarter / 1e6 / ticksPerQuarter });
   }
 
   return (tick) => {
     // Recordings of live playing change the tempo thousands of times: find the segment by halving.
-    const segment = segments[Math.max(0, lastAtOrBefore(segments, tick, (s) => s.tick))];
+    const segment = segments[Math.max(0, lastAtOrBefore(segments, tick, (s) => s.tick))]!;
     return segment.seconds + (tick - segment.tick) * segment.secondsPerTick;
   };
 }
@@ -340,8 +340,9 @@ function handAssigner(notes: RawNote[]): (note: RawNote) => Hand {
     entry.count++;
     pitchSums.set(note.track, entry);
   }
-  if (pitchSums.size === 2) {
-    const [[trackA, a], [trackB, b]] = [...pitchSums];
+  const [first, second, ...others] = [...pitchSums];
+  if (first && second && others.length === 0) {
+    const [[trackA, a], [trackB, b]] = [first, second];
     const rightTrack = a.sum / a.count >= b.sum / b.count ? trackA : trackB;
     return (note) => (note.track === rightTrack ? 'right' : 'left');
   }

@@ -37,7 +37,7 @@ export function pianoPart(root: Element): Element | null {
   };
 
   // Two staves from the start, before any note is read.
-  const first = upperBars[0];
+  const first = upperBars[0]!;
   const attributes = first.querySelector(':scope > attributes') ?? first.insertBefore(element('attributes'), first.firstChild);
   setChild(attributes, 'staves', '2');
 
@@ -45,7 +45,7 @@ export function pianoPart(root: Element): Element | null {
     // Back to the start of the bar, then the left hand's bar on the lower staff.
     const reached = position(bar);
     if (reached > 0) bar.appendChild(element('backup')).appendChild(element('duration', String(reached)));
-    for (const child of [...lowerBars[i].children]) {
+    for (const child of [...lowerBars[i]!.children]) {
       switch (child.nodeName) {
         case 'attributes':
           // The upper part already sets the key, time and staves: keep the lower staff's clef and the unit.

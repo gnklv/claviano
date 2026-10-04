@@ -240,11 +240,11 @@ export class SamplerPiano implements AudioOutput, Instrument {
       if (mono) {
         for (let other = 1; other < full.numberOfChannels; other++) {
           const more = full.getChannelData(other);
-          for (let i = 0; i < length; i++) data[i] += more[i];
+          for (let i = 0; i < length; i++) data[i]! += more[i]!;
         }
-        for (let i = 0; i < length; i++) data[i] /= full.numberOfChannels;
+        for (let i = 0; i < length; i++) data[i]! /= full.numberOfChannels;
       }
-      for (let i = 0; i < fade; i++) data[length - 1 - i] *= i / fade;
+      for (let i = 0; i < fade; i++) data[length - 1 - i]! *= i / fade;
     }
     return short;
   }
@@ -281,7 +281,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
     const { pitch, velocity, at, duration, soft, held } = note;
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
-    const sampleOf = (layer: number) => this.decoded.get(set?.layers[layer].get(recorded) ?? '');
+    const sampleOf = (layer: number) => this.decoded.get(set?.layers[layer]?.get(recorded) ?? '');
     const base = set ? sampleOf(set.base) : undefined;
     if (!set || !base || !this.on || this.currentStatus !== 'ready') {
       this.fallback.playNote(note);
@@ -300,7 +300,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
     // The sample carries the note's own decay; the gain only sets its loudness and the release.
     const gain = ctx.createGain();
     // As loud as the base layer would be at this velocity, whichever layer plays: only the tone differs.
-    const level = velocityGain(velocity, set.recorded[set.base]) * (base.level / sample.level);
+    const level = velocityGain(velocity, set.recorded[set.base] ?? 0) * (base.level / sample.level);
     gain.gain.setValueAtTime(level, start);
     gain.gain.setTargetAtTime(0, end, RELEASE);
     gain.connect(this.output);

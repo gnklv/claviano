@@ -14,7 +14,7 @@ export function notesToPrepare(score: Score, tempo: number): NoteToPrepare[] {
     pitch: note.pitch,
     // Struck with the soft pedal down, a note is played quieter (see Playback).
     velocity: pedalDownAt(score.softPedal, note.start) ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity,
-    seconds: Math.max(note.duration, sustained[index]) / tempo,
+    seconds: Math.max(note.duration, sustained[index] ?? 0) / tempo,
   }));
 }
 

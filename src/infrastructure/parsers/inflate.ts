@@ -20,13 +20,13 @@ const MAX_CODE_LENGTH = 15;
 
 function huffman(lengths: ArrayLike<number>): Huffman {
   const counts = new Uint16Array(MAX_CODE_LENGTH + 1);
-  for (let i = 0; i < lengths.length; i++) counts[lengths[i]]++;
+  for (let i = 0; i < lengths.length; i++) counts[lengths[i]!]!++;
   counts[0] = 0;
   const offsets = new Uint16Array(MAX_CODE_LENGTH + 2);
-  for (let length = 1; length <= MAX_CODE_LENGTH; length++) offsets[length + 1] = offsets[length] + counts[length];
+  for (let length = 1; length <= MAX_CODE_LENGTH; length++) offsets[length + 1] = offsets[length]! + counts[length]!;
   const symbols = new Uint16Array(lengths.length);
   for (let symbol = 0; symbol < lengths.length; symbol++) {
-    if (lengths[symbol] !== 0) symbols[offsets[lengths[symbol]]++] = symbol;
+    if (lengths[symbol] !== 0) symbols[offsets[lengths[symbol]!]!++] = symbol;
   }
   return { counts, symbols };
 }
@@ -62,7 +62,7 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
   const bits = (count: number): number => {
     while (bitCount < count) {
       if (position >= input.length) throw new InflateError('Unexpected end of compressed data');
-      bitBuffer |= input[position++] << bitCount;
+      bitBuffer |= input[position++]! << bitCount;
       bitCount += 8;
     }
     const value = bitBuffer & ((1 << count) - 1);
@@ -78,8 +78,8 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
     let index = 0;
     for (let length = 1; length <= MAX_CODE_LENGTH; length++) {
       code |= bits(1);
-      const count = counts[length];
-      if (code - count < first) return symbols[index + (code - first)];
+      const count = counts[length]!;
+      if (code - count < first) return symbols[index + (code - first)]!;
       index += count;
       first = (first + count) << 1;
       code <<= 1;
@@ -99,8 +99,8 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
     bitBuffer = 0; // the rest of the current byte is padding
     bitCount = 0;
     if (position + 4 > input.length) throw new InflateError('Unexpected end of compressed data');
-    const length = input[position] | (input[position + 1] << 8);
-    const check = input[position + 2] | (input[position + 3] << 8);
+    const length = input[position]! | (input[position + 1]! << 8);
+    const check = input[position + 2]! | (input[position + 3]! << 8);
     position += 4;
     if (length !== (~check & 0xffff) || position + length > input.length) throw new InflateError('Invalid stored block');
     room(length);
@@ -119,14 +119,14 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
         return;
       } else {
         if (code > 285) throw new InflateError('Invalid length code');
-        const length = LENGTH_BASE[code - 257] + bits(LENGTH_EXTRA[code - 257]);
+        const length = LENGTH_BASE[code - 257]! + bits(LENGTH_EXTRA[code - 257]!);
         const distanceCode = symbol(distances);
         if (distanceCode > 29) throw new InflateError('Invalid distance code');
-        const distance = DISTANCE_BASE[distanceCode] + bits(DISTANCE_EXTRA[distanceCode]);
+        const distance = DISTANCE_BASE[distanceCode]! + bits(DISTANCE_EXTRA[distanceCode]!);
         if (distance > written) throw new InflateError('Distance reaches before the start');
         room(length);
         // Byte by byte: the copy may run into what it has just written (a repeating pattern).
-        for (let i = 0; i < length; i++, written++) output[written] = output[written - distance];
+        for (let i = 0; i < length; i++, written++) output[written] = output[written - distance]!;
       }
     }
   };
@@ -137,7 +137,7 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
     const distanceCount = bits(5) + 1;
     const codeLengthCount = bits(4) + 4;
     const codeLengths = new Uint8Array(19);
-    for (let i = 0; i < codeLengthCount; i++) codeLengths[CODE_LENGTH_ORDER[i]] = bits(3);
+    for (let i = 0; i < codeLengthCount; i++) codeLengths[CODE_LENGTH_ORDER[i]!] = bits(3);
     const lengthCodes = huffman(codeLengths);
 
     const lengths = new Uint8Array(literalCount + distanceCount);
@@ -149,7 +149,7 @@ export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Arr
       }
       // 16: the previous length again, 3–6 times; 17 and 18: a run of zeros.
       if (code === 16 && i === 0) throw new InflateError('Nothing to repeat');
-      const value = code === 16 ? lengths[i - 1] : 0;
+      const value = code === 16 ? lengths[i - 1]! : 0;
       const repeat = code === 16 ? 3 + bits(2) : code === 17 ? 3 + bits(3) : 11 + bits(7);
       if (i + repeat > lengths.length) throw new InflateError('Too many code lengths');
       lengths.fill(value, i, i + repeat);

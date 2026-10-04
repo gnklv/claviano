@@ -40,7 +40,7 @@ function firstClickAtOrAfter(clicks: readonly Click[], time: number): number {
   let hi = clicks.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (clicks[mid].time < time - 1e-9) lo = mid + 1;
+    if (clicks[mid]!.time < time - 1e-9) lo = mid + 1;
     else hi = mid;
   }
   return lo;
@@ -137,7 +137,7 @@ export class Playback {
     if (now >= counting.end) return null;
     let current: number | null = null;
     counting.times.forEach((at, i) => {
-      if (at <= now) current = counting.counts[i];
+      if (at <= now) current = counting.counts[i] ?? null;
     });
     return current;
   }
@@ -159,8 +159,9 @@ export class Playback {
     const now = this.audio.now();
     // Counting in: the music waits at its start.
     if (now < this.anchor.audio) return this.anchor.score;
-    while (this.pendingWraps.length > 0 && now >= this.pendingWraps[0].audio) {
-      this.anchor = this.pendingWraps.shift()!;
+    for (let next = this.pendingWraps[0]; next && now >= next.audio; next = this.pendingWraps[0]) {
+      this.anchor = next;
+      this.pendingWraps.shift();
     }
     const position = this.anchor.score + (now - this.anchor.audio) * this.currentTempo;
     return Math.min(position, this.currentScore?.duration ?? 0);
@@ -177,7 +178,7 @@ export class Playback {
     this.currentScore = score;
     this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
     this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
-    this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i]), 0);
+    this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i] ?? 0), 0);
     this.clicks = metronomeClicks(score);
     this.pedalMoves = score.pedal
       .flatMap((span) => [
@@ -325,7 +326,7 @@ export class Playback {
       const clicks = countIn(score, position);
       lead = Math.max(0, ...clicks.map((c) => c.before)) / this.currentTempo;
       const times = clicks.map((c) => now + lead - c.before / this.currentTempo);
-      clicks.forEach((c, i) => this.click(times[i], c.count === 1));
+      clicks.forEach((c, i) => this.click(times[i]!, c.count === 1));
       this.counting = { times, counts: clicks.map((c) => c.count), end: now + lead };
     }
     this.anchor = { audio: now + lead, score: position };
@@ -342,13 +343,13 @@ export class Playback {
   private resumeSounding(score: Score, position: number): void {
     const { notes } = score;
     for (let i = firstNoteAtOrAfter(score, position - this.longestSounding); i < notes.length; i++) {
-      const note = notes[i];
+      const note = notes[i]!;
       if (note.start >= position) break;
       if (!this.enabledHands.has(note.hand)) continue;
-      const end = note.start + (this.pedalOn ? this.sustained[i] : note.duration);
+      const end = note.start + (this.pedalOn ? (this.sustained[i] ?? note.duration) : note.duration);
       const left = Math.min(end, this.currentLoop?.end ?? end) - position;
       if (left < MIN_RESUMED_SECONDS) continue;
-      const soft = this.pedalOn && this.softened[i];
+      const soft = this.pedalOn && (this.softened[i] ?? false);
       const velocity = (soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity) * RESUMED_LOUDNESS;
       // The key may be up already, the pedal alone holding the note.
       const held = Math.min(left, Math.max(0, note.start + note.duration - position));
@@ -367,7 +368,7 @@ export class Playback {
     this.audio.playClick(at, accent);
     const now = this.audio.now();
     // Keep only what can still be the last click heard.
-    while (this.sounded.length > 1 && this.sounded[1].at <= now) this.sounded.shift();
+    while (this.sounded.length > 1 && this.sounded[1]!.at <= now) this.sounded.shift();
     this.sounded.push({ at, accent });
   }
 
@@ -387,14 +388,14 @@ export class Playback {
     for (;;) {
       const segmentEnd = this.currentLoop?.end ?? score.duration;
       const horizon = Math.min(this.toScore(horizonAudio), segmentEnd);
-      while (this.nextNoteIndex < notes.length && notes[this.nextNoteIndex].start < horizon) {
+      while (this.nextNoteIndex < notes.length && notes[this.nextNoteIndex]!.start < horizon) {
         const index = this.nextNoteIndex++;
-        const note = notes[index];
+        const note = notes[index]!;
         if (!this.enabledHands.has(note.hand)) continue;
-        const sounding = this.pedalOn ? this.sustained[index] : note.duration;
+        const sounding = this.pedalOn ? (this.sustained[index] ?? note.duration) : note.duration;
         // A loop cuts what would sound past its end; the end of the piece lets it ring (the last pedalled chord).
         const duration = this.currentLoop ? Math.min(sounding, segmentEnd - note.start) : sounding;
-        const soft = this.pedalOn && this.softened[index];
+        const soft = this.pedalOn && (this.softened[index] ?? false);
         const velocity = soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity;
         const held = Math.min(note.duration, duration);
         this.audio.playNote({
@@ -410,13 +411,13 @@ export class Playback {
       // end of the piece or after its last note is heard too, like the last chord ringing on.
       const ending = !this.currentLoop && horizon >= score.duration;
       const pedalDue = (time: number) => time < horizon || ending;
-      while (this.nextPedalIndex < this.pedalMoves.length && pedalDue(this.pedalMoves[this.nextPedalIndex].time)) {
-        const move = this.pedalMoves[this.nextPedalIndex++];
+      while (this.nextPedalIndex < this.pedalMoves.length && pedalDue(this.pedalMoves[this.nextPedalIndex]!.time)) {
+        const move = this.pedalMoves[this.nextPedalIndex++]!;
         if (this.pedalOn) this.audio.playPedal(this.toAudio(move.time), move.down);
       }
       // The index moves on even with the metronome off, so switching it on joins in at the right beat.
-      while (this.nextClickIndex < this.clicks.length && this.clicks[this.nextClickIndex].time < horizon) {
-        const click = this.clicks[this.nextClickIndex++];
+      while (this.nextClickIndex < this.clicks.length && this.clicks[this.nextClickIndex]!.time < horizon) {
+        const click = this.clicks[this.nextClickIndex++]!;
         if (this.metronomeOn) this.click(this.toAudio(click.time), click.accent);
       }
       if (!this.currentLoop || horizon < segmentEnd) return;

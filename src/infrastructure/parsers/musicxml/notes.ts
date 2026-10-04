@@ -63,6 +63,8 @@ export function readWritten(
   pitchElement: Element,
   at: { staff: number; clef: Clef; hand: Hand; isChord: boolean; beat: number; beats: number; ties: (string | null)[] },
 ): Omit<WrittenNote, 'bar' | 'sounding' | 'dynamics'> {
+  const letter = STEP_LETTERS[childText(pitchElement, 'step') ?? ''];
+  if (letter === undefined) throw new InvalidMusicXmlError('A note without a valid pitch');
   const alter = Math.max(-2, Math.min(2, Math.round(childNumber(pitchElement, 'alter') ?? 0))) as Alteration;
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
   const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;
@@ -89,7 +91,7 @@ export function readWritten(
     chord: at.isChord,
     clef: at.clef,
     pitch: {
-      letter: STEP_LETTERS[childText(pitchElement, 'step') ?? ''],
+      letter,
       octave: childNumber(pitchElement, 'octave') ?? 4,
       alteration: alter,
     },
@@ -143,7 +145,7 @@ function ornamentsOf(element: Element): OrnamentMark[] {
       marks.push({ kind, accidentalAbove: null, accidentalBelow: null, below: child.getAttribute('placement') === 'below' });
     } else if (child.nodeName === 'accidental-mark' && marks.length > 0) {
       const accidental = ACCIDENTALS[child.textContent?.trim() ?? ''] ?? null;
-      const mark = marks[marks.length - 1];
+      const mark = marks.at(-1)!;
       // A trill only has a note above; elsewhere the file says which neighbour the accidental is for.
       if (child.getAttribute('placement') === 'below' && mark.kind !== 'trill') mark.accidentalBelow = accidental;
       else mark.accidentalAbove = accidental;

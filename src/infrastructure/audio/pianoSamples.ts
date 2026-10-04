@@ -51,7 +51,7 @@ export interface PianoLayer {
 
 /** The recorded pitch to play `pitch` from: the nearest one (the lower of two equally near). */
 export function nearestRecorded(recorded: readonly number[], pitch: number): number {
-  let best = recorded[0];
+  let best = recorded[0] ?? pitch;
   for (const candidate of recorded) {
     if (Math.abs(candidate - pitch) < Math.abs(best - pitch)) best = candidate;
   }
@@ -104,7 +104,7 @@ export function describeSet(manifest: PianoManifest): SampleSet {
     layers,
     recorded: manifest.layers.map((layer) => (layer.velocity[0] + layer.velocity[1]) / 2 / 127),
     base,
-    pitches: manifest.layers[base].notes.map((note) => note.pitch),
+    pitches: (manifest.layers[base]?.notes ?? []).map((note) => note.pitch),
     release: byPitch(release),
     resonance: { split: resonance.splitVelocity / 127, pitches: resonance.soft.map((note) => note.pitch), soft: byPitch(resonance.soft), loud: byPitch(resonance.loud) },
     pedal: { down: pedal.down.map(versioned), up: pedal.up.map(versioned) },
@@ -157,7 +157,7 @@ export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): 
     pitches.add(recorded);
     // A sample played faster is used up faster.
     const seconds = note.seconds * playbackRate(recorded, note.pitch) + RELEASE_TAIL_SECONDS;
-    const own = set.layers[layerFor(set.recorded, note.velocity)].get(recorded)!;
+    const own = set.layers[layerFor(set.recorded, note.velocity)]!.get(recorded)!;
     lengths.set(own, Math.max(lengths.get(own) ?? 0, seconds));
     const knock = set.release.get(note.pitch);
     if (knock) knocks.add(knock);
@@ -171,7 +171,7 @@ export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): 
   const inOrder = loadOrder(set.pitches, pitches).slice(0, pitches.size);
   for (const pitch of inOrder) {
     // The base layer: as long as its own notes need, and at least enough to stand in for another layer.
-    const file = set.layers[set.base].get(pitch)!;
+    const file = set.layers[set.base]!.get(pitch)!;
     files.set(file, keptLength(Math.max(lengths.get(file) ?? 0, STAND_IN_SECONDS)));
     required.add(file);
   }
@@ -190,7 +190,7 @@ export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): 
 export function layerFor(recordedVelocities: readonly number[], velocity: number): number {
   let best = 0;
   recordedVelocities.forEach((recorded, layer) => {
-    if (Math.abs(recorded - velocity) < Math.abs(recordedVelocities[best] - velocity)) best = layer;
+    if (Math.abs(recorded - velocity) < Math.abs(recordedVelocities[best]! - velocity)) best = layer;
   });
   return best;
 }
@@ -211,7 +211,7 @@ const ONSET_LEAD_SECONDS = 0.002;
 export function onsetSeconds(channels: readonly Float32Array[], sampleRate: number): number {
   const length = channels[0]?.length ?? 0;
   for (let i = 0; i < length; i++) {
-    if (channels.some((channel) => Math.abs(channel[i]) > ONSET_THRESHOLD)) {
+    if (channels.some((channel) => Math.abs(channel[i]!) > ONSET_THRESHOLD)) {
       return Math.max(0, i / sampleRate - ONSET_LEAD_SECONDS);
     }
   }
@@ -231,7 +231,7 @@ export function sampleLevel(channels: readonly Float32Array[], sampleRate: numbe
   if (to <= from) return 0;
   let sum = 0;
   for (const channel of channels) {
-    for (let i = from; i < to; i++) sum += channel[i] * channel[i];
+    for (let i = from; i < to; i++) sum += channel[i]! * channel[i]!;
   }
   return Math.sqrt(sum / (channels.length * (to - from)));
 }
