@@ -1,6 +1,6 @@
 import { groupBy } from '../group';
 import { beatsOf } from '../metronome';
-import { noteEnd, type Hand } from '../note';
+import type { Hand } from '../note';
 import type { PedalMark, PedalSpan } from '../pedal';
 import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type OctaveShift, type Score, type TempoMark } from '../score';
 import { groupBeams } from './beaming';
@@ -37,8 +37,8 @@ interface Placed {
   readonly pitch: number;
   readonly spelled: SpelledPitch;
   readonly duration: WrittenDuration;
+  /** When it was played, in seconds: notes written at one place keep the order they were played in. */
   readonly start: number;
-  readonly end: number;
   accidental: Accidental | null;
 }
 
@@ -60,7 +60,6 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
       spelled,
       duration: writtenDuration(beats),
       start: note.start,
-      end: noteEnd(note),
       accidental: null,
     };
   });
@@ -109,16 +108,16 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
     chord.map((p, i): WrittenNote => {
       const beam = i === 0 ? beamMarks.get(index) : undefined;
       return {
+        bar: p.bar,
         staff: p.staff === 'treble' ? 1 : 2,
         voice: VOICES[p.staff][p.hand],
         hand: p.hand,
         chord: i > 0,
         clef: p.staff,
         pitch: p.spelled,
+        sounding: p.pitch,
         beat: p.beat,
         beats: p.beats,
-        start: p.start,
-        end: p.end,
         duration: p.duration,
         tuplet: null,
         tupletStart: null,
@@ -131,6 +130,7 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
         articulations: [],
         fermata: null,
         slurs: [],
+        dynamics: null,
         ornaments: [],
         trillLine: false,
         tremolo: null,

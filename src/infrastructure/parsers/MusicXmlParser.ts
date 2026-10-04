@@ -1,13 +1,23 @@
 import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreParser';
 import type { Hand } from '../../domain/note';
-import { dynamicWords, isDynamicLetters, type DynamicLevel, type Hairpin, type NotatedDynamic } from '../../domain/notation/dynamics';
+import { dynamicWords, isDynamicLetters, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
 import type { BarNavigation } from '../../domain/notation/navigation';
-import type { Notation, NotatedGrace, NotatedGraces, NotatedNote, NotatedPedalMove, NotatedTempo } from '../../domain/notation/notation';
+import type { Notation, PedalMove as BarPedalMove, TempoChange } from '../../domain/notation/notation';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { OrnamentKind, OrnamentMark } from '../../domain/notation/ornaments';
 import { performNotation } from '../../domain/notation/performance';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
-import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
+import type {
+  Articulation,
+  BeamMark,
+  Clef,
+  ClefChange,
+  SlurMark,
+  WrittenGrace,
+  WrittenGraces,
+  WrittenNote,
+  WrittenRest,
+} from '../../domain/notation/written';
 import { softPedalWords, type PedalKind, type PedalMark } from '../../domain/pedal';
 import type { KeySignature, OctaveShift, Score, TempoMark, TimeSignature } from '../../domain/score';
 import { pianoPart } from './pianoParts';
@@ -154,9 +164,9 @@ function readPart(part: Element, title: string): Notation {
   let ending: { numbers: number[]; label: string } | null = null;
 
   const bars: { start: number; length: number; navigation: MutableNavigation }[] = [];
-  const notes: NotatedNote[] = [];
+  const notes: WrittenNote[] = [];
   const rests: WrittenRest[] = [];
-  const graces: NotatedGraces[] = [];
+  const graces: WrittenGraces[] = [];
   const clefChanges: ClefChange[] = [];
   /** The clef in force on each staff; engravers may switch the lower staff to treble and back. */
   const clefs = new Map<number, Clef>([
@@ -165,8 +175,8 @@ function readPart(part: Element, title: string): Notation {
   ]);
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
-  const tempos: NotatedTempo[] = [];
-  const pedalMoves: NotatedPedalMove[] = [];
+  const tempos: TempoChange[] = [];
+  const pedalMoves: BarPedalMove[] = [];
   const pedalMarks: PedalMark[] = [];
   /** `printed`: from a <metronome>; otherwise worked out from a <sound tempo>, in quarters. */
   const tempoMarks: (TempoMark & { printed: boolean })[] = [];
@@ -175,7 +185,7 @@ function readPart(part: Element, title: string): Notation {
   const octaveShifts: OctaveShift[] = [];
   // Dynamics along the page: levels set, printed marks, hairpins (open ones by their number).
   const dynamicLevels: DynamicLevel[] = [];
-  const dynamicMarks: NotatedDynamic[] = [];
+  const dynamicMarks: DynamicMark[] = [];
   const hairpins: Hairpin[] = [];
   const openHairpins = new Map<string, { start: number; type: Hairpin['type']; below: boolean }>();
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
@@ -189,7 +199,7 @@ function readPart(part: Element, title: string): Notation {
     let longest = 0; // how far the measure reaches, in divisions
     let lastStart = 0; // start of the previous note, for chords
     /** Grace notes read and not yet attached to the note they lead to. */
-    let pendingGraces: NotatedGrace[] = [];
+    let pendingGraces: WrittenGrace[] = [];
 
     const beatAt = (position: number) => measureStart + position / divisions;
 
@@ -447,8 +457,8 @@ function readDynamics(
   beat: number,
   soundLevel: number | null,
   open: Map<string, { start: number; type: Hairpin['type']; below: boolean }>,
-): { marks: NotatedDynamic[]; hairpins: Hairpin[] } {
-  const marks: NotatedDynamic[] = [];
+): { marks: DynamicMark[]; hairpins: Hairpin[] } {
+  const marks: DynamicMark[] = [];
   const hairpins: Hairpin[] = [];
   const staff = childNumber(direction, 'staff') ?? 1;
   // Marks for the lower staff printed under it; everything else between the staves.
@@ -586,7 +596,7 @@ function readWritten(
   element: Element,
   pitchElement: Element,
   at: { staff: number; clef: Clef; hand: Hand; isChord: boolean; beat: number; beats: number; ties: (string | null)[] },
-): Omit<WrittenNote, 'start' | 'end'> {
+): Omit<WrittenNote, 'bar' | 'sounding' | 'dynamics'> {
   const alter = Math.max(-2, Math.min(2, Math.round(childNumber(pitchElement, 'alter') ?? 0))) as Alteration;
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
   const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;

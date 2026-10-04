@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Notation, NotatedNote } from '../src/domain/notation/notation';
+import type { Notation } from '../src/domain/notation/notation';
+import type { WrittenNote } from '../src/domain/notation/written';
 import { performNotation } from '../src/domain/notation/performance';
 
 /*
@@ -8,7 +9,7 @@ import { performNotation } from '../src/domain/notation/performance';
  */
 
 /** A printed note in the treble clef: middle Do is letter 0, octave 4, MIDI 60. */
-const note = (letter: 0 | 1 | 2 | 3 | 4 | 5 | 6, beat: number, beats: number, more: Partial<NotatedNote> = {}): NotatedNote => ({
+const note = (letter: 0 | 1 | 2 | 3 | 4 | 5 | 6, beat: number, beats: number, more: Partial<WrittenNote> = {}): WrittenNote => ({
   staff: 1,
   voice: '1',
   hand: 'right',
@@ -39,7 +40,7 @@ const note = (letter: 0 | 1 | 2 | 3 | 4 | 5 | 6, beat: number, beats: number, mo
   ...more,
 });
 
-const notation = (notes: NotatedNote[], more: Partial<Notation> = {}): Notation => ({
+const notation = (notes: WrittenNote[], more: Partial<Notation> = {}): Notation => ({
   title: 'By hand',
   bars: Array.from({ length: Math.floor(Math.max(...notes.map((n) => n.beat)) / 4) + 1 }, (_, i) => ({ start: i * 4, length: 4, navigation: {} })),
   notes,
@@ -68,11 +69,11 @@ describe('performNotation', () => {
       [62, 1, 1],
       [64, 2, 2],
     ]);
-    // The notation is kept beside the notes, now with the time each first sounds.
-    expect(score.written!.map((n) => [n.beat, n.start, n.end])).toEqual([
+    // The notation is kept beside the notes, as it was written.
+    expect(score.written!.map((n) => [n.bar, n.beat, n.beats])).toEqual([
       [0, 0, 1],
-      [1, 1, 2],
-      [2, 2, 4],
+      [0, 1, 1],
+      [0, 2, 2],
     ]);
   });
 
@@ -130,7 +131,9 @@ describe('performNotation', () => {
       [62, 0, 1],
       [60, 1, 1],
     ]);
-    expect(score.graces).toMatchObject([{ bar: 0, beat: 0, soundBeat: 0, soundBeats: 1 }]);
+    expect(score.graces).toMatchObject([{ bar: 0, beat: 0, leadsTo: 0 }]);
+    // Its place in time is kept apart from what is written.
+    expect(score.graceSounds).toEqual([{ beat: 0, each: 1 }]);
   });
 
   it('holds notes under the pedal marks, by the tempo', () => {

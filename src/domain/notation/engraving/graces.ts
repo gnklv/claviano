@@ -7,40 +7,49 @@ import type { Place, StaffChord, StaffGrace, StaffNote } from './types';
 
 /* Grace notes: small notes before the note they lead to. */
 
-/** Groups the printed grace notes by the place they lead to, and finds the chord there. */
+/**
+ * The printed grace notes, by the place they lead to and the staff they are on, with the chord
+ * there. Each lights up while it sounds: from its group's time in the score (see GraceSound).
+ */
 export function layoutGraces(score: Score, chords: readonly StaffChord[], place: Place): StaffGrace[] {
   const groups: StaffGrace[] = [];
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
-  for (const grace of score.graces) {
-    const staff: Clef = grace.staff >= 2 ? 'bass' : 'treble';
-    const key = `${grace.bar}|${grace.beat}|${staff}`;
-    const note: StaffNote = { step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
-    const end = grace.soundBeat + grace.soundBeats;
-    if (open?.key === key) {
-      const group = groups[groups.length - 1];
-      if (grace.chord) open.slots[open.slots.length - 1].notes.push(note);
-      else open.slots.push({ notes: [note], ledgerSteps: [] });
-      open.end = Math.max(open.end, end);
-      groups[groups.length - 1] = { ...group, slur: group.slur || grace.slur, beats: open.end - group.beat };
-      continue;
+  score.graces.forEach((written, index) => {
+    const sound = score.graceSounds[index] ?? { beat: written.beat, each: 0 };
+    let slot = -1;
+    for (const grace of written.notes) {
+      if (!grace.chord || slot < 0) slot++;
+      const soundBeat = sound.beat + slot * sound.each;
+      const staff: Clef = grace.staff >= 2 ? 'bass' : 'treble';
+      const key = `${written.bar}|${written.beat}|${staff}`;
+      const note: StaffNote = { step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
+      const end = soundBeat + sound.each;
+      if (open?.key === key) {
+        const group = groups[groups.length - 1];
+        if (grace.chord) open.slots[open.slots.length - 1].notes.push(note);
+        else open.slots.push({ notes: [note], ledgerSteps: [] });
+        open.end = Math.max(open.end, end);
+        groups[groups.length - 1] = { ...group, slur: group.slur || grace.slur, beats: open.end - group.beat };
+        continue;
+      }
+      const principal = chords.findIndex((chord) => chord.staff === staff && Math.abs(chord.beat - written.beat) < 1e-6);
+      open = { key, slots: [{ notes: [note], ledgerSteps: [] }], end };
+      groups.push({
+        staff,
+        hand: grace.hand,
+        bar: written.bar,
+        x: principal >= 0 ? chords[principal].x : place(written.bar, written.beat),
+        principal: principal >= 0 ? principal : null,
+        slots: open.slots,
+        slash: grace.slash,
+        beams: Math.max(1, flagCount(grace.value)),
+        slur: grace.slur,
+        beat: soundBeat,
+        beats: sound.each,
+      });
     }
-    const principal = chords.findIndex((chord) => chord.staff === staff && Math.abs(chord.beat - grace.beat) < 1e-6);
-    open = { key, slots: [{ notes: [note], ledgerSteps: [] }], end };
-    groups.push({
-      staff,
-      hand: grace.hand,
-      bar: grace.bar,
-      x: principal >= 0 ? chords[principal].x : place(grace.bar, grace.beat),
-      principal: principal >= 0 ? principal : null,
-      slots: open.slots,
-      slash: grace.slash,
-      beams: Math.max(1, flagCount(grace.value)),
-      slur: grace.slur,
-      beat: grace.soundBeat,
-      beats: grace.soundBeats,
-    });
-  }
+  });
   for (const group of groups) {
     for (const slot of group.slots as { notes: StaffNote[]; ledgerSteps: number[] }[]) {
       slot.notes.sort((a, b) => a.step - b.step);

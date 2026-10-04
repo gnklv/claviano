@@ -53,9 +53,6 @@ export interface StaffChord {
   readonly stemUp: boolean;
   /** Steps that need a short extra line (above or below the staff). */
   readonly ledgerSteps: readonly number[];
-  /** When it sounds, in seconds, for highlighting under the cursor. */
-  readonly start: number;
-  readonly end: number;
 }
 
 /** Chords whose stems are joined by beams; they share one stem direction. */

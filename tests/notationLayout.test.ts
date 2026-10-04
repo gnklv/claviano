@@ -166,8 +166,9 @@ describe('layout of printed notes (MusicXML)', () => {
     clef: 'treble',
     pitch: { letter: 0, octave: 5, alteration: 0 },
     beats: 1 / 3,
-    start: overrides.beat,
-    end: overrides.beat + 1 / 3,
+    bar: 0,
+    sounding: 72,
+    dynamics: null,
     duration: { value: 'eighth', dots: 0 },
     tuplet: { actual: 3, normal: 2 },
     tupletStart: null,
@@ -225,8 +226,9 @@ describe('rests and ties (MusicXML)', () => {
     pitch: { letter: 4, octave: 4, alteration: 0 }, // Sol4
     beat: 0,
     beats: 2,
-    start: 0,
-    end: 2,
+    bar: 0,
+    sounding: 67,
+    dynamics: null,
     duration: { value: 'half', dots: 0 },
     tuplet: null,
     tupletStart: null,
@@ -259,14 +261,14 @@ describe('rests and ties (MusicXML)', () => {
 
   it('ties a note to the next one of the same pitch, curving away from the stem', () => {
     const { ties } = layoutNotation(
-      scoreWith([{ ...base, tieStart: true }, { ...base, beat: 2, start: 2, tieStop: true }], []),
+      scoreWith([{ ...base, tieStart: true }, { ...base, beat: 2, tieStop: true }], []),
     );
     expect(ties).toEqual([{ from: 0, to: 1, step: 6, above: false }]); // Sol4 on the second line; stem up → tie below
   });
 
   it('ties across a bar line', () => {
     const { ties } = layoutNotation(
-      scoreWith([{ ...base, beat: 2, start: 2, tieStart: true }, { ...base, beat: 4, start: 4, tieStop: true }], []),
+      scoreWith([{ ...base, beat: 2, tieStart: true }, { ...base, beat: 4, bar: 1, tieStop: true }], []),
     );
     expect(ties).toHaveLength(1);
   });
@@ -304,8 +306,9 @@ describe('articulations and slurs (MusicXML)', () => {
     pitch,
     beat,
     beats: 1,
-    start: beat,
-    end: beat + 1,
+    bar: 0,
+    sounding: 60,
+    dynamics: null,
     duration: { value: 'quarter', dots: 0 },
     tuplet: null,
     tupletStart: null,
@@ -383,8 +386,6 @@ describe('withSeconds', () => {
       duration: { value: 'quarter', dots: 0 },
       stemUp,
       ledgerSteps: [],
-      start: 0,
-      end: 1,
     }) satisfies StaffChord;
   const moved = (chord: StaffChord) => withSeconds(chord).notes.map((n) => !!n.displaced);
 
@@ -480,8 +481,6 @@ describe('shiftVoicesApart', () => {
       duration: { value: 'quarter', dots: 0 },
       stemUp,
       ledgerSteps: [],
-      start: beat,
-      end: beat + 1,
     }) satisfies StaffChord;
 
   it('moves the up-stem voice right when the voices meet a second apart', () => {
@@ -510,8 +509,6 @@ describe('untangleVoices', () => {
       duration: { value: 'eighth', dots: 0 },
       stemUp,
       ledgerSteps: [],
-      start: beat,
-      end: beat + 1 / 3,
     }) satisfies StaffChord;
 
   it('turns round a stem-down group standing wholly above a stem-up one, and that one too', () => {
@@ -547,8 +544,6 @@ describe('shiftVoicesApart, stems the same way', () => {
         duration: { value: 'quarter', dots: 0 },
         stemUp: true,
         ledgerSteps: [],
-        start: 3,
-        end: 4,
       }) satisfies StaffChord;
     // Si♯3 (step -1) over La3 (step 0), both stems up: Si♯3's voice moves right.
     expect(shiftVoicesApart([chord([0]), chord([-1])]).map((c) => !!c.voiceShift)).toEqual([false, true]);

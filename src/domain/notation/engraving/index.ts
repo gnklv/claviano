@@ -75,12 +75,11 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       duration: first.duration,
       stemUp: first.stem ? first.stem === 'up' : stemUpFor(top, bottom),
       ledgerSteps: ledgerSteps(top, bottom),
-      start: Math.min(...group.map((n) => n.start)),
-      end: Math.max(...group.map((n) => n.end)),
     };
     return { chord, group, voice: voiceOf(first) };
   });
-  entries.sort((a, b) => a.chord.beat - b.chord.beat || a.chord.start - b.chord.start);
+  // By place along the page; chords at one place keep the order they are written in.
+  entries.sort((a, b) => a.chord.beat - b.chord.beat);
   const chords = entries.map((entry) => entry.chord);
   markHandCrossings(chords);
 

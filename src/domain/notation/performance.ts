@@ -1,14 +1,14 @@
 import type { Hand, Note } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
-import { createScore, type Score, type TempoMark, type TimePoint } from '../score';
+import { createScore, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
 import { lastAtOrBefore } from '../search';
 import { dynamicsAlongPage, levelAt, withHairpinLevels } from './dynamics';
 import { graceTiming } from './grace';
 import { performanceOrder, type BarNavigation } from './navigation';
-import type { Notation, NotatedPedalMove, NotatedTempo } from './notation';
+import type { Notation, PedalMove, TempoChange } from './notation';
 import { arpeggioDelays, neighbour, playOrnament, playTremolo, playTremoloBetween } from './ornaments';
 import { midiOf } from './spelling';
-import type { Articulation, WrittenGrace } from './written';
+import type { Articulation } from './written';
 
 /*
  * Playing what is written: from the notation of a piece (see notation.ts) to its notes in time.
@@ -57,8 +57,8 @@ interface Measure {
   length: number;
   navigation: MutableNavigation;
   sounds: Sound[];
-  tempos: NotatedTempo[];
-  pedal: NotatedPedalMove[];
+  tempos: TempoChange[];
+  pedal: PedalMove[];
 }
 
 interface PendingNote {
@@ -84,27 +84,26 @@ export function performNotation(notation: Notation): Score {
   }));
 
   // Grace notes: when each sounds, and how much later the note it leads to comes in.
-  const graces: WrittenGrace[] = [];
+  const graceSounds: GraceSound[] = [];
   const delays = new Map<number, number>();
   for (const group of notation.graces) {
     const to = group.leadsTo === null ? null : notation.notes[group.leadsTo];
     const count = group.notes.filter((grace) => !grace.chord).length;
     const timing = graceTiming({ count, slash: group.notes[0].slash }, to ? { beats: to.beats, dotted: to.duration.dots > 0 } : null, group.beat);
     if (group.leadsTo !== null) delays.set(group.leadsTo, timing.delay);
+    graceSounds.push({ beat: timing.start, each: timing.each });
     let slot = -1;
-    for (const { sounding, ...printed } of group.notes) {
-      if (!printed.chord || slot < 0) slot++;
-      const soundBeat = timing.start + slot * timing.each;
-      graces.push({ ...printed, bar: group.bar, beat: group.beat, soundBeat, soundBeats: timing.each });
+    for (const grace of group.notes) {
+      if (!grace.chord || slot < 0) slot++;
       measures[group.bar].sounds.push({
-        pitch: sounding,
-        staff: printed.staff,
-        beat: soundBeat,
+        pitch: grace.sounding,
+        staff: grace.staff,
+        beat: timing.start + slot * timing.each,
         beats: timing.each,
         velocity: 0,
         ownDynamics: null,
         loudness: 1,
-        hand: printed.hand,
+        hand: grace.hand,
         soundingLength: 1,
         tieStart: false,
         tieStop: false,
@@ -173,12 +172,6 @@ export function performNotation(notation: Notation): Score {
   resolveJumpTargets(measures.map((m) => m.navigation));
   const performance = perform(measures);
 
-  // Printed notes remember when they first sound: their bar's first performance, plus their offset in it.
-  const writtenSeconds = (bar: number, beat: number) => {
-    const measure = measures[bar];
-    const firstStart = performance.firstStart[bar] ?? measure.start;
-    return performance.toSeconds(firstStart + beat - measure.start);
-  };
   const hasNavigation = measures.some((m) => Object.keys(m.navigation).length > 0);
   const end = measures.reduce((sum, measure) => sum + measure.length, 0);
 
@@ -208,19 +201,16 @@ export function performNotation(notation: Notation): Score {
       timeMap: performance.timeMap,
       tempoMarks: distinctTempoMarks([...notation.tempoMarks]),
       octaveShifts: notation.octaveShifts,
-      dynamics: notation.dynamics.map(({ level: _level, ...mark }) => mark),
+      dynamics: notation.dynamics,
       hairpins: hairpins.filter((h) => h.drawn),
       pedalMarks: notation.pedalMarks,
       timeSignatures: notation.timeSignatures,
       keySignatures: notation.keySignatures,
       clefs: notation.clefs,
       rests: notation.rests,
-      graces,
-      written: notation.notes.map(({ bar, sounding: _sounding, dynamics: _dynamics, ...note }) => ({
-        ...note,
-        start: writtenSeconds(bar, note.beat),
-        end: writtenSeconds(bar, note.beat + note.beats),
-      })),
+      graces: notation.graces,
+      graceSounds,
+      written: notation.notes,
     },
   );
 }
@@ -286,7 +276,7 @@ function perform(measures: readonly Measure[]) {
   const notes: PendingNote[] = [];
   const tempos: { beat: number; bpm: number }[] = [];
   const fermatas: [number, number][] = [];
-  const pedal: (NotatedPedalMove & { time: number })[] = [];
+  const pedal: (PedalMove & { time: number })[] = [];
   const openTies = new Map<string, PendingNote>();
 
   let start = 0;

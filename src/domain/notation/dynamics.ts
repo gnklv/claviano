@@ -12,6 +12,8 @@ export interface DynamicMark {
   readonly text: string;
   /** Letters drawn with the music font (pp, mf…), or words in italics (cresc.). */
   readonly letters: boolean;
+  /** The level the source gives this mark, when that is not the mark's usual one. */
+  readonly level?: number;
 }
 
 /** A crescendo or diminuendo hairpin, or the stretch of "cresc." / "dim." words, along the page. */
@@ -135,11 +137,6 @@ export function dynamicWords(text: string): Hairpin['type'] | null {
 /** Whether a mark is letters of the dynamics alphabet (pp, mf, sfz…), drawn in the music font. */
 export const isDynamicLetters = (text: string): boolean => /^[pmfrszn]+$/.test(text);
 
-/** A dynamic mark as written, with the level the source gives it when that is not the mark's usual one. */
-export interface NotatedDynamic extends DynamicMark {
-  readonly level?: number;
-}
-
 /**
  * What the dynamics printed along the page mean for playing:
  * - a mark sets a level from its place on (its usual one, or the one the source gives it);
@@ -149,7 +146,7 @@ export interface NotatedDynamic extends DynamicMark {
  * `levels`: levels set with no mark printed.
  */
 export function dynamicsAlongPage(
-  marks: readonly NotatedDynamic[],
+  marks: readonly DynamicMark[],
   levels: readonly DynamicLevel[],
   hairpins: readonly Hairpin[],
 ): { levels: DynamicLevel[]; hairpins: Hairpin[]; accents: DynamicAccent[] } {

@@ -374,7 +374,8 @@ describe('MusicXmlParser', () => {
         [pitch('Si', 4), 1.875, 0.125],
         [pitch('Do', 5), 2, 2],
       ]);
-      expect(s.graces).toMatchObject([{ bar: 0, beat: 2, slash: true, value: 'eighth', soundBeat: 1.875 }]);
+      expect(s.graces).toMatchObject([{ bar: 0, beat: 2, leadsTo: 1, notes: [{ slash: true, value: 'eighth' }] }]);
+      expect(s.graceSounds).toEqual([{ beat: 1.875, each: 0.125 }]);
       // On the page the bar's notes are where they were.
       expect(s.written!.map((n) => n.beat)).toEqual([0, 2]);
     });
@@ -409,7 +410,8 @@ describe('MusicXmlParser', () => {
         [pitch('Si', 4), 1.875, 0.125],
         [pitch('Re', 5), 1.875, 0.125],
       ]);
-      expect(s.graces.map((g) => g.chord)).toEqual([false, false, true]);
+      expect(s.graces).toHaveLength(1);
+      expect(s.graces[0].notes.map((g) => g.chord)).toEqual([false, false, true]);
     });
 
     it('plays grace notes at the very start on the beat, and those after a bar\'s last note before the bar line', () => {

@@ -4,9 +4,10 @@ import type { OrnamentMark } from './ornaments';
 import type { Accidental, SpelledPitch } from './spelling';
 
 /*
- * A note as printed, for sources that carry notation (MusicXML). Unlike the sounding notes of
- * a Score, tied notes stay separate here, and nothing has to be guessed: the value, accidental,
- * stem and beams are what the engraver chose.
+ * Notes as printed: what is on the page, and nothing about when it sounds. Unlike the sounding
+ * notes of a Score, tied notes stay separate here. From a notation file (MusicXML) the value,
+ * accidental, stem and beams are what the engraver chose; for a performance (MIDI) they are
+ * written down by the domain (see transcription.ts).
  */
 
 export type Clef = 'treble' | 'bass';
@@ -47,6 +48,8 @@ export interface SlurMark {
 export type BeamMark = 'begin' | 'continue' | 'end' | 'forward hook' | 'backward hook';
 
 export interface WrittenNote {
+  /** The printed bar it is in. */
+  readonly bar: number;
   /** 1 is the upper staff, 2 the lower one. */
   readonly staff: number;
   readonly voice: string;
@@ -56,12 +59,11 @@ export interface WrittenNote {
   /** The clef in force on its staff, which decides where the pitch sits. */
   readonly clef: Clef;
   readonly pitch: SpelledPitch;
+  /** The MIDI pitch it sounds at: its printed pitch, moved by any octave shift it stands under. */
+  readonly sounding: number;
   /** Start and length along the page, in quarter notes (a triplet eighth lasts 1/3). */
   readonly beat: number;
   readonly beats: number;
-  /** When it first sounds, in seconds. */
-  readonly start: number;
-  readonly end: number;
   readonly duration: WrittenDuration;
   readonly tuplet: TupletRatio | null;
   readonly tupletStart: TupletStart | null;
@@ -78,6 +80,8 @@ export interface WrittenNote {
   /** A pause sign over (or, inverted, under) the note. */
   readonly fermata: 'upright' | 'inverted' | null;
   readonly slurs: readonly SlurMark[];
+  /** Its own loudness, when the source sets one for this note alone (a percentage of forte). */
+  readonly dynamics: number | null;
   /** Ornament signs at the note (a trill, a mordent, a turn). */
   readonly ornaments: readonly OrnamentMark[];
   /** A wavy line follows the trill sign, for the length of the note. */
@@ -88,20 +92,16 @@ export interface WrittenNote {
   readonly arpeggio: 'up' | 'down' | null;
 }
 
-/**
- * A grace note as printed: a small note before the note at `beat`, with no time of its own on the
- * page (see grace.ts for how it is played).
- */
+/** A grace note as printed: a small note with no time of its own on the page (see grace.ts for how it is played). */
 export interface WrittenGrace {
   /** 1 is the upper staff, 2 the lower one. */
   readonly staff: number;
   readonly hand: Hand;
   readonly clef: Clef;
   readonly pitch: SpelledPitch;
+  /** The MIDI pitch it sounds at (see WrittenNote). */
+  readonly sounding: number;
   readonly accidental: Accidental | null;
-  /** The printed bar it is in, and the beat of the note it leads to (the bar's end, after its last note). */
-  readonly bar: number;
-  readonly beat: number;
   /** True when it shares the stem of the grace note before it (a grace chord). */
   readonly chord: boolean;
   /** Struck through: an acciaccatura. */
@@ -110,9 +110,17 @@ export interface WrittenGrace {
   readonly value: NoteValue;
   /** A slur starts here, to the note it leads to. */
   readonly slur: boolean;
-  /** When it sounds along the page and for how long, in quarter notes. */
-  readonly soundBeat: number;
-  readonly soundBeats: number;
+}
+
+/** Grace notes written together before one note, or after the last note of a bar. */
+export interface WrittenGraces {
+  /** The printed bar they are in. */
+  readonly bar: number;
+  /** The place they stand before, along the page: the note they lead to, or the bar's end. */
+  readonly beat: number;
+  /** The note they lead to (an index into the written notes); null when there is none. */
+  readonly leadsTo: number | null;
+  readonly notes: readonly WrittenGrace[];
 }
 
 /** A printed rest. */

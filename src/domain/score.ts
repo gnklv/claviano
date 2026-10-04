@@ -1,7 +1,7 @@
 import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
-import type { Clef, ClefChange, WrittenGrace, WrittenNote, WrittenRest } from './notation/written';
+import type { Clef, ClefChange, WrittenGraces, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicMark, Hairpin } from './notation/dynamics';
 import { firstAtOrAfter, lastAtOrBefore } from './search';
@@ -60,6 +60,12 @@ export interface KeySignature {
   readonly minor: boolean;
 }
 
+/** When a group of grace notes sounds along the page: the first from `beat`, each lasting `each` quarter notes. */
+export interface GraceSound {
+  readonly beat: number;
+  readonly each: number;
+}
+
 /*
  * A score has two timelines. The performance: notes and bars in the order they are played, with
  * repeats unrolled — playback, falling notes, loops and seeking use it. The page: each printed
@@ -95,7 +101,12 @@ export interface Score {
   /** Printed rests, when the source has notation (MusicXML). */
   readonly rests: readonly WrittenRest[];
   /** Printed grace notes (MusicXML), in page order; they sound as ordinary notes of the score. */
-  readonly graces: readonly WrittenGrace[];
+  readonly graces: readonly WrittenGraces[];
+  /**
+   * When each group of grace notes sounds along the page (same indices as `graces`): the first
+   * one from `beat`, each for `each` quarter notes. For lighting them up as they sound.
+   */
+  readonly graceSounds: readonly GraceSound[];
   /** When the sustain pedal is down, as played; sorted. */
   readonly pedal: readonly PedalSpan[];
   /** When the middle (sostenuto) and left (soft) pedals are down, as played; sorted. */
@@ -126,7 +137,8 @@ export interface ScoreMusic {
   readonly written?: readonly WrittenNote[];
   readonly clefs?: readonly ClefChange[];
   readonly rests?: readonly WrittenRest[];
-  readonly graces?: readonly WrittenGrace[];
+  readonly graces?: readonly WrittenGraces[];
+  readonly graceSounds?: readonly GraceSound[];
   /** When bars are played in another order than printed (repeats): see Score. */
   readonly barWritten?: readonly number[];
   readonly writtenBarBeats?: readonly number[];
@@ -211,6 +223,7 @@ export function createScore(
     clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
     rests: music.rests ?? [],
     graces: music.graces ?? [],
+    graceSounds: music.graceSounds ?? [],
     pedal: [...(music.pedal ?? [])].sort((a, b) => a.start - b.start),
     sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),

@@ -6,8 +6,8 @@ import {
   levelAt,
   MARK_LEVELS,
   withHairpinLevels,
+  type DynamicMark,
   type Hairpin,
-  type NotatedDynamic,
 } from '../src/domain/notation/dynamics';
 
 const { p, mf, f } = MARK_LEVELS;
@@ -71,7 +71,7 @@ describe('withHairpinLevels', () => {
 });
 
 describe('dynamicsAlongPage', () => {
-  const mark = (beat: number, text: string, more: Partial<NotatedDynamic> = {}): NotatedDynamic => ({ beat, below: false, text, letters: /^[pmfrszn]+$/.test(text), ...more });
+  const mark = (beat: number, text: string, more: Partial<DynamicMark> = {}): DynamicMark => ({ beat, below: false, text, letters: /^[pmfrszn]+$/.test(text), ...more });
 
   it('sets the usual level of each mark, or the one the source gives it', () => {
     const { levels } = dynamicsAlongPage([mark(0, 'p'), mark(4, 'f', { level: 99 })], [], []);
