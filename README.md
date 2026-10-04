@@ -75,12 +75,13 @@ src/
                        file): quantization to a 1/32 grid, note values up to the next note,
                        spelling (Fa♯ or Sol♭) and accidentals per bar, the staff for each hand
                        (staffPosition.ts), 8va for far runs, beams by the beat (beaming.ts).
-                       engraving.ts — engrave: how the notation is set on the staves, in staff
-                       steps: stems, seconds, voices, ledger lines, beams and tuplets, ties and
-                       slurs, articulations, fermatas, ornaments, rests, grace notes;
-                       pedalEngraving.ts for pedal marks, signatures.ts for key signatures and
-                       where the key and metre change. No pixels: horizontal places are the
-                       caller's.
+                       engraving/ — engrave: how the notation is set on the staves, in staff
+                       steps, by chapter: chords.ts (stems, seconds, voices, ledger lines),
+                       marks.ts (articulations, fermatas, ornaments, tremolos, rolled chords),
+                       slurs.ts (ties and slurs), rests.ts, graces.ts; index.ts puts chords,
+                       beams and tuplets together. pedalEngraving.ts for pedal marks,
+                       signatures.ts for key signatures and where the key and metre change.
+                       No pixels: horizontal places are the caller's.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.

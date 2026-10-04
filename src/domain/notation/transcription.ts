@@ -1,3 +1,4 @@
+import { groupBy } from '../group';
 import { beatsOf } from '../metronome';
 import { noteEnd, type Hand } from '../note';
 import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type OctaveShift, type Score } from '../score';
@@ -219,15 +220,4 @@ function shiftExtremes(placed: Placed[]): {
     close();
   }
   return { placed: result, shifts };
-}
-
-function groupBy<T>(items: readonly T[], key: (item: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const k = key(item);
-    const group = groups.get(k);
-    if (group) group.push(item);
-    else groups.set(k, [item]);
-  }
-  return groups;
 }
