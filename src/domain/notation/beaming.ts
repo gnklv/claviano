@@ -41,7 +41,7 @@ export function groupBeams(chords: readonly BeamCandidate[]): number[][] {
 
   const groups: number[][] = [];
   for (const indices of byStaff.values()) {
-    indices.sort((a, b) => chords[a].beat - chords[b].beat);
+    indices.sort((a, b) => chords[a]!.beat - chords[b]!.beat);
     let current: number[] = [];
     let currentWindow = '';
     const close = () => {
@@ -50,14 +50,15 @@ export function groupBeams(chords: readonly BeamCandidate[]): number[][] {
     };
 
     for (const index of indices) {
-      const chord = chords[index];
+      const chord = chords[index]!;
       if (flagCount(chord.duration.value) === 0) {
         close();
         continue;
       }
       const unit = beamUnit(chord.timeSignature);
       const window = `${chord.bar}:${Math.floor((chord.beat - chord.barBeat + 1e-9) / unit)}`;
-      const previous = current.length > 0 ? chords[current[current.length - 1]] : null;
+      const last = current.at(-1);
+      const previous = last === undefined ? null : chords[last]!;
       if (window !== currentWindow || (previous && Math.abs(previous.beat - chord.beat) < 1e-9)) close();
       currentWindow = window;
       current.push(index);

@@ -157,11 +157,12 @@ function fromBeatZero<T extends { readonly beat: number }>(
   sameValue: (a: T, b: T) => boolean,
 ): T[] {
   const sorted = [...(events ?? [])].sort((a, b) => a.beat - b.beat);
-  if (sorted.length === 0 || sorted[0].beat > 0) sorted.unshift(fallback);
+  if (!sorted[0] || sorted[0].beat > 0) sorted.unshift(fallback);
   const result: T[] = [];
   for (const event of sorted) {
-    if (result.length > 0 && result[result.length - 1].beat === event.beat) result.pop();
-    if (result.length > 0 && sameValue(result[result.length - 1], event)) continue;
+    if (result.at(-1)?.beat === event.beat) result.pop();
+    const previous = result.at(-1);
+    if (previous && sameValue(previous, event)) continue;
     result.push(event);
   }
   return result;
@@ -196,7 +197,7 @@ export function createScore(
   const end = music.writtenEndBeat ?? endBeat;
   const writtenBars = starts.map((start, index) => {
     const next = starts[index + 1];
-    const nominal = barLengthInBeats(timeSignatures[Math.max(0, lastAtOrBefore(timeSignatures, start + 1e-9, (t) => t.beat))]);
+    const nominal = barLengthInBeats(timeSignatures[Math.max(0, lastAtOrBefore(timeSignatures, start + 1e-9, (t) => t.beat))]!);
     const length = next !== undefined ? next - start : end - start > 0 ? Math.min(nominal, end - start) : nominal;
     return { start, length, navigation: music.navigation?.[index] ?? {} };
   });
@@ -266,7 +267,8 @@ export function secondsAtBeat(score: Score, beat: number): number {
   const map = score.timeMap;
   if (map.length === 0) return beat * FALLBACK_SECONDS_PER_BEAT;
   const i = segmentOf(map, 'beat', beat);
-  return map[i].time + (beat - map[i].beat) * paceOf(map, i);
+  const from = map[i]!;
+  return from.time + (beat - from.beat) * paceOf(map, i);
 }
 
 /** Which quarter note (as played) sounds at `time` seconds: the inverse of secondsAtBeat. */
@@ -275,7 +277,8 @@ export function beatAtSeconds(score: Score, time: number): number {
   if (map.length === 0) return time / FALLBACK_SECONDS_PER_BEAT;
   const i = segmentOf(map, 'time', time);
   const pace = paceOf(map, i);
-  return map[i].beat + (pace > 0 ? (time - map[i].time) / pace : 0);
+  const from = map[i]!;
+  return from.beat + (pace > 0 ? (time - from.time) / pace : 0);
 }
 
 /** Whether `beat` falls strictly inside a held stretch (a fermata). */
@@ -297,7 +300,10 @@ export const barAtBeat = (score: Score, beat: number): number =>
   Math.max(0, lastAtOrBefore(score.notation.bars, beat + 1e-9, (bar) => bar.start));
 
 /** How many quarter notes printed bar `index` lasts. */
-export const barLength = (score: Score, index: number): number => score.notation.bars[index].length;
+export const barLength = (score: Score, index: number): number => score.notation.bars[index]?.length ?? 0;
+
+/** Where printed bar `index` starts along the page, in quarter notes. */
+export const writtenBarStart = (score: Score, index: number): number => score.notation.bars[index]?.start ?? 0;
 
 /** Where the music ends along the page, in quarter notes: the end of the last printed bar. */
 export function pageEnd(score: Score): number {
@@ -328,7 +334,7 @@ export function playedBarNear(score: Score, written: number, near: number): numb
   let bestDistance = Infinity;
   score.barWritten.forEach((w, i) => {
     if (w !== written) return;
-    const start = score.bars[i];
+    const start = score.bars[i] ?? 0;
     const end = score.bars[i + 1] ?? score.duration;
     const distance = near < start ? start - near : near > end ? near - end : 0;
     if (distance < bestDistance) {
@@ -346,10 +352,10 @@ export const barIndexNear = (score: Score, number: number, near: number): number
 /** When `beat` along the page, in printed bar `written`, sounds on the pass nearest to `near`. */
 export function timeAtPage(score: Score, written: number, beat: number, near: number): number {
   const index = playedBarNear(score, written, near);
-  const start = score.bars[index];
+  const start = score.bars[index] ?? 0;
   const end = score.bars[index + 1] ?? score.duration;
-  const offset = beat - (score.notation.bars[written]?.start ?? 0);
-  return Math.min(end, Math.max(start, secondsAtBeat(score, score.barBeats[index] + offset)));
+  const offset = beat - writtenBarStart(score, written);
+  return Math.min(end, Math.max(start, secondsAtBeat(score, (score.barBeats[index] ?? 0) + offset)));
 }
 
 /** Time range covering bars `from..to` inclusive (zero-based). */
@@ -357,7 +363,7 @@ export function barRange(score: Score, from: number, to: number): TimeRange {
   const last = score.bars.length - 1;
   const first = Math.min(Math.max(0, Math.min(from, to)), last);
   const final = Math.min(Math.max(0, Math.max(from, to)), last);
-  return { start: score.bars[first], end: score.bars[final + 1] ?? score.duration };
+  return { start: score.bars[first] ?? 0, end: score.bars[final + 1] ?? score.duration };
 }
 
 /** Index of the first note that starts at or after `time`. */
@@ -366,7 +372,7 @@ export const firstNoteAtOrAfter = (score: Score, time: number): number =>
 
 /** The time signature in force at `beat`. */
 export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
-  score.notation.timeSignatures[Math.max(0, lastAtOrBefore(score.notation.timeSignatures, beat, (s) => s.beat))];
+  score.notation.timeSignatures[Math.max(0, lastAtOrBefore(score.notation.timeSignatures, beat, (s) => s.beat))]!;
 
 /** The metronome mark in force at `beat` along the page, if the source gives one. */
 export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
@@ -376,12 +382,12 @@ export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
 
 /** The key signature in force at `beat`. */
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>
-  score.notation.keySignatures[Math.max(0, lastAtOrBefore(score.notation.keySignatures, beat, (s) => s.beat))];
+  score.notation.keySignatures[Math.max(0, lastAtOrBefore(score.notation.keySignatures, beat, (s) => s.beat))]!;
 
 /** Where `time` (seconds, as played) falls on the page: the printed bar and how far through it. */
 export function writtenPositionAt(score: Score, time: number): { bar: number; fraction: number } {
   const index = barAt(score, time);
-  const start = score.bars[index];
+  const start = score.bars[index] ?? 0;
   const end = score.bars[index + 1] ?? score.duration;
   const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
   return { bar: score.barWritten[index] ?? index, fraction };
@@ -390,7 +396,7 @@ export function writtenPositionAt(score: Score, time: number): { bar: number; fr
 /** The beat along the page (quarter notes) that is sounding at `time`. */
 export function writtenBeatAt(score: Score, time: number): number {
   const { bar, fraction } = writtenPositionAt(score, time);
-  return score.notation.bars[bar].start + fraction * barLength(score, bar);
+  return writtenBarStart(score, bar) + fraction * barLength(score, bar);
 }
 
 /**
@@ -399,7 +405,7 @@ export function writtenBeatAt(score: Score, time: number): number {
  */
 export function barStarts(timeSignatures: readonly TimeSignature[], end: number): number[] {
   const sorted = [...timeSignatures].sort((a, b) => a.beat - b.beat);
-  if (sorted.length === 0 || sorted[0].beat > 0) sorted.unshift({ beat: 0, numerator: 4, denominator: 4 });
+  if (!sorted[0] || sorted[0].beat > 0) sorted.unshift({ beat: 0, numerator: 4, denominator: 4 });
   const bars: number[] = [];
   sorted.forEach((signature, i) => {
     const until = sorted[i + 1]?.beat ?? end;

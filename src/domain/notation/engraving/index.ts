@@ -1,8 +1,8 @@
 import { barAtBeat, type Score } from '../../score';
-import { groupBy } from '../../group';
+import { groupBy, type NonEmpty } from '../../group';
 import { staffStep } from '../staffPosition';
 import type { Clef, WrittenNote, WrittenRest } from '../written';
-import { ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, untangleVoices, voiceKeys, withSeconds } from './chords';
+import { ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, stepSpan, untangleVoices, voiceKeys, withSeconds } from './chords';
 import { layoutGraces } from './graces';
 import { layoutArpeggios, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
 import { layoutRests } from './rests';
@@ -41,9 +41,10 @@ export function engrave(score: Score): NotationLayout {
  */
 function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): NotationLayout {
   // A note marked as a chord shares the stem of the note before it.
-  const groups: WrittenNote[][] = [];
+  const groups: NonEmpty<WrittenNote>[] = [];
   for (const note of written) {
-    if (note.chord && groups.length > 0) groups[groups.length - 1].push(note);
+    const open = groups.at(-1);
+    if (note.chord && open) open.push(note);
     else groups.push([note]);
   }
 
@@ -56,8 +57,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       // The clef in force (not the staff) decides where a pitch sits.
       .map((note) => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental }))
       .sort((a, b) => a.step - b.step);
-    const top = notes[0].step;
-    const bottom = notes[notes.length - 1].step;
+    const { top, bottom } = stepSpan(notes);
     const chord: StaffChord = {
       staff,
       hand: first.hand,
@@ -93,12 +93,14 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
         const index = beams.length;
         // On one staff, a beamed group points all its stems one way: as the file says for its first
         // note, or by where the group sits on the staff. A group across both staves keeps each stem.
-        const oneStaff = beam.every((i) => chords[i].staff === chords[beam[0]].staff);
-        const written = entries[beam[0]].group[0].stem;
-        const steps = beam.flatMap((i) => chords[i].notes.map((n) => n.step));
-        const stemUp = written ? written === 'up' : oneStaff ? stemUpFor(Math.min(...steps), Math.max(...steps)) : chords[beam[0]].stemUp;
+        const first = beam[0]!;
+        const members = beam.map((i) => chords[i]!);
+        const oneStaff = members.every((chord) => chord.staff === members[0]!.staff);
+        const written = entries[first]!.group[0].stem;
+        const steps = members.flatMap((chord) => chord.notes.map((n) => n.step));
+        const stemUp = written ? written === 'up' : oneStaff ? stemUpFor(Math.min(...steps), Math.max(...steps)) : members[0]!.stemUp;
         beams.push({ chords: beam, stemUp });
-        for (const i of beam) chords[i] = { ...chords[i], beam: index, stemUp: oneStaff ? stemUp : chords[i].stemUp };
+        beam.forEach((i, at) => (chords[i] = { ...members[at]!, beam: index, stemUp: oneStaff ? stemUp : members[at]!.stemUp }));
       }
       beam = [];
     };
@@ -144,7 +146,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       }),
     ),
     beams: untangled.beams,
-    tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]].stemUp })),
+    tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]!]!.stemUp })),
     rests: layoutRests(score, rests, written),
     ties: layoutTies(groupsInOrder, drawn),
     marks,
@@ -161,13 +163,13 @@ function finishTuplet(
   tuplet: { chords: number[]; number: number; showNumber: boolean; bracket: boolean | null },
   chords: readonly StaffChord[],
 ): Tuplet {
-  const beam = chords[tuplet.chords[0]].beam;
-  const oneBeam = beam !== null && tuplet.chords.every((i) => chords[i].beam === beam);
+  const first = chords[tuplet.chords[0]!]!;
+  const oneBeam = first.beam !== null && tuplet.chords.every((i) => chords[i]?.beam === first.beam);
   return {
     chords: tuplet.chords,
     number: tuplet.number,
     showNumber: tuplet.showNumber,
     bracket: tuplet.bracket ?? !oneBeam,
-    above: chords[tuplet.chords[0]].stemUp,
+    above: first.stemUp,
   };
 }

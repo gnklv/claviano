@@ -16,7 +16,7 @@ export interface SpelledPitch {
 }
 
 /** Semitones of each letter above Do. */
-const LETTER_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+const LETTER_SEMITONES = [0, 2, 4, 5, 7, 9, 11] as const;
 
 /** The MIDI note a spelled pitch names: Do4 is 60. */
 export const midiOf = (pitch: SpelledPitch): number => 12 * (pitch.octave + 1) + LETTER_SEMITONES[pitch.letter] + pitch.alteration;

@@ -3,7 +3,7 @@ import { firstAtOrAfter } from '../../search';
 import { flagCount } from '../noteValue';
 import { staffStep } from '../staffPosition';
 import type { Clef } from '../written';
-import { ledgerSteps } from './chords';
+import { ledgerSteps, stepSpan } from './chords';
 import type { StaffChord, StaffGrace, StaffNote } from './types';
 
 /* Grace notes: small notes before the note they lead to. */
@@ -19,8 +19,8 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
   chords.forEach((chord, index) => onStaff[chord.staff].push(index));
   const chordAt = (staff: Clef, beat: number): number | null => {
     const indices = onStaff[staff];
-    const index = indices[firstAtOrAfter(indices, beat - 1e-6, (i) => chords[i].beat)] as number | undefined;
-    return index !== undefined && Math.abs(chords[index].beat - beat) < 1e-6 ? index : null;
+    const index = indices[firstAtOrAfter(indices, beat - 1e-6, (i) => chords[i]!.beat)];
+    return index !== undefined && Math.abs(chords[index]!.beat - beat) < 1e-6 ? index : null;
   };
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
@@ -35,8 +35,8 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
       const note: StaffNote = { step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
       const end = soundBeat + sound.each;
       if (open?.key === key) {
-        const group = groups[groups.length - 1];
-        if (grace.chord) open.slots[open.slots.length - 1].notes.push(note);
+        const group = groups[groups.length - 1]!;
+        if (grace.chord) open.slots.at(-1)!.notes.push(note);
         else open.slots.push({ notes: [note], ledgerSteps: [] });
         open.end = Math.max(open.end, end);
         groups[groups.length - 1] = { ...group, slur: group.slur || grace.slur, beats: open.end - group.beat };
@@ -60,7 +60,8 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
   for (const group of groups) {
     for (const slot of group.slots as { notes: StaffNote[]; ledgerSteps: number[] }[]) {
       slot.notes.sort((a, b) => a.step - b.step);
-      slot.ledgerSteps = ledgerSteps(slot.notes[0].step, slot.notes[slot.notes.length - 1].step);
+      const { top, bottom } = stepSpan(slot.notes);
+      slot.ledgerSteps = ledgerSteps(top, bottom);
     }
   }
   return groups;

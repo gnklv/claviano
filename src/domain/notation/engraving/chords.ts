@@ -14,6 +14,12 @@ import type { Beam, StaffChord } from './types';
 export const stemUpFor = (top: number, bottom: number): boolean => bottom - MIDDLE_LINE_STEP > MIDDLE_LINE_STEP - top;
 
 /** Extra lines on even steps (lines) beyond the staff, out to the farthest note. */
+/** The highest and the lowest step of notes sorted from the top down (steps grow downwards). */
+export const stepSpan = (notes: readonly { readonly step: number }[]): { top: number; bottom: number } => ({
+  top: notes[0]?.step ?? 0,
+  bottom: notes.at(-1)?.step ?? 0,
+});
+
 export function ledgerSteps(top: number, bottom: number): number[] {
   const steps: number[] = [];
   for (let step = -2; step >= top; step -= 2) steps.push(step);
@@ -53,7 +59,7 @@ export function voiceKeys(written: readonly WrittenNote[]): (note: WrittenNote) 
     stavesAt.set(key, (stavesAt.get(key) ?? new Set<number>()).add(note.staff));
   }
   const perStaff = new Set<string>();
-  for (const [key, staves] of stavesAt) if (staves.size > 1) perStaff.add(key.split('|')[0]);
+  for (const [key, staves] of stavesAt) if (staves.size > 1) perStaff.add(key.slice(0, key.indexOf('|')));
   return (note) => (perStaff.has(note.voice) ? `${note.staff}|${note.voice}` : note.voice);
 }
 
@@ -84,19 +90,20 @@ export function untangleVoices(chords: readonly StaffChord[], beams: readonly Be
   ];
   const described = units
     .map((unit) => {
-      const members = unit.chords.map((i) => chords[i]);
+      const members = unit.chords.map((i) => chords[i]!);
+      const first = members[0]!;
       const steps = members.flatMap((c) => c.notes.map((n) => n.step));
       return {
         ...unit,
-        staff: members[0].staff,
-        stemUp: members[0].stemUp,
+        staff: first.staff,
+        stemUp: first.stemUp,
         // Where it is drawn: from its first chord to its last (stems cross only side by side).
         first: Math.min(...members.map((c) => c.beat)),
         last: Math.max(...members.map((c) => c.beat)),
         // Steps grow downwards: `top` is the highest note, `bottom` the lowest.
         top: Math.min(...steps),
         bottom: Math.max(...steps),
-        mixed: members.some((c) => c.stemUp !== members[0].stemUp || c.staff !== members[0].staff),
+        mixed: members.some((c) => c.stemUp !== first.stemUp || c.staff !== first.staff),
         stemless: members.every((c) => c.duration.value === 'whole'),
       };
     })
@@ -123,8 +130,8 @@ export function untangleVoices(chords: readonly StaffChord[], beams: readonly Be
     // Drawn over the same stretch (one after the other is how a single voice turns its stems):
     // starts by the down unit's end, and no earlier than the longest up unit could still reach it.
     const earliest = down.first - (longest.get(down.staff) ?? 0);
-    for (let i = lastAtOrBefore(ups, down.last, (u) => u.first); i >= 0 && ups[i].first >= earliest; i--) {
-      const up = ups[i];
+    for (let i = lastAtOrBefore(ups, down.last, (u) => u.first); i >= 0 && ups[i]!.first >= earliest; i--) {
+      const up = ups[i]!;
       // Only a voice wholly above the other: a melody that dips to its accompaniment's note keeps its stems.
       if (up.last >= down.first && down.bottom < up.top) {
         flip.add(down);
@@ -137,8 +144,8 @@ export function untangleVoices(chords: readonly StaffChord[], beams: readonly Be
   const result = [...chords];
   const resultBeams = [...beams];
   for (const unit of flip) {
-    for (const i of unit.chords) result[i] = { ...result[i], stemUp: !unit.stemUp };
-    if (unit.beam !== null) resultBeams[unit.beam] = { ...resultBeams[unit.beam], stemUp: !unit.stemUp };
+    for (const i of unit.chords) result[i] = { ...result[i]!, stemUp: !unit.stemUp };
+    if (unit.beam !== null) resultBeams[unit.beam] = { ...resultBeams[unit.beam]!, stemUp: !unit.stemUp };
   }
   return { chords: result, beams: resultBeams };
 }
@@ -162,13 +169,15 @@ export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
     for (const a of indices) {
       for (const b of indices) {
         if (a >= b) continue;
+        const one = chords[a]!;
+        const other = chords[b]!;
         // The second between them, if any: the upper note's chord and the lower one's.
-        const pair = chords[a].notes.flatMap((x) => chords[b].notes.filter((y) => Math.abs(x.step - y.step) === 1).map((y) => [x, y]));
-        if (pair.length === 0) continue;
-        const [x, y] = pair[0];
+        const [pair] = one.notes.flatMap((x) => other.notes.filter((y) => Math.abs(x.step - y.step) === 1).map((y) => [x, y] as const));
+        if (!pair) continue;
+        const [x, y] = pair;
         const upper = x.step < y.step ? a : b; // steps grow downwards
-        const moved = chords[a].stemUp !== chords[b].stemUp ? (chords[a].stemUp ? a : b) : upper;
-        result[moved] = { ...result[moved], voiceShift: true };
+        const moved = one.stemUp !== other.stemUp ? (one.stemUp ? a : b) : upper;
+        result[moved] = { ...result[moved]!, voiceShift: true };
       }
     }
   }

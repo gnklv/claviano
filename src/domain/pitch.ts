@@ -25,7 +25,7 @@ export function pitch(name: NoteName, octave: number): number {
 }
 
 /** "Do#" for 61. */
-export const noteName = (midi: number): string => PITCH_CLASS_NAMES[midi % 12];
+export const noteName = (midi: number): string => PITCH_CLASS_NAMES[midi % 12] ?? '';
 
 /** "Do#4" for 61. */
 export const pitchName = (midi: number): string => `${noteName(midi)}${Math.floor(midi / 12) - 1}`;

@@ -135,3 +135,6 @@ export interface WrittenRest {
   readonly displayPitch: Pick<SpelledPitch, 'letter' | 'octave'> | null;
   readonly clef: Clef;
 }
+
+/** The written notes that share a stem: a chord, or a single note. */
+export type WrittenChord = readonly [WrittenNote, ...WrittenNote[]];

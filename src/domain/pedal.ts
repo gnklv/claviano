@@ -55,7 +55,7 @@ export function soundingDurations(
   const nextSamePitch = new Map<number, number>(); // pitch → start of the next note of that pitch
   const durations = new Array<number>(notes.length);
   for (let i = notes.length - 1; i >= 0; i--) {
-    const note = notes[i];
+    const note = notes[i]!;
     const released = noteEnd(note);
     const span = spanAt(pedal, released, true);
     let end = span && span.end > released ? span.end : released;
@@ -87,7 +87,7 @@ function spanAt(pedal: readonly PedalSpan[], time: number, catching = false): Pe
   let hi = pedal.length - 1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    const span = pedal[mid];
+    const span = pedal[mid]!;
     const afterStart = catching ? time > span.start : time >= span.start;
     const beforeEnd = catching ? time <= span.end : time < span.end;
     if (!afterStart) hi = mid - 1;

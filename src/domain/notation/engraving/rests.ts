@@ -1,4 +1,4 @@
-import { barAtBeat, barLength, type Score } from '../../score';
+import { barAtBeat, barLength, writtenBarStart, type Score } from '../../score';
 import { MIDDLE_LINE_STEP, staffStep } from '../staffPosition';
 import type { WrittenNote, WrittenRest } from '../written';
 import type { StaffRest } from './types';
@@ -40,7 +40,7 @@ export function layoutRests(score: Score, rests: readonly WrittenRest[], written
     return {
       staff: rest.staff >= 2 ? 'bass' : 'treble',
       // A whole-bar rest stands in the middle of its bar.
-      beat: rest.measure ? score.notation.bars[bar].start + barLength(score, bar) / 2 : rest.beat,
+      beat: rest.measure ? writtenBarStart(score, bar) + barLength(score, bar) / 2 : rest.beat,
       step,
       duration,
     };

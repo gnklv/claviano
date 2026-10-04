@@ -59,7 +59,7 @@ export function performanceOrder(bars: readonly BarNavigation[]): number[] {
   let wentBack = false; // we just returned here from a :‖
 
   while (index < bars.length && order.length < bars.length * MAX_REPEAT_FACTOR) {
-    const bar = bars[index];
+    const bar = bars[index]!;
     if (bar.repeatStart) {
       // Reaching ‖: in the normal flow starts a new passage; returning to it keeps counting.
       if (!wentBack) pass = 1;
@@ -116,7 +116,7 @@ function lastEndingNumbers(bars: readonly BarNavigation[]): Map<number, number> 
   const result = new Map<number, number>();
   let group: number[] = [];
   const close = () => {
-    const last = Math.max(...group.flatMap((i) => bars[i].ending ?? []));
+    const last = Math.max(...group.flatMap((i) => bars[i]?.ending ?? []));
     for (const i of group) result.set(i, last);
     group = [];
   };

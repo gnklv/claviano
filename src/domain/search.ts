@@ -9,7 +9,7 @@ export function lastAtOrBefore<T>(items: readonly T[], value: number, key: (item
   let result = -1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    if (key(items[mid]) <= value) {
+    if (key(items[mid]!) <= value) {
       result = mid;
       lo = mid + 1;
     } else {
@@ -25,7 +25,7 @@ export function firstAtOrAfter<T>(items: readonly T[], value: number, key: (item
   let hi = items.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (key(items[mid]) < value) lo = mid + 1;
+    if (key(items[mid]!) < value) lo = mid + 1;
     else hi = mid;
   }
   return lo;

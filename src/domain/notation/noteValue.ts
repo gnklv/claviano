@@ -33,7 +33,7 @@ const WRITABLE: (WrittenDuration & { beats: number })[] = (Object.keys(BEATS) as
  * is a thirty-second.
  */
 export function writtenDuration(beats: number): WrittenDuration {
-  const fit = WRITABLE.find((candidate) => candidate.beats <= beats + 1e-9) ?? WRITABLE[WRITABLE.length - 1];
+  const fit = WRITABLE.find((candidate) => candidate.beats <= beats + 1e-9) ?? WRITABLE.at(-1)!;
   return { value: fit.value, dots: fit.dots };
 }
 

@@ -1,8 +1,8 @@
 import { pageEnd, type Score } from '../../score';
 import { firstAtOrAfter } from '../../search';
 import { BOTTOM_LINE_STEP } from '../staffPosition';
-import type { Articulation, WrittenNote, WrittenRest } from '../written';
-import { voicesByStaffAndBar } from './chords';
+import type { Articulation, WrittenChord, WrittenNote, WrittenRest } from '../written';
+import { stepSpan, voicesByStaffAndBar } from './chords';
 import type { StaffArpeggio, StaffChord, StaffMark, StaffOrnament, StaffTremolo } from './types';
 
 /*
@@ -26,7 +26,7 @@ const TOP_LINE_STEP = 0;
  */
 export function layoutMarks(
   score: Score,
-  groups: readonly (readonly WrittenNote[])[],
+  groups: readonly WrittenChord[],
   chords: readonly StaffChord[],
   written: readonly WrittenNote[],
   rests: readonly WrittenRest[],
@@ -34,13 +34,12 @@ export function layoutMarks(
   const voices = voicesByStaffAndBar(score, written, rests);
   const marks: StaffMark[] = [];
   groups.forEach((group, index) => {
-    const chord = chords[index];
+    const chord = chords[index]!;
     const articulations = new Set(group.flatMap((note) => note.articulations));
     const fermata = group.find((note) => note.fermata)?.fermata ?? null;
     if (articulations.size === 0 && !fermata) return;
 
-    const top = chord.notes[0].step;
-    const bottom = chord.notes[chord.notes.length - 1].step;
+    const { top, bottom } = stepSpan(chord.notes);
     const stemmed = chord.duration.value !== 'whole';
     const twoVoices = (voices.get(`${group[0].staff}|${chord.bar}`)?.size ?? 0) > 1;
     const above = twoVoices ? chord.stemUp : !chord.stemUp;
@@ -80,7 +79,7 @@ export function layoutMarks(
  */
 export function layoutOrnaments(
   score: Score,
-  groups: readonly (readonly WrittenNote[])[],
+  groups: readonly WrittenChord[],
   chords: readonly StaffChord[],
   marks: readonly StaffMark[],
 ): StaffOrnament[] {
@@ -92,11 +91,10 @@ export function layoutOrnaments(
     else marksOf.set(mark.chord, [mark]);
   }
   groups.forEach((group, index) => {
-    const chord = chords[index];
+    const chord = chords[index]!;
     const note = group.find((member) => member.ornaments.length > 0);
     if (!note) return;
-    const top = chord.notes[0].step;
-    const bottom = chord.notes[chord.notes.length - 1].step;
+    const { top, bottom } = stepSpan(chord.notes);
     const stemmed = chord.duration.value !== 'whole';
     // Several signs on one note stack outward.
     const reached = { above: Infinity, below: -Infinity };
@@ -131,11 +129,11 @@ export function layoutOrnaments(
 }
 
 /** Tremolo strokes: on the chord's own stem, or towards the next chord of its voice that ends the tremolo. */
-export function layoutTremolos(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffTremolo[] {
+export function layoutTremolos(groups: readonly WrittenChord[], chords: readonly StaffChord[]): StaffTremolo[] {
   const tremolos: StaffTremolo[] = [];
   // The chords that end a tremolo, by staff and voice, in the order of the page.
   const stops = new Map<string, number[]>();
-  const voiceOf = (group: readonly WrittenNote[]) => `${group[0].staff}|${group[0].voice}`;
+  const voiceOf = (group: WrittenChord) => `${group[0].staff}|${group[0].voice}`;
   groups.forEach((group, index) => {
     if (!group.some((note) => note.tremolo?.type === 'stop')) return;
     const own = stops.get(voiceOf(group));
@@ -152,19 +150,21 @@ export function layoutTremolos(groups: readonly (readonly WrittenNote[])[], chor
     const ends = stops.get(voiceOf(group)) ?? [];
     // The first of them after this chord (chords are in the order of their beats).
     let next = firstAtOrAfter(ends, index + 1, (i) => i);
-    while (next < ends.length && chords[ends[next]].beat <= chords[index].beat) next++;
-    if (next < ends.length) tremolos.push({ chord: index, strokes: tremolo.strokes, to: ends[next] });
+    const after = (at: number) => ends[at] !== undefined && chords[ends[at]]!.beat > chords[index]!.beat;
+    while (next < ends.length && !after(next)) next++;
+    const to = ends[next];
+    if (to !== undefined) tremolos.push({ chord: index, strokes: tremolo.strokes, to });
   });
   return tremolos;
 }
 
 /** Rolled chords: the chords marked with an arpeggio sign that start together share one wavy line. */
-export function layoutArpeggios(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffArpeggio[] {
+export function layoutArpeggios(groups: readonly WrittenChord[], chords: readonly StaffChord[]): StaffArpeggio[] {
   const byBeat = new Map<string, { chords: number[]; down: boolean }>();
   groups.forEach((group, index) => {
     const direction = group.find((note) => note.arpeggio)?.arpeggio;
     if (!direction) return;
-    const key = chords[index].beat.toFixed(6);
+    const key = chords[index]!.beat.toFixed(6);
     const entry = byBeat.get(key) ?? { chords: [], down: direction === 'down' };
     entry.chords.push(index);
     byBeat.set(key, entry);

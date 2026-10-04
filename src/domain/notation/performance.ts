@@ -91,13 +91,13 @@ export function performNotation(notation: Notation): Score {
   for (const group of notation.graces) {
     const to = group.leadsTo === null ? null : notation.notes[group.leadsTo];
     const count = group.notes.filter((grace) => !grace.chord).length;
-    const timing = graceTiming({ count, slash: group.notes[0].slash }, to ? { beats: to.beats, dotted: to.duration.dots > 0 } : null, group.beat);
+    const timing = graceTiming({ count, slash: group.notes[0]?.slash ?? false }, to ? { beats: to.beats, dotted: to.duration.dots > 0 } : null, group.beat);
     if (group.leadsTo !== null) delays.set(group.leadsTo, timing.delay);
     graceSounds.push({ beat: timing.start, each: timing.each });
     let slot = -1;
     for (const grace of group.notes) {
       if (!grace.chord || slot < 0) slot++;
-      measures[group.bar].sounds.push({
+      measures[group.bar]!.sounds.push({
         pitch: grace.sounding,
         staff: grace.staff,
         beat: timing.start + slot * timing.each,
@@ -139,7 +139,7 @@ export function performNotation(notation: Notation): Score {
         : [{ pitch: note.sounding, offset: 0, beats }];
     pieces.forEach((piece, i) => {
       const last = i === pieces.length - 1;
-      measures[note.bar].sounds.push({
+      measures[note.bar]!.sounds.push({
         pitch: piece.pitch,
         staff: note.staff,
         beat: beat + piece.offset,
@@ -167,7 +167,7 @@ export function performNotation(notation: Notation): Score {
   for (const measure of measures) {
     for (const sound of measure.sounds) {
       // A sforzando (or the f of an fp) on the notes it is written at.
-      const accent = accents[firstAtOrAfter(accents, sound.beat - 1e-6, (a) => a.beat)] as (typeof accents)[number] | undefined;
+      const accent = accents[firstAtOrAfter(accents, sound.beat - 1e-6, (a) => a.beat)];
       const stress = accent && Math.abs(accent.beat - sound.beat) < 1e-6 ? accent : null;
       const level = sound.ownDynamics ?? stress?.level ?? levelAt(sound.beat);
       sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (stress?.factor ?? 1));
@@ -289,7 +289,7 @@ function perform(measures: readonly Measure[]) {
 
   let start = 0;
   for (const index of order) {
-    const measure = measures[index];
+    const measure = measures[index]!;
     const shift = start - measure.start;
     barBeats.push(start);
     barWritten.push(index);
@@ -369,14 +369,15 @@ function withFermatas(toSeconds: (beat: number) => number, merged: [number, numb
   // The extra time of all fermatas before each one, so a beat only looks at the fermata it is in or after.
   const extraBefore: number[] = [0];
   for (const [from, to] of merged) {
-    extraBefore.push(extraBefore[extraBefore.length - 1] + (toSeconds(to) - toSeconds(from)) * (FERMATA_HOLD - 1));
+    extraBefore.push(extraBefore.at(-1)! + (toSeconds(to) - toSeconds(from)) * (FERMATA_HOLD - 1));
   }
   return (beat) => {
     const i = lastAtOrBefore(merged, beat, ([from]) => from); // the fermata `beat` is in, or the last one before it
-    if (i < 0) return toSeconds(beat);
-    const [from, to] = merged[i];
+    const fermata = merged[i];
+    if (!fermata) return toSeconds(beat);
+    const [from, to] = fermata;
     const inside = (toSeconds(Math.min(beat, to)) - toSeconds(from)) * (FERMATA_HOLD - 1);
-    return toSeconds(beat) + extraBefore[i] + inside;
+    return toSeconds(beat) + extraBefore[i]! + inside;
   };
 }
 
@@ -428,8 +429,9 @@ function rollChords(sounds: Sound[]): Sound[] {
     const delays = arpeggioDelays(chord.length, Math.min(...chord.map((sound) => sound.beats)));
     chord.forEach((sound, i) => {
       done.add(sound);
-      sound.beat += delays[i];
-      sound.beats -= delays[i];
+      const delay = delays[i] ?? 0;
+      sound.beat += delay;
+      sound.beats -= delay;
     });
   }
   return sounds;
@@ -438,7 +440,7 @@ function rollChords(sounds: Sound[]): Sound[] {
 /** Seconds from quarter notes, following tempo changes (in quarter notes per minute). */
 function beatsToSecondsConverter(tempos: { beat: number; bpm: number }[]): (beat: number) => number {
   const sorted = [...tempos].sort((a, b) => a.beat - b.beat);
-  if (sorted.length === 0 || sorted[0].beat > 0) sorted.unshift({ beat: 0, bpm: DEFAULT_TEMPO });
+  if (!sorted[0] || sorted[0].beat > 0) sorted.unshift({ beat: 0, bpm: DEFAULT_TEMPO });
   const segments: { beat: number; seconds: number; secondsPerBeat: number }[] = [];
   for (const [i, tempo] of sorted.entries()) {
     const previous = segments[i - 1];
@@ -446,7 +448,7 @@ function beatsToSecondsConverter(tempos: { beat: number; bpm: number }[]): (beat
     segments.push({ beat: tempo.beat, seconds, secondsPerBeat: 60 / tempo.bpm });
   }
   return (beat) => {
-    const segment = segments[Math.max(0, lastAtOrBefore(segments, beat, (s) => s.beat))];
+    const segment = segments[Math.max(0, lastAtOrBefore(segments, beat, (s) => s.beat))]!;
     return segment.seconds + (beat - segment.beat) * segment.secondsPerBeat;
   };
 }

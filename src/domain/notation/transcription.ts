@@ -2,7 +2,7 @@ import { groupBy } from '../group';
 import { beatsOf } from '../metronome';
 import type { Hand } from '../note';
 import type { PedalMark, PedalSpan } from '../pedal';
-import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, type OctaveShift, type Score, type TempoMark } from '../score';
+import { barAtBeat, barLengthInBeats, keySignatureAt, timeSignatureAt, writtenBarStart, type OctaveShift, type Score, type TempoMark } from '../score';
 import { groupBeams } from './beaming';
 import { writtenDuration, type WrittenDuration } from './noteValue';
 import { quantize } from './quantize';
@@ -78,8 +78,8 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
     group.sort((a, b) => a.beat - b.beat || a.pitch - b.pitch);
-    const fifths = keySignatureAt(score, score.notation.bars[group[0].bar].start).fifths;
-    barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i].accidental = accidental));
+    const fifths = keySignatureAt(score, writtenBarStart(score, group[0].bar)).fifths;
+    barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i]!.accidental = accidental));
   }
 
   // Where both hands meet on one staff within a bar, they are written as two voices:
@@ -94,7 +94,7 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
 
   // Notes of one hand that start together and have the same value share a stem: a chord.
   const chords = [...groupBy(placed, (p) => `${p.staff}|${p.hand}|${p.beat}|${p.duration.value}|${p.duration.dots}`).values()];
-  const start = (chord: Placed[]) => Math.min(...chord.map((p) => p.start));
+  const start = (chord: readonly Placed[]) => Math.min(...chord.map((p) => p.start));
   chords.sort((a, b) => a[0].beat - b[0].beat || start(a) - start(b));
 
   // Beams: groups of flagged chords of one hand on one staff, within a beat.
@@ -104,13 +104,13 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
       staff: `${first.staff}|${first.hand}`,
       bar: first.bar,
       beat: first.beat,
-      barBeat: score.notation.bars[first.bar].start,
+      barBeat: writtenBarStart(score, first.bar),
       duration: first.duration,
       timeSignature: timeSignatureAt(score, first.beat),
     })),
   );
   for (const group of groups) {
-    const inOrder = [...group].sort((a, b) => chords[a][0].beat - chords[b][0].beat);
+    const inOrder = [...group].sort((a, b) => chords[a]![0].beat - chords[b]![0].beat);
     inOrder.forEach((index, i) => beamMarks.set(index, i === 0 ? 'begin' : i === inOrder.length - 1 ? 'end' : 'continue'));
   }
 
@@ -166,14 +166,14 @@ function writtenLengths(score: Score, placed: Placed[]): Placed[] {
     let hi = onsets.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (onsets[mid] <= beat + 1e-9) lo = mid + 1;
+      if (onsets[mid]! <= beat + 1e-9) lo = mid + 1;
       else hi = mid;
     }
     return onsets[lo];
   };
 
   return placed.map((p) => {
-    const barStart = score.notation.bars[p.bar].start;
+    const barStart = writtenBarStart(score, p.bar);
     const barEnd = score.notation.bars[p.bar + 1]?.start ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
     const next = nextOnset(p.beat);
     const { length } = beatsOf(timeSignatureAt(score, p.beat));
@@ -287,7 +287,7 @@ export function writeTempoMarks(tempos: readonly { beat: number; perMinute: numb
     if (marks.at(-1)?.perMinute === perMinute) return;
     const until = sorted[i + 1]?.beat ?? end;
     let bar = 0;
-    while (bar + 1 < bars.length && bars[bar + 1] <= tempo.beat + 1e-9) bar++;
+    while (bar + 1 < bars.length && bars[bar + 1]! <= tempo.beat + 1e-9) bar++;
     const barLength = (bars[bar + 1] ?? end) - (bars[bar] ?? 0);
     if (marks.length > 0 && until - tempo.beat < barLength - 1e-9) return;
     marks.push({ beat: tempo.beat, unit: { value: 'quarter', dots: 0 }, perMinute });
