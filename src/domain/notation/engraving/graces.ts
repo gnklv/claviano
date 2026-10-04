@@ -1,4 +1,5 @@
 import type { Score } from '../../score';
+import { firstAtOrAfter } from '../../search';
 import { flagCount } from '../noteValue';
 import { staffStep } from '../staffPosition';
 import type { Clef } from '../written';
@@ -13,6 +14,14 @@ import type { StaffChord, StaffGrace, StaffNote } from './types';
  */
 export function layoutGraces(score: Score, chords: readonly StaffChord[]): StaffGrace[] {
   const groups: StaffGrace[] = [];
+  // The chords of each staff, in the order of their beats: the one a group leads to is looked up there.
+  const onStaff: Record<Clef, number[]> = { treble: [], bass: [] };
+  chords.forEach((chord, index) => onStaff[chord.staff].push(index));
+  const chordAt = (staff: Clef, beat: number): number | null => {
+    const indices = onStaff[staff];
+    const index = indices[firstAtOrAfter(indices, beat - 1e-6, (i) => chords[i].beat)] as number | undefined;
+    return index !== undefined && Math.abs(chords[index].beat - beat) < 1e-6 ? index : null;
+  };
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
   score.notation.graces.forEach((written, index) => {
@@ -33,13 +42,12 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
         groups[groups.length - 1] = { ...group, slur: group.slur || grace.slur, beats: open.end - group.beat };
         continue;
       }
-      const principal = chords.findIndex((chord) => chord.staff === staff && Math.abs(chord.beat - written.beat) < 1e-6);
       open = { key, slots: [{ notes: [note], ledgerSteps: [] }], end };
       groups.push({
         staff,
         hand: grace.hand,
         bar: written.bar,
-        principal: principal >= 0 ? principal : null,
+        principal: chordAt(staff, written.beat),
         slots: open.slots,
         slash: grace.slash,
         beams: Math.max(1, flagCount(grace.value)),

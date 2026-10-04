@@ -1,3 +1,5 @@
+import { lastAtOrBefore } from '../search';
+
 /*
  * Dynamics: how loud the music is along the page. Printed marks (p, mf, ff…) set a level; hairpins
  * and the words "cresc." / "dim." move smoothly from the level where they start to the next mark.
@@ -57,33 +59,40 @@ export const MARK_LEVELS: Readonly<Record<string, number>> = {
 export const LEVEL_STEP = MARK_LEVELS.f - MARK_LEVELS.mf;
 
 /**
- * The loudness at `beat` along the page: the last level set at or before it, or, inside a hairpin,
- * a straight line from the level at the hairpin's start to its target at the end: the next level
- * set at or after the end (up to a bar later), or one step up or down when none follows.
+ * The loudness along the page, as a function of the beat: the last level set at or before it, or,
+ * inside a hairpin, a straight line from the level at the hairpin's start to its target at the end:
+ * the next level set at or after the end (up to a bar later), or one step up or down when none follows.
+ * `levels` are in the order of their beats, `hairpins` of their starts; where hairpins overlap, the
+ * one that starts first is followed.
  */
-export function levelAt(levels: readonly DynamicLevel[], hairpins: readonly Hairpin[], beat: number, fallback: number): number {
-  const at = (b: number) => {
-    let level = fallback;
-    for (const point of levels) {
-      if (point.beat > b + 1e-9) break;
-      level = point.level;
-    }
-    return level;
-  };
-  const hairpin = hairpins.find((h) => beat >= h.start - 1e-9 && beat < h.end - 1e-9);
-  if (!hairpin) return at(beat);
+export function levelCurve(levels: readonly DynamicLevel[], hairpins: readonly Hairpin[], fallback: number): (beat: number) => number {
+  const at = (b: number) => levels[lastAtOrBefore(levels, b + 1e-9, (point) => point.beat)]?.level ?? fallback;
+  // How far the hairpins up to each one reach: the first to reach past a beat is the one to follow there.
+  const reach: number[] = [];
+  for (const hairpin of hairpins) reach.push(Math.max(hairpin.end, reach[reach.length - 1] ?? -Infinity));
 
-  const from = at(hairpin.start);
-  const step = hairpin.type === 'crescendo' ? LEVEL_STEP : -LEVEL_STEP;
-  // The next mark after the hairpin starts is where it is heading, if it goes the right way.
-  const next = levels.find((point) => point.beat > hairpin.start + 1e-9);
-  const heading = next && next.beat <= hairpin.end + HAIRPIN_TARGET_REACH && Math.sign(next.level - from) === Math.sign(step);
-  const to = heading ? next.level : Math.max(1, from + step);
-  // A mark inside the hairpin is reached there; from it on, its level holds.
-  const end = heading && next.beat < hairpin.end ? next.beat : hairpin.end;
-  if (beat >= end - 1e-9) return at(beat);
-  const share = (beat - hairpin.start) / (end - hairpin.start);
-  return from + (to - from) * share;
+  return (beat) => {
+    const index = lastAtOrBefore(reach, beat + 1e-9, (end) => end) + 1;
+    const hairpin = index < hairpins.length && hairpins[index].start <= beat + 1e-9 ? hairpins[index] : null;
+    if (!hairpin) return at(beat);
+
+    const from = at(hairpin.start);
+    const step = hairpin.type === 'crescendo' ? LEVEL_STEP : -LEVEL_STEP;
+    // The next mark after the hairpin starts is where it is heading, if it goes the right way.
+    const next = levels[lastAtOrBefore(levels, hairpin.start + 1e-9, (point) => point.beat) + 1] as DynamicLevel | undefined;
+    const heading = next && next.beat <= hairpin.end + HAIRPIN_TARGET_REACH && Math.sign(next.level - from) === Math.sign(step);
+    const to = heading ? next.level : Math.max(1, from + step);
+    // A mark inside the hairpin is reached there; from it on, its level holds.
+    const end = heading && next.beat < hairpin.end ? next.beat : hairpin.end;
+    if (beat >= end - 1e-9) return at(beat);
+    const share = (beat - hairpin.start) / (end - hairpin.start);
+    return from + (to - from) * share;
+  };
+}
+
+/** The loudness at one `beat` (see levelCurve). */
+export function levelAt(levels: readonly DynamicLevel[], hairpins: readonly Hairpin[], beat: number, fallback: number): number {
+  return levelCurve(levels, hairpins, fallback)(beat);
 }
 
 /** How far after a hairpin's end (in quarter notes) a mark still counts as its target. */
@@ -96,13 +105,14 @@ const HAIRPIN_TARGET_REACH = 4;
 export function withHairpinLevels(levels: readonly DynamicLevel[], hairpins: readonly Hairpin[], fallback: number): DynamicLevel[] {
   const result = [...levels].sort((a, b) => a.beat - b.beat);
   for (const hairpin of [...hairpins].sort((a, b) => a.start - b.start)) {
-    const next = result.find((point) => point.beat > hairpin.start + 1e-9);
+    const next = result[lastAtOrBefore(result, hairpin.start + 1e-9, (point) => point.beat) + 1] as DynamicLevel | undefined;
     const from = levelAt(result, [], hairpin.start, fallback);
     const up = hairpin.type === 'crescendo';
     const heading = next && next.beat <= hairpin.end + HAIRPIN_TARGET_REACH && next.level > from === up;
     if (heading) continue;
-    result.push({ beat: hairpin.end, level: Math.max(1, from + (up ? LEVEL_STEP : -LEVEL_STEP)) });
-    result.sort((a, b) => a.beat - b.beat);
+    // In its place by beat, after the levels already set there.
+    const place = lastAtOrBefore(result, hairpin.end, (point) => point.beat) + 1;
+    result.splice(place, 0, { beat: hairpin.end, level: Math.max(1, from + (up ? LEVEL_STEP : -LEVEL_STEP)) });
   }
   return result;
 }

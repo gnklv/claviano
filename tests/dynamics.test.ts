@@ -47,6 +47,24 @@ describe('levelAt', () => {
     ];
     expect(levelAt(levels, [hairpin(0, 4)], 3, mf)).toBe(f);
   });
+
+  it('follows the hairpin that starts first where two overlap, and the later one once the first is over', () => {
+    const levels = [{ beat: 0, level: mf }];
+    const overlapping = [hairpin(0, 4), hairpin(2, 8, 'diminuendo')];
+    // Inside both: still the crescendo, three quarters of the way.
+    expect(levelAt(levels, overlapping, 3, mf)).toBeCloseTo(mf + LEVEL_STEP * 0.75);
+    // After the crescendo: the diminuendo, counted from its own start.
+    expect(levelAt(levels, overlapping, 5, mf)).toBeCloseTo(mf - LEVEL_STEP / 2);
+    expect(levelAt(levels, overlapping, 9, mf)).toBe(mf);
+  });
+
+  it('follows a short hairpin that starts inside the reach of a longer one only after the longer one ends', () => {
+    const levels = [{ beat: 0, level: mf }];
+    const nested = [hairpin(0, 8), hairpin(2, 4, 'diminuendo'), hairpin(10, 12, 'diminuendo')];
+    expect(levelAt(levels, nested, 3, mf)).toBeCloseTo(mf + LEVEL_STEP * (3 / 8));
+    expect(levelAt(levels, nested, 9, mf)).toBe(mf);
+    expect(levelAt(levels, nested, 11, mf)).toBeCloseTo(mf - LEVEL_STEP / 2);
+  });
 });
 
 describe('withHairpinLevels', () => {

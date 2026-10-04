@@ -1,8 +1,8 @@
 import type { Hand, Note } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
 import { createScore, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
-import { lastAtOrBefore } from '../search';
-import { dynamicsAlongPage, levelAt, withHairpinLevels } from './dynamics';
+import { firstAtOrAfter, lastAtOrBefore } from '../search';
+import { dynamicsAlongPage, levelCurve, withHairpinLevels } from './dynamics';
 import { graceTiming } from './grace';
 import { performanceOrder, type BarNavigation } from './navigation';
 import type { Notation, PedalMove, TempoChange } from './notation';
@@ -74,14 +74,16 @@ type MutableNavigation = { -readonly [K in keyof BarNavigation]: BarNavigation[K
 
 /** Plays the notation: the score with its notes in time, and the notation kept beside them for the staff. */
 export function performNotation(notation: Notation): Score {
-  const measures: Measure[] = notation.bars.map((bar, index) => ({
+  const measures: Measure[] = notation.bars.map((bar) => ({
     start: bar.start,
     length: bar.length,
     navigation: { ...bar.navigation },
     sounds: [],
-    tempos: notation.tempos.filter((tempo) => tempo.bar === index),
-    pedal: notation.pedalMoves.filter((move) => move.bar === index),
+    tempos: [],
+    pedal: [],
   }));
+  for (const tempo of notation.tempos) measures[tempo.bar]?.tempos.push(tempo);
+  for (const move of notation.pedalMoves) measures[move.bar]?.pedal.push(move);
 
   // Grace notes: when each sounds, and how much later the note it leads to comes in.
   const graceSounds: GraceSound[] = [];
@@ -113,6 +115,7 @@ export function performNotation(notation: Notation): Score {
   }
 
   // The notes themselves: one sound each, or the several quick ones an ornament or a tremolo stands for.
+  const keys = [...notation.keySignatures].sort((a, b) => a.beat - b.beat);
   let delay = 0; // of the chord being read: every note of it comes in after the appoggiatura
   notation.notes.forEach((note, index) => {
     if (!note.chord) delay = delays.get(index) ?? 0;
@@ -120,7 +123,7 @@ export function performNotation(notation: Notation): Score {
     const beat = note.beat + delay;
     const beats = note.beats - delay;
     const [ornament] = note.ornaments;
-    const fifths = notation.keySignatures[lastAtOrBefore(notation.keySignatures, note.beat + 1e-9, (key) => key.beat)]?.fifths ?? 0;
+    const fifths = keys[lastAtOrBefore(keys, note.beat + 1e-9, (key) => key.beat)]?.fifths ?? 0;
     // Under an octave shift the note is printed octaves away from where it sounds; its neighbours are counted from there.
     const spelled = { ...note.pitch, octave: note.pitch.octave + Math.round((note.sounding - midiOf(note.pitch)) / 12) };
     const pieces = ornament
@@ -159,13 +162,15 @@ export function performNotation(notation: Notation): Score {
   // How loud each note is: its own level, a stress written at it, or the level in force along the page.
   const dynamics = dynamicsAlongPage(notation.dynamics, notation.dynamicLevels, notation.hairpins);
   const { hairpins } = dynamics;
-  const levels = withHairpinLevels(dynamics.levels, hairpins, DEFAULT_DYNAMICS);
+  const levelAt = levelCurve(withHairpinLevels(dynamics.levels, hairpins, DEFAULT_DYNAMICS), hairpins, DEFAULT_DYNAMICS);
+  const accents = [...dynamics.accents].sort((a, b) => a.beat - b.beat);
   for (const measure of measures) {
     for (const sound of measure.sounds) {
       // A sforzando (or the f of an fp) on the notes it is written at.
-      const accent = dynamics.accents.find((a) => Math.abs(a.beat - sound.beat) < 1e-6);
-      const level = sound.ownDynamics ?? accent?.level ?? levelAt(levels, hairpins, sound.beat, DEFAULT_DYNAMICS);
-      sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (accent?.factor ?? 1));
+      const accent = accents[firstAtOrAfter(accents, sound.beat - 1e-6, (a) => a.beat)] as (typeof accents)[number] | undefined;
+      const stress = accent && Math.abs(accent.beat - sound.beat) < 1e-6 ? accent : null;
+      const level = sound.ownDynamics ?? stress?.level ?? levelAt(sound.beat);
+      sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (stress?.factor ?? 1));
     }
   }
 

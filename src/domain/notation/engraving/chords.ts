@@ -154,7 +154,9 @@ export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
   const byPlace = new Map<string, number[]>();
   chords.forEach((chord, i) => {
     const key = `${chord.staff}|${chord.beat}`;
-    byPlace.set(key, [...(byPlace.get(key) ?? []), i]);
+    const place = byPlace.get(key);
+    if (place) place.push(i);
+    else byPlace.set(key, [i]);
   });
   for (const indices of byPlace.values()) {
     for (const a of indices) {

@@ -1,4 +1,5 @@
 import { pageEnd, type Score } from '../../score';
+import { firstAtOrAfter } from '../../search';
 import { BOTTOM_LINE_STEP } from '../staffPosition';
 import type { Articulation, WrittenNote, WrittenRest } from '../written';
 import { voicesByStaffAndBar } from './chords';
@@ -84,6 +85,12 @@ export function layoutOrnaments(
   marks: readonly StaffMark[],
 ): StaffOrnament[] {
   const ornaments: StaffOrnament[] = [];
+  const marksOf = new Map<number, StaffMark[]>();
+  for (const mark of marks) {
+    const own = marksOf.get(mark.chord);
+    if (own) own.push(mark);
+    else marksOf.set(mark.chord, [mark]);
+  }
   groups.forEach((group, index) => {
     const chord = chords[index];
     const note = group.find((member) => member.ornaments.length > 0);
@@ -97,9 +104,9 @@ export function layoutOrnaments(
       const above = !mark.below;
       const extremes = [above ? top : bottom, above ? reached.above : reached.below];
       if (stemmed && chord.stemUp === above) extremes.push(above ? top - STEM_STEPS : bottom + STEM_STEPS);
-      for (const other of marks) {
+      for (const other of marksOf.get(index) ?? []) {
         // A fermata's arc is about three steps tall beyond its reference.
-        if (other.chord === index && other.above === above) extremes.push(other.step + (other.kind === 'fermata' ? (above ? -3 : 3) : 0));
+        if (other.above === above) extremes.push(other.step + (other.kind === 'fermata' ? (above ? -3 : 3) : 0));
       }
       const outermost = above ? Math.min(...extremes.filter(Number.isFinite)) : Math.max(...extremes.filter(Number.isFinite));
       const step = above ? Math.min(TOP_LINE_STEP - 3, outermost - 3) : Math.max(BOTTOM_LINE_STEP + 3, outermost + 3);
@@ -126,6 +133,15 @@ export function layoutOrnaments(
 /** Tremolo strokes: on the chord's own stem, or towards the next chord of its voice that ends the tremolo. */
 export function layoutTremolos(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffTremolo[] {
   const tremolos: StaffTremolo[] = [];
+  // The chords that end a tremolo, by staff and voice, in the order of the page.
+  const stops = new Map<string, number[]>();
+  const voiceOf = (group: readonly WrittenNote[]) => `${group[0].staff}|${group[0].voice}`;
+  groups.forEach((group, index) => {
+    if (!group.some((note) => note.tremolo?.type === 'stop')) return;
+    const own = stops.get(voiceOf(group));
+    if (own) own.push(index);
+    else stops.set(voiceOf(group), [index]);
+  });
   groups.forEach((group, index) => {
     const tremolo = group.find((note) => note.tremolo)?.tremolo;
     if (!tremolo || tremolo.type === 'stop') return;
@@ -133,11 +149,11 @@ export function layoutTremolos(groups: readonly (readonly WrittenNote[])[], chor
       tremolos.push({ chord: index, strokes: tremolo.strokes, to: null });
       return;
     }
-    const { staff, voice } = group[0];
-    const to = groups.findIndex(
-      (other, i) => i !== index && chords[i].beat > chords[index].beat && other[0].staff === staff && other[0].voice === voice && other.some((note) => note.tremolo?.type === 'stop'),
-    );
-    if (to >= 0) tremolos.push({ chord: index, strokes: tremolo.strokes, to });
+    const ends = stops.get(voiceOf(group)) ?? [];
+    // The first of them after this chord (chords are in the order of their beats).
+    let next = firstAtOrAfter(ends, index + 1, (i) => i);
+    while (next < ends.length && chords[ends[next]].beat <= chords[index].beat) next++;
+    if (next < ends.length) tremolos.push({ chord: index, strokes: tremolo.strokes, to: ends[next] });
   });
   return tremolos;
 }

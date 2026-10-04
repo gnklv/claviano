@@ -1,3 +1,4 @@
+import { lastAtOrBefore } from '../../search';
 import { staffStep } from '../staffPosition';
 import type { WrittenNote } from '../written';
 import type { StaffChord, StaffSlur, Tie } from './types';
@@ -25,8 +26,10 @@ export function layoutTies(groups: readonly (readonly WrittenNote[])[], chords: 
     refs.sort((a, b) => a.note.beat - b.note.beat);
     refs.forEach((ref, i) => {
       if (!ref.note.tieStart) return;
-      const target = refs.slice(i + 1).find((next) => next.note.tieStop && next.note.beat > ref.note.beat);
-      if (!target) return;
+      let to = i + 1;
+      while (to < refs.length && !(refs[to].note.tieStop && refs[to].note.beat > ref.note.beat)) to++;
+      if (to === refs.length) return;
+      const target = refs[to];
       const chord = chords[ref.chord];
       const index = chord.notes.findIndex((n) => n.step === ref.step);
       const count = chord.notes.length;
@@ -58,10 +61,11 @@ export function layoutSlurs(groups: readonly (readonly WrittenNote[])[], chords:
       open.delete(mark.number);
       const first = chords[start.from];
       const last = chords[index];
-      const between = chords
-        .map((chord, i) => ({ chord, i }))
-        .filter(({ chord, i }) => i !== start.from && i !== index && chord.staff === first.staff && chord.beat > first.beat && chord.beat < last.beat)
-        .map(({ i }) => i);
+      // The chords after its first beat and before its last (chords are in the order of their beats).
+      const between: number[] = [];
+      for (let i = lastAtOrBefore(chords, first.beat, (chord) => chord.beat) + 1; i < chords.length && chords[i].beat < last.beat; i++) {
+        if (chords[i].staff === first.staff) between.push(i);
+      }
       const allStemsUp = [start.from, ...between, index].every((i) => chords[i].stemUp);
       slurs.push({
         from: start.from,
