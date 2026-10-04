@@ -5,11 +5,13 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { engrave as layoutNotation } from '../src/domain/notation/engraving';
 import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
+import { drawing, drawStaff } from './drawnStaff';
 
 /*
  * Reference copies of what the showcase comes out as: its score (the notes as played and as
- * written) and its engraving (what stands where on the staves). Any change in reading, playing or
- * engraving shows up here line by line, meant or not.
+ * written), its engraving (what stands where on the staves) and its drawing (what the staff
+ * draws). Any change in reading, playing, engraving or drawing shows up here line by line, meant
+ * or not.
  *
  * A change that is meant is accepted with `npm run test:accept`, which rewrites the files in
  * tests/snapshots; the commit then shows exactly what changed.
@@ -65,5 +67,14 @@ describe('reference copies', () => {
   it('the Ode to Joy engraved: played notes written down by the domain', async () => {
     const ode = odeToJoy('Ode to Joy');
     await expect(readable(layoutNotation(ode))).toMatchFileSnapshot('./snapshots/ode.engraving.txt');
+  });
+
+  // What the staff draws for it all, element by element (at 1024 by 300 pixels).
+  it('the showcase drawn on the staff', async () => {
+    await expect(drawing(drawStaff(showcase).container)).toMatchFileSnapshot('./snapshots/showcase.staff.txt');
+  });
+
+  it('the Ode to Joy drawn on the staff', async () => {
+    await expect(drawing(drawStaff(odeToJoy('Ode to Joy')).container)).toMatchFileSnapshot('./snapshots/ode.staff.txt');
   });
 });
