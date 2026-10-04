@@ -8,6 +8,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "test:accept": "vitest run -u tests/snapshot.test.ts",
     "typecheck": "vue-tsc --noEmit",
     "showcase": "node scripts/showcase.ts",
     "samples": "node scripts/samples.ts"

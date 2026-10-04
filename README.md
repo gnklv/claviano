@@ -26,6 +26,11 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 `tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
 
+**Reference copies.** `tests/snapshots/` holds what the showcase comes out as: its score (notes as
+played and as written) and its engraving, one line per note, chord or mark. `tests/snapshot.test.ts`
+compares against them, so any change in reading, playing or engraving shows up line by line. A
+change that is meant is accepted with `npm run test:accept`, and the commit shows what changed.
+
 **Piano sound.** The samples in `public/piano` come from the
 [Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (a Yamaha C5)
 by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
