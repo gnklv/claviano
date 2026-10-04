@@ -1,5 +1,5 @@
 import type { Hand } from '../note';
-import type { WrittenDuration } from './noteValue';
+import type { NoteValue, WrittenDuration } from './noteValue';
 import type { Accidental, SpelledPitch } from './spelling';
 
 /*
@@ -77,6 +77,33 @@ export interface WrittenNote {
   /** A pause sign over (or, inverted, under) the note. */
   readonly fermata: 'upright' | 'inverted' | null;
   readonly slurs: readonly SlurMark[];
+}
+
+/**
+ * A grace note as printed: a small note before the note at `beat`, with no time of its own on the
+ * page (see grace.ts for how it is played).
+ */
+export interface WrittenGrace {
+  /** 1 is the upper staff, 2 the lower one. */
+  readonly staff: number;
+  readonly hand: Hand;
+  readonly clef: Clef;
+  readonly pitch: SpelledPitch;
+  readonly accidental: Accidental | null;
+  /** The printed bar it is in, and the beat of the note it leads to (the bar's end, after its last note). */
+  readonly bar: number;
+  readonly beat: number;
+  /** True when it shares the stem of the grace note before it (a grace chord). */
+  readonly chord: boolean;
+  /** Struck through: an acciaccatura. */
+  readonly slash: boolean;
+  /** Its printed value (an eighth, a sixteenth…): how many flags or beams it has. */
+  readonly value: NoteValue;
+  /** A slur starts here, to the note it leads to. */
+  readonly slur: boolean;
+  /** When it sounds along the page and for how long, in quarter notes. */
+  readonly soundBeat: number;
+  readonly soundBeats: number;
 }
 
 /** A printed rest. */

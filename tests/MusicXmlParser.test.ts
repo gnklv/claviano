@@ -362,12 +362,81 @@ describe('MusicXmlParser', () => {
     expect(s.notes[0].velocity).toBeCloseTo((40 * 0.9) / 127);
   });
 
-  it('skips grace notes', () => {
-    const s = parser.parse(
-      score(`<measure number="1">${attributes()}<note><grace/><pitch><step>B</step><octave>4</octave></pitch><staff>1</staff></note>${note('C', 5, 8)}</measure>`),
-      'test',
-    );
-    expect(s.notes.map((n) => n.pitch)).toEqual([pitch('Do', 5)]);
+  describe('grace notes', () => {
+    const grace = (step: string, octave: number, slash: boolean, extra = '') =>
+      `<note><grace${slash ? ' slash="yes"' : ''}/><pitch><step>${step}</step><octave>${octave}</octave></pitch><type>eighth</type><staff>1</staff>${extra}</note>`;
+    const sounds = (s: ReturnType<typeof parser.parse>) => s.notes.map((n) => [n.pitch, n.beat, n.beats]);
+
+    it('crushes an acciaccatura in before the beat; the note stays on it', () => {
+      const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 5, 4)}${grace('B', 4, true)}${note('C', 5, 4)}</measure>`), 'test');
+      expect(sounds(s)).toEqual([
+        [pitch('Do', 5), 0, 2],
+        [pitch('Si', 4), 1.875, 0.125],
+        [pitch('Do', 5), 2, 2],
+      ]);
+      expect(s.graces).toMatchObject([{ bar: 0, beat: 2, slash: true, value: 'eighth', soundBeat: 1.875 }]);
+      // On the page the bar's notes are where they were.
+      expect(s.written!.map((n) => n.beat)).toEqual([0, 2]);
+    });
+
+    it('gives an appoggiatura half of the note it leads to', () => {
+      const s = parser.parse(score(`<measure number="1">${attributes()}${grace('D', 5, false)}${note('C', 5, 8)}</measure>`), 'test');
+      expect(sounds(s)).toEqual([
+        [pitch('Re', 5), 0, 2],
+        [pitch('Do', 5), 2, 2],
+      ]);
+    });
+
+    it('delays every note of the chord an appoggiatura leads to', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${grace('D', 5, false)}${note('C', 5, 4)}${note('E', 5, 4, { extra: '<chord/>' })}</measure>`),
+        'test',
+      );
+      expect(sounds(s).slice(1)).toEqual([
+        [pitch('Do', 5), 1, 1],
+        [pitch('Mi', 5), 1, 1],
+      ]);
+    });
+
+    it('plays several grace notes one after another before the beat, a grace chord together', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${note('C', 5, 4)}
+          ${grace('A', 4, false)}${grace('B', 4, false)}${grace('D', 5, false, '<chord/>')}${note('C', 5, 4)}</measure>`),
+        'test',
+      );
+      expect(sounds(s).slice(1, 4)).toEqual([
+        [pitch('La', 4), 1.75, 0.125],
+        [pitch('Si', 4), 1.875, 0.125],
+        [pitch('Re', 5), 1.875, 0.125],
+      ]);
+      expect(s.graces.map((g) => g.chord)).toEqual([false, false, true]);
+    });
+
+    it('plays grace notes at the very start on the beat, and those after a bar\'s last note before the bar line', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${grace('B', 4, true)}${note('C', 5, 8)}${grace('D', 5, true)}</measure>
+          <measure number="2">${note('E', 5, 8)}</measure>`),
+        'test',
+      );
+      expect(sounds(s)).toEqual([
+        [pitch('Si', 4), 0, 0.125],
+        [pitch('Do', 5), 0.125, 3.875],
+        [pitch('Re', 5), 3.875, 0.125],
+        [pitch('Mi', 5), 4, 4],
+      ]);
+      expect(s.graces.map((g) => [g.bar, g.beat])).toEqual([
+        [0, 0],
+        [0, 4],
+      ]);
+    });
+
+    it('lays them out before the chord they lead to', () => {
+      const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 5, 4)}${grace('B', 4, true)}${note('C', 5, 4)}</measure>`), 'test');
+      const layout = layoutNotation(s);
+      expect(layout.graces).toHaveLength(1);
+      expect(layout.graces[0]).toMatchObject({ staff: 'treble', principal: 1, slash: true, beams: 1, beat: 1.875, beats: 0.125 });
+      expect(layout.graces[0].x).toBe(layout.chords[1].x);
+    });
   });
 
   it('uses the work title when the file has one', () => {

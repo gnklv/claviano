@@ -37,6 +37,8 @@ export class StaffInk {
   private along: number[] = [];
   /** Geometry of the current drawing (it depends on the size and the room at bar lines). */
   private readonly geometry = new Map<StaffChord, ChordGeometry>();
+  /** What else is drawn among the notes in this drawing (grace notes): where, and how far up and down. */
+  private readonly others: { staff: Clef; left: number; right: number; top: number; bottom: number }[] = [];
 
   constructor(private readonly staff: StaffGeometry) {}
 
@@ -55,6 +57,12 @@ export class StaffInk {
   reset(): void {
     this.geometry.clear();
     this.stemEnds.clear();
+    this.others.length = 0;
+  }
+
+  /** Counts something drawn among the notes (grace notes) as ink of its staff, in pixels. */
+  add(ink: { staff: Clef; left: number; right: number; top: number; bottom: number }): void {
+    this.others.push(ink);
   }
 
   /** Where a chord's parts go, in pixels. */
@@ -113,6 +121,11 @@ export class StaffInk {
       if (chord.duration.value === 'whole') continue;
       if (chord.stemUp) top = Math.min(top, this.stemEnd(index));
       else bottom = Math.max(bottom, this.stemEnd(index));
+    }
+    for (const other of this.others) {
+      if (other.staff !== staff || other.right < left || other.left > right) continue;
+      top = Math.min(top, other.top);
+      bottom = Math.max(bottom, other.bottom);
     }
     return { top, bottom };
   }

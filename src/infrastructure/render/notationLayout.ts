@@ -1,5 +1,5 @@
 import { noteEnd, type Hand } from '../../domain/note';
-import { writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
+import { flagCount, writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
 import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
@@ -123,6 +123,31 @@ export interface StaffOctaveShift {
   readonly octaves: number;
 }
 
+/**
+ * Grace notes before one note (or after the last note of a bar): small notes drawn to the left of
+ * the place they lead to, on one stem direction, beamed together when there are several.
+ */
+export interface StaffGrace {
+  readonly staff: Clef;
+  readonly hand: Hand;
+  readonly bar: number;
+  /** Where they lead to, in bar units: the note's place, or the end of the bar. */
+  readonly x: number;
+  /** The chord they lead to (an index into NotationLayout.chords); null after the last note of a bar. */
+  readonly principal: number | null;
+  /** The grace notes left to right; each may be a chord (notes sorted from the top down). */
+  readonly slots: readonly { readonly notes: readonly StaffNote[]; readonly ledgerSteps: readonly number[] }[];
+  /** Struck through: an acciaccatura. */
+  readonly slash: boolean;
+  /** Flags on a lone grace note, beams on a group: 1 for eighths, 2 for sixteenths… */
+  readonly beams: number;
+  /** A slur joins them to the note they lead to. */
+  readonly slur: boolean;
+  /** When they sound along the page and for how long (all of them), for lighting them up. */
+  readonly beat: number;
+  readonly beats: number;
+}
+
 export interface NotationLayout {
   /** Sorted by their place on the page (beat). */
   readonly chords: readonly StaffChord[];
@@ -133,6 +158,7 @@ export interface NotationLayout {
   readonly ties: readonly Tie[];
   readonly marks: readonly StaffMark[];
   readonly slurs: readonly StaffSlur[];
+  readonly graces: readonly StaffGrace[];
 }
 
 /** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
@@ -417,7 +443,7 @@ function inferNotation(score: Score): NotationLayout {
     }),
   );
   const untangled = untangleVoices(beamed, beams);
-  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [] };
 }
 
 /**
@@ -635,7 +661,51 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     ties: layoutTies(entries.map((entry) => entry.group), drawn),
     marks: layoutMarks(score, entries.map((entry) => entry.group), drawn, written, rests),
     slurs: layoutSlurs(entries.map((entry) => entry.group), drawn),
+    graces: layoutGraces(score, drawn),
   };
+}
+
+/** Groups the printed grace notes by the place they lead to, and finds the chord there. */
+function layoutGraces(score: Score, chords: readonly StaffChord[]): StaffGrace[] {
+  const groups: StaffGrace[] = [];
+  // The group being gathered: its place, its slots (still being filled) and where its sound ends.
+  let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
+  for (const grace of score.graces) {
+    const staff: Clef = grace.staff >= 2 ? 'bass' : 'treble';
+    const key = `${grace.bar}|${grace.beat}|${staff}`;
+    const note: StaffNote = { step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
+    const end = grace.soundBeat + grace.soundBeats;
+    if (open?.key === key) {
+      const group = groups[groups.length - 1];
+      if (grace.chord) open.slots[open.slots.length - 1].notes.push(note);
+      else open.slots.push({ notes: [note], ledgerSteps: [] });
+      open.end = Math.max(open.end, end);
+      groups[groups.length - 1] = { ...group, slur: group.slur || grace.slur, beats: open.end - group.beat };
+      continue;
+    }
+    const principal = chords.findIndex((chord) => chord.staff === staff && Math.abs(chord.beat - grace.beat) < 1e-6);
+    open = { key, slots: [{ notes: [note], ledgerSteps: [] }], end };
+    groups.push({
+      staff,
+      hand: grace.hand,
+      bar: grace.bar,
+      x: principal >= 0 ? chords[principal].x : beatPosition(score, grace.bar, grace.beat),
+      principal: principal >= 0 ? principal : null,
+      slots: open.slots,
+      slash: grace.slash,
+      beams: Math.max(1, flagCount(grace.value)),
+      slur: grace.slur,
+      beat: grace.soundBeat,
+      beats: grace.soundBeats,
+    });
+  }
+  for (const group of groups) {
+    for (const slot of group.slots as { notes: StaffNote[]; ledgerSteps: number[] }[]) {
+      slot.notes.sort((a, b) => a.step - b.step);
+      slot.ledgerSteps = ledgerSteps(slot.notes[0].step, slot.notes[slot.notes.length - 1].step);
+    }
+  }
+  return groups;
 }
 
 /** Voices present on each staff in each bar ("staff|bar" → voices), for two-voice rules. */

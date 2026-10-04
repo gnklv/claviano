@@ -2,7 +2,17 @@ import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreP
 import type { Hand, Note } from '../../domain/note';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
-import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
+import { graceTiming } from '../../domain/notation/grace';
+import type {
+  Articulation,
+  BeamMark,
+  Clef,
+  ClefChange,
+  SlurMark,
+  WrittenGrace,
+  WrittenNote,
+  WrittenRest,
+} from '../../domain/notation/written';
 import { performanceOrder, type BarNavigation } from '../../domain/notation/navigation';
 import { pedalSpans, type PedalKind, type PedalMark } from '../../domain/pedal';
 import { lastAtOrBefore } from '../../domain/search';
@@ -25,7 +35,7 @@ import {
  * become one), and the notes as printed for the staff (value, tuplet, accidental, stem, beams).
  *
  * Plain files (.musicxml, .xml) and compressed ones (.mxl, a ZIP archive with the score inside).
- * Not yet: grace notes (skipped), more than one part (the first one is read; a piano written as
+ * Not yet: more than one part (the first one is read; a piano written as
  * two one-staff parts is joined into one, see pianoParts).
  */
 
@@ -217,6 +227,7 @@ function readPart(part: Element, title: string): Score {
   const written: PendingWritten[] = [];
   const writtenMeasure: number[] = []; // for each printed note, its bar
   const rests: WrittenRest[] = [];
+  const graces: WrittenGrace[] = [];
   const clefChanges: ClefChange[] = [];
   /** The clef in force on each staff; engravers may switch the lower staff to treble and back. */
   const clefs = new Map<number, Clef>([
@@ -247,8 +258,45 @@ function readPart(part: Element, title: string): Score {
     let cursor = 0; // position inside the measure, in divisions
     let longest = 0; // how far the measure reaches, in divisions
     let lastStart = 0; // start of the previous note, for chords
+    let lastDelay = 0; // how much later than written it sounds (after an appoggiatura), for chords
+    /** Grace notes read and not yet attached to the note they lead to, with their sounding pitch. */
+    let pendingGraces: { printed: Omit<WrittenGrace, 'bar' | 'beat' | 'soundBeat' | 'soundBeats'>; pitch: number }[] = [];
 
     const beatAt = (position: number) => measureStart + position / divisions;
+
+    /**
+     * The grace notes read so far lead to `principal` at `position` (or, with no note to lead to,
+     * stand before that place: after the bar's last note, before a rest). Places them on the page
+     * and in time; returns how much later the principal itself now sounds.
+     */
+    const attachGraces = (position: number, principal: { beats: number; dotted: boolean } | null): number => {
+      if (pendingGraces.length === 0) return 0;
+      const beat = beatAt(position);
+      const count = pendingGraces.filter((grace) => !grace.printed.chord).length;
+      const timing = graceTiming({ count, slash: pendingGraces[0].printed.slash }, principal, beat);
+      let slot = -1;
+      for (const { printed, pitch } of pendingGraces) {
+        if (!printed.chord || slot < 0) slot++;
+        const soundBeat = timing.start + slot * timing.each;
+        graces.push({ ...printed, bar: measures.length, beat, soundBeat, soundBeats: timing.each });
+        measure.sounds.push({
+          pitch,
+          staff: printed.staff,
+          beat: soundBeat,
+          beats: timing.each,
+          velocity: 0,
+          ownDynamics: null,
+          loudness: 1,
+          hand: printed.hand,
+          soundingLength: 1,
+          tieStart: false,
+          tieStop: false,
+          fermata: false,
+        });
+      }
+      pendingGraces = [];
+      return timing.delay;
+    };
 
     for (const element of measureElement.children) {
       switch (element.nodeName) {
@@ -346,24 +394,55 @@ function readPart(part: Element, title: string): Score {
           break;
         }
         case 'backup':
+          attachGraces(cursor, null);
           cursor -= childNumber(element, 'duration') ?? 0;
           break;
         case 'forward':
+          attachGraces(cursor, null);
           cursor += childNumber(element, 'duration') ?? 0;
           longest = Math.max(longest, cursor);
           break;
         case 'note': {
-          if (element.querySelector(':scope > grace')) break; // ornaments without their own time
+          const graceElement = element.querySelector(':scope > grace');
+          if (graceElement) {
+            // A small note with no time of its own: kept until the note it leads to is read.
+            const pitchElement = element.querySelector(':scope > pitch');
+            if (!pitchElement) break;
+            const staff = childNumber(element, 'staff') ?? 1;
+            const hand: Hand = staves > 1 && staff > 1 ? 'left' : 'right';
+            const clef = clefs.get(staff) ?? (staff > 1 ? 'bass' : 'treble');
+            const read = readWritten(element, pitchElement, { staff, clef, hand, isChord: false, beat: 0, beats: 0, ties: [] });
+            const shiftBy = openShifts.get(staff)?.octaves ?? 0;
+            pendingGraces.push({
+              printed: {
+                staff,
+                hand,
+                clef,
+                pitch: { ...read.pitch, octave: read.pitch.octave - shiftBy },
+                accidental: read.accidental,
+                chord: element.querySelector(':scope > chord') !== null,
+                slash: graceElement.getAttribute('slash') === 'yes',
+                // Without <type>, an eighth: what a lone grace note usually is.
+                value: NOTE_TYPES[childText(element, 'type') ?? ''] ?? 'eighth',
+                slur: read.slurs.some((slur) => slur.type === 'start'),
+              },
+              pitch: midiPitch(pitchElement),
+            });
+            break;
+          }
           const duration = childNumber(element, 'duration') ?? 0;
           const isChord = element.querySelector(':scope > chord') !== null;
           const start = isChord ? lastStart : cursor;
+          const restElement = element.querySelector(':scope > rest');
           if (!isChord) {
+            const dotted = element.querySelector(':scope > dot') !== null;
+            const principal = restElement || !element.querySelector(':scope > pitch') ? null : { beats: duration / divisions, dotted };
+            lastDelay = attachGraces(cursor, principal);
             lastStart = cursor;
             cursor += duration;
             longest = Math.max(longest, cursor);
           }
 
-          const restElement = element.querySelector(':scope > rest');
           if (restElement) {
             const staff = childNumber(element, 'staff') ?? 1;
             rests.push(readRest(element, restElement, { staff, clef: clefs.get(staff) ?? 'treble', beat: beatAt(start), beats: duration / divisions }));
@@ -389,8 +468,9 @@ function readPart(part: Element, title: string): Score {
           measure.sounds.push({
             pitch: midiPitch(pitchElement),
             staff,
-            beat: beatAt(start),
-            beats,
+            // After an appoggiatura the note comes in late, by what the grace note took from it.
+            beat: beatAt(start) + lastDelay,
+            beats: beats - lastDelay,
             velocity: 0,
             ownDynamics: noteDynamics > 0 ? noteDynamics : null,
             loudness: effect.loudness,
@@ -404,6 +484,9 @@ function readPart(part: Element, title: string): Score {
         }
       }
     }
+
+    // Grace notes after the bar's last note stand before the bar line.
+    attachGraces(cursor, null);
 
     // Files do not always close the last volta. A new ‖: never sits inside one, so it closes it.
     if (nav.repeatStart && ending && !nav.endingLabel) {
@@ -479,6 +562,7 @@ function readPart(part: Element, title: string): Score {
       keySignatures,
       clefs: clefChanges,
       rests,
+      graces,
       written: written.map((note, i) => ({
         ...note,
         start: writtenSeconds(i, note.beat),

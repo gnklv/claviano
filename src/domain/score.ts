@@ -1,7 +1,7 @@
 import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
-import type { Clef, ClefChange, WrittenNote, WrittenRest } from './notation/written';
+import type { Clef, ClefChange, WrittenGrace, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicMark, Hairpin } from './notation/dynamics';
 import { firstAtOrAfter, lastAtOrBefore } from './search';
@@ -94,6 +94,8 @@ export interface Score {
   readonly clefs: readonly ClefChange[];
   /** Printed rests, when the source has notation (MusicXML). */
   readonly rests: readonly WrittenRest[];
+  /** Printed grace notes (MusicXML), in page order; they sound as ordinary notes of the score. */
+  readonly graces: readonly WrittenGrace[];
   /** When the sustain pedal is down, as played; sorted. */
   readonly pedal: readonly PedalSpan[];
   /** When the middle (sostenuto) and left (soft) pedals are down, as played; sorted. */
@@ -124,6 +126,7 @@ export interface ScoreMusic {
   readonly written?: readonly WrittenNote[];
   readonly clefs?: readonly ClefChange[];
   readonly rests?: readonly WrittenRest[];
+  readonly graces?: readonly WrittenGrace[];
   /** When bars are played in another order than printed (repeats): see Score. */
   readonly barWritten?: readonly number[];
   readonly writtenBarBeats?: readonly number[];
@@ -207,6 +210,7 @@ export function createScore(
     written: music.written ?? null,
     clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
     rests: music.rests ?? [],
+    graces: music.graces ?? [],
     pedal: [...(music.pedal ?? [])].sort((a, b) => a.start - b.start),
     sostenutoPedal: [...(music.sostenutoPedal ?? [])].sort((a, b) => a.start - b.start),
     softPedal: [...(music.softPedal ?? [])].sort((a, b) => a.start - b.start),

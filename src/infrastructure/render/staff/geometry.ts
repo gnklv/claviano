@@ -52,6 +52,10 @@ export const CHANGE_GAP_BEFORE = 0.8;
 const CHANGE_GAP_AFTER = 0.4;
 export const NATURAL_ADVANCE = 1.0;
 
+/** A bar's first note already stands BAR_LINE_GAP after its line: this much of it is free for grace notes. */
+const GRACE_ROOM_AT_BAR_LINE = 0.5;
+const NO_GRACES = { lead: new Map<number, number>(), tail: new Map<number, number>() };
+
 /**
  * Where things go on the staff, in pixels: the staff lines, the bars along the tape (with room at
  * bar lines for repeat signs and key or time changes) and the left column.
@@ -76,7 +80,8 @@ export class StaffGeometry {
   private score: Score | null = null;
   private barIndices: number[] = [];
 
-  setScore(score: Score | null): void {
+  /** `graceRoom`: what the grace notes at the start and at the end of each printed bar need (see setScore's callers). */
+  setScore(score: Score | null, graceRoom: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> } = NO_GRACES): void {
     this.score = score;
     this.changes = score ? signatureChanges(score) : [];
     const navigation = score?.navigation ?? [];
@@ -84,6 +89,9 @@ export class StaffGeometry {
     this.lead = bars.map((_, i) => (navigation[i]?.repeatStart ? REPEAT_LEAD : 0));
     this.tail = bars.map((_, i) => (navigation[i]?.repeatEnd ? REPEAT_TAIL : 0));
     for (const change of this.changes) this.lead[change.bar] += signatureChangeWidth(change);
+    // Grace notes before a bar's first note stand between the bar line and it; those after its last note, before the next line.
+    for (const [bar, room] of graceRoom.lead) this.lead[bar] += Math.max(0, room - GRACE_ROOM_AT_BAR_LINE);
+    for (const [bar, room] of graceRoom.tail) this.tail[bar] += room;
     this.roomBefore = [0];
     this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i] + lead + this.tail[i]));
     this.barIndices = score ? tapeBars(score).starts.map((_, i) => i) : [];

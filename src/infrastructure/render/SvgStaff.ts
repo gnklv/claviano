@@ -11,12 +11,24 @@ import {
 import { firstAtOrAfter } from '../../domain/search';
 import type { Hand } from '../../domain/note';
 import { approach } from './keyboardCamera';
-import { layoutNotation, type Beam, type StaffChord, type StaffMark, type StaffOctaveShift, type StaffRest, type StaffSlur, type Tie, type Tuplet } from './notationLayout';
+import {
+  layoutNotation,
+  type Beam,
+  type StaffChord,
+  type StaffGrace,
+  type StaffMark,
+  type StaffOctaveShift,
+  type StaffRest,
+  type StaffSlur,
+  type Tie,
+  type Tuplet,
+} from './notationLayout';
 import { barPosition, tapeBars, type Clef } from './staffLayout';
 import { drawBeam, drawChord, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
 import { StaffGeometry } from './staff/geometry';
+import { drawGrace, graceWidth } from './staff/graces';
 import { drawGutter, type GutterContent } from './staff/gutter';
 import { StaffInk } from './staff/ink';
 import {
@@ -97,7 +109,11 @@ export class SvgStaff {
   private marks: StaffMark[] = [];
   private slurs: StaffSlur[] = [];
   private octaveShifts: StaffOctaveShift[] = [];
+  private graces: StaffGrace[] = [];
   private chordElements: SVGGElement[] = [];
+  private graceElements: SVGGElement[] = [];
+  /** Grace notes currently highlighted. */
+  private readonly litGraces = new Set<number>();
   private longestChord = 0;
   /** Chords currently highlighted in their hand's color. */
   private readonly lit = new Set<number>();
@@ -142,7 +158,7 @@ export class SvgStaff {
     this.score = score;
     const layout = score
       ? layoutNotation(score)
-      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [] };
+      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [] };
     this.ink.setChords([...layout.chords], layout.marks);
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
@@ -151,8 +167,9 @@ export class SvgStaff {
     this.marks = [...layout.marks];
     this.slurs = [...layout.slurs];
     this.octaveShifts = [...layout.octaveShifts];
+    this.graces = [...layout.graces];
     this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
-    this.geometry.setScore(score);
+    this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords));
     this.currentBeat = 0;
     this.drawBackground();
     this.drawStrip();
@@ -360,7 +377,9 @@ export class SvgStaff {
     this.ink.reset();
     this.strip.replaceChildren();
     this.lit.clear();
+    this.litGraces.clear();
     this.chordElements = [];
+    this.graceElements = [];
     const score = this.score;
     if (!score || score.notes.length === 0) return;
 
@@ -400,6 +419,9 @@ export class SvgStaff {
     // A slur spans a phrase, so it stays in the ink colour with the beams.
     for (const phrase of this.slurs) beamLayer.append(drawSlur(context, phrase));
 
+    // Grace notes before what goes around the notes: bar numbers, brackets and dynamics clear them too.
+    this.graceElements = this.graces.map((grace) => drawGrace(context, grace));
+
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
     for (const rest of this.rests) restLayer.append(...drawRest(context, rest));
@@ -418,7 +440,7 @@ export class SvgStaff {
     restLayer.append(...drawPedal(context, { brackets, dynamics: dynamics.below }), ...dynamics.shapes);
     restLayer.append(...drawTempoMarks(context, brackets));
 
-    this.strip.append(restLayer, ...this.chordElements, beamLayer);
+    this.strip.append(restLayer, ...this.chordElements, ...this.graceElements, beamLayer);
     this.lastOffset = Number.NaN;
   }
 
@@ -444,5 +466,34 @@ export class SvgStaff {
       this.chordElements[index].style.color = COLORS.hand[chords[index].hand];
       this.lit.add(index);
     }
+
+    // Grace notes: few, and each sounds for a moment.
+    this.graces.forEach((grace, index) => {
+      const sounding = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
+      if (sounding === this.litGraces.has(index)) return;
+      this.graceElements[index].style.color = sounding ? COLORS.hand[grace.hand] : COLORS.note;
+      if (sounding) this.litGraces.add(index);
+      else this.litGraces.delete(index);
+    });
   }
+}
+
+/** The room grace notes need at the start of printed bars (before the first note) and at their end (after the last). */
+function graceRoom(
+  score: Score | null,
+  graces: readonly StaffGrace[],
+  chords: readonly StaffChord[],
+): { lead: Map<number, number>; tail: Map<number, number> } {
+  const lead = new Map<number, number>();
+  const tail = new Map<number, number>();
+  if (!score) return { lead, tail };
+  for (const grace of graces) {
+    const principal = grace.principal === null ? null : chords[grace.principal];
+    const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
+    if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
+    else if (Math.abs(principal.beat - score.writtenBarBeats[principal.bar]) < 1e-6) {
+      lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
+    }
+  }
+  return { lead, tail };
 }

@@ -32,6 +32,8 @@ interface NoteOptions {
   articulations?: string[];
   fermata?: 'upright' | 'inverted';
   slur?: { type: 'start' | 'stop'; number?: number; placement?: 'above' | 'below' }[];
+  /** A grace note: small, with no time of its own (pass 0 as its duration); `slash` for an acciaccatura. */
+  grace?: { slash: boolean };
 }
 
 const defaultVoice = (staff: 1 | 2) => (staff === 1 ? 1 : 5); // MuseScore numbers voices per staff: 1–4 and 5–8
@@ -59,9 +61,10 @@ function note(name: string, duration: number, options: NoteOptions): string {
   ].join('');
   return [
     '<note>',
+    options.grace ? `<grace${options.grace.slash ? ' slash="yes"' : ''}/>` : '',
     options.chord ? '<chord/>' : '',
     `<pitch><step>${step}</step>${alter ? `<alter>${alter}</alter>` : ''}<octave>${octave}</octave></pitch>`,
-    `<duration>${duration}</duration>`,
+    options.grace ? '' : `<duration>${duration}</duration>`,
     ...ties.map((type) => `<tie type="${type}"/>`),
     `<voice>${options.voice ?? defaultVoice(staff)}</voice>`,
     `<type>${options.type}</type>`,
@@ -345,40 +348,53 @@ const measures: string[] = [
     ${chord(['D3', 'E3', 'A3'], H, { type: 'half', staff: 2, stem: 'up' })}${note('B1', H, { type: 'half', staff: 2, stem: 'down' })}${note('C2', H, { type: 'half', staff: 2, stem: 'down', accidental: 'natural', chord: true })}
   </measure>`,
 
-  // 20–24: repeats and jumps. Played: 20 21 | 20 22 23 | D.S. → 20 22 | To Coda → 24.
-  // 20: segno and ‖:.
+  // 20: grace notes. An acciaccatura (struck through) crushed in before the bar's first note; an
+  // appoggiatura leaning on the beat, taking half of the half note it is slurred to; two small
+  // sixteenths under one beam, the first with its own sharp; in the left hand, an acciaccatura an
+  // octave below its note.
   `<measure number="20">
+    ${direction('Grace notes', '')}
+    ${note('E5', 0, { type: 'eighth', grace: { slash: true }, stem: 'up' })}${note('F#5', Q, { type: 'quarter' })}
+    ${note('B5', 0, { type: 'eighth', grace: { slash: false }, stem: 'up', slur: [{ type: 'start' }] })}${note('A5', H, { type: 'half', slur: [{ type: 'stop' }] })}
+    ${note('G#5', 0, { type: '16th', grace: { slash: false }, stem: 'up', accidental: 'sharp', beams: ['begin', 'begin'] })}${note('A5', 0, { type: '16th', grace: { slash: false }, stem: 'up', beams: ['end', 'end'] })}${note('B5', Q, { type: 'quarter' })}
+    ${backup(W)}
+    ${note('D2', 0, { type: 'eighth', grace: { slash: true }, staff: 2, stem: 'up' })}${note('D3', H, { type: 'half', staff: 2 })}${note('A2', H, { type: 'half', staff: 2 })}
+  </measure>`,
+
+  // 21–25: repeats and jumps. Played: 21 22 | 21 23 24 | D.S. → 21 23 | To Coda → 25.
+  // 21: segno and ‖:.
+  `<measure number="21">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 21: first ending, back to ‖:.
-  `<measure number="21">
+  // 22: first ending, back to ‖:.
+  `<measure number="22">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 22: second ending; after the D.S. it leads to the coda.
-  `<measure number="22">
+  // 23: second ending; after the D.S. it leads to the coda.
+  `<measure number="23">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 23: back to the segno.
-  `<measure number="23">
+  // 24: back to the segno.
+  `<measure number="24">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 24: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 25: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="24">
+  `<measure number="25">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}
