@@ -15,6 +15,11 @@ const STORED = 0;
 const DEFLATED = 8;
 /** Bit 0 of an entry's flags: the file is encrypted. */
 const ENCRYPTED = 1;
+/**
+ * No file is unpacked beyond this size. The longest scores are a few megabytes of MusicXML; an
+ * archive claiming more is broken, or made to exhaust memory.
+ */
+const MAX_UNPACKED_BYTES = 64 * 1024 * 1024;
 
 /** True if `data` begins like a ZIP archive. */
 export function isZip(data: ArrayBuffer): boolean {
@@ -62,7 +67,7 @@ export function readZip(data: ArrayBuffer): Map<string, () => Uint8Array> {
       if (method === STORED) return packed;
       if (method !== DEFLATED) throw new InvalidZipError(`${name}: unsupported compression`);
       try {
-        return inflate(packed, size);
+        return inflate(packed, size, MAX_UNPACKED_BYTES);
       } catch (error) {
         if (error instanceof InflateError) throw new InvalidZipError(`${name}: ${error.message}`);
         throw error;

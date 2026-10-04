@@ -45,9 +45,14 @@ const CODE_LENGTH_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2
 const FIXED_LITERALS = huffman(Array.from({ length: 288 }, (_, i) => (i < 144 ? 8 : i < 256 ? 9 : i < 280 ? 7 : 8)));
 const FIXED_DISTANCES = huffman(new Array<number>(30).fill(5));
 
-/** Unpacks `input`. `size`, if known (a ZIP entry states it), saves growing the output as it goes. */
-export function inflate(input: Uint8Array, size = 0): Uint8Array {
-  let output = new Uint8Array(size || Math.max(1024, input.length * 4));
+/**
+ * Unpacks `input`. `size`, if known (a ZIP entry states it), saves growing the output as it goes.
+ * `limit`: more unpacked bytes than this is refused, whatever `size` claims: a few kilobytes can
+ * be made to unpack into gigabytes.
+ */
+export function inflate(input: Uint8Array, size = 0, limit = Infinity): Uint8Array {
+  if (size > limit) throw new InflateError('Too large when unpacked');
+  let output = new Uint8Array(size || Math.max(1024, Math.min(limit, input.length * 4)));
   let written = 0;
   let position = 0;
   let bitBuffer = 0;
@@ -83,6 +88,7 @@ export function inflate(input: Uint8Array, size = 0): Uint8Array {
   };
 
   const room = (more: number): void => {
+    if (written + more > limit) throw new InflateError('Too large when unpacked');
     if (written + more <= output.length) return;
     const grown = new Uint8Array(Math.max(output.length * 2, written + more));
     grown.set(output.subarray(0, written));

@@ -5,7 +5,9 @@
  * - Piano samples never change under one address (it carries the set's version): from the cache
  *   if they are there, else fetched and kept.
  * - Everything else (the page, scripts, styles, fonts, demos, the samples' manifest): from the
- *   network, so a new version shows up at once; the kept copy is for when the network is away.
+ *   network, so a new version shows up at once; the kept copy is for when the network is away,
+ *   or too slow to wait for.
+ * - What a new version no longer uses is let go: the old set's samples, the old build's scripts.
  */
 const APP_CACHE = 'claviano-app-v1';
 const PIANO_CACHE = 'claviano-piano-v1';
@@ -17,6 +19,10 @@ const isManifest = (url) => url.pathname === `${scope.pathname}piano/manifest.js
 const cacheFor = (url) => caches.open(isSample(url) ? PIANO_CACHE : APP_CACHE);
 /** Only whole, successful answers are worth keeping. */
 const keepable = (response) => response.ok && response.status === 200;
+/** How long the network is waited for when there is a kept copy to show instead. */
+const NETWORK_PATIENCE_MS = 4000;
+/** The build's scripts and styles: their names change with their content, so old ones are never asked for again. */
+const isBuilt = (url) => url.pathname.startsWith(`${scope.pathname}assets/`);
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
@@ -25,7 +31,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== 'GET' || !isOurs(url)) return;
-  event.respondWith(isSample(url) ? cacheFirst(request) : networkFirst(request));
+  event.respondWith(isSample(url) ? cacheFirst(request) : networkFirst(request, event));
 });
 
 /** The page lists what it loaded before this worker took over, to be kept too. */
@@ -61,20 +67,40 @@ async function cacheFirst(request) {
   return response;
 }
 
-async function networkFirst(request) {
+async function networkFirst(request, event) {
   const cache = await caches.open(APP_CACHE);
-  try {
-    const response = await fetch(request);
+  const url = new URL(request.url);
+  const fresh = fetch(request).then(async (response) => {
     if (keepable(response)) {
       await cache.put(request, response.clone());
-      if (isManifest(new URL(request.url))) await dropOldSamples(response.clone());
+      if (isManifest(url)) await dropOldSamples(response.clone());
+      if (request.mode === 'navigate') await dropOldBuild(response.clone());
     }
     return response;
+  });
+  // The kept copy; any page address is the one page of the app.
+  const kept = async () => (await find(cache, request.url)) ?? (request.mode === 'navigate' ? await find(cache, scope.href) : undefined);
+  try {
+    return await Promise.race([fresh, new Promise((_, reject) => setTimeout(() => reject(new Error('slow network')), NETWORK_PATIENCE_MS))]);
   } catch (error) {
-    // Without the network: the kept copy; any page address is the one page of the app.
-    const kept = (await find(cache, request.url)) ?? (request.mode === 'navigate' ? await find(cache, scope.href) : undefined);
-    if (kept) return kept;
-    throw error;
+    // No network, or a slow one: the kept copy now, while the answer (if it comes) is kept for next time.
+    const copy = await kept();
+    if (!copy) return fresh;
+    event.waitUntil(fresh.catch(() => undefined));
+    return copy;
+  }
+}
+
+/**
+ * A new build has new scripts and styles under new names: the page says which, and the kept ones
+ * it no longer names are of no more use.
+ */
+async function dropOldBuild(page) {
+  const html = await page.text();
+  const named = new Set([...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((match) => new URL(match[1], scope).href));
+  const cache = await caches.open(APP_CACHE);
+  for (const request of await cache.keys()) {
+    if (isBuilt(new URL(request.url)) && !named.has(request.url)) await cache.delete(request);
   }
 }
 

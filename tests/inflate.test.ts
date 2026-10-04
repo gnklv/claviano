@@ -30,6 +30,17 @@ describe('inflate', () => {
     expect(inflate(deflateRawSync(new Uint8Array(0)))).toHaveLength(0);
   });
 
+  it('refuses to unpack more than the limit, whatever size is claimed', () => {
+    // A megabyte of zeros packs into about a kilobyte.
+    const packed = deflateRawSync(new Uint8Array(1_000_000));
+    expect(packed.length).toBeLessThan(2000);
+    expect(() => inflate(packed, 0, 100_000)).toThrow(/Too large/);
+    expect(() => inflate(packed, 1_000_000, 100_000)).toThrow(/Too large/);
+    // A claimed size that is too small does not get it past the limit either.
+    expect(() => inflate(packed, 10, 100_000)).toThrow(/Too large/);
+    expect(inflate(packed, 0, 2_000_000)).toHaveLength(1_000_000);
+  });
+
   it('refuses damaged data', () => {
     const packed = new Uint8Array(deflateRawSync(bytes('some text to pack, some text to pack')));
     expect(() => inflate(packed.subarray(0, packed.length - 4))).toThrow(InflateError);
@@ -48,6 +59,11 @@ describe('readZip', () => {
     expect([...files.keys()]).toEqual(['a.txt', 'folder/b.txt']);
     expect(text(files.get('a.txt')!())).toBe('packed '.repeat(50));
     expect(text(files.get('folder/b.txt')!())).toBe('as it is');
+  });
+
+  it('refuses a file that would unpack beyond any score\'s size', () => {
+    const files = readZip(zip([{ name: 'bomb.xml', data: new Uint8Array(70 * 1024 * 1024) }]));
+    expect(() => files.get('bomb.xml')!()).toThrow(InvalidZipError);
   });
 
   it('tells an archive from other files', () => {
