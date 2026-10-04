@@ -22,6 +22,8 @@ export const en = {
   on: 'On',
   off: 'Off',
   countIn: 'Count-in',
+  instrumentLoading: 'Piano sound is loading…',
+  instrumentUnavailable: 'Piano sound did not load: a simple synth plays',
   metronome: 'Metronome',
   metronomeHint: 'A click on every beat',
   pedalPress: 'Pedal ↓',

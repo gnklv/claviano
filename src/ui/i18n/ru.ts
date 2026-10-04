@@ -16,6 +16,8 @@ export const ru: Dictionary = {
   on: 'Вкл',
   off: 'Выкл',
   countIn: 'Отсчёт',
+  instrumentLoading: 'Звук рояля загружается…',
+  instrumentUnavailable: 'Звук рояля не загрузился: играет простой синтезатор',
   metronome: 'Метроном',
   metronomeHint: 'Щелчок на каждую долю',
   pedalPress: 'Педаль ↓',

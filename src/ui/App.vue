@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/ScoreParser';
 import { barAt, barNumber, type Score } from '../domain/score';
 import DemoMenu from './components/DemoMenu.vue';
+import InstrumentNotice from './components/InstrumentNotice.vue';
 import LanguageSwitch from './components/LanguageSwitch.vue';
 import CountInOverlay from './components/CountInOverlay.vue';
 import PianoRoll from './components/PianoRoll.vue';
@@ -159,6 +160,7 @@ onUnmounted(() => {
       <StaffView v-if="viewMode !== 'keys'" class="view staff" />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" />
       <CountInOverlay />
+      <InstrumentNotice />
     </main>
 
     <TransportBar />

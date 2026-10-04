@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearestRecorded, onsetSeconds, playbackRate, velocityGain } from '../src/infrastructure/audio/pianoSamples';
+import { loadOrder, nearestRecorded, neededRecorded, onsetSeconds, playbackRate, velocityGain } from '../src/infrastructure/audio/pianoSamples';
 
 /** Every third key, as recorded: A0, C1, D#1, F#1, A1 … */
 const recorded = Array.from({ length: 30 }, (_, i) => 21 + 3 * i);
@@ -17,6 +17,26 @@ describe('nearestRecorded', () => {
   it('keeps to the ends of the keyboard', () => {
     expect(nearestRecorded(recorded, 12)).toBe(21);
     expect(nearestRecorded(recorded, 120)).toBe(108);
+  });
+});
+
+describe('neededRecorded', () => {
+  it('is the recorded notes a piece is played from', () => {
+    // C4 and C#4 share a sample; D4 comes from D#4.
+    expect([...neededRecorded(recorded, [60, 61, 62, 60])]).toEqual([60, 63]);
+  });
+});
+
+describe('loadOrder', () => {
+  it('fetches what the piece needs first, then the rest, each from the middle outwards', () => {
+    const order = loadOrder(recorded, new Set([21, 72, 63]));
+    expect(order.slice(0, 3)).toEqual([63, 72, 21]);
+    expect(order.slice(3, 7)).toEqual([60, 57, 54, 66]);
+    expect(order).toHaveLength(30);
+  });
+
+  it('goes from the middle outwards when nothing is needed yet', () => {
+    expect(loadOrder(recorded, new Set()).slice(0, 3)).toEqual([60, 57, 63]);
   });
 });
 

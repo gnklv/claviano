@@ -1,4 +1,5 @@
 import { inject, type InjectionKey } from 'vue';
+import type { Instrument } from '../application/ports/Instrument';
 import type { LoadScore } from '../application/use-cases/LoadScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Score } from '../domain/score';
@@ -17,6 +18,8 @@ export interface Demo {
 /** Everything the UI needs from the outside world; wired up in main.ts. */
 export interface AppDeps {
   readonly playback: Playback;
+  /** The piano's sound: whether it has loaded. */
+  readonly instrument: Instrument;
   readonly loadScore: LoadScore;
   readonly createRoll: (canvas: HTMLCanvasElement) => CanvasPianoRoll;
   readonly createStaff: (container: HTMLElement) => SvgStaff;

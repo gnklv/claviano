@@ -30,6 +30,28 @@ export function nearestRecorded(recorded: readonly number[], pitch: number): num
   return best;
 }
 
+/** The recorded pitches a piece with these `pitches` is played from. */
+export function neededRecorded(recorded: readonly number[], pitches: Iterable<number>): Set<number> {
+  const needed = new Set<number>();
+  for (const pitch of pitches) needed.add(nearestRecorded(recorded, pitch));
+  return needed;
+}
+
+/** The middle of the keyboard, where most music is. */
+const MIDDLE_PITCH = 60;
+
+/**
+ * The order to fetch the samples in: those the piece needs first, then the rest; each group from
+ * the middle of the keyboard outwards, where notes are likeliest to be played next.
+ */
+export function loadOrder(recorded: readonly number[], needed: ReadonlySet<number>): number[] {
+  const fromMiddle = (a: number, b: number) => Math.abs(a - MIDDLE_PITCH) - Math.abs(b - MIDDLE_PITCH) || a - b;
+  return [
+    ...recorded.filter((pitch) => needed.has(pitch)).sort(fromMiddle),
+    ...recorded.filter((pitch) => !needed.has(pitch)).sort(fromMiddle),
+  ];
+}
+
 /** How much faster to play a sample recorded at `recorded` for it to sound at `pitch`. */
 export const playbackRate = (recorded: number, pitch: number): number => 2 ** ((pitch - recorded) / 12);
 

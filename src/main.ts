@@ -2,6 +2,7 @@
 import { createApp } from 'vue';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { Playback } from './application/use-cases/Playback';
+import type { Score } from './domain/score';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
@@ -17,15 +18,24 @@ import './ui/styles.css';
 // The piano's samples load in the background; until they are in (or if they never are), the synth plays.
 const audioContext = new AudioContext();
 const piano = new SamplerPiano(audioContext, new WebAudioSynth(audioContext));
-piano.load(`${import.meta.env.BASE_URL}piano/`).catch((error: unknown) => console.warn('Piano samples not loaded; playing the synth.', error));
+void piano.load(`${import.meta.env.BASE_URL}piano/`);
 
 const playback = new Playback(piano, new IntervalTicker());
+// The notes of the piece that is open are fetched first.
+let preferredFor: Score | null = null;
+playback.onChange(() => {
+  const { score } = playback;
+  if (!score || score === preferredFor) return;
+  preferredFor = score;
+  piano.prefer(score.notes.map((note) => note.pitch));
+});
 const musicXml = new MusicXmlParser();
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } });
 
 createApp(App)
   .provide(depsKey, {
     playback,
+    instrument: piano,
     loadScore: new LoadScore([new MidiFileParser(), musicXml]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
