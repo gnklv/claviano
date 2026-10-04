@@ -53,7 +53,7 @@ export function soundingDurations(
   sostenuto: readonly PedalSpan[] = [],
 ): number[] {
   const nextSamePitch = new Map<number, number>(); // pitch → start of the next note of that pitch
-  const durations: number[] = new Array(notes.length);
+  const durations = new Array<number>(notes.length);
   for (let i = notes.length - 1; i >= 0; i--) {
     const note = notes[i];
     const released = noteEnd(note);

@@ -7,7 +7,7 @@ import { isHeldAt, secondsAtBeat } from '../src/domain/score';
 import { zip } from './zipWriter';
 
 const parser = new MusicXmlParser();
-const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
+const bytes = (text: string) => new TextEncoder().encode(text).buffer;
 
 /** A two-staff piano score; `measures` is the inner XML of the part. */
 const score = (measures: string, extra = '') =>

@@ -68,7 +68,7 @@ describe('readZip', () => {
 
   it('tells an archive from other files', () => {
     expect(isZip(archive)).toBe(true);
-    expect(isZip(bytes('<?xml version="1.0"?>').buffer as ArrayBuffer)).toBe(false);
-    expect(() => readZip(bytes('not an archive at all, just some text').buffer as ArrayBuffer)).toThrow(InvalidZipError);
+    expect(isZip(bytes('<?xml version="1.0"?>').buffer)).toBe(false);
+    expect(() => readZip(bytes('not an archive at all, just some text').buffer)).toThrow(InvalidZipError);
   });
 });

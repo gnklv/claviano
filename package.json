@@ -10,14 +10,20 @@
     "test": "vitest",
     "test:accept": "vitest run -u tests/snapshot.test.ts",
     "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
     "showcase": "node scripts/showcase.ts",
     "samples": "node scripts/samples.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.0",
     "@vitejs/plugin-vue": "^6.0.9",
+    "eslint": "^10.12.0",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
     "happy-dom": "^20.14.5",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
     "vite": "^8.3.1",
     "vitest": "^5.0.2",
     "vue-tsc": "^3.3.11"

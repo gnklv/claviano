@@ -63,7 +63,7 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): S
   let right = principalAt
     ? principalAt.left - gap(grace, principalHasAccidental) * space
     : geometry.barLineX(grace.bar + 1) - BEFORE_BAR_LINE * space;
-  const lefts: number[] = new Array(grace.slots.length);
+  const lefts = new Array<number>(grace.slots.length);
   for (let i = grace.slots.length - 1; i >= 0; i--) {
     lefts[i] = right - HEAD * space;
     right = lefts[i] - (ADVANCE - HEAD) * space - (grace.slots[i].notes.some((note) => note.accidental) ? ACCIDENTAL_ROOM * space : 0);

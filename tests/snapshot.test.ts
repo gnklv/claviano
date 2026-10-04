@@ -40,7 +40,7 @@ function readable(value: object, prefix = ''): string {
         const tidied = tidy(item) as unknown[];
         return `${name}: ${tidied.length}\n${tidied.map((element) => `  ${JSON.stringify(element)}\n`).join('')}`;
       }
-      const lists = item !== null && typeof item === 'object' && Object.values(item).some(Array.isArray);
+      const lists = item !== null && typeof item === 'object' && Object.values(item as object).some(Array.isArray);
       return lists ? readable(item as object, `${name}.`) : `${name}: ${JSON.stringify(tidy(item))}\n`;
     })
     .join('');
@@ -48,7 +48,7 @@ function readable(value: object, prefix = ''): string {
 
 const load = (file: string): ArrayBuffer => {
   const bytes = readFileSync(file);
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 
 describe('reference copies', () => {

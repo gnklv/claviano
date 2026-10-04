@@ -82,7 +82,7 @@ async function networkFirst(request, event) {
   const kept = async () => (await find(cache, request.url)) ?? (request.mode === 'navigate' ? await find(cache, scope.href) : undefined);
   try {
     return await Promise.race([fresh, new Promise((_, reject) => setTimeout(() => reject(new Error('slow network')), NETWORK_PATIENCE_MS))]);
-  } catch (error) {
+  } catch {
     // No network, or a slow one: the kept copy now, while the answer (if it comes) is kept for next time.
     const copy = await kept();
     if (!copy) return fresh;
