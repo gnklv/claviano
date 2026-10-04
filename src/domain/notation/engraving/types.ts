@@ -6,15 +6,13 @@ import type { Articulation, Clef } from '../written';
 
 /*
  * What an engraved score is made of: chords on their stems and everything set around them.
- * Vertical places are in staff steps (see staffPosition.ts), horizontal ones in the caller's measure.
+ * Vertical places are in staff steps (see staffPosition.ts). Horizontal ones are places in the
+ * music: a beat along the page, in quarter notes. How wide a beat is drawn is not said here.
  */
-
-/** The horizontal place of `beat` in printed bar `bar`, in the caller's own measure. */
-export type Place = (bar: number, beat: number) => number;
 
 /** One notehead of a chord. */
 export interface StaffNote {
-  /** Staff step: half spaces from the top line down (see staffLayout). */
+  /** Staff step: half spaces from the top line down (see staffPosition). */
   readonly step: number;
   readonly accidental: Accidental | null;
   /**
@@ -29,8 +27,6 @@ export interface StaffNote {
 export interface StaffChord {
   readonly staff: Clef;
   readonly hand: Hand;
-  /** Its horizontal place (see Place). */
-  readonly x: number;
   /** Start and length along the page, in quarter notes, and the printed bar it is in. */
   readonly beat: number;
   readonly beats: number;
@@ -75,13 +71,13 @@ export interface Tuplet {
   readonly above: boolean;
 }
 
-/** A rest on the tape. */
+/** A rest. */
 export interface StaffRest {
   /** Which staff it is on: 'treble' is the upper one, 'bass' the lower. */
   readonly staff: Clef;
-  /** Horizontal centre, in bar units. */
-  readonly x: number;
-  /** Vertical reference of the glyph, in staff steps (see staffLayout). */
+  /** Where its centre stands along the page: its beat, or for a whole-bar rest the middle of its bar. */
+  readonly beat: number;
+  /** Vertical reference of the glyph, in staff steps (see staffPosition). */
   readonly step: number;
   readonly duration: WrittenDuration;
 }
@@ -114,11 +110,11 @@ export interface StaffSlur {
   readonly between: readonly number[];
 }
 
-/** An octave shift bracket (8va, 8vb…) over or under the notes from `from` to `to` (bar units). */
+/** An octave shift bracket (8va, 8vb…) over or under the notes from beat `start` to beat `end` along the page. */
 export interface StaffOctaveShift {
   readonly staff: Clef;
-  readonly from: number;
-  readonly to: number;
+  readonly start: number;
+  readonly end: number;
   /** How many octaves lower the notes are printed than they sound (negative: higher, as 8vb). */
   readonly octaves: number;
 }
@@ -128,14 +124,14 @@ export interface StaffOrnament {
   readonly chord: number;
   readonly kind: OrnamentKind;
   readonly above: boolean;
-  /** Where the sign is, in bar units: over the note, or after it for a delayed turn. */
-  readonly x: number;
+  /** Where the sign stands along the page: at its chord's beat, or later for a delayed turn. */
+  readonly beat: number;
   /** Vertical reference of the sign, in staff steps: the edge nearest the notes. */
   readonly step: number;
   /** Small accidentals over and under the sign. */
   readonly accidentalAbove: Accidental | null;
   readonly accidentalBelow: Accidental | null;
-  /** Where a trill's wavy line ends, in bar units; null without one. */
+  /** The beat where a trill's wavy line ends; null without one. */
   readonly lineTo: number | null;
 }
 
@@ -160,8 +156,6 @@ export interface StaffGrace {
   readonly staff: Clef;
   readonly hand: Hand;
   readonly bar: number;
-  /** Where they lead to, in bar units: the note's place, or the end of the bar. */
-  readonly x: number;
   /** The chord they lead to (an index into NotationLayout.chords); null after the last note of a bar. */
   readonly principal: number | null;
   /** The grace notes left to right; each may be a chord (notes sorted from the top down). */

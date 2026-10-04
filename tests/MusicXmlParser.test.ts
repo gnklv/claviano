@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
-import { layoutNotation } from '../src/infrastructure/render/notationLayout';
+import { engrave as layoutNotation } from '../src/domain/notation/engraving';
 import { isHeldAt, secondsAtBeat } from '../src/domain/score';
 import { zip } from './zipWriter';
 
@@ -437,7 +437,6 @@ describe('MusicXmlParser', () => {
       const layout = layoutNotation(s);
       expect(layout.graces).toHaveLength(1);
       expect(layout.graces[0]).toMatchObject({ staff: 'treble', principal: 1, slash: true, beams: 1, beat: 1.875, beats: 0.125 });
-      expect(layout.graces[0].x).toBe(layout.chords[1].x);
     });
   });
 
@@ -525,8 +524,8 @@ describe('MusicXmlParser', () => {
         [1, 'delayed-turn', true],
       ]);
       // The trill's line runs to the end of its note; the turn stands halfway through its own.
-      expect(layout.ornaments[0].lineTo).toBeCloseTo(layout.chords[1].x);
-      expect(layout.ornaments[1].x).toBeGreaterThan(layout.chords[1].x);
+      expect(layout.ornaments[0].lineTo).toBeCloseTo(layout.chords[1].beat);
+      expect(layout.ornaments[1].beat).toBe(layout.chords[1].beat + 1);
       // Over the staff, clear of the notes.
       expect(layout.ornaments[0].step).toBeLessThanOrEqual(-3);
     });

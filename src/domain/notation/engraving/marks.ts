@@ -2,7 +2,7 @@ import { pageEnd, type Score } from '../../score';
 import { BOTTOM_LINE_STEP } from '../staffPosition';
 import type { Articulation, WrittenNote, WrittenRest } from '../written';
 import { voicesByStaffAndBar } from './chords';
-import type { Place, StaffArpeggio, StaffChord, StaffMark, StaffOrnament, StaffTremolo } from './types';
+import type { StaffArpeggio, StaffChord, StaffMark, StaffOrnament, StaffTremolo } from './types';
 
 /*
  * Signs at a note: articulations and fermatas, ornaments, tremolo strokes and the sign of a rolled
@@ -82,7 +82,6 @@ export function layoutOrnaments(
   groups: readonly (readonly WrittenNote[])[],
   chords: readonly StaffChord[],
   marks: readonly StaffMark[],
-  place: Place,
 ): StaffOrnament[] {
   const ornaments: StaffOrnament[] = [];
   groups.forEach((group, index) => {
@@ -113,11 +112,11 @@ export function layoutOrnaments(
         chord: index,
         kind: mark.kind,
         above,
-        x: delayed ? place(chord.bar, Math.min(chord.beat + chord.beats / 2, barEnd)) : chord.x,
+        beat: delayed ? Math.min(chord.beat + chord.beats / 2, barEnd) : chord.beat,
         step,
         accidentalAbove: mark.accidentalAbove,
         accidentalBelow: mark.accidentalBelow,
-        lineTo: mark.kind === 'trill' && note.trillLine ? place(chord.bar, Math.min(chord.beat + chord.beats, barEnd)) : null,
+        lineTo: mark.kind === 'trill' && note.trillLine ? Math.min(chord.beat + chord.beats, barEnd) : null,
       });
     }
   });

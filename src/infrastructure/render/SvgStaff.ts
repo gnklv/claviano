@@ -12,7 +12,7 @@ import { firstAtOrAfter } from '../../domain/search';
 import type { Hand } from '../../domain/note';
 import { approach } from './keyboardCamera';
 import {
-  layoutNotation,
+  engrave,
   type Beam,
   type StaffArpeggio,
   type StaffChord,
@@ -25,7 +25,7 @@ import {
   type StaffTremolo,
   type Tie,
   type Tuplet,
-} from './notationLayout';
+} from '../../domain/notation/engraving';
 import { barPosition, tapeBars, type Clef } from './staffLayout';
 import { drawBeam, drawChord, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
 import type { StaffContext } from './staff/context';
@@ -164,7 +164,7 @@ export class SvgStaff {
   setScore(score: Score | null): void {
     this.score = score;
     const layout = score
-      ? layoutNotation(score)
+      ? engrave(score)
       : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [] };
     this.ink.setChords([...layout.chords], layout.marks);
     this.beams = [...layout.beams];
@@ -212,8 +212,8 @@ export class SvgStaff {
     let nearest: StaffChord | null = null;
     for (const index of ink.near(px - snap, px + snap)) {
       const chord = ink.chords[index];
-      const distance = Math.abs(geometry.px(chord.x) - px);
-      if (distance <= snap && (!nearest || distance < Math.abs(geometry.px(nearest.x) - px))) nearest = chord;
+      const distance = Math.abs(ink.placeOf(chord) - px);
+      if (distance <= snap && (!nearest || distance < Math.abs(ink.placeOf(nearest) - px))) nearest = chord;
     }
     return nearest && barAtBeat(score, nearest.beat) === place.bar ? { bar: place.bar, beat: nearest.beat } : place;
   }

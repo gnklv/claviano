@@ -72,7 +72,7 @@ export function voicesByStaffAndBar(score: Score, written: readonly WrittenNote[
  * down. Files sometimes have it the other way round, typically where a voice crosses in from the
  * other staff (the Moonlight Sonata's triplets coming down into the bass over a low G♯); then the
  * stems of both voices cross each other and their beams. Where a stem-down voice stands wholly
- * above a stem-up voice (every note of it higher), side by side on the tape, both turn round, a
+ * above a stem-up voice (every note of it higher), side by side on the page, both turn round, a
  * beamed group as a whole.
  */
 export function untangleVoices(chords: readonly StaffChord[], beams: readonly Beam[]): { chords: StaffChord[]; beams: Beam[] } {

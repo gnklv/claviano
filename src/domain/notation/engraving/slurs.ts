@@ -60,7 +60,7 @@ export function layoutSlurs(groups: readonly (readonly WrittenNote[])[], chords:
       const last = chords[index];
       const between = chords
         .map((chord, i) => ({ chord, i }))
-        .filter(({ chord, i }) => i !== start.from && i !== index && chord.staff === first.staff && chord.x > first.x && chord.x < last.x)
+        .filter(({ chord, i }) => i !== start.from && i !== index && chord.staff === first.staff && chord.beat > first.beat && chord.beat < last.beat)
         .map(({ i }) => i);
       const allStemsUp = [start.from, ...between, index].every((i) => chords[i].stemUp);
       slurs.push({

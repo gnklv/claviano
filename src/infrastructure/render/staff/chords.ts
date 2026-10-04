@@ -2,7 +2,7 @@ import type { Hand } from '../../../domain/note';
 import { flagCount } from '../../../domain/notation/noteValue';
 import { avoidNotes, beamLine, beamY, kneeBeamLine, type BeamObstacle } from '../beams';
 import { arc, slur } from '../curves';
-import type { Beam, StaffMark, StaffRest, StaffSlur, Tie, Tuplet } from '../notationLayout';
+import type { Beam, StaffMark, StaffRest, StaffSlur, Tie, Tuplet } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import {
   ACCIDENTAL_GLYPH,
@@ -285,7 +285,7 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextEl
   const top = geometry.staffTop(rest.staff);
   const { value, dots } = rest.duration;
   const width = REST_WIDTH[value] * space;
-  const left = geometry.px(rest.x) - width / 2;
+  const left = geometry.at(rest.beat) - width / 2;
   const y = top + (rest.step * space) / 2;
   const glyphs = [noteGlyph(space, REST[value], left, y)];
   if (dots) glyphs.push(noteGlyph(space, AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));

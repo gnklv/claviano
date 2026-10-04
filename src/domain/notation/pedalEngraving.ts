@@ -1,16 +1,15 @@
-import { barAtBeat, pageEnd, type Score } from '../score';
-import type { Place } from './engraving';
+import { pageEnd, type Score } from '../score';
 
 /*
  * Pedal marks. A passage is a pedal from a press to its release. The right pedal is printed under
  * the lower staff either with signs ("Ped." … "✱"), with a bracket line (⌊___∧___⌋, the notch
  * being a change), or with both ("Ped." followed by a line). The middle pedal is "Sost." and a
- * line; the left pedal is words ("una corda" … "tre corde"). Horizontal places are the caller's (see Place).
+ * line; the left pedal is words ("una corda" … "tre corde"). Places are beats along the page.
  */
 
-/** "Ped." (press), "Sost." (middle pedal press) or "✱" (release) at `x`. */
+/** "Ped." (press), "Sost." (middle pedal press) or "✱" (release) at `beat`. */
 export interface PedalSign {
-  readonly x: number;
+  readonly beat: number;
   readonly kind: 'press' | 'sostenuto' | 'release';
 }
 
@@ -24,9 +23,9 @@ export interface PedalLine {
   readonly afterSign: boolean;
 }
 
-/** Words of the left pedal at `x`. */
+/** Words of the left pedal at `beat`. */
 export interface PedalWords {
-  readonly x: number;
+  readonly beat: number;
   readonly text: string;
 }
 
@@ -38,13 +37,12 @@ export interface PedalLayout {
 
 const layoutCache = new WeakMap<Score, PedalLayout>();
 
-export function engravePedal(score: Score, place: Place): PedalLayout {
+export function engravePedal(score: Score): PedalLayout {
   const cached = layoutCache.get(score);
   if (cached) return cached;
 
   const signs: PedalSign[] = [];
   const lines: PedalLine[] = [];
-  const x = (beat: number) => place(barAtBeat(score, beat), beat);
 
   for (const pedal of ['sustain', 'sostenuto'] as const) {
     const pressSign = pedal === 'sustain' ? 'press' : 'sostenuto';
@@ -53,13 +51,13 @@ export function engravePedal(score: Score, place: Place): PedalLayout {
 
     const close = (beat: number) => {
       if (!open) return;
-      if (open.line) lines.push({ pedal, from: x(open.from), to: x(beat), changes: open.changes.map(x), afterSign: open.sign });
-      else if (open.sign) signs.push({ x: x(beat), kind: 'release' });
+      if (open.line) lines.push({ pedal, from: open.from, to: beat, changes: open.changes, afterSign: open.sign });
+      else if (open.sign) signs.push({ beat, kind: 'release' });
       open = null;
     };
     const press = (beat: number, style: { sign: boolean; line: boolean }) => {
       open = { from: beat, sign: style.sign, line: style.line, changes: [] };
-      if (style.sign) signs.push({ x: x(beat), kind: pressSign });
+      if (style.sign) signs.push({ beat, kind: pressSign });
     };
 
     for (const mark of score.notation.pedalMarks) {
@@ -83,7 +81,7 @@ export function engravePedal(score: Score, place: Place): PedalLayout {
     close(pageEnd(score));
   }
 
-  const words = score.notation.pedalMarks.flatMap((mark) => (mark.pedal === 'soft' && mark.text ? [{ x: x(mark.beat), text: mark.text }] : []));
+  const words = score.notation.pedalMarks.flatMap((mark) => (mark.pedal === 'soft' && mark.text ? [{ beat: mark.beat, text: mark.text }] : []));
 
   const layout = { signs, lines, words };
   layoutCache.set(score, layout);

@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
 import { barNumber, hasPickup } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
-import { layoutNotation } from '../src/infrastructure/render/notationLayout';
-import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
+import { engrave as layoutNotation } from '../src/domain/notation/engraving';
+import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
 import { signatureChanges } from '../src/domain/notation/signatures';
 import { soundingDurations } from '../src/domain/pedal';
 
@@ -21,7 +21,7 @@ const layout = layoutNotation(score);
 
 /** Chords of one bar (by printed number) on one staff, left to right. */
 const chordsIn = (number: number, staff: 'treble' | 'bass' = 'treble') =>
-  layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.x - b.x);
+  layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.beat - b.beat);
 
 describe('showcase score', () => {
   it('opens with a pickup and numbers bars 0–27', () => {

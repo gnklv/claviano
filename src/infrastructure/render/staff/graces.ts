@@ -1,5 +1,5 @@
 import { slur } from '../curves';
-import type { StaffGrace } from '../notationLayout';
+import type { StaffGrace } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import { ACCIDENTAL_GLYPH, FLAG_UP, HEAD_WIDTH, MUSIC_FONT, NOTEHEAD } from './glyphs';
 import { COLORS, svg } from './svg';

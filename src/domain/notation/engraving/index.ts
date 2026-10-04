@@ -7,7 +7,7 @@ import { layoutGraces } from './graces';
 import { layoutArpeggios, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
 import { layoutRests } from './rests';
 import { layoutSlurs, layoutTies } from './slurs';
-import type { Beam, NotationLayout, Place, StaffChord, StaffOctaveShift, Tuplet } from './types';
+import type { Beam, NotationLayout, StaffChord, StaffOctaveShift, Tuplet } from './types';
 
 /*
  * Engraving: how notation is set on the staves. From the notes as written to what stands where:
@@ -20,16 +20,17 @@ import type { Beam, NotationLayout, Place, StaffChord, StaffOctaveShift, Tuplet 
  * tremolos, rolled chords), slurs.ts (ties and slurs), rests.ts, graces.ts; here, the chords
  * themselves with their beams and tuplets, and the whole put together.
  *
- * Nothing here is in pixels or knows how the page is drawn. Horizontal places are whatever the
- * caller's `place` gives for a bar and a beat: the engraving only says "at this note's place".
+ * Nothing here is in pixels or knows how the page is drawn. Horizontally the engraving only
+ * says where in the music a thing stands (its bar and beat); how wide that is drawn is the
+ * renderer's business.
  */
 
 export type * from './types';
 export { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds } from './chords';
 
 /** Engraves a score: its notation, set on the staves. */
-export function engrave(score: Score, place: Place): NotationLayout {
-  const layout = layoutWritten(score, score.notation.notes, score.notation.rests, place);
+export function engrave(score: Score): NotationLayout {
+  const layout = layoutWritten(score, score.notation.notes, score.notation.rests);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
   return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
 }
@@ -38,7 +39,7 @@ export function engrave(score: Score, place: Place): NotationLayout {
  * Lays out printed notes exactly as written: values, accidentals, stems, beams and
  * tuplets come from the file, and pitches sit where the clef in force puts them.
  */
-function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[], place: Place): NotationLayout {
+function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): NotationLayout {
   // A note marked as a chord shares the stem of the note before it.
   const groups: WrittenNote[][] = [];
   for (const note of written) {
@@ -60,7 +61,6 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const chord: StaffChord = {
       staff,
       hand: first.hand,
-      x: place(bar, first.beat),
       beat: first.beat,
       beats: Math.max(...group.map((n) => n.beats)),
       bar,
@@ -138,19 +138,19 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     octaveShifts: score.notation.octaveShifts.map(
       (shift): StaffOctaveShift => ({
         staff: shift.staff >= 2 ? 'bass' : 'treble',
-        from: place(barAtBeat(score, shift.start), shift.start),
-        to: place(barAtBeat(score, shift.end), shift.end),
+        start: shift.start,
+        end: shift.end,
         octaves: shift.octaves,
       }),
     ),
     beams: untangled.beams,
     tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]].stemUp })),
-    rests: layoutRests(score, rests, written, place),
+    rests: layoutRests(score, rests, written),
     ties: layoutTies(groupsInOrder, drawn),
     marks,
     slurs: layoutSlurs(groupsInOrder, drawn),
-    graces: layoutGraces(score, drawn, place),
-    ornaments: layoutOrnaments(score, groupsInOrder, drawn, marks, place),
+    graces: layoutGraces(score, drawn),
+    ornaments: layoutOrnaments(score, groupsInOrder, drawn, marks),
     tremolos: layoutTremolos(groupsInOrder, drawn),
     arpeggios: layoutArpeggios(groupsInOrder, drawn),
   };

@@ -1,5 +1,5 @@
 import { barAtBeat, clefAt, writtenBarNumber } from '../../../domain/score';
-import type { StaffOctaveShift } from '../notationLayout';
+import type { StaffOctaveShift } from '../../../domain/notation/engraving';
 import { cancelledSteps, keySignatureSteps } from '../../../domain/notation/signatures';
 import { beatPosition, tapeBars, type Clef } from '../staffLayout';
 import type { StaffContext } from './context';
@@ -276,8 +276,8 @@ export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOct
   const glyphs = above ? OCTAVE_GLYPH_ABOVE : OCTAVE_GLYPH_BELOW;
   const glyph = glyphs[Math.min(glyphs.length, Math.abs(shift.octaves)) - 1];
   const glyphWidth = (above ? OCTAVE_GLYPH_WIDTH_ABOVE : OCTAVE_GLYPH_WIDTH_BELOW) * space;
-  const left = geometry.px(shift.from) - 0.5 * space;
-  const right = Math.max(left + glyphWidth + space, geometry.edgeX(shift.to));
+  const left = geometry.at(shift.start) - 0.5 * space;
+  const right = Math.max(left + glyphWidth + space, geometry.edgeAt(shift.end));
   const staffTop = geometry.staffTop(shift.staff);
   const staffBottom = staffTop + (LINES_PER_STAFF - 1) * space;
   const reach = ink.extent(shift.staff, left, right);

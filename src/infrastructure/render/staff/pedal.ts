@@ -1,4 +1,4 @@
-import { layoutPedal } from '../pedalLayout';
+import { engravePedal } from '../../../domain/notation/pedalEngraving';
 import type { StaffContext } from './context';
 import { DYNAMICS_BELOW_LINE, type DynamicsBelow } from './dynamics';
 import { BAR_LINE_GAP, LINES_PER_STAFF } from './geometry';
@@ -48,20 +48,20 @@ interface UnderLowerStaff {
 export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGElement[] {
   const { score, geometry } = context;
   const { space } = geometry;
-  const { signs, lines, words } = layoutPedal(score);
+  const { signs, lines, words } = engravePedal(score);
   const shapes: SVGElement[] = [];
   const baseline = (left: number, right: number) =>
     Math.max(geometry.systemBottom() + PEDAL_DROP * space, bassFloor(context, under, left, right) + PEDAL_CLEARANCE * space);
 
   // "Ped." / "Sost." start a little before their beat, under the left edge of the note they go with.
-  const pressLeft = (x: number) => geometry.px(x) - 0.5 * space;
+  const pressLeft = (beat: number) => geometry.at(beat) - 0.5 * space;
   const signWidth = (pedal: 'sustain' | 'sostenuto') => (pedal === 'sustain' ? PEDAL_PRESS_WIDTH : PEDAL_SOSTENUTO_WIDTH) * space;
   // A sign followed by a line sits at the line's height.
   const lineBaselines = new Map<string, number>();
   // Where the right pedal's marks are, so the middle pedal's line can keep out of their way.
   const sustainSpans: [number, number][] = signs
     .filter((sign) => sign.kind !== 'sostenuto')
-    .map((sign) => [pressLeft(sign.x) - 2 * space, pressLeft(sign.x) + PEDAL_PRESS_WIDTH * space]);
+    .map((sign) => [pressLeft(sign.beat) - 2 * space, pressLeft(sign.beat) + PEDAL_PRESS_WIDTH * space]);
 
   const hook = PEDAL_HOOK * space;
   const notch = PEDAL_NOTCH * space;
@@ -70,14 +70,14 @@ export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGEle
     const left = pressLeft(line.from);
     const from = left + (line.afterSign ? signWidth(line.pedal) + 0.3 * space : 0);
     // Measured from the bar line when the release is on one (the next bar may have room after it).
-    const to = Math.max(from + space, geometry.edgeX(line.to) - (PEDAL_LINE_GAP - BAR_LINE_GAP) * space);
+    const to = Math.max(from + space, geometry.edgeAt(line.to) - (PEDAL_LINE_GAP - BAR_LINE_GAP) * space);
     let y = baseline(left, to);
     if (line.pedal === 'sustain') sustainSpans.push([left, to]);
     else if (sustainSpans.some(([a, b]) => a < to && b > left)) y += PEDAL_ROW * space;
     if (line.afterSign) lineBaselines.set(`${line.pedal} ${line.from}`, y);
     const points = line.afterSign ? [`${from},${y}`] : [`${from},${y - hook}`, `${from},${y}`];
     for (const change of line.changes) {
-      const at = geometry.px(change);
+      const at = geometry.at(change);
       if (at - notch <= from || at + notch >= to) continue;
       points.push(`${at - notch},${y}`, `${at},${y - hook}`, `${at + notch},${y}`);
     }
@@ -88,10 +88,10 @@ export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGEle
   for (const sign of signs) {
     const release = sign.kind === 'release';
     const pedal = sign.kind === 'sostenuto' ? 'sostenuto' : 'sustain';
-    const releaseX = geometry.edgeX(sign.x) - (PEDAL_RELEASE_BEFORE - BAR_LINE_GAP) * space;
-    const left = release ? releaseX - 0.9 * space : pressLeft(sign.x);
+    const releaseX = geometry.edgeAt(sign.beat) - (PEDAL_RELEASE_BEFORE - BAR_LINE_GAP) * space;
+    const left = release ? releaseX - 0.9 * space : pressLeft(sign.beat);
     const y =
-      (!release && lineBaselines.get(`${pedal} ${sign.x}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
+      (!release && lineBaselines.get(`${pedal} ${sign.beat}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
     const codepoint = release ? PEDAL_RELEASE : pedal === 'sostenuto' ? PEDAL_SOSTENUTO : PEDAL_PRESS;
     const glyph = inked(space, codepoint, release ? releaseX : left, y);
     if (release) glyph.setAttribute('text-anchor', 'middle');
@@ -101,10 +101,10 @@ export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGEle
   // The left pedal's words, in italics between the staves, like other playing directions.
   // Just under the upper staff, above the dynamics line.
   const wordsY = geometry.trebleTop() + (LINES_PER_STAFF - 1 + SOFT_PEDAL_DROP) * space;
-  for (const { x, text } of words) {
+  for (const { beat, text } of words) {
     const element = svg('text', {
       // Just past the notehead, clear of a stem hanging down from its left side.
-      x: geometry.px(x) + SOFT_PEDAL_INSET * space,
+      x: geometry.at(beat) + SOFT_PEDAL_INSET * space,
       y: wordsY,
       'font-size': space * 1.3,
       'font-family': TEXT_FONT,

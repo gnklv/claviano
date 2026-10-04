@@ -1,5 +1,5 @@
 import { firstAtOrAfter } from '../../../domain/search';
-import type { StaffChord, StaffMark } from '../notationLayout';
+import type { StaffChord, StaffMark } from '../../../domain/notation/engraving';
 import type { Clef } from '../staffLayout';
 import type { StaffGeometry } from './geometry';
 import { HEAD_WIDTH } from './glyphs';
@@ -44,7 +44,7 @@ export class StaffInk {
 
   setChords(chords: StaffChord[], marks: readonly StaffMark[]): void {
     this.chords = chords;
-    this.along = chords.map((_, i) => i).sort((a, b) => chords[a].x - chords[b].x);
+    this.along = chords.map((_, i) => i).sort((a, b) => chords[a].beat - chords[b].beat);
     this.marksOf = new Map();
     for (const mark of marks) {
       const own = this.marksOf.get(mark.chord);
@@ -89,7 +89,7 @@ export class StaffInk {
   near(left: number, right: number): number[] {
     // A head reaches half its width left of its x, or one and a half when moved aside for a second.
     const reach = 2 * HEAD_WIDTH.whole * this.staff.space;
-    const x = (index: number) => this.staff.px(this.chords[index].x);
+    const x = (index: number) => this.placeOf(this.chords[index]);
     const near: number[] = [];
     for (let i = firstAtOrAfter(this.along, left - reach, x); i < this.along.length; i++) {
       if (x(this.along[i]) > right + reach) break;
@@ -130,12 +130,17 @@ export class StaffInk {
     return { top, bottom };
   }
 
+  /** Where a chord's beat is along the tape, in pixels: the middle of its noteheads. */
+  placeOf(chord: StaffChord): number {
+    return this.staff.at(chord.beat, chord.bar);
+  }
+
   private measure(chord: StaffChord): ChordGeometry {
     const { space } = this.staff;
     const top = this.staff.staffTop(chord.staff);
     const yOf = (step: number) => top + (step * space) / 2;
     const headWidth = HEAD_WIDTH[chord.duration.value] * space;
-    const left = this.staff.px(chord.x) - headWidth / 2 + (chord.voiceShift ? headWidth : 0);
+    const left = this.placeOf(chord) - headWidth / 2 + (chord.voiceShift ? headWidth : 0);
     const stemWidth = STEM_WIDTH * space;
     return {
       yOf,

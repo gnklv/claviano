@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Note } from '../src/domain/note';
 import type { PedalMark } from '../src/domain/pedal';
 import { createScore } from '../src/domain/score';
-import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
+import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
 
-/** Two 4/4 bars of whole notes: on the tape, beat 4 is x = 1 and beat 8 is x = 2. */
+/** Two 4/4 bars of whole notes. Places are beats along the page. */
 const notes: Note[] = [0, 4].map((beat) => ({ pitch: 48, start: beat, duration: 4, beat, beats: 4, velocity: 0.8, hand: 'left' }));
 const withMarks = (marks: PedalMark[]) => createScore('pedal', notes, [0, 4], { barBeats: [0, 4], pedalMarks: marks });
 const signs = { pedal: 'sustain', sign: true, line: false } as const;
@@ -14,8 +14,8 @@ describe('layoutPedal', () => {
   it('prints signs as "Ped." at the press and "✱" at the release', () => {
     const layout = layoutPedal(withMarks([{ beat: 0, type: 'start', ...signs }, { beat: 2, type: 'stop', ...signs }]));
     expect(layout.signs).toEqual([
-      { x: 0, kind: 'press' },
-      { x: 0.5, kind: 'release' },
+      { beat: 0, kind: 'press' },
+      { beat: 2, kind: 'release' },
     ]);
     expect(layout.lines).toEqual([]);
   });
@@ -28,11 +28,11 @@ describe('layoutPedal', () => {
         { beat: 6, type: 'stop', ...signs },
       ]),
     );
-    expect(layout.signs.map((s) => [s.kind, s.x])).toEqual([
+    expect(layout.signs.map((s) => [s.kind, s.beat])).toEqual([
       ['press', 0],
-      ['release', 1],
-      ['press', 1],
-      ['release', 1.5],
+      ['release', 4],
+      ['press', 4],
+      ['release', 6],
     ]);
   });
 
@@ -44,15 +44,15 @@ describe('layoutPedal', () => {
         { beat: 4, type: 'stop', ...line },
       ]),
     );
-    expect(layout.lines).toEqual([{ pedal: 'sustain', from: 0, to: 1, changes: [0.5], afterSign: false }]);
+    expect(layout.lines).toEqual([{ pedal: 'sustain', from: 0, to: 4, changes: [2], afterSign: false }]);
     expect(layout.signs).toEqual([]);
   });
 
   it('ends a passage the file leaves open at the next press, or at the end of the music', () => {
     const layout = layoutPedal(withMarks([{ beat: 0, type: 'start', ...line }, { beat: 4, type: 'start', ...line }]));
     expect(layout.lines.map((l) => [l.from, l.to])).toEqual([
-      [0, 1],
-      [1, 2],
+      [0, 4],
+      [4, 8],
     ]);
   });
 });
@@ -70,13 +70,13 @@ describe('layoutPedal, middle and left pedals', () => {
       ]),
     );
     expect(layout.lines.map((l) => [l.pedal, l.from, l.to, l.afterSign])).toEqual([
-      ['sustain', 0, 1, false],
-      ['sostenuto', 0.5, 1.5, true],
+      ['sustain', 0, 4, false],
+      ['sostenuto', 2, 6, true],
     ]);
-    expect(layout.signs).toEqual([{ x: 0.5, kind: 'sostenuto' }]);
+    expect(layout.signs).toEqual([{ beat: 2, kind: 'sostenuto' }]);
     expect(layout.words).toEqual([
-      { x: 0.5, text: 'una corda' },
-      { x: 1.5, text: 'tre corde' },
+      { beat: 2, text: 'una corda' },
+      { beat: 6, text: 'tre corde' },
     ]);
   });
 });

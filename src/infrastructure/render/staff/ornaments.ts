@@ -1,5 +1,5 @@
 import { wavyLine } from '../curves';
-import type { StaffArpeggio, StaffOrnament, StaffTremolo } from '../notationLayout';
+import type { StaffArpeggio, StaffOrnament, StaffTremolo } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import { BAR_LINE_GAP } from './geometry';
 import { ACCIDENTAL_GLYPH, MUSIC_FONT, ORNAMENT_GLYPHS } from './glyphs';
@@ -38,7 +38,7 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
   const chord = ink.chords[ornament.chord];
   const at = ink.of(chord);
   // Over the middle of the notehead, or where the layout says (a delayed turn stands after its note).
-  const x = Math.abs(ornament.x - chord.x) < 1e-9 ? at.left + at.headWidth / 2 : geometry.px(ornament.x);
+  const x = ornament.beat === chord.beat ? at.left + at.headWidth / 2 : geometry.at(ornament.beat, chord.bar);
   // `step` is the edge nearest the notes: the sign's baseline above them, its top below them.
   const edge = geometry.staffTop(chord.staff) + (ornament.step * space) / 2;
   const baseline = ornament.above ? edge : edge + SIGN_HEIGHT * space;
@@ -56,7 +56,7 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
 
   if (ornament.lineTo !== null) {
     const from = x + (TRILL_WIDTH / 2 + 0.2) * space;
-    const to = geometry.edgeX(ornament.lineTo) - 0.4 * space;
+    const to = geometry.edgeAt(ornament.lineTo, chord.bar) - 0.4 * space;
     const y = baseline - 0.55 * space;
     if (to - from > WAVE * space) shapes.push(wave(space, wavyLine(from, y, to, y, WAVE * space, SWING * space)));
   }
@@ -64,7 +64,7 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
   ink.add({
     staff: chord.staff,
     left: x - space,
-    right: ornament.lineTo !== null ? geometry.edgeX(ornament.lineTo) : x + space,
+    right: ornament.lineTo !== null ? geometry.edgeAt(ornament.lineTo, chord.bar) : x + space,
     top: baseline - (SIGN_HEIGHT + (ornament.accidentalAbove ? ACCIDENTAL_GAP + 1 : 0)) * space,
     bottom: baseline + (ornament.accidentalBelow ? ACCIDENTAL_GAP + 0.5 : 0) * space,
   });

@@ -1,7 +1,7 @@
 import { barAtBeat, barLength, type Score } from '../../score';
 import { MIDDLE_LINE_STEP, staffStep } from '../staffPosition';
 import type { WrittenNote, WrittenRest } from '../written';
-import type { Place, StaffRest } from './types';
+import type { StaffRest } from './types';
 
 /* Rests: where each hangs or sits on the staff, and how they make way for a second voice. */
 
@@ -17,7 +17,7 @@ const VOICE_REST_SHIFT = 4;
  * the middle line, moved up for the upper voice and down for the lower one when two voices share
  * the staff in that bar.
  */
-export function layoutRests(score: Score, rests: readonly WrittenRest[], written: readonly WrittenNote[], place: Place): StaffRest[] {
+export function layoutRests(score: Score, rests: readonly WrittenRest[], written: readonly WrittenNote[]): StaffRest[] {
   const voicesInBar = new Map<string, Set<string>>();
   const note = (staff: number, beat: number, voice: string) => {
     const key = `${staff}|${barAtBeat(score, beat)}`;
@@ -40,7 +40,7 @@ export function layoutRests(score: Score, rests: readonly WrittenRest[], written
     return {
       staff: rest.staff >= 2 ? 'bass' : 'treble',
       // A whole-bar rest stands in the middle of its bar.
-      x: rest.measure ? place(bar, score.notation.bars[bar].start + barLength(score, bar) / 2) : place(bar, rest.beat),
+      beat: rest.measure ? score.notation.bars[bar].start + barLength(score, bar) / 2 : rest.beat,
       step,
       duration,
     };

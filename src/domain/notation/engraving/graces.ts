@@ -3,7 +3,7 @@ import { flagCount } from '../noteValue';
 import { staffStep } from '../staffPosition';
 import type { Clef } from '../written';
 import { ledgerSteps } from './chords';
-import type { Place, StaffChord, StaffGrace, StaffNote } from './types';
+import type { StaffChord, StaffGrace, StaffNote } from './types';
 
 /* Grace notes: small notes before the note they lead to. */
 
@@ -11,7 +11,7 @@ import type { Place, StaffChord, StaffGrace, StaffNote } from './types';
  * The printed grace notes, by the place they lead to and the staff they are on, with the chord
  * there. Each lights up while it sounds: from its group's time in the score (see GraceSound).
  */
-export function layoutGraces(score: Score, chords: readonly StaffChord[], place: Place): StaffGrace[] {
+export function layoutGraces(score: Score, chords: readonly StaffChord[]): StaffGrace[] {
   const groups: StaffGrace[] = [];
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;
@@ -39,7 +39,6 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[], place:
         staff,
         hand: grace.hand,
         bar: written.bar,
-        x: principal >= 0 ? chords[principal].x : place(written.bar, written.beat),
         principal: principal >= 0 ? principal : null,
         slots: open.slots,
         slash: grace.slash,

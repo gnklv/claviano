@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
-import { layoutNotation } from '../src/infrastructure/render/notationLayout';
-import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
+import { engrave as layoutNotation } from '../src/domain/notation/engraving';
+import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
 
 /*
  * Reference copies of what the showcase comes out as: its score (the notes as played and as

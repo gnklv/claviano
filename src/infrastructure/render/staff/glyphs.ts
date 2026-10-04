@@ -2,7 +2,7 @@ import type { NoteValue } from '../../../domain/notation/noteValue';
 import type { OrnamentKind } from '../../../domain/notation/ornaments';
 import type { Accidental } from '../../../domain/notation/spelling';
 import type { Clef } from '../staffLayout';
-import type { StaffMark } from '../notationLayout';
+import type { StaffMark } from '../../../domain/notation/engraving';
 
 /*
  * Glyphs of the SMuFL standard (Bravura font). By the standard, a font size of 4 staff spaces

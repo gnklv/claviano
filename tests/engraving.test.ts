@@ -6,9 +6,8 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
 import { staffFor } from '../src/domain/notation/staffPosition';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
-import { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds, type StaffChord } from '../src/domain/notation/engraving';
 import { transcribed } from '../src/domain/notation/transcription';
-import { layoutNotation as layout } from '../src/infrastructure/render/notationLayout';
+import { engrave as layout, ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds, type StaffChord } from '../src/domain/notation/engraving';
 
 /** Lays a score out; one given only as played notes is written down first, as the MIDI reader does. */
 const layoutNotation = (score: Parameters<typeof layout>[0]) => layout(score.notation.notes.length > 0 ? score : transcribed(score));
@@ -36,9 +35,13 @@ describe('layoutNotation', () => {
     expect(bass).toMatchObject({ staff: 'bass', notes: [{ step: 5 }] }); // Do3: space under the middle line
   });
 
-  it('places notes along the bar by their beat', () => {
+  it('says where each note stands in the music: its bar and beat', () => {
     const chords = chordsOf(scoreOf([note(60, 0, 1), note(62, 2, 1), note(64, 5, 1)]));
-    expect(chords.map((c) => c.x)).toEqual([0, 0.5, 1.25]);
+    expect(chords.map((c) => [c.bar, c.beat])).toEqual([
+      [0, 0],
+      [0, 2],
+      [1, 5],
+    ]);
   });
 
   it('shares one stem between notes that start together', () => {
@@ -291,7 +294,8 @@ describe('rests and ties (MusicXML)', () => {
 
   it('centres a whole-bar rest in its bar', () => {
     const { rests } = layoutNotation(scoreWith([base], [rest({ beat: 4, measure: true })]));
-    expect(rests[0]).toMatchObject({ x: 1.5, duration: { value: 'whole', dots: 0 } });
+    // The second bar runs from beat 4 to beat 8: its middle is beat 6.
+    expect(rests[0]).toMatchObject({ beat: 6, duration: { value: 'whole', dots: 0 } });
   });
 
   it('uses the placement from the file when there is one', () => {
@@ -380,7 +384,6 @@ describe('withSeconds', () => {
     ({
       staff: 'treble',
       hand: 'right',
-      x: 0,
       beat: 0,
       beats: 1,
       bar: 0,
@@ -417,7 +420,7 @@ describe('octave shifts for MIDI', () => {
     // Do7 Re7 (four ledger lines and more), then Do5 on the staff.
     const score = createScore('high', [midiNote(pitch('Do', 7), 0), midiNote(pitch('Re', 7), 1), midiNote(pitch('Do', 5), 2)], [0]);
     const layout = layoutNotation(score);
-    expect(layout.octaveShifts).toEqual([{ staff: 'treble', from: 0, to: 0.5, octaves: 1 }]);
+    expect(layout.octaveShifts).toEqual([{ staff: 'treble', start: 0, end: 2, octaves: 1 }]);
     // Do6 sits two ledger lines up (step -4) instead of four.
     expect(layout.chords.map((c) => c.notes[0].step)).toEqual([-4, -5, 3]);
   });
@@ -475,7 +478,6 @@ describe('shiftVoicesApart', () => {
     ({
       staff: 'treble',
       hand: 'right',
-      x: 0,
       beat,
       beats: 1,
       bar: 0,
@@ -503,7 +505,6 @@ describe('untangleVoices', () => {
     ({
       staff: 'bass',
       hand: 'left',
-      x: 0,
       beat,
       beats: 1 / 3,
       bar: 0,
@@ -538,7 +539,6 @@ describe('shiftVoicesApart, stems the same way', () => {
       ({
         staff: 'bass',
         hand: 'left',
-        x: 0,
         beat: 3,
         beats: 1,
         bar: 0,

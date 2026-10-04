@@ -1,7 +1,7 @@
-import type { KeySignature, Score, TimeSignature } from '../../../domain/score';
+import { barAtBeat, type KeySignature, type Score, type TimeSignature } from '../../../domain/score';
 import { lastAtOrBefore } from '../../../domain/search';
 import { cancelledSteps, signatureChanges, type SignatureChange } from '../../../domain/notation/signatures';
-import { beatAtPosition, tapeBars, type Clef } from '../staffLayout';
+import { beatAtPosition, beatPosition, tapeBars, type Clef } from '../staffLayout';
 
 /*
  * All sizes are in staff spaces (the distance between two staff lines),
@@ -124,6 +124,21 @@ export class StaffGeometry {
     if (!score) return x * this.barWidth();
     const bar = tapeBarAt(tapeBars(score).starts, x);
     return x * this.barWidth() + this.roomAt(bar) * this.space;
+  }
+
+  /**
+   * Pixels along the tape for a beat along the page, in printed bar `bar` (the bar the beat falls
+   * in, unless said: the very end of a bar belongs to it, not to the next one).
+   */
+  at(beat: number, bar?: number): number {
+    const score = this.score;
+    return score ? this.px(beatPosition(score, bar ?? barAtBeat(score, beat), beat)) : 0;
+  }
+
+  /** As `at`, for an edge of a stretch of music (see edgeX): at a bar start, that bar's line. */
+  edgeAt(beat: number, bar?: number): number {
+    const score = this.score;
+    return score ? this.edgeX(beatPosition(score, bar ?? barAtBeat(score, beat), beat)) : 0;
   }
 
   /**
