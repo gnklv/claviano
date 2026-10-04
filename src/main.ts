@@ -2,12 +2,14 @@
 import { createApp } from 'vue';
 import { BarLoop } from './application/use-cases/BarLoop';
 import { LoadScore } from './application/use-cases/LoadScore';
+import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
 import { startOfflineCache } from './infrastructure/offline/offlineCache';
+import { fetchScore } from './infrastructure/parsers/fetchScore';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
@@ -34,21 +36,13 @@ createApp(App)
     playback,
     barLoop: new BarLoop(playback),
     instrument: piano,
-    loadScore: new LoadScore([new MidiFileParser(), musicXml]),
+    openScore: new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml])),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
     demos: [
       { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
-      {
-        id: 'showcase',
-        title: 'demoShowcase',
-        // Fetched only when chosen; public/ files are served under the site's base path.
-        load: async () => {
-          const response = await fetch(`${import.meta.env.BASE_URL}demos/showcase.musicxml`);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return musicXml.parse(await response.arrayBuffer(), 'showcase');
-        },
-      },
+      // Fetched only when chosen; public/ files are served under the site's base path.
+      { id: 'showcase', title: 'demoShowcase', load: () => fetchScore(`${import.meta.env.BASE_URL}demos/showcase.musicxml`, musicXml, 'showcase') },
     ],
   })
   .mount('#app');

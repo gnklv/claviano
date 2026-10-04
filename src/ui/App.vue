@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/ScoreParser';
+import type { OpenFailure } from '../application/use-cases/OpenScore';
 import { stepBar } from '../application/use-cases/stepBar';
-import { barNumber, type Score } from '../domain/score';
+import { barNumber } from '../domain/score';
 import DemoMenu from './components/DemoMenu.vue';
 import InstrumentNotice from './components/InstrumentNotice.vue';
 import LanguageSwitch from './components/LanguageSwitch.vue';
@@ -15,69 +15,49 @@ import ThemeSwitch from './components/ThemeSwitch.vue';
 import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
 import { rememberPracticeSettings } from './composables/rememberPracticeSettings';
+import { useOpenScore } from './composables/useOpenScore';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useViewMode } from './composables/useViewMode';
-import { useDeps, type Demo } from './deps';
+import { useDeps } from './deps';
 import type { MessageKey } from './i18n/en';
 import { useI18n } from './i18n/useI18n';
 
-const ERROR_MESSAGES: Record<ScoreLoadErrorCode, MessageKey> = {
+const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
   'unsupported-format': 'errorUnsupportedFormat',
   'invalid-file': 'errorInvalidFile',
   'unsupported-feature': 'errorUnsupportedFeature',
+  unknown: 'errorUnknown',
 };
 
-const { playback, instrument, loadScore, demos } = useDeps();
+const { playback, instrument, openScore, demos } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 rememberPracticeSettings(playback, instrument);
 const viewMode = useViewMode();
 const dragging = ref(false);
 
-/** The open demo, if any: its title comes from the dictionary, so it follows a language switch. */
-let openDemoInfo: { score: Score; demo: Demo } | null = null;
-
-/** Kept as data, not text, so the message follows a language switch. */
-const loadError = ref<{ file: string; reason: MessageKey } | null>(null);
+/** What is open and what failed to, as data, so the text follows a language switch. */
+const opened = useOpenScore(openScore);
+const demoTitle = (id: string): string => t(demos.find((demo) => demo.id === id)?.title ?? 'errorUnknown');
 
 const title = computed(() => {
-  if (loadError.value) {
-    return t('openError', { file: loadError.value.file, reason: t(loadError.value.reason) });
+  const { demo, failure } = opened.value;
+  if (failure) {
+    const file = 'file' in failure.source ? failure.source.file : demoTitle(failure.source.demo.id);
+    return t('openError', { file, reason: t(ERROR_MESSAGES[failure.reason]) });
   }
   const score = state.value.score;
   if (!score) return t('emptyHint');
   return t('scoreSummary', {
-    title: openDemoInfo?.score === score ? t(openDemoInfo.demo.title) : score.title,
+    title: demo ? demoTitle(demo.id) : score.title,
     // A pickup is not counted as a bar of its own: the count is the last bar's number.
     bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
     notes: t('notesCount', { count: score.notes.length }),
   });
 });
 
-async function openDemo(demo: Demo): Promise<void> {
-  try {
-    const score = await demo.load();
-    openDemoInfo = { score, demo };
-    open(score);
-  } catch (e) {
-    loadError.value = { file: t(demo.title), reason: 'errorUnknown' };
-    console.error(e);
-  }
-}
-
-function open(score: Score): void {
-  loadError.value = null;
-  playback.load(score);
-}
-
 async function openFile(file: File): Promise<void> {
-  try {
-    open(loadScore.execute(file.name, await file.arrayBuffer()));
-  } catch (e) {
-    const reason = e instanceof ScoreLoadError ? ERROR_MESSAGES[e.code] : 'errorUnknown';
-    loadError.value = { file: file.name, reason };
-    if (!(e instanceof ScoreLoadError)) console.error(e);
-  }
+  openScore.openFile(file.name, await file.arrayBuffer());
 }
 
 function onFileChosen(event: Event): void {
@@ -137,7 +117,7 @@ onUnmounted(() => {
         {{ t('openMidi') }}
         <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
       </label>
-      <DemoMenu :demos="demos" @choose="openDemo" />
+      <DemoMenu :demos="demos" @choose="openScore.openDemo($event)" />
       <span class="title">{{ title }}</span>
       <!-- Wide screens show the settings inline; narrow ones tuck them behind ⚙ (see styles below). -->
       <div class="settings-inline">
