@@ -5,6 +5,7 @@ import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
+import { rememberPracticeSettings } from './application/use-cases/rememberPracticeSettings';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
@@ -14,6 +15,7 @@ import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
 import { SvgStaff } from './infrastructure/render/SvgStaff';
+import { LocalSettingsStore } from './infrastructure/storage/LocalSettingsStore';
 import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
 import App from './ui/App.vue';
 import { depsKey } from './ui/deps';
@@ -28,6 +30,7 @@ void offline.then(() => piano.start(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
 keepInstrumentPrepared(playback, piano);
+rememberPracticeSettings(playback, piano, new LocalSettingsStore('claviano.practice'));
 const musicXml = new MusicXmlParser();
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } });
 

@@ -14,7 +14,6 @@ import SettingsMenu from './components/SettingsMenu.vue';
 import ThemeSwitch from './components/ThemeSwitch.vue';
 import TransportBar from './components/TransportBar.vue';
 import ViewModeSwitch from './components/ViewModeSwitch.vue';
-import { rememberPracticeSettings } from './composables/rememberPracticeSettings';
 import { useOpenScore } from './composables/useOpenScore';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useViewMode } from './composables/useViewMode';
@@ -29,10 +28,9 @@ const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
   unknown: 'errorUnknown',
 };
 
-const { playback, instrument, openScore, demos } = useDeps();
+const { playback, openScore, demos } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
-rememberPracticeSettings(playback, instrument);
 const viewMode = useViewMode();
 const dragging = ref(false);
 
