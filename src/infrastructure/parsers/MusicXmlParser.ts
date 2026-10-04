@@ -1,6 +1,6 @@
 import { ScoreLoadError, type ScoreParser } from '../../application/ports/ScoreParser';
 import type { Hand } from '../../domain/note';
-import { MARK_LEVELS, type DynamicAccent, type DynamicLevel, type DynamicMark, type Hairpin } from '../../domain/notation/dynamics';
+import { dynamicWords, isDynamicLetters, type DynamicLevel, type Hairpin, type NotatedDynamic } from '../../domain/notation/dynamics';
 import type { BarNavigation } from '../../domain/notation/navigation';
 import type { Notation, NotatedGrace, NotatedGraces, NotatedNote, NotatedPedalMove, NotatedTempo } from '../../domain/notation/notation';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
@@ -8,7 +8,7 @@ import type { OrnamentKind, OrnamentMark } from '../../domain/notation/ornaments
 import { performNotation } from '../../domain/notation/performance';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
 import type { Articulation, BeamMark, Clef, ClefChange, SlurMark, WrittenNote, WrittenRest } from '../../domain/notation/written';
-import type { PedalKind, PedalMark } from '../../domain/pedal';
+import { softPedalWords, type PedalKind, type PedalMark } from '../../domain/pedal';
 import type { KeySignature, OctaveShift, Score, TempoMark, TimeSignature } from '../../domain/score';
 import { pianoPart } from './pianoParts';
 import { InvalidZipError, isZip, readZip } from './zip';
@@ -175,9 +175,8 @@ function readPart(part: Element, title: string): Notation {
   const octaveShifts: OctaveShift[] = [];
   // Dynamics along the page: levels set, printed marks, hairpins (open ones by their number).
   const dynamicLevels: DynamicLevel[] = [];
-  const dynamicMarks: DynamicMark[] = [];
+  const dynamicMarks: NotatedDynamic[] = [];
   const hairpins: Hairpin[] = [];
-  const dynamicAccents: DynamicAccent[] = [];
   const openHairpins = new Map<string, { start: number; type: Hairpin['type']; below: boolean }>();
   const pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
 
@@ -280,8 +279,8 @@ function readPart(part: Element, title: string): Notation {
             const dynamicsAt = readDynamics(element, beatAt(cursor + offset), level > 0 ? level : null, openHairpins);
             dynamicMarks.push(...dynamicsAt.marks);
             hairpins.push(...dynamicsAt.hairpins);
-            dynamicAccents.push(...dynamicsAt.accents);
-            if (dynamicsAt.level !== null) dynamicLevels.push({ beat: beatAt(cursor + offset), level: dynamicsAt.level });
+            // A level with no mark printed for it.
+            if (level > 0 && dynamicsAt.marks.length === 0) dynamicLevels.push({ beat: beatAt(cursor + offset), level });
           } else if (level > 0) {
             dynamicLevels.push({ beat: beatAt(cursor), level });
           }
@@ -409,10 +408,9 @@ function readPart(part: Element, title: string): Notation {
     pedalMoves,
     pedalMarks,
     octaveShifts,
-    dynamicLevels,
     dynamics: dynamicMarks,
     hairpins,
-    accents: dynamicAccents,
+    dynamicLevels,
   };
 }
 
@@ -440,60 +438,28 @@ function readNavigation(element: Element, sound: Element | null | undefined, nav
 }
 
 /**
- * Marks that stress a note rather than set a level: sf, sfz, fz, rf… make it louder; fp and sfp
- * play it forte (sfp stressed too), and from then on piano (sfpp: pianissimo).
- */
-const STRESS_MARKS: Readonly<Record<string, { factor: number; level?: string; after?: string }>> = {
-  sf: { factor: 1.35 },
-  sfz: { factor: 1.35 },
-  sffz: { factor: 1.5 },
-  fz: { factor: 1.35 },
-  rf: { factor: 1.25 },
-  rfz: { factor: 1.25 },
-  fp: { factor: 1, level: 'f', after: 'p' },
-  sfp: { factor: 1.35, level: 'f', after: 'p' },
-  sfpp: { factor: 1.35, level: 'f', after: 'pp' },
-};
-
-/** Words that make music louder or softer until the next mark, like a hairpin. */
-const CRESCENDO_WORDS = /^(cresc|crescendo)\b/i;
-const DIMINUENDO_WORDS = /^(dim|dimin|diminuendo|decresc|decrescendo)\b/i;
-/** How far "cresc." and "dim." reach when no mark follows (quarter notes): about a bar. */
-const WORDS_REACH = 4;
-
-/**
- * The dynamics a <direction> carries: printed marks (pp, mf, sfz…), hairpins (<wedge>), and the
- * words "cresc." / "dim.", which act like hairpins up to the next mark. A mark sets a level unless
- * the file gives its own (<sound dynamics>, `soundLevel`); stress marks (sfz, fp…) accent the notes
- * they are written at (see STRESS_MARKS).
+ * The dynamics a <direction> carries: printed marks (pp, mf, sfz…), the words "cresc." / "dim.",
+ * and hairpins (<wedge>). When the file gives its own level (<sound dynamics>, `soundLevel`), the
+ * marks carry it in place of their usual one.
  */
 function readDynamics(
   direction: Element,
   beat: number,
   soundLevel: number | null,
   open: Map<string, { start: number; type: Hairpin['type']; below: boolean }>,
-): { marks: DynamicMark[]; hairpins: Hairpin[]; accents: DynamicAccent[]; level: number | null } {
-  const marks: DynamicMark[] = [];
+): { marks: NotatedDynamic[]; hairpins: Hairpin[] } {
+  const marks: NotatedDynamic[] = [];
   const hairpins: Hairpin[] = [];
-  const accents: DynamicAccent[] = [];
   const staff = childNumber(direction, 'staff') ?? 1;
   // Marks for the lower staff printed under it; everything else between the staves.
   const below = staff >= 2 && direction.getAttribute('placement') === 'below';
-  let level = soundLevel;
+  const level = soundLevel === null ? {} : { level: soundLevel };
 
   for (const dynamics of direction.querySelectorAll(':scope > direction-type > dynamics')) {
     const text = [...dynamics.children]
       .map((mark) => (mark.nodeName === 'other-dynamics' ? (mark.textContent?.trim() ?? '') : mark.nodeName))
       .join('');
-    if (!text) continue;
-    marks.push({ beat, below, text, letters: /^[pmfrszn]+$/.test(text) });
-    const stress = STRESS_MARKS[text];
-    if (stress) {
-      accents.push({ beat, factor: stress.factor, level: stress.level ? MARK_LEVELS[stress.level] : undefined });
-      if (stress.after) level ??= MARK_LEVELS[stress.after];
-    } else {
-      level ??= MARK_LEVELS[text] ?? null;
-    }
+    if (text) marks.push({ beat, below, text, letters: isDynamicLetters(text), ...level });
   }
 
   for (const wedge of direction.querySelectorAll(':scope > direction-type > wedge')) {
@@ -509,12 +475,9 @@ function readDynamics(
 
   for (const words of direction.querySelectorAll(':scope > direction-type > words')) {
     const text = words.textContent?.trim() ?? '';
-    const type = CRESCENDO_WORDS.test(text) ? 'crescendo' : DIMINUENDO_WORDS.test(text) ? 'diminuendo' : null;
-    if (!type) continue;
-    marks.push({ beat, below, text, letters: false });
-    hairpins.push({ start: beat, end: beat + WORDS_REACH, type, below, drawn: false });
+    if (dynamicWords(text)) marks.push({ beat, below, text, letters: false, ...level });
   }
-  return { marks, hairpins, accents, level };
+  return { marks, hairpins };
 }
 
 /** A printed metronome mark: <metronome> with its beat unit (and dot) and the number per minute. */
@@ -546,10 +509,6 @@ type PedalMove = { pedal: PedalKind; beat: number; down: boolean };
 
 /** "yes" / "no", or how far down a pedal is in percent. */
 const pedalDown = (value: string) => value === 'yes' || (value !== 'no' && Number(value) >= 50);
-
-/** The soft pedal is written in words: "una corda" (u.c.) presses it, "tre corde" (t.c.) lifts it. */
-const UNA_CORDA = /\buna\s+corda\b|^u\.\s*c\.$/i;
-const TRE_CORDE = /\btre\s+corde\b|^t\.\s*c\.$/i;
 
 /**
  * The pedals a <direction> or <sound> carries: presses and releases for playback, and the printed
@@ -610,9 +569,9 @@ function readPedal(
 
   // The left pedal, in words; a bare <sound soft-pedal> only sounds.
   const words = [...element.querySelectorAll(':scope > direction-type > words')].map((w) => w.textContent?.trim() ?? '');
-  const soft = words.find((text) => UNA_CORDA.test(text) || TRE_CORDE.test(text));
+  const soft = words.find((text) => softPedalWords(text) !== null);
   if (soft) {
-    const down = UNA_CORDA.test(soft);
+    const down = softPedalWords(soft) === 'down';
     events.push({ pedal: 'soft', beat, down });
     marks.push({ pedal: 'soft', beat, type: down ? 'start' : 'stop', sign: false, line: false, text: soft });
   } else {

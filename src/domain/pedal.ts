@@ -97,6 +97,15 @@ function spanAt(pedal: readonly PedalSpan[], time: number, catching = false): Pe
   return undefined;
 }
 
+/** The soft pedal is written in words: "una corda" (u.c.) presses it, "tre corde" (t.c.) lifts it. */
+const UNA_CORDA = /\buna\s+corda\b|^u\.\s*c\.$/i;
+const TRE_CORDE = /\btre\s+corde\b|^t\.\s*c\.$/i;
+
+/** What words printed in the music say about the soft pedal: down, up, or nothing (null). */
+export function softPedalWords(text: string): 'down' | 'up' | null {
+  return UNA_CORDA.test(text) ? 'down' : TRE_CORDE.test(text) ? 'up' : null;
+}
+
 /**
  * Joins pedal presses and releases into spans. A pedal still down at the end is lifted at `end`.
  * A release and a press at the same moment are a pedal change: the release comes first.

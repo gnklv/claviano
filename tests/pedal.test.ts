@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Note } from '../src/domain/note';
 import { pedalDownAt, pedalEvents, pedalSpans, soundingDurations } from '../src/domain/pedal';
+import { softPedalWords } from '../src/domain/pedal';
 
 const note = (pitch: number, start: number, duration: number): Note => ({
   pitch,
@@ -131,5 +132,15 @@ describe('sostenuto', () => {
 
   it('does not catch a key already released', () => {
     expect(soundingDurations([note(36, 0, 0.5)], [], [{ start: 1, end: 4 }])).toEqual([0.5]);
+  });
+});
+
+describe('softPedalWords', () => {
+  it('reads "una corda" as the left pedal down and "tre corde" as up', () => {
+    expect(softPedalWords('una corda')).toBe('down');
+    expect(softPedalWords('U.C.')).toBe('down');
+    expect(softPedalWords('tre corde')).toBe('up');
+    expect(softPedalWords('t. c.')).toBe('up');
+    expect(softPedalWords('dolce')).toBeNull();
   });
 });

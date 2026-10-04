@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_STEP, levelAt, MARK_LEVELS, withHairpinLevels, type Hairpin } from '../src/domain/notation/dynamics';
+import {
+  dynamicsAlongPage,
+  dynamicWords,
+  LEVEL_STEP,
+  levelAt,
+  MARK_LEVELS,
+  withHairpinLevels,
+  type Hairpin,
+  type NotatedDynamic,
+} from '../src/domain/notation/dynamics';
 
 const { p, mf, f } = MARK_LEVELS;
 const hairpin = (start: number, end: number, type: Hairpin['type'] = 'crescendo'): Hairpin => ({
@@ -58,5 +67,47 @@ describe('withHairpinLevels', () => {
       mf,
     );
     expect(levelAt(levels, [hairpin(0, 3, 'diminuendo')], 3, mf)).toBeCloseTo(f - LEVEL_STEP);
+  });
+});
+
+describe('dynamicsAlongPage', () => {
+  const mark = (beat: number, text: string, more: Partial<NotatedDynamic> = {}): NotatedDynamic => ({ beat, below: false, text, letters: /^[pmfrszn]+$/.test(text), ...more });
+
+  it('sets the usual level of each mark, or the one the source gives it', () => {
+    const { levels } = dynamicsAlongPage([mark(0, 'p'), mark(4, 'f', { level: 99 })], [], []);
+    expect(levels).toEqual([
+      { beat: 0, level: p },
+      { beat: 4, level: 99 },
+    ]);
+  });
+
+  it('stresses the notes at sfz without changing the level; fp is loud there and soft after', () => {
+    const { levels, accents } = dynamicsAlongPage([mark(0, 'sfz'), mark(4, 'fp')], [], []);
+    expect(accents).toEqual([
+      { beat: 0, factor: 1.35, level: undefined },
+      { beat: 4, factor: 1, level: f },
+    ]);
+    expect(levels).toEqual([{ beat: 4, level: p }]);
+  });
+
+  it('takes "cresc." and "dim." as hairpins of about a bar, and other words as nothing', () => {
+    expect(dynamicWords('cresc.')).toBe('crescendo');
+    expect(dynamicWords('Diminuendo')).toBe('diminuendo');
+    expect(dynamicWords('dolce')).toBeNull();
+    const { hairpins, levels } = dynamicsAlongPage([mark(8, 'dim.')], [], []);
+    expect(hairpins).toEqual([{ start: 8, end: 12, type: 'diminuendo', below: false, drawn: false }]);
+    expect(levels).toEqual([]);
+  });
+
+  it('follows a drawn hairpin rather than the words that start with it', () => {
+    const { hairpins } = dynamicsAlongPage([mark(0, 'cresc.')], [], [hairpin(0, 8)]);
+    expect(hairpins.map((h) => [h.end, h.drawn])).toEqual([
+      [8, true],
+      [4, false],
+    ]);
+  });
+
+  it('keeps levels set with no mark printed', () => {
+    expect(dynamicsAlongPage([], [{ beat: 2, level: 40 }], []).levels).toEqual([{ beat: 2, level: 40 }]);
   });
 });

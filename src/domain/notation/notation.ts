@@ -1,6 +1,6 @@
 import type { PedalKind, PedalMark } from '../pedal';
 import type { KeySignature, OctaveShift, TempoMark, TimeSignature } from '../score';
-import type { DynamicAccent, DynamicLevel, DynamicMark, Hairpin } from './dynamics';
+import type { DynamicLevel, Hairpin, NotatedDynamic } from './dynamics';
 import type { BarNavigation } from './navigation';
 import type { ClefChange, WrittenGrace, WrittenNote, WrittenRest } from './written';
 
@@ -29,11 +29,10 @@ export interface Notation {
   readonly pedalMoves: readonly NotatedPedalMove[];
   readonly pedalMarks: readonly PedalMark[];
   readonly octaveShifts: readonly OctaveShift[];
-  /** Dynamics: the levels marks set, the marks as printed, hairpins (and words that act as such), and stresses (sf, fp). */
-  readonly dynamicLevels: readonly DynamicLevel[];
-  readonly dynamics: readonly DynamicMark[];
+  /** Dynamics as printed: marks (pp, sfz, "cresc."…) and hairpins; and levels set with no mark on the page. */
+  readonly dynamics: readonly NotatedDynamic[];
   readonly hairpins: readonly Hairpin[];
-  readonly accents: readonly DynamicAccent[];
+  readonly dynamicLevels: readonly DynamicLevel[];
 }
 
 export interface NotatedBar {

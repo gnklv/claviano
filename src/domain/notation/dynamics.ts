@@ -104,3 +104,67 @@ export function withHairpinLevels(levels: readonly DynamicLevel[], hairpins: rea
   }
   return result;
 }
+
+/**
+ * Marks that stress a note rather than set a level: sf, sfz, fz, rf… make it louder; fp and sfp
+ * play it forte (sfp stressed too), and from then on piano (sfpp: pianissimo).
+ */
+const STRESS_MARKS: Readonly<Record<string, { factor: number; level?: string; after?: string }>> = {
+  sf: { factor: 1.35 },
+  sfz: { factor: 1.35 },
+  sffz: { factor: 1.5 },
+  fz: { factor: 1.35 },
+  rf: { factor: 1.25 },
+  rfz: { factor: 1.25 },
+  fp: { factor: 1, level: 'f', after: 'p' },
+  sfp: { factor: 1.35, level: 'f', after: 'p' },
+  sfpp: { factor: 1.35, level: 'f', after: 'pp' },
+};
+
+/** Words that make the music louder or softer until the next mark, like a hairpin. */
+const CRESCENDO_WORDS = /^(cresc|crescendo)\b/i;
+const DIMINUENDO_WORDS = /^(dim|dimin|diminuendo|decresc|decrescendo)\b/i;
+/** How far "cresc." and "dim." reach when no mark follows (quarter notes): about a bar. */
+const WORDS_REACH = 4;
+
+/** Whether words printed in the music are a dynamic: "cresc.", "dim." and the like. */
+export function dynamicWords(text: string): Hairpin['type'] | null {
+  return CRESCENDO_WORDS.test(text) ? 'crescendo' : DIMINUENDO_WORDS.test(text) ? 'diminuendo' : null;
+}
+
+/** Whether a mark is letters of the dynamics alphabet (pp, mf, sfz…), drawn in the music font. */
+export const isDynamicLetters = (text: string): boolean => /^[pmfrszn]+$/.test(text);
+
+/** A dynamic mark as written, with the level the source gives it when that is not the mark's usual one. */
+export interface NotatedDynamic extends DynamicMark {
+  readonly level?: number;
+}
+
+/**
+ * What the dynamics printed along the page mean for playing:
+ * - a mark sets a level from its place on (its usual one, or the one the source gives it);
+ * - a stress mark (sfz, fp…) accents the notes it is written at, and "fp" leaves the music soft;
+ * - the words "cresc." and "dim." act like hairpins up to the next mark; where a drawn hairpin
+ *   starts at the same place, it decides: it says how far the change goes.
+ * `levels`: levels set with no mark printed.
+ */
+export function dynamicsAlongPage(
+  marks: readonly NotatedDynamic[],
+  levels: readonly DynamicLevel[],
+  hairpins: readonly Hairpin[],
+): { levels: DynamicLevel[]; hairpins: Hairpin[]; accents: DynamicAccent[] } {
+  const result = { levels: [] as DynamicLevel[], hairpins: [...hairpins], accents: [] as DynamicAccent[] };
+  for (const mark of marks) {
+    const stress = mark.letters ? STRESS_MARKS[mark.text] : undefined;
+    if (stress) result.accents.push({ beat: mark.beat, factor: stress.factor, level: stress.level ? MARK_LEVELS[stress.level] : undefined });
+    const usual = !mark.letters ? undefined : stress ? (stress.after ? MARK_LEVELS[stress.after] : undefined) : MARK_LEVELS[mark.text];
+    const level = mark.level ?? usual;
+    if (level !== undefined) result.levels.push({ beat: mark.beat, level });
+    const words = mark.letters ? null : dynamicWords(mark.text);
+    if (words) result.hairpins.push({ start: mark.beat, end: mark.beat + WORDS_REACH, type: words, below: mark.below, drawn: false });
+  }
+  result.levels.push(...levels);
+  // Drawn hairpins before words that start with them (the first one found at a place is followed).
+  result.hairpins.sort((a, b) => a.start - b.start || Number(b.drawn) - Number(a.drawn));
+  return result;
+}

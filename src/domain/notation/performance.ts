@@ -2,7 +2,7 @@ import type { Hand, Note } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
 import { createScore, type Score, type TempoMark, type TimePoint } from '../score';
 import { lastAtOrBefore } from '../search';
-import { levelAt, withHairpinLevels } from './dynamics';
+import { dynamicsAlongPage, levelAt, withHairpinLevels } from './dynamics';
 import { graceTiming } from './grace';
 import { performanceOrder, type BarNavigation } from './navigation';
 import type { Notation, NotatedPedalMove, NotatedTempo } from './notation';
@@ -158,12 +158,13 @@ export function performNotation(notation: Notation): Score {
   for (const measure of measures) measure.sounds = rollChords(alternateTremolos(measure.sounds));
 
   // How loud each note is: its own level, a stress written at it, or the level in force along the page.
-  const hairpins = [...notation.hairpins].sort((a, b) => a.start - b.start);
-  const levels = withHairpinLevels([...notation.dynamicLevels], hairpins, DEFAULT_DYNAMICS);
+  const dynamics = dynamicsAlongPage(notation.dynamics, notation.dynamicLevels, notation.hairpins);
+  const { hairpins } = dynamics;
+  const levels = withHairpinLevels(dynamics.levels, hairpins, DEFAULT_DYNAMICS);
   for (const measure of measures) {
     for (const sound of measure.sounds) {
       // A sforzando (or the f of an fp) on the notes it is written at.
-      const accent = notation.accents.find((a) => Math.abs(a.beat - sound.beat) < 1e-6);
+      const accent = dynamics.accents.find((a) => Math.abs(a.beat - sound.beat) < 1e-6);
       const level = sound.ownDynamics ?? accent?.level ?? levelAt(levels, hairpins, sound.beat, DEFAULT_DYNAMICS);
       sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (accent?.factor ?? 1));
     }
@@ -207,7 +208,7 @@ export function performNotation(notation: Notation): Score {
       timeMap: performance.timeMap,
       tempoMarks: distinctTempoMarks([...notation.tempoMarks]),
       octaveShifts: notation.octaveShifts,
-      dynamics: notation.dynamics,
+      dynamics: notation.dynamics.map(({ level: _level, ...mark }) => mark),
       hairpins: hairpins.filter((h) => h.drawn),
       pedalMarks: notation.pedalMarks,
       timeSignatures: notation.timeSignatures,

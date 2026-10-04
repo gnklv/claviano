@@ -53,10 +53,9 @@ const notation = (notes: NotatedNote[], more: Partial<Notation> = {}): Notation 
   pedalMoves: [],
   pedalMarks: [],
   octaveShifts: [],
-  dynamicLevels: [],
   dynamics: [],
   hairpins: [],
-  accents: [],
+  dynamicLevels: [],
   ...more,
 });
 
