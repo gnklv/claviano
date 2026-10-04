@@ -1,6 +1,7 @@
 import { noteEnd, type Hand } from '../../domain/note';
 import { flagCount, writtenDuration, type WrittenDuration } from '../../domain/notation/noteValue';
 import { quantize } from '../../domain/notation/quantize';
+import type { OrnamentKind } from '../../domain/notation/ornaments';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from '../../domain/notation/spelling';
 import type { Articulation, WrittenNote, WrittenRest } from '../../domain/notation/written';
 import { beatsOf } from '../../domain/metronome';
@@ -123,6 +124,35 @@ export interface StaffOctaveShift {
   readonly octaves: number;
 }
 
+/** An ornament sign over (or under) a chord: a trill, a mordent, a turn. */
+export interface StaffOrnament {
+  readonly chord: number;
+  readonly kind: OrnamentKind;
+  readonly above: boolean;
+  /** Where the sign is, in bar units: over the note, or after it for a delayed turn. */
+  readonly x: number;
+  /** Vertical reference of the sign, in staff steps: the edge nearest the notes. */
+  readonly step: number;
+  /** Small accidentals over and under the sign. */
+  readonly accidentalAbove: Accidental | null;
+  readonly accidentalBelow: Accidental | null;
+  /** Where a trill's wavy line ends, in bar units; null without one. */
+  readonly lineTo: number | null;
+}
+
+/** Tremolo strokes: on a chord's stem, or between it and the chord `to`. */
+export interface StaffTremolo {
+  readonly chord: number;
+  readonly strokes: number;
+  readonly to: number | null;
+}
+
+/** A rolled chord: a wavy line before these chords (one on each staff when the roll goes through both hands). */
+export interface StaffArpeggio {
+  readonly chords: readonly number[];
+  readonly down: boolean;
+}
+
 /**
  * Grace notes before one note (or after the last note of a bar): small notes drawn to the left of
  * the place they lead to, on one stem direction, beamed together when there are several.
@@ -159,6 +189,9 @@ export interface NotationLayout {
   readonly marks: readonly StaffMark[];
   readonly slurs: readonly StaffSlur[];
   readonly graces: readonly StaffGrace[];
+  readonly ornaments: readonly StaffOrnament[];
+  readonly tremolos: readonly StaffTremolo[];
+  readonly arpeggios: readonly StaffArpeggio[];
 }
 
 /** The staff's top line as a diatonic index (octave × 7 + letter): Fa5 on treble, La3 on bass. */
@@ -443,7 +476,7 @@ function inferNotation(score: Score): NotationLayout {
     }),
   );
   const untangled = untangleVoices(beamed, beams);
-  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [] };
+  return { chords: untangled.chords, octaveShifts, beams: untangled.beams, tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [] };
 }
 
 /**
@@ -645,6 +678,8 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   // slurs then follow the stems as drawn.
   const untangled = untangleVoices(chords, beams);
   const drawn = untangled.chords;
+  const groupsInOrder = entries.map((entry) => entry.group);
+  const marks = layoutMarks(score, groupsInOrder, drawn, written, rests);
   return {
     chords: drawn,
     octaveShifts: score.octaveShifts.map(
@@ -658,11 +693,97 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     beams: untangled.beams,
     tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]].stemUp })),
     rests: layoutRests(score, rests, written),
-    ties: layoutTies(entries.map((entry) => entry.group), drawn),
-    marks: layoutMarks(score, entries.map((entry) => entry.group), drawn, written, rests),
-    slurs: layoutSlurs(entries.map((entry) => entry.group), drawn),
+    ties: layoutTies(groupsInOrder, drawn),
+    marks,
+    slurs: layoutSlurs(groupsInOrder, drawn),
     graces: layoutGraces(score, drawn),
+    ornaments: layoutOrnaments(score, groupsInOrder, drawn, marks),
+    tremolos: layoutTremolos(groupsInOrder, drawn),
+    arpeggios: layoutArpeggios(groupsInOrder, drawn),
   };
+}
+
+/**
+ * Ornament signs go outside the staff, over the chord (under it when the file says so), clear of
+ * its notes, its stem and the articulations and fermata on that side.
+ */
+function layoutOrnaments(
+  score: Score,
+  groups: readonly (readonly WrittenNote[])[],
+  chords: readonly StaffChord[],
+  marks: readonly StaffMark[],
+): StaffOrnament[] {
+  const ornaments: StaffOrnament[] = [];
+  groups.forEach((group, index) => {
+    const chord = chords[index];
+    const note = group.find((member) => member.ornaments.length > 0);
+    if (!note) return;
+    const top = chord.notes[0].step;
+    const bottom = chord.notes[chord.notes.length - 1].step;
+    const stemmed = chord.duration.value !== 'whole';
+    // Several signs on one note stack outward.
+    const reached = { above: Infinity, below: -Infinity };
+    for (const mark of note.ornaments) {
+      const above = !mark.below;
+      const extremes = [above ? top : bottom, above ? reached.above : reached.below];
+      if (stemmed && chord.stemUp === above) extremes.push(above ? top - STEM_STEPS : bottom + STEM_STEPS);
+      for (const other of marks) {
+        // A fermata's arc is about three steps tall beyond its reference.
+        if (other.chord === index && other.above === above) extremes.push(other.step + (other.kind === 'fermata' ? (above ? -3 : 3) : 0));
+      }
+      const outermost = above ? Math.min(...extremes.filter(Number.isFinite)) : Math.max(...extremes.filter(Number.isFinite));
+      const step = above ? Math.min(TOP_LINE_STEP - 3, outermost - 3) : Math.max(BOTTOM_LINE_STEP + 3, outermost + 3);
+      // A sign is about four steps tall.
+      if (above) reached.above = step - 4;
+      else reached.below = step + 4;
+      const delayed = mark.kind === 'delayed-turn' || mark.kind === 'delayed-inverted-turn';
+      const barEnd = (score.writtenBarBeats[chord.bar + 1] ?? score.writtenEndBeat) - 1e-9;
+      ornaments.push({
+        chord: index,
+        kind: mark.kind,
+        above,
+        x: delayed ? beatPosition(score, chord.bar, Math.min(chord.beat + chord.beats / 2, barEnd)) : chord.x,
+        step,
+        accidentalAbove: mark.accidentalAbove,
+        accidentalBelow: mark.accidentalBelow,
+        lineTo: mark.kind === 'trill' && note.trillLine ? beatPosition(score, chord.bar, Math.min(chord.beat + chord.beats, barEnd)) : null,
+      });
+    }
+  });
+  return ornaments;
+}
+
+/** Tremolo strokes: on the chord's own stem, or towards the next chord of its voice that ends the tremolo. */
+function layoutTremolos(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffTremolo[] {
+  const tremolos: StaffTremolo[] = [];
+  groups.forEach((group, index) => {
+    const tremolo = group.find((note) => note.tremolo)?.tremolo;
+    if (!tremolo || tremolo.type === 'stop') return;
+    if (tremolo.type === 'single') {
+      tremolos.push({ chord: index, strokes: tremolo.strokes, to: null });
+      return;
+    }
+    const { staff, voice } = group[0];
+    const to = groups.findIndex(
+      (other, i) => i !== index && chords[i].beat > chords[index].beat && other[0].staff === staff && other[0].voice === voice && other.some((note) => note.tremolo?.type === 'stop'),
+    );
+    if (to >= 0) tremolos.push({ chord: index, strokes: tremolo.strokes, to });
+  });
+  return tremolos;
+}
+
+/** Rolled chords: the chords marked with an arpeggio sign that start together share one wavy line. */
+function layoutArpeggios(groups: readonly (readonly WrittenNote[])[], chords: readonly StaffChord[]): StaffArpeggio[] {
+  const byBeat = new Map<string, { chords: number[]; down: boolean }>();
+  groups.forEach((group, index) => {
+    const direction = group.find((note) => note.arpeggio)?.arpeggio;
+    if (!direction) return;
+    const key = chords[index].beat.toFixed(6);
+    const entry = byBeat.get(key) ?? { chords: [], down: direction === 'down' };
+    entry.chords.push(index);
+    byBeat.set(key, entry);
+  });
+  return [...byBeat.values()];
 }
 
 /** Groups the printed grace notes by the place they lead to, and finds the chord there. */

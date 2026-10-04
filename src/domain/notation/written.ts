@@ -1,5 +1,6 @@
 import type { Hand } from '../note';
 import type { NoteValue, WrittenDuration } from './noteValue';
+import type { OrnamentMark } from './ornaments';
 import type { Accidental, SpelledPitch } from './spelling';
 
 /*
@@ -77,6 +78,14 @@ export interface WrittenNote {
   /** A pause sign over (or, inverted, under) the note. */
   readonly fermata: 'upright' | 'inverted' | null;
   readonly slurs: readonly SlurMark[];
+  /** Ornament signs at the note (a trill, a mordent, a turn). */
+  readonly ornaments: readonly OrnamentMark[];
+  /** A wavy line follows the trill sign, for the length of the note. */
+  readonly trillLine: boolean;
+  /** Strokes on the stem (the note repeated), or between this note and the next (the two in turn). */
+  readonly tremolo: { readonly type: 'single' | 'start' | 'stop'; readonly strokes: number } | null;
+  /** Part of a rolled chord (a wavy line before it): from the bottom up, or from the top down. */
+  readonly arpeggio: 'up' | 'down' | null;
 }
 
 /**

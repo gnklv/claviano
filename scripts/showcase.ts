@@ -32,6 +32,10 @@ interface NoteOptions {
   articulations?: string[];
   fermata?: 'upright' | 'inverted';
   slur?: { type: 'start' | 'stop'; number?: number; placement?: 'above' | 'below' }[];
+  /** What goes inside <ornaments>: <trill-mark/>, <mordent/>, <turn/>, <tremolo type="single">3</tremolo>… */
+  ornaments?: string;
+  /** Part of a rolled chord. */
+  arpeggiate?: 'up' | 'down';
   /** A grace note: small, with no time of its own (pass 0 as its duration); `slash` for an acciaccatura. */
   grace?: { slash: boolean };
 }
@@ -56,8 +60,10 @@ function note(name: string, duration: number, options: NoteOptions): string {
     ...(options.slur ?? []).map(
       (m) => `<slur type="${m.type}" number="${m.number ?? 1}"${m.placement ? ` placement="${m.placement}"` : ''}/>`,
     ),
+    options.ornaments ? `<ornaments>${options.ornaments}</ornaments>` : '',
     options.articulations?.length ? `<articulations>${options.articulations.map((a) => `<${a}/>`).join('')}</articulations>` : '',
     options.fermata ? `<fermata type="${options.fermata}"/>` : '',
+    options.arpeggiate ? `<arpeggiate direction="${options.arpeggiate}"/>` : '',
   ].join('');
   return [
     '<note>',
@@ -361,40 +367,65 @@ const measures: string[] = [
     ${note('D2', 0, { type: 'eighth', grace: { slash: true }, staff: 2, stem: 'up' })}${note('D3', H, { type: 'half', staff: 2 })}${note('A2', H, { type: 'half', staff: 2 })}
   </measure>`,
 
-  // 21–25: repeats and jumps. Played: 21 22 | 21 23 24 | D.S. → 21 23 | To Coda → 25.
-  // 21: segno and ‖:.
+  // 21: ornaments. A trill with its wavy line (the note and the one above in turn); a mordent
+  // (down and back) and a short trill (up and back); in the left hand a turn, and a delayed turn
+  // with a natural under it: the note below is C natural, not the key's C sharp.
   `<measure number="21">
+    ${direction('Ornaments', '')}
+    ${note('A5', H, { type: 'half', ornaments: '<trill-mark/><wavy-line type="start" number="1"/><wavy-line type="stop" number="1"/>' })}
+    ${note('F#5', Q, { type: 'quarter', ornaments: '<mordent/>' })}${note('E5', Q, { type: 'quarter', ornaments: '<inverted-mordent/>' })}
+    ${backup(W)}
+    ${note('F#3', H, { type: 'half', staff: 2, ornaments: '<turn/>' })}
+    ${note('D3', H, { type: 'half', staff: 2, ornaments: '<delayed-turn/><accidental-mark placement="below">natural</accidental-mark>' })}
+  </measure>`,
+
+  // 22: a tremolo on one note (three strokes on the stem: thirty-seconds) and a rolled chord
+  // through both hands, from the bottom up; in the left hand a tremolo between two notes (each
+  // written as a half note, the two in turn for one half note in all).
+  `<measure number="22">
+    ${direction('Tremolo, arpeggio', '')}
+    ${note('D5', H, { type: 'half', ornaments: '<tremolo type="single">3</tremolo>' })}
+    ${chord(['F#4', 'A4', 'D5'], H, { type: 'half', arpeggiate: 'up' })}
+    ${backup(W)}
+    ${note('D3', Q, { type: 'half', staff: 2, tuplet: { actual: 2, normal: 1 }, ornaments: '<tremolo type="start">2</tremolo>' })}
+    ${note('A3', Q, { type: 'half', staff: 2, tuplet: { actual: 2, normal: 1 }, ornaments: '<tremolo type="stop">2</tremolo>' })}
+    ${chord(['D2', 'A2', 'F#3'], H, { type: 'half', staff: 2, arpeggiate: 'up' })}
+  </measure>`,
+
+  // 23–27: repeats and jumps. Played: 23 24 | 23 25 26 | D.S. → 23 25 | To Coda → 27.
+  // 23: segno and ‖:.
+  `<measure number="23">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 22: first ending, back to ‖:.
-  `<measure number="22">
+  // 24: first ending, back to ‖:.
+  `<measure number="24">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 23: second ending; after the D.S. it leads to the coda.
-  `<measure number="23">
+  // 25: second ending; after the D.S. it leads to the coda.
+  `<measure number="25">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 24: back to the segno.
-  `<measure number="24">
+  // 26: back to the segno.
+  `<measure number="26">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 25: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 27: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="25">
+  `<measure number="27">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

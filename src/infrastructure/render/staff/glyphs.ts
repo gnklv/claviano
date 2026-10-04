@@ -1,4 +1,5 @@
 import type { NoteValue } from '../../../domain/notation/noteValue';
+import type { OrnamentKind } from '../../../domain/notation/ornaments';
 import type { Accidental } from '../../../domain/notation/spelling';
 import type { Clef } from '../staffLayout';
 import type { StaffMark } from '../notationLayout';
@@ -83,6 +84,17 @@ export const MARK_GLYPHS: Record<StaffMark['kind'], [string, string]> = {
   accent: ['', ''],
   marcato: ['', ''],
   fermata: ['', ''],
+};
+
+/** Ornament signs: "tr", the turn and its mirror image, the short trill, and the mordent (struck through). */
+export const ORNAMENT_GLYPHS: Record<OrnamentKind, string> = {
+  trill: '\uE566',
+  turn: '\uE567',
+  'inverted-turn': '\uE568',
+  'delayed-turn': '\uE567',
+  'delayed-inverted-turn': '\uE568',
+  'inverted-mordent': '\uE56C',
+  mordent: '\uE56D',
 };
 
 /** Repeat barlines (with their dots), segno and coda signs. */

@@ -3,6 +3,15 @@ import type { Hand, Note } from '../../domain/note';
 import { writtenDuration, type NoteValue } from '../../domain/notation/noteValue';
 import type { Accidental, Alteration, Letter } from '../../domain/notation/spelling';
 import { graceTiming } from '../../domain/notation/grace';
+import {
+  arpeggioDelays,
+  neighbour,
+  playOrnament,
+  playTremolo,
+  playTremoloBetween,
+  type OrnamentKind,
+  type OrnamentMark,
+} from '../../domain/notation/ornaments';
 import type {
   Articulation,
   BeamMark,
@@ -67,6 +76,18 @@ const ACCIDENTALS: Record<string, Accidental> = {
   'sharp-sharp': 'double-sharp',
   'flat-flat': 'double-flat',
   'double-flat': 'double-flat',
+};
+
+/** MusicXML ornament elements we draw and play ("shake" is an old name for the short trill). */
+const ORNAMENTS: Record<string, OrnamentKind> = {
+  'trill-mark': 'trill',
+  mordent: 'mordent',
+  'inverted-mordent': 'inverted-mordent',
+  shake: 'inverted-mordent',
+  turn: 'turn',
+  'inverted-turn': 'inverted-turn',
+  'delayed-turn': 'delayed-turn',
+  'delayed-inverted-turn': 'delayed-inverted-turn',
 };
 
 const BEAM_MARKS = new Set<string>(['begin', 'continue', 'end', 'forward hook', 'backward hook']);
@@ -204,6 +225,10 @@ interface SoundEvent {
   tieStart: boolean;
   tieStop: boolean;
   fermata: boolean;
+  /** Part of a rolled chord: its notes come in one after another (worked out at the end of the bar). */
+  roll?: 'up' | 'down';
+  /** One side of a tremolo between two notes or chords (worked out at the end of the bar). */
+  tremolo?: { type: 'start' | 'stop'; strokes: number };
 }
 
 type MutableNavigation = { -readonly [K in keyof BarNavigation]: BarNavigation[K] };
@@ -465,20 +490,42 @@ function readPart(part: Element, title: string): Score {
           writtenMeasure.push(measures.length);
 
           const effect = articulationEffect(printed.articulations);
-          measure.sounds.push({
-            pitch: midiPitch(pitchElement),
-            staff,
-            // After an appoggiatura the note comes in late, by what the grace note took from it.
-            beat: beatAt(start) + lastDelay,
-            beats: beats - lastDelay,
-            velocity: 0,
-            ownDynamics: noteDynamics > 0 ? noteDynamics : null,
-            loudness: effect.loudness,
-            hand,
-            soundingLength: effect.length,
-            tieStart: ties.includes('start'),
-            tieStop: ties.includes('stop'),
-            fermata: printed.fermata !== null,
+          const pitch = midiPitch(pitchElement);
+          // After an appoggiatura the note comes in late, by what the grace note took from it.
+          const soundBeat = beatAt(start) + lastDelay;
+          const soundBeats = beats - lastDelay;
+          // An ornament or a tremolo on the stem stands for several quick notes in the note's place.
+          const [ornament] = printed.ornaments;
+          const fifths = keySignatures[keySignatures.length - 1]?.fifths ?? 0;
+          const pieces = ornament
+            ? playOrnament(
+                ornament.kind,
+                pitch,
+                soundBeats,
+                neighbour(shifted.pitch, 1, fifths, ornament.accidentalAbove),
+                neighbour(shifted.pitch, -1, fifths, ornament.accidentalBelow),
+              )
+            : printed.tremolo?.type === 'single'
+              ? playTremolo(pitch, soundBeats, printed.tremolo.strokes)
+              : [{ pitch, offset: 0, beats: soundBeats }];
+          pieces.forEach((piece, i) => {
+            const last = i === pieces.length - 1;
+            measure.sounds.push({
+              pitch: piece.pitch,
+              staff,
+              beat: soundBeat + piece.offset,
+              beats: piece.beats,
+              velocity: 0,
+              ownDynamics: noteDynamics > 0 ? noteDynamics : null,
+              loudness: effect.loudness,
+              hand,
+              soundingLength: last ? effect.length : 1,
+              tieStart: last && ties.includes('start'),
+              tieStop: i === 0 && ties.includes('stop'),
+              fermata: printed.fermata !== null,
+              ...(printed.arpeggio && pieces.length === 1 ? { roll: printed.arpeggio } : {}),
+              ...(printed.tremolo && printed.tremolo.type !== 'single' ? { tremolo: { type: printed.tremolo.type, strokes: printed.tremolo.strokes } } : {}),
+            });
           });
           break;
         }
@@ -487,6 +534,7 @@ function readPart(part: Element, title: string): Score {
 
     // Grace notes after the bar's last note stand before the bar line.
     attachGraces(cursor, null);
+    measure.sounds = rollChords(alternateTremolos(measure.sounds));
 
     // Files do not always close the last volta. A new ‖: never sits inside one, so it closes it.
     if (nav.repeatStart && ending && !nav.endingLabel) {
@@ -977,6 +1025,14 @@ function readWritten(
       .map((a) => ARTICULATIONS[a.nodeName])
       .filter((a): a is Articulation => a !== undefined),
     fermata: fermataOf(element),
+    ornaments: ornamentsOf(element),
+    trillLine: element.querySelector(':scope > notations > ornaments > wavy-line[type="start"]') !== null,
+    tremolo: tremoloOf(element),
+    arpeggio: element.querySelector(':scope > notations > arpeggiate')
+      ? element.querySelector(':scope > notations > arpeggiate')!.getAttribute('direction') === 'down'
+        ? 'down'
+        : 'up'
+      : null,
     slurs: [...element.querySelectorAll(':scope > notations > slur')].flatMap((slur): SlurMark[] => {
       const type = slur.getAttribute('type');
       if (type !== 'start' && type !== 'stop') return []; // "continue" only matters across systems
@@ -990,6 +1046,87 @@ function readWritten(
       ];
     }),
   };
+}
+
+/** The ornament signs of a <note>, each with the small accidentals printed after it. */
+function ornamentsOf(element: Element): OrnamentMark[] {
+  const marks: { -readonly [K in keyof OrnamentMark]: OrnamentMark[K] }[] = [];
+  for (const child of element.querySelectorAll(':scope > notations > ornaments > *')) {
+    const kind = ORNAMENTS[child.nodeName];
+    if (kind) {
+      marks.push({ kind, accidentalAbove: null, accidentalBelow: null, below: child.getAttribute('placement') === 'below' });
+    } else if (child.nodeName === 'accidental-mark' && marks.length > 0) {
+      const accidental = ACCIDENTALS[child.textContent?.trim() ?? ''] ?? null;
+      const mark = marks[marks.length - 1];
+      // A trill only has a note above; elsewhere the file says which neighbour the accidental is for.
+      if (child.getAttribute('placement') === 'below' && mark.kind !== 'trill') mark.accidentalBelow = accidental;
+      else mark.accidentalAbove = accidental;
+    }
+  }
+  return marks;
+}
+
+function tremoloOf(element: Element): WrittenNote['tremolo'] {
+  const tremolo = element.querySelector(':scope > notations > ornaments > tremolo');
+  if (!tremolo) return null;
+  const type = tremolo.getAttribute('type');
+  const strokes = Math.min(4, Math.max(1, Number(tremolo.textContent) || 3));
+  return { type: type === 'start' || type === 'stop' ? type : 'single', strokes };
+}
+
+/**
+ * Tremolos between two notes or chords: the two are played in turn for their whole length
+ * together, instead of one after the other.
+ */
+function alternateTremolos(sounds: SoundEvent[]): SoundEvent[] {
+  if (!sounds.some((sound) => sound.tremolo)) return sounds;
+  const result = sounds.filter((sound) => !sound.tremolo);
+  const same = (a: SoundEvent, b: SoundEvent) => a.staff === b.staff && Math.abs(a.beat - b.beat) < 1e-6;
+  const starts = sounds.filter((sound) => sound.tremolo?.type === 'start');
+  const stops = sounds.filter((sound) => sound.tremolo?.type === 'stop');
+  const done = new Set<SoundEvent>();
+  for (const start of starts) {
+    if (done.has(start)) continue;
+    const first = starts.filter((sound) => same(sound, start));
+    // The other side: the first notes with a "stop" on that staff after this one.
+    const next = stops.find((sound) => sound.staff === start.staff && sound.beat > start.beat - 1e-6 && !done.has(sound));
+    const second = next ? stops.filter((sound) => same(sound, next)) : [];
+    for (const sound of [...first, ...second]) done.add(sound);
+    if (!next) {
+      result.push(...first.map(({ tremolo: _, ...sound }) => sound));
+      continue;
+    }
+    const length = next.beat + next.beats - start.beat;
+    for (const piece of playTremoloBetween(length, start.tremolo!.strokes)) {
+      for (const { tremolo: _, ...sound } of piece.second ? second : first) {
+        result.push({ ...sound, beat: start.beat + piece.offset, beats: piece.beats, tieStart: false, tieStop: false, soundingLength: 1 });
+      }
+    }
+  }
+  // A "stop" with no "start" before it is played as written.
+  result.push(...stops.filter((sound) => !done.has(sound)).map(({ tremolo: _, ...sound }) => sound));
+  return result;
+}
+
+/**
+ * Rolled chords: the notes marked with an arpeggio sign that start together (on either staff: a
+ * roll through both hands is one wave) come in one after another, each held to its own end.
+ */
+function rollChords(sounds: SoundEvent[]): SoundEvent[] {
+  const rolled = sounds.filter((sound) => sound.roll);
+  const done = new Set<SoundEvent>();
+  for (const first of rolled) {
+    if (done.has(first)) continue;
+    const chord = rolled.filter((sound) => Math.abs(sound.beat - first.beat) < 1e-6);
+    chord.sort((a, b) => (first.roll === 'down' ? b.pitch - a.pitch : a.pitch - b.pitch));
+    const delays = arpeggioDelays(chord.length, Math.min(...chord.map((sound) => sound.beats)));
+    chord.forEach((sound, i) => {
+      done.add(sound);
+      sound.beat += delays[i];
+      sound.beats -= delays[i];
+    });
+  }
+  return sounds;
 }
 
 function fermataOf(element: Element): WrittenNote['fermata'] {

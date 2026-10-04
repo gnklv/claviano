@@ -20,7 +20,7 @@ Every push to `master` runs the tests, builds and deploys to GitHub Pages
 (`.github/workflows/deploy.yml`).
 
 **Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
-playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties, grace notes,
+playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties, grace notes, ornaments, tremolos, rolled chords,
 key/time/clef/tempo/dynamics changes, hairpins, a wide range, articulations, fermatas, slurs, the sustain
 pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
@@ -153,5 +153,8 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] Grace notes (MusicXML): small notes before their note, a lone one flagged (struck through for
       an acciaccatura), several under a beam; an acciaccatura and groups are crushed in before the
       beat, an appoggiatura takes half of its note (two thirds of a dotted one)
+- [x] Ornaments (MusicXML): trill (with its wavy line), mordents, turns (also delayed), with the
+      small accidentals over and under them; tremolo on a stem and between two notes; rolled chords
+      (through both hands as one wave). Each is drawn as printed and played as its notes
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter

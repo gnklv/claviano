@@ -14,12 +14,15 @@ import { approach } from './keyboardCamera';
 import {
   layoutNotation,
   type Beam,
+  type StaffArpeggio,
   type StaffChord,
   type StaffGrace,
   type StaffMark,
   type StaffOctaveShift,
+  type StaffOrnament,
   type StaffRest,
   type StaffSlur,
+  type StaffTremolo,
   type Tie,
   type Tuplet,
 } from './notationLayout';
@@ -41,6 +44,7 @@ import {
   drawTempoMarks,
   type OctaveBracket,
 } from './staff/markings';
+import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
 import { COLORS, svg } from './staff/svg';
 
@@ -110,6 +114,9 @@ export class SvgStaff {
   private slurs: StaffSlur[] = [];
   private octaveShifts: StaffOctaveShift[] = [];
   private graces: StaffGrace[] = [];
+  private ornaments: StaffOrnament[] = [];
+  private tremolos: StaffTremolo[] = [];
+  private arpeggios: StaffArpeggio[] = [];
   private chordElements: SVGGElement[] = [];
   private graceElements: SVGGElement[] = [];
   /** Grace notes currently highlighted. */
@@ -158,7 +165,7 @@ export class SvgStaff {
     this.score = score;
     const layout = score
       ? layoutNotation(score)
-      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [] };
+      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [] };
     this.ink.setChords([...layout.chords], layout.marks);
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
@@ -168,6 +175,9 @@ export class SvgStaff {
     this.slurs = [...layout.slurs];
     this.octaveShifts = [...layout.octaveShifts];
     this.graces = [...layout.graces];
+    this.ornaments = [...layout.ornaments];
+    this.tremolos = [...layout.tremolos];
+    this.arpeggios = [...layout.arpeggios];
     this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords));
     this.currentBeat = 0;
@@ -419,8 +429,12 @@ export class SvgStaff {
     // A slur spans a phrase, so it stays in the ink colour with the beams.
     for (const phrase of this.slurs) beamLayer.append(drawSlur(context, phrase));
 
-    // Grace notes before what goes around the notes: bar numbers, brackets and dynamics clear them too.
+    // Grace notes and ornaments before what goes around the notes: bar numbers, brackets and
+    // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
     this.graceElements = this.graces.map((grace) => drawGrace(context, grace));
+    for (const ornament of this.ornaments) this.chordElements[ornament.chord].append(...drawOrnament(context, ornament));
+    for (const tremolo of this.tremolos) this.chordElements[tremolo.chord].append(...drawTremolo(context, tremolo));
+    for (const arpeggio of this.arpeggios) this.chordElements[arpeggio.chords[0]].append(...drawArpeggio(context, arpeggio));
 
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;

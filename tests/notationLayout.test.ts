@@ -186,6 +186,10 @@ describe('layout of printed notes (MusicXML)', () => {
     articulations: [],
     fermata: null,
     slurs: [],
+    ornaments: [],
+    trillLine: false,
+    tremolo: null,
+    arpeggio: null,
     ...overrides,
   });
   const written = [
@@ -241,6 +245,10 @@ describe('rests and ties (MusicXML)', () => {
     articulations: [],
     fermata: null,
     slurs: [],
+    ornaments: [],
+    trillLine: false,
+    tremolo: null,
+    arpeggio: null,
   };
   const rest = (overrides: Partial<WrittenRest>): WrittenRest => ({
     staff: 1,
@@ -316,6 +324,10 @@ describe('articulations and slurs (MusicXML)', () => {
     articulations: [],
     fermata: null,
     slurs: [],
+    ornaments: [],
+    trillLine: false,
+    tremolo: null,
+    arpeggio: null,
     ...overrides,
   });
   const Sol4 = { letter: 4, octave: 4, alteration: 0 } as const; // second line: step 6

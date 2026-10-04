@@ -90,3 +90,26 @@ function crescent(x1: number, y1: number, x2: number, y2: number, height: number
     `C ${r(c2)} ${r(lineY(c2) + inner)} ${r(c1)} ${r(lineY(c1) + inner)} ${r(x1)} ${r(y1)} Z`;
   return { height, thickness, path };
 }
+
+/**
+ * A wavy line from (x1, y1) to (x2, y2), straight along or straight down the page (a trill's
+ * extension, a rolled chord's sign), as the path of its stroke: whole waves of about `wavelength`,
+ * swinging `amplitude` to either side.
+ */
+export function wavyLine(x1: number, y1: number, x2: number, y2: number, wavelength: number, amplitude: number): string {
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  const waves = Math.max(1, Math.round(length / wavelength));
+  // One unit step along the line, and one across it.
+  const along = { x: (x2 - x1) / length, y: (y2 - y1) / length };
+  const across = { x: -along.y, y: along.x };
+  const half = length / waves / 2;
+  let path = `M${x1},${y1}`;
+  for (let i = 0; i < waves * 2; i++) {
+    const side = i % 2 === 0 ? -1 : 1;
+    // A half wave: a curve bulging to one side, by a control point twice the amplitude out.
+    const cx = x1 + along.x * half * (i + 0.5) + across.x * amplitude * 2 * side;
+    const cy = y1 + along.y * half * (i + 0.5) + across.y * amplitude * 2 * side;
+    path += ` Q${cx},${cy} ${x1 + along.x * half * (i + 1)},${y1 + along.y * half * (i + 1)}`;
+  }
+  return path;
+}
