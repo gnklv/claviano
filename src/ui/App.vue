@@ -171,6 +171,8 @@ onUnmounted(() => {
 .app {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* One column no wider than the screen: by default it would grow to fit the title's one long line. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
@@ -217,6 +219,13 @@ onUnmounted(() => {
   .title {
     order: 1;
     flex-basis: 100%;
+  }
+}
+
+/* Narrow phones: the logo, both buttons and ⚙ fit one row with a little less air between them. */
+@media (max-width: 420px) {
+  .bar:first-child {
+    column-gap: 10px;
   }
 }
 
