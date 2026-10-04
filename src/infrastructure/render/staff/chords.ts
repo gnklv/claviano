@@ -52,7 +52,7 @@ const TIE_OFFSET = 0.6;
  */
 export function drawChord({ geometry, ink }: StaffContext, index: number, handLabels: Record<Hand, string>): SVGGElement {
   const { space } = geometry;
-  const chord = ink.chords[index];
+  const chord = ink.chord(index);
   const beamEnd = ink.stemEnds.get(index);
   const { value, dots } = chord.duration;
   const { yOf, headWidth, left, stemWidth, stemX, highest, lowest } = ink.of(chord);
@@ -124,7 +124,7 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     const to = beamEnd ?? (chord.stemUp ? highest - length : lowest + length);
     group.append(svg('line', { x1: stemX, x2: stemX, y1: from, y2: to, stroke: 'currentColor', 'stroke-width': stemWidth }));
     if (flags > 0 && beamEnd === undefined) {
-      group.append(glyph((chord.stemUp ? FLAG_UP : FLAG_DOWN)[flags], stemX - stemWidth / 2, to));
+      group.append(glyph((chord.stemUp ? FLAG_UP : FLAG_DOWN)[flags] ?? '', stemX - stemWidth / 2, to));
     }
   }
   return group;
@@ -137,7 +137,7 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
 export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[] {
   const { ink } = context;
   const { space } = context.geometry;
-  const chords = beam.chords.map((index) => ink.chords[index]);
+  const chords = beam.chords.map((index) => ink.chord(index));
   const geometry = chords.map((chord) => ink.of(chord));
   const levels = Math.max(...chords.map((chord) => flagCount(chord.duration.value)));
   const minStem = (MIN_BEAMED_STEM + (levels - 1) * BEAM_SPACING) * space;
@@ -146,7 +146,7 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
   const plain = kneed
     ? kneeBeamLine(
         chords.map((chord, i) => {
-          const g = geometry[i];
+          const g = geometry[i]!;
           return { x: g.stemX, noteY: chord.stemUp ? g.highest : g.lowest, stemUp: chord.stemUp };
         }),
         SHORTEST_KNEED_STEM * space,
@@ -174,12 +174,12 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
           shortestStem: SHORTEST_BEAMED_STEM * space,
         },
       );
-  beam.chords.forEach((index, i) => ink.stemEnds.set(index, beamY(line, geometry[i].stemX)));
+  beam.chords.forEach((index, i) => ink.stemEnds.set(index, beamY(line, geometry[i]!.stemX)));
 
   // Extra beams stack towards the notes: down under an up-stem beam, up over a down-stem one.
   const inward = beam.stemUp ? 1 : -1;
   const thickness = BEAM_THICKNESS * space;
-  const halfStem = geometry[0].stemWidth / 2;
+  const halfStem = geometry[0]!.stemWidth / 2;
   const bar = (fromX: number, toX: number, level: number) => {
     const shift = inward * level * BEAM_SPACING * space;
     const y1 = beamY(line, fromX) + shift;
@@ -193,6 +193,7 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
 
   const shapes: SVGPolygonElement[] = [];
   const xs = geometry.map((g) => g.stemX);
+  const x = (i: number) => xs[i] ?? 0;
   for (let level = 0; level < levels; level++) {
     // Runs of neighbouring chords short enough to need this level.
     const needs = chords.map((chord) => flagCount(chord.duration.value) > level);
@@ -201,12 +202,12 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
       let j = i;
       while (j + 1 < chords.length && needs[j + 1]) j++;
       if (j > i) {
-        shapes.push(bar(xs[i] - halfStem, xs[j] + halfStem, level));
+        shapes.push(bar(x(i) - halfStem, x(j) + halfStem, level));
       } else {
         // A lone shorter note gets a stub pointing into the group.
         const towardsRight = i < chords.length - 1;
         const stub = BEAM_STUB * space;
-        shapes.push(towardsRight ? bar(xs[i] - halfStem, xs[i] + stub, level) : bar(xs[i] - stub, xs[i] + halfStem, level));
+        shapes.push(towardsRight ? bar(x(i) - halfStem, x(i) + stub, level) : bar(x(i) - stub, x(i) + halfStem, level));
       }
       i = j;
     }
@@ -216,14 +217,14 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
 
 /** Noteheads of the other chords on a beam's staff, within its reach: what the beam must keep off. */
 function otherVoiceHeads({ geometry: { space }, ink }: StaffContext, beam: Beam, geometry: ChordGeometry[]): BeamObstacle[] {
-  const staff = ink.chords[beam.chords[0]].staff;
+  const staff = ink.chord(beam.chords[0]!).staff;
   const left = Math.min(...geometry.map((g) => g.left)) - space;
   const right = Math.max(...geometry.map((g) => g.left + g.headWidth)) + space;
   const own = new Set(beam.chords);
   const heads: BeamObstacle[] = [];
   for (const index of ink.within(staff, left, right)) {
     if (own.has(index)) continue;
-    const chord = ink.chords[index];
+    const chord = ink.chord(index);
     const g = ink.of(chord);
     for (const note of chord.notes) {
       const y = g.yOf(note.step);
@@ -238,17 +239,20 @@ function otherVoiceHeads({ geometry: { space }, ink }: StaffContext, beam: Beam,
  * or over the notes of an unbeamed group.
  */
 export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: Tuplet): SVGElement[] {
-  const chords = tuplet.chords.map((index) => ink.chords[index]);
+  const chords = tuplet.chords.map((index) => ink.chord(index));
   const geometry = chords.map((chord) => ink.of(chord));
   // The outermost point of each chord on the tuplet's side: its stem end, or the notehead.
   const outer = tuplet.chords.map((index, i) => {
-    const g = geometry[i];
-    const stemmed = chords[i].duration.value !== 'whole' && chords[i].stemUp === tuplet.above;
+    const g = geometry[i]!;
+    const chord = chords[i]!;
+    const stemmed = chord.duration.value !== 'whole' && chord.stemUp === tuplet.above;
     if (!stemmed) return tuplet.above ? g.highest - space : g.lowest + space;
     return ink.stemEnd(index);
   });
-  const left = geometry[0].left;
-  const right = geometry[geometry.length - 1].left + geometry[geometry.length - 1].headWidth;
+  const first = geometry[0]!;
+  const last = geometry.at(-1)!;
+  const left = first.left;
+  const right = last.left + last.headWidth;
   const center = (left + right) / 2;
   const direction = tuplet.above ? -1 : 1;
   // The line the number and bracket sit on, a little clear of the stems.
@@ -294,7 +298,7 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextEl
 
 /** An articulation or fermata, centred over (or under) the notehead. */
 export function drawMark({ geometry: { space }, ink }: StaffContext, mark: StaffMark): SVGTextElement {
-  const { yOf, left, headWidth } = ink.of(ink.chords[mark.chord]);
+  const { yOf, left, headWidth } = ink.of(ink.chord(mark.chord));
   const [above, below] = MARK_GLYPHS[mark.kind];
   const glyph = noteGlyph(space, mark.above ? above : below, left + headWidth / 2, yOf(mark.step));
   glyph.setAttribute('text-anchor', 'middle');
@@ -308,7 +312,7 @@ export function drawMark({ geometry: { space }, ink }: StaffContext, mark: Staff
 export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: StaffSlur): SVGPathElement {
   const direction = phrase.above ? -1 : 1;
   const outerPoint = (index: number) => {
-    const chord = ink.chords[index];
+    const chord = ink.chord(index);
     const g = ink.of(chord);
     const stemmed = chord.duration.value !== 'whole';
     if (stemmed && chord.stemUp === phrase.above) {
@@ -332,8 +336,8 @@ export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: Sta
 
 /** A tie: a crescent from one notehead to the next, curving away from the stems. */
 export function drawTie({ geometry: { space }, ink }: StaffContext, tie: Tie): SVGPathElement {
-  const from = ink.of(ink.chords[tie.from]);
-  const to = ink.of(ink.chords[tie.to]);
+  const from = ink.of(ink.chord(tie.from));
+  const to = ink.of(ink.chord(tie.to));
   const y = from.yOf(tie.step) + (tie.above ? -1 : 1) * TIE_OFFSET * space;
   const shape = arc({
     x1: from.left + from.headWidth + TIE_GAP * space,

@@ -1,5 +1,5 @@
 import { firstAtOrAfter } from '../../../domain/search';
-import type { StaffChord, StaffMark } from '../../../domain/notation/engraving';
+import { stepSpan, type StaffChord, type StaffMark } from '../../../domain/notation/engraving';
 import type { Clef } from '../staffLayout';
 import type { StaffGeometry } from './geometry';
 import { HEAD_WIDTH } from './glyphs';
@@ -44,7 +44,7 @@ export class StaffInk {
 
   setChords(chords: StaffChord[], marks: readonly StaffMark[]): void {
     this.chords = chords;
-    this.along = chords.map((_, i) => i).sort((a, b) => chords[a].beat - chords[b].beat);
+    this.along = chords.map((_, i) => i).sort((a, b) => chords[a]!.beat - chords[b]!.beat);
     this.marksOf = new Map();
     for (const mark of marks) {
       const own = this.marksOf.get(mark.chord);
@@ -65,6 +65,11 @@ export class StaffInk {
     this.others.push(ink);
   }
 
+  /** The chord with this index: indices come from the engraving these chords are from. */
+  chord(index: number): StaffChord {
+    return this.chords[index]!;
+  }
+
   /** Where a chord's parts go, in pixels. */
   of(chord: StaffChord): ChordGeometry {
     let geometry = this.geometry.get(chord);
@@ -77,7 +82,7 @@ export class StaffInk {
 
   /** Where chord `index`'s stem ends: at its beam, or a stem's length past its outer note. */
   stemEnd(index: number): number {
-    const chord = this.chords[index];
+    const chord = this.chord(index);
     const g = this.of(chord);
     return this.stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * this.staff.space : g.lowest + STEM_LENGTH * this.staff.space);
   }
@@ -89,11 +94,12 @@ export class StaffInk {
   near(left: number, right: number): number[] {
     // A head reaches half its width left of its x, or one and a half when moved aside for a second.
     const reach = 2 * HEAD_WIDTH.whole * this.staff.space;
-    const x = (index: number) => this.placeOf(this.chords[index]);
+    const x = (index: number) => this.placeOf(this.chord(index));
     const near: number[] = [];
     for (let i = firstAtOrAfter(this.along, left - reach, x); i < this.along.length; i++) {
-      if (x(this.along[i]) > right + reach) break;
-      near.push(this.along[i]);
+      const index = this.along[i]!;
+      if (x(index) > right + reach) break;
+      near.push(index);
     }
     return near;
   }
@@ -101,7 +107,7 @@ export class StaffInk {
   /** Indices of one staff's chords whose noteheads are between two x's. */
   within(staff: Clef, left: number, right: number): number[] {
     return this.near(left, right).filter((index) => {
-      const chord = this.chords[index];
+      const chord = this.chord(index);
       if (chord.staff !== staff) return false;
       const g = this.of(chord);
       return g.left + g.headWidth >= left && g.left <= right;
@@ -114,7 +120,7 @@ export class StaffInk {
     let top = Infinity;
     let bottom = -Infinity;
     for (const index of this.within(staff, left, right)) {
-      const chord = this.chords[index];
+      const chord = this.chord(index);
       const g = this.of(chord);
       top = Math.min(top, g.highest - space / 2);
       bottom = Math.max(bottom, g.lowest + space / 2);
@@ -142,6 +148,7 @@ export class StaffInk {
     const headWidth = HEAD_WIDTH[chord.duration.value] * space;
     const left = this.placeOf(chord) - headWidth / 2 + (chord.voiceShift ? headWidth : 0);
     const stemWidth = STEM_WIDTH * space;
+    const span = stepSpan(chord.notes);
     return {
       yOf,
       headWidth,
@@ -149,8 +156,8 @@ export class StaffInk {
       stemWidth,
       // Up: on the heads' right side; down: on their left side.
       stemX: chord.stemUp ? left + headWidth - stemWidth / 2 : left + stemWidth / 2,
-      highest: yOf(chord.notes[0].step),
-      lowest: yOf(chord.notes[chord.notes.length - 1].step),
+      highest: yOf(span.top),
+      lowest: yOf(span.bottom),
     };
   }
 }

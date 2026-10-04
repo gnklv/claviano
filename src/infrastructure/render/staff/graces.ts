@@ -1,5 +1,5 @@
 import { slur } from '../curves';
-import type { StaffGrace } from '../../../domain/notation/engraving';
+import { stepSpan, type StaffGrace } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import { ACCIDENTAL_GLYPH, FLAG_UP, HEAD_WIDTH, MUSIC_FONT, NOTEHEAD } from './glyphs';
 import { COLORS, svg } from './svg';
@@ -57,29 +57,35 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): S
   };
 
   // Right to left from the note they lead to (or from the bar line).
-  const principal = grace.principal === null ? null : ink.chords[grace.principal];
+  const principal = grace.principal === null ? null : ink.chord(grace.principal);
   const principalAt = principal ? ink.of(principal) : null;
   const principalHasAccidental = principal?.notes.some((note) => note.accidental) ?? false;
   let right = principalAt
     ? principalAt.left - gap(grace, principalHasAccidental) * space
     : geometry.barLineX(grace.bar + 1) - BEFORE_BAR_LINE * space;
-  const lefts = new Array<number>(grace.slots.length);
-  for (let i = grace.slots.length - 1; i >= 0; i--) {
-    lefts[i] = right - HEAD * space;
-    right = lefts[i] - (ADVANCE - HEAD) * space - (grace.slots[i].notes.some((note) => note.accidental) ? ACCIDENTAL_ROOM * space : 0);
-  }
+  const lefts = [...grace.slots]
+    .reverse()
+    .map((slot) => {
+      const left = right - HEAD * space;
+      right = left - (ADVANCE - HEAD) * space - (slot.notes.some((note) => note.accidental) ? ACCIDENTAL_ROOM * space : 0);
+      return left;
+    })
+    .reverse();
+  // (Slots are asked for by an index of grace.slots: each has its place.)
+  const leftOf = (i: number) => lefts[i]!;
 
   const stemWidth = STEM_WIDTH * space;
-  const stemX = (i: number) => lefts[i] + HEAD * space - stemWidth / 2;
-  const highest = grace.slots.map((slot) => yOf(slot.notes[0].step));
-  const lowest = grace.slots.map((slot) => yOf(slot.notes[slot.notes.length - 1].step));
+  const stemX = (i: number) => leftOf(i) + HEAD * space - stemWidth / 2;
+  const highest = grace.slots.map((slot) => yOf(stepSpan(slot.notes).top));
+  const lowest = grace.slots.map((slot) => yOf(stepSpan(slot.notes).bottom));
+  const highestOf = (i: number) => highest[i]!;
 
   // Stem ends: a stem's length over each note; for a group, on one straight line between the
   // first and the last, raised until every stem is long enough.
   const last = grace.slots.length - 1;
   const line = (i: number) =>
-    last === 0 ? highest[0] - STEM * space : highest[0] - STEM * space + ((highest[last] - highest[0]) * (stemX(i) - stemX(0))) / (stemX(last) - stemX(0));
-  const lift = Math.max(0, ...grace.slots.map((_, i) => line(i) - (highest[i] - SHORTEST_STEM * space)));
+    last === 0 ? highestOf(0) - STEM * space : highestOf(0) - STEM * space + ((highestOf(last) - highestOf(0)) * (stemX(i) - stemX(0))) / (stemX(last) - stemX(0));
+  const lift = Math.max(0, ...grace.slots.map((_, i) => line(i) - (highestOf(i) - SHORTEST_STEM * space)));
   const stemEnd = (i: number) => line(i) - lift;
 
   grace.slots.forEach((slot, i) => {
@@ -87,21 +93,21 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): S
       const y = yOf(step);
       const extension = LEDGER_EXTENSION * space;
       group.append(
-        svg('line', { x1: lefts[i] - extension, x2: lefts[i] + HEAD * space + extension, y1: y, y2: y, stroke: 'currentColor', 'stroke-width': space * 0.13 }),
+        svg('line', { x1: leftOf(i) - extension, x2: leftOf(i) + HEAD * space + extension, y1: y, y2: y, stroke: 'currentColor', 'stroke-width': space * 0.13 }),
       );
     }
     for (const note of slot.notes) {
       const y = yOf(note.step);
-      group.append(glyph(NOTEHEAD.quarter, lefts[i], y));
-      if (note.accidental) group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], lefts[i] - ACCIDENTAL_ROOM * space, y));
+      group.append(glyph(NOTEHEAD.quarter, leftOf(i), y));
+      if (note.accidental) group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], leftOf(i) - ACCIDENTAL_ROOM * space, y));
     }
     group.append(
-      svg('line', { x1: stemX(i), x2: stemX(i), y1: lowest[i] - space * 0.17 * SCALE, y2: stemEnd(i), stroke: 'currentColor', 'stroke-width': stemWidth }),
+      svg('line', { x1: stemX(i), x2: stemX(i), y1: lowest[i]! - space * 0.17 * SCALE, y2: stemEnd(i), stroke: 'currentColor', 'stroke-width': stemWidth }),
     );
   });
 
   if (last === 0) {
-    group.append(glyph(FLAG_UP[Math.min(3, grace.beams)], stemX(0) - stemWidth / 2, stemEnd(0)));
+    group.append(glyph(FLAG_UP[Math.min(3, grace.beams)] ?? '', stemX(0) - stemWidth / 2, stemEnd(0)));
   } else {
     const from = stemX(0) - stemWidth / 2;
     const to = stemX(last) + stemWidth / 2;
@@ -123,8 +129,8 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): S
 
   ink.add({
     staff: grace.staff,
-    left: lefts[0] - ACCIDENTAL_ROOM * space,
-    right: lefts[last] + (HEAD + 0.7) * space,
+    left: leftOf(0) - ACCIDENTAL_ROOM * space,
+    right: leftOf(last) + (HEAD + 0.7) * space,
     top: Math.min(...grace.slots.map((_, i) => stemEnd(i))),
     bottom: Math.max(...lowest) + (space * SCALE) / 2,
   });
@@ -132,8 +138,8 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): S
   if (grace.slur && principalAt) {
     // Under the heads (the grace notes' stems go up), ending just before the note it leads to.
     const shape = slur({
-      x1: lefts[last] + (HEAD * space) / 2,
-      y1: lowest[last] + 0.7 * space,
+      x1: leftOf(last) + (HEAD * space) / 2,
+      y1: lowest[last]! + 0.7 * space,
       x2: principalAt.left - 0.1 * space,
       y2: principalAt.lowest + 0.6 * space,
       above: false,

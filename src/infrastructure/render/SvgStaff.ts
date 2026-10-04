@@ -1,6 +1,7 @@
 import {
   barAtBeat,
   clefAt,
+  writtenBarStart,
   writtenPositionAt,
   writtenBeatAt,
   keySignatureAt,
@@ -211,7 +212,7 @@ export class SvgStaff {
     const snap = NOTE_SNAP * geometry.space;
     let nearest: StaffChord | null = null;
     for (const index of ink.near(px - snap, px + snap)) {
-      const chord = ink.chords[index];
+      const chord = ink.chord(index);
       const distance = Math.abs(ink.placeOf(chord) - px);
       if (distance <= snap && (!nearest || distance < Math.abs(ink.placeOf(nearest) - px))) nearest = chord;
     }
@@ -424,17 +425,17 @@ export class SvgStaff {
 
     this.chordElements = ink.chords.map((_, index) => drawChord(context, index, this.handLabels));
     // A tie belongs to the chord it starts from, so it lights up with it; so do the chord's marks.
-    for (const tie of this.ties) this.chordElements[tie.from].append(drawTie(context, tie));
-    for (const mark of this.marks) this.chordElements[mark.chord].append(drawMark(context, mark));
+    for (const tie of this.ties) this.chordElements[tie.from]?.append(drawTie(context, tie));
+    for (const mark of this.marks) this.chordElements[mark.chord]?.append(drawMark(context, mark));
     // A slur spans a phrase, so it stays in the ink colour with the beams.
     for (const phrase of this.slurs) beamLayer.append(drawSlur(context, phrase));
 
     // Grace notes and ornaments before what goes around the notes: bar numbers, brackets and
     // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
     this.graceElements = this.graces.map((grace) => drawGrace(context, grace));
-    for (const ornament of this.ornaments) this.chordElements[ornament.chord].append(...drawOrnament(context, ornament));
-    for (const tremolo of this.tremolos) this.chordElements[tremolo.chord].append(...drawTremolo(context, tremolo));
-    for (const arpeggio of this.arpeggios) this.chordElements[arpeggio.chords[0]].append(...drawArpeggio(context, arpeggio));
+    for (const ornament of this.ornaments) this.chordElements[ornament.chord]?.append(...drawOrnament(context, ornament));
+    for (const tremolo of this.tremolos) this.chordElements[tremolo.chord]?.append(...drawTremolo(context, tremolo));
+    for (const arpeggio of this.arpeggios) this.chordElements[arpeggio.chords[0] ?? -1]?.append(...drawArpeggio(context, arpeggio));
 
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
@@ -466,18 +467,18 @@ export class SvgStaff {
     const { chords } = this.ink;
     const active = new Set<number>();
     for (let i = firstAtOrAfter(chords, beat - this.longestChord, (chord) => chord.beat); i < chords.length; i++) {
-      const chord = chords[i];
+      const chord = chords[i]!;
       if (chord.beat > beat + 1e-9) break;
       if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) active.add(i);
     }
     for (const index of this.lit) {
       if (active.has(index)) continue;
-      this.chordElements[index].style.color = COLORS.note;
+      this.chordElements[index]!.style.color = COLORS.note;
       this.lit.delete(index);
     }
     for (const index of active) {
       if (this.lit.has(index)) continue;
-      this.chordElements[index].style.color = COLORS.hand[chords[index].hand];
+      this.chordElements[index]!.style.color = COLORS.hand[this.ink.chord(index).hand];
       this.lit.add(index);
     }
 
@@ -485,7 +486,7 @@ export class SvgStaff {
     this.graces.forEach((grace, index) => {
       const sounding = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
       if (sounding === this.litGraces.has(index)) return;
-      this.graceElements[index].style.color = sounding ? COLORS.hand[grace.hand] : COLORS.note;
+      this.graceElements[index]!.style.color = sounding ? COLORS.hand[grace.hand] : COLORS.note;
       if (sounding) this.litGraces.add(index);
       else this.litGraces.delete(index);
     });
@@ -505,7 +506,7 @@ function graceRoom(
     const principal = grace.principal === null ? null : chords[grace.principal];
     const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
     if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
-    else if (Math.abs(principal.beat - score.notation.bars[principal.bar].start) < 1e-6) {
+    else if (Math.abs(principal.beat - writtenBarStart(score, principal.bar)) < 1e-6) {
       lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
     }
   }

@@ -183,7 +183,7 @@ export class CanvasPianoRoll {
     let best = time;
     let bestDistance = snap;
     for (let i = firstNoteAtOrAfter(score, time - snap); i < score.notes.length; i++) {
-      const start = score.notes[i].start;
+      const start = score.notes[i]!.start;
       if (start > time + snap) break;
       if (Math.abs(start - time) <= bestDistance) {
         best = start;
@@ -315,7 +315,7 @@ export class CanvasPianoRoll {
     const active = new Map<number, Hand>();
     const { score, position } = frame;
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
-      const note = score.notes[i];
+      const note = score.notes[i]!;
       if (note.start > position) break;
       if (noteEnd(note) >= position && frame.isHandEnabled(note.hand)) active.set(note.pitch, note.hand);
     }
@@ -363,7 +363,7 @@ export class CanvasPianoRoll {
     let hi = moments.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (moments[mid].time <= time) lo = mid + 1;
+      if (moments[mid]!.time <= time) lo = mid + 1;
       else hi = mid;
     }
     const latest = moments[lo - 1];
@@ -458,7 +458,7 @@ export class CanvasPianoRoll {
     let left = Infinity;
     let right = -Infinity;
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
-      const note = score.notes[i];
+      const note = score.notes[i]!;
       if (note.start > until) break;
       if (noteEnd(note) <= position) continue;
       const key = this.keys.get(note.pitch);
@@ -502,7 +502,7 @@ export class CanvasPianoRoll {
     const until = position + this.secondsVisible;
     const { notes } = score;
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < notes.length; i++) {
-      const note = notes[i];
+      const note = notes[i]!;
       if (note.start > until) break;
       const end = noteEnd(note);
       if (end < position) continue;

@@ -96,7 +96,8 @@ function stepBar(delta: number): void {
   const score = playback.score;
   if (!score) return;
   const target = Math.min(Math.max(barAt(score, playback.position + 0.01) + delta, 0), score.bars.length - 1);
-  playback.seek(score.bars[target]);
+  const start = score.bars[target];
+  if (start !== undefined) playback.seek(start);
 }
 
 function onKeyDown(event: KeyboardEvent): void {

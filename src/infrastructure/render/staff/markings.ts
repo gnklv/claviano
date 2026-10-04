@@ -1,4 +1,4 @@
-import { barAtBeat, clefAt, writtenBarNumber } from '../../../domain/score';
+import { barAtBeat, clefAt, writtenBarNumber, writtenBarStart } from '../../../domain/score';
 import type { StaffOctaveShift } from '../../../domain/notation/engraving';
 import { cancelledSteps, keySignatureSteps } from '../../../domain/notation/signatures';
 import { beatPosition, tapeBars, type Clef } from '../staffLayout';
@@ -123,7 +123,7 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
   const bottom = geometry.systemBottom();
   for (const change of geometry.changes) {
     const line = geometry.barLineX(change.bar);
-    const beat = score.notation.bars[change.bar].start;
+    const beat = writtenBarStart(score, change.bar);
     // A ‖: draws its own thick line; otherwise a new key gets a double bar line.
     if (change.key && !score.notation.bars[change.bar]?.navigation.repeatStart) {
       const x = line - 0.5 * space;
@@ -239,14 +239,14 @@ export function drawNavigation({ score, geometry }: StaffContext, barNumberY: re
     // A volta: a bracket from the first bar of its ending to the last, with its label.
     if (nav.endingLabel) {
       let last = i;
-      while (last + 1 < navigation.length && navigation[last + 1].ending && !navigation[last + 1].endingLabel) last++;
+      while (navigation[last + 1]?.ending && !navigation[last + 1]?.endingLabel) last++;
       // Over the bar numbers under it (they may have risen over high notes).
       const numbers = barNumberY.slice(i, last + 1);
       const y = Math.min(top - 4.6 * space, ...numbers.map((numberY) => numberY - VOLTA_OVER_NUMBER * space));
       const hook = 1.6 * space;
       const left = barStart(i) + 0.3 * space;
       const right = barEnd(last) - 0.3 * space;
-      const closed = navigation[last].endingClosed;
+      const closed = navigation[last]?.endingClosed;
       const line = inkedPolyline({
         points: `${left},${y + hook} ${left},${y} ${right},${y}${closed ? ` ${right},${y + hook}` : ''}`,
         fill: 'none',
@@ -274,7 +274,7 @@ export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOct
   const { space } = geometry;
   const above = shift.octaves > 0;
   const glyphs = above ? OCTAVE_GLYPH_ABOVE : OCTAVE_GLYPH_BELOW;
-  const glyph = glyphs[Math.min(glyphs.length, Math.abs(shift.octaves)) - 1];
+  const glyph = glyphs[Math.min(glyphs.length, Math.abs(shift.octaves)) - 1] ?? '';
   const glyphWidth = (above ? OCTAVE_GLYPH_WIDTH_ABOVE : OCTAVE_GLYPH_WIDTH_BELOW) * space;
   const left = geometry.at(shift.start) - 0.5 * space;
   const right = Math.max(left + glyphWidth + space, geometry.edgeAt(shift.end));

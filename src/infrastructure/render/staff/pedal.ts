@@ -122,7 +122,7 @@ function bassFloor({ geometry, ink }: StaffContext, under: UnderLowerStaff, left
   const { space } = geometry;
   let floor = geometry.systemBottom();
   for (const index of ink.within('bass', left, right)) {
-    const chord = ink.chords[index];
+    const chord = ink.chord(index);
     const g = ink.of(chord);
     floor = Math.max(floor, g.lowest + space / 2);
     if (!chord.stemUp && chord.duration.value !== 'whole') floor = Math.max(floor, ink.stemEnd(index));

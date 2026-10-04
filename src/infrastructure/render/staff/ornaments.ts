@@ -35,7 +35,7 @@ const wave = (space: number, path: string) => svg('path', { d: path, fill: 'none
 /** An ornament sign with its accidentals and, for a trill, its wavy line. */
 export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrnament): SVGElement[] {
   const { space } = geometry;
-  const chord = ink.chords[ornament.chord];
+  const chord = ink.chord(ornament.chord);
   const at = ink.of(chord);
   // Over the middle of the notehead, or where the layout says (a delayed turn stands after its note).
   const x = ornament.beat === chord.beat ? at.left + at.headWidth / 2 : geometry.at(ornament.beat, chord.bar);
@@ -74,7 +74,7 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
 /** Tremolo strokes: slanted bars across a chord's stem, or between the stems of two chords. */
 export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremolo): SVGElement[] {
   const { space } = geometry;
-  const chord = ink.chords[tremolo.chord];
+  const chord = ink.chord(tremolo.chord);
   const at = ink.of(chord);
   const stemmed = chord.duration.value !== 'whole';
   const stroke = (x1: number, y1: number, x2: number, y2: number) => {
@@ -99,14 +99,14 @@ export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremo
   }
 
   // Between the two chords: from just after the first stem (or head) to just before the second.
-  const other = ink.chords[tremolo.to];
+  const other = ink.chord(tremolo.to);
   const to = ink.of(other);
   const inset = 0.5 * space;
   const from = (stemmed ? at.stemX : at.left + at.headWidth) + inset;
   const until = (other.duration.value !== 'whole' ? to.stemX : to.left) - inset;
   // Level with the stems' far half: where a beam between the two notes would be drawn, a little nearer the notes.
   const level = (index: number, g: typeof at, up: boolean) =>
-    ink.chords[index].duration.value !== 'whole' ? ink.stemEnd(index) + (up ? 1 : -1) * space : up ? g.highest - 2.5 * space : g.lowest + 2.5 * space;
+    ink.chord(index).duration.value !== 'whole' ? ink.stemEnd(index) + (up ? 1 : -1) * space : up ? g.highest - 2.5 * space : g.lowest + 2.5 * space;
   const y1 = level(tremolo.chord, at, chord.stemUp);
   const y2 = level(tremolo.to, to, other.stemUp);
   stack((offset) => stroke(from, y1 + offset, until, y2 + offset));
@@ -116,11 +116,11 @@ export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremo
 /** The wavy line before a rolled chord, from its top note to its bottom one (through both staves if need be). */
 export function drawArpeggio({ geometry, ink }: StaffContext, arpeggio: StaffArpeggio): SVGElement[] {
   const { space } = geometry;
-  const chords = arpeggio.chords.map((index) => ink.chords[index]);
+  const chords = arpeggio.chords.map((index) => ink.chord(index));
   const places = chords.map((chord) => ink.of(chord));
-  const lefts = chords.map((chord, i) => places[i].left - (chord.notes.some((note) => note.accidental) ? ARPEGGIO_PAST_ACCIDENTAL : 0) * space);
+  const lefts = chords.map((chord, i) => places[i]!.left - (chord.notes.some((note) => note.accidental) ? ARPEGGIO_PAST_ACCIDENTAL : 0) * space);
   // Never on the bar line: a chord at the start of a bar keeps the line within its own bar.
-  const x = Math.max(Math.min(...lefts) - ARPEGGIO_GAP * space, geometry.barLineX(chords[0].bar) + (BAR_LINE_GAP / 4) * space);
+  const x = Math.max(Math.min(...lefts) - ARPEGGIO_GAP * space, geometry.barLineX(chords[0]?.bar ?? 0) + (BAR_LINE_GAP / 4) * space);
   const top = Math.min(...places.map((place) => place.highest)) - 0.6 * space;
   const bottom = Math.max(...places.map((place) => place.lowest)) + 0.6 * space;
   const shapes: SVGElement[] = [wave(space, wavyLine(x, top, x, bottom, WAVE * space, SWING * space))];

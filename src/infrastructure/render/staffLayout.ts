@@ -1,4 +1,4 @@
-import { barLength, barLengthInBeats, timeSignatureAt, writtenPositionAt, type Score } from '../../domain/score';
+import { barLength, barLengthInBeats, timeSignatureAt, writtenBarStart, writtenPositionAt, type Score } from '../../domain/score';
 
 /** Where each bar starts on the tape and how wide it is, in "bar units" (a full bar is 1 wide). */
 export interface TapeBars {
@@ -46,20 +46,20 @@ export function barPosition(score: Score, time: number): number {
   // Played bars map to printed ones: on a repeat the position jumps back along the tape.
   const { bar, fraction } = writtenPositionAt(score, time);
   const bars = tapeBars(score);
-  return bars.starts[bar] + fraction * bars.widths[bar];
+  return (bars.starts[bar] ?? 0) + fraction * (bars.widths[bar] ?? 0);
 }
 
 /** Where a musical position (bar index and beat) falls on the tape, in bar units. */
 export function beatPosition(score: Score, bar: number, beat: number): number {
   const bars = tapeBars(score);
-  return bars.starts[bar] + ((beat - score.notation.bars[bar].start) / barLength(score, bar)) * bars.widths[bar];
+  return (bars.starts[bar] ?? 0) + ((beat - writtenBarStart(score, bar)) / barLength(score, bar)) * (bars.widths[bar] ?? 0);
 }
 
 /** The beat at `x` on the tape (bar units) within printed bar `bar`, the inverse of beatPosition. */
 export function beatAtPosition(score: Score, bar: number, x: number): number {
   const bars = tapeBars(score);
-  const fraction = Math.min(1, Math.max(0, (x - bars.starts[bar]) / bars.widths[bar]));
-  return score.notation.bars[bar].start + fraction * barLength(score, bar);
+  const fraction = Math.min(1, Math.max(0, (x - (bars.starts[bar] ?? 0)) / (bars.widths[bar] ?? 1)));
+  return writtenBarStart(score, bar) + fraction * barLength(score, bar);
 }
 
 export type { Clef } from '../../domain/notation/written';

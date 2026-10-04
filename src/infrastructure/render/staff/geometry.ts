@@ -88,12 +88,16 @@ export class StaffGeometry {
     const bars = score?.notation.bars ?? [];
     this.lead = bars.map((bar) => (bar.navigation.repeatStart ? REPEAT_LEAD : 0));
     this.tail = bars.map((bar) => (bar.navigation.repeatEnd ? REPEAT_TAIL : 0));
-    for (const change of this.changes) this.lead[change.bar] += signatureChangeWidth(change);
+    // (A bar the page does not have gets no room.)
+    const widen = (rooms: number[], bar: number, by: number) => {
+      if (rooms[bar] !== undefined) rooms[bar] += by;
+    };
+    for (const change of this.changes) widen(this.lead, change.bar, signatureChangeWidth(change));
     // Grace notes before a bar's first note stand between the bar line and it; those after its last note, before the next line.
-    for (const [bar, room] of graceRoom.lead) this.lead[bar] += Math.max(0, room - GRACE_ROOM_AT_BAR_LINE);
-    for (const [bar, room] of graceRoom.tail) this.tail[bar] += room;
+    for (const [bar, room] of graceRoom.lead) widen(this.lead, bar, Math.max(0, room - GRACE_ROOM_AT_BAR_LINE));
+    for (const [bar, room] of graceRoom.tail) widen(this.tail, bar, room);
     this.roomBefore = [0];
-    this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i] + lead + this.tail[i]));
+    this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i]! + lead + this.tail[i]!));
     this.barIndices = score ? tapeBars(score).starts.map((_, i) => i) : [];
     this.gutterSpaces = fitGutter(score);
   }
@@ -159,8 +163,8 @@ export class StaffGeometry {
     const score = this.score;
     if (!score) return 0;
     const tape = tapeBars(score);
-    const x = index < tape.starts.length ? tape.starts[index] : tape.end;
-    return x * this.barWidth() + (this.roomBefore[index] ?? this.roomBefore[this.roomBefore.length - 1]) * this.space - BAR_LINE_GAP * this.space;
+    const x = tape.starts[index] ?? tape.end;
+    return x * this.barWidth() + (this.roomBefore[index] ?? this.roomBefore.at(-1) ?? 0) * this.space - BAR_LINE_GAP * this.space;
   }
 
   /** An edge of a stretch of music (a loop, a bracket) at `x` in bar units: at a bar start, that bar's line. */
@@ -169,7 +173,7 @@ export class StaffGeometry {
     if (!score) return 0;
     const starts = tapeBars(score).starts;
     const bar = tapeBarAt(starts, x);
-    return Math.abs(starts[bar] - x) < 1e-6 ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
+    return Math.abs((starts[bar] ?? 0) - x) < 1e-6 ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
   }
 
   /** Cursor position inside the tape. */

@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:accept": "vitest run -u tests/snapshot.test.ts",
-    "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p src/domain && vue-tsc --noEmit -p src/application && vue-tsc --noEmit -p src/infrastructure",
+    "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p tests",
     "lint": "eslint .",
     "showcase": "node scripts/showcase.ts",
     "samples": "node scripts/samples.ts"

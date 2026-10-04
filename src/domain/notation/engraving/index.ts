@@ -26,7 +26,7 @@ import type { Beam, NotationLayout, StaffChord, StaffOctaveShift, Tuplet } from 
  */
 
 export type * from './types';
-export { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds } from './chords';
+export { ledgerSteps, shiftVoicesApart, stepSpan, untangleVoices, withSeconds } from './chords';
 
 /** Engraves a score: its notation, set on the staves. */
 export function engrave(score: Score): NotationLayout {

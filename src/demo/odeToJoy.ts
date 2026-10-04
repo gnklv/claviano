@@ -55,9 +55,10 @@ function chords(bars: readonly Part[], hand: Hand, secondsPerBeat: number): Note
   const notes: Note[] = [];
   let beat = 0;
   for (const bar of bars) {
-    for (let i = 0; i < bar.length; i += 2) {
-      const beats = bar[i][1];
-      for (const [midi] of [bar[i], bar[i + 1]]) {
+    for (let i = 0; i + 1 < bar.length; i += 2) {
+      const pair = [bar[i]!, bar[i + 1]!];
+      const beats = pair[0]![1];
+      for (const [midi] of pair) {
         if (midi === null) continue;
         notes.push({ pitch: midi, ...timing(beat, beats, secondsPerBeat), velocity: 0.45, hand });
       }

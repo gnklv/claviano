@@ -30,8 +30,8 @@ export function beamLine(
   stemUp: boolean,
   { stem, minStem, maxRise, maxSlope = 0.25 }: { stem: number; minStem: number; maxRise: number; maxSlope?: number },
 ): BeamLine {
-  const first = points[0];
-  const last = points[points.length - 1];
+  const first = points[0]!;
+  const last = points.at(-1)!;
   const direction = stemUp ? -1 : 1; // screen y grows downwards
   const firstEnd = first.noteY + direction * stem;
   const lastEnd = last.noteY + direction * stem;
@@ -54,8 +54,8 @@ export function beamLine(
  * there (every stem at least `minStem` long); where a slant leaves no such room, it lies level.
  */
 export function kneeBeamLine(points: readonly (StemPoint & { readonly stemUp: boolean })[], minStem: number): BeamLine {
-  const first = points[0];
-  const last = points[points.length - 1];
+  const first = points[0]!;
+  const last = points.at(-1)!;
   const melody = last.x > first.x ? (last.noteY - first.noteY) / (last.x - first.x) : 0;
   for (const slope of [melody / 2, melody / 4, 0]) {
     // For this slope, how high and how low the beam may start (y grows downwards).
@@ -88,7 +88,7 @@ export function avoidNotes(
   { band, clearance, shortestStem }: { band: number; clearance: number; shortestStem: number },
 ): BeamLine {
   // The beam's extent at x: from its outer edge (the line) inwards, towards the notes.
-  const extent = (l: BeamLine, x: number) => (stemUp ? [beamY(l, x), beamY(l, x) + band] : [beamY(l, x) - band, beamY(l, x)]);
+  const extent = (l: BeamLine, x: number): [number, number] => (stemUp ? [beamY(l, x), beamY(l, x) + band] : [beamY(l, x) - band, beamY(l, x)]);
   const hits = obstacles.filter((o) => {
     const [top, bottom] = extent(line, o.x);
     return o.bottom + clearance > top && o.top - clearance < bottom;
