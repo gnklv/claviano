@@ -21,6 +21,7 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
     svg style="display: block; width: 100%; height: 100%;"
       g transform="translate(280.2 0)"
         g
+        g
         line stroke-width="1" style="stroke: var(--bar-line);" x1="-17.5" x2="-17.5" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="407.05" x2="407.05" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="831.59" x2="831.59" y1="62.5" y2="237.5"

@@ -164,6 +164,28 @@ describe('SvgStaff', () => {
       expect(shaded(container)).toEqual([]);
     });
 
+    it('leaves the notes as they are when the loop changes: only its shade is drawn anew', () => {
+      const score = ode();
+      const { staff, container } = drawStaff(score);
+      const notes = () => [...container.querySelectorAll('text')];
+      const before = notes();
+      staff.setLoop(barRange(score, 1, 2));
+      staff.setLoop(null);
+      // The very same elements, not ones drawn again to look the same.
+      expect(notes().every((note, i) => note === before[i])).toBe(true);
+      expect(notes().length).toBe(before.length);
+    });
+
+    it('keeps the loop’s shade when the piece is drawn anew', () => {
+      const score = ode();
+      const size = { width: 1024, height: 300 };
+      const { staff, container } = drawStaff(score, size);
+      staff.setLoop(barRange(score, 1, 2));
+      size.width = 800;
+      staff.resize();
+      expect(shaded(container).length).toBe(1);
+    });
+
     it('shades the bar under the pointer faintly, and the bars being selected fully', () => {
       const { staff, container } = drawStaff(ode());
       staff.setHover(1);
@@ -202,6 +224,15 @@ describe('SvgStaff', () => {
     staff.resize();
     expect(staffLine().getAttribute('x2')).toBe('600');
     expect(container.querySelectorAll('svg *').length).toBe(elements);
+  });
+
+  it('draws nothing anew when told of a size that has not changed', () => {
+    const { staff, container } = drawStaff(ode());
+    const before = [...container.querySelectorAll('svg *')];
+    staff.resize();
+    const after = [...container.querySelectorAll('svg *')];
+    expect(after.length).toBe(before.length);
+    expect(after.every((element, i) => element === before[i])).toBe(true);
   });
 
   it('writes the hand marks in the language it is told', () => {

@@ -130,6 +130,8 @@ export class SvgStaff implements StaffView {
   private handLabels: Record<Hand, string> = { right: 'R.H.', left: 'L.H.' };
   /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
   private readonly overlay: SVGGElement = svg('g');
+  /** The loop's shade, behind the music too: redrawn alone when the loop changes. */
+  private readonly loopLayer: SVGGElement = svg('g');
   private hoverBar: number | null = null;
   /** The tape dragged by hand (see dragBy), or null while it follows the music. */
   private manual: { offset: number; idle: number } | null = null;
@@ -160,7 +162,8 @@ export class SvgStaff implements StaffView {
     Object.assign(this.cursor.style, { position: 'absolute', width: '2px', background: COLORS.cursor, borderRadius: '1px' });
 
     container.append(this.background, this.tape, this.cursor);
-    this.resize();
+    this.geometry.resize(container.clientWidth, container.clientHeight);
+    this.redraw();
   }
 
   setScore(score: Score | null): void {
@@ -194,7 +197,7 @@ export class SvgStaff implements StaffView {
 
   setLoop(loop: TimeRange | null): void {
     this.loop = loop;
-    this.drawStrip();
+    this.drawLoop();
   }
 
   /**
@@ -235,7 +238,14 @@ export class SvgStaff implements StaffView {
 
   /** Call when the container's size changes. */
   resize(): void {
-    this.geometry.resize(this.container.clientWidth, this.container.clientHeight);
+    const { clientWidth: width, clientHeight: height } = this.container;
+    // Browsers report a size when watching begins, changed or not: nothing to draw anew then.
+    if (width === this.geometry.width && height === this.geometry.height) return;
+    this.geometry.resize(width, height);
+    this.redraw();
+  }
+
+  private redraw(): void {
     this.drawBackground();
     this.drawStrip();
   }
@@ -385,6 +395,21 @@ export class SvgStaff implements StaffView {
     }
   }
 
+  /** The loop's bars, shaded behind the music. */
+  private drawLoop(): void {
+    this.loopLayer.replaceChildren();
+    const { score, loop, geometry } = this;
+    if (!score || score.notes.length === 0 || !loop) return;
+    const { space } = geometry;
+    const top = geometry.trebleTop();
+    const start = geometry.edgeX(barPosition(score, loop.start));
+    // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
+    const end = geometry.edgeX(barPosition(score, Math.max(loop.start, loop.end - 1e-6)));
+    this.loopLayer.append(
+      svg('rect', { x: start, y: top - 3 * space, width: Math.max(0, end - start), height: geometry.systemBottom() - top + 6 * space, fill: COLORS.loop }),
+    );
+  }
+
   private drawStrip(): void {
     this.ink.reset();
     this.strip.replaceChildren();
@@ -396,22 +421,11 @@ export class SvgStaff implements StaffView {
     if (!score || score.notes.length === 0) return;
 
     const { geometry, ink } = this;
-    const { space } = geometry;
     const context: StaffContext = { score, geometry, ink };
-    const top = geometry.trebleTop();
-    const bottom = geometry.systemBottom();
 
-    this.strip.append(this.overlay);
+    this.strip.append(this.overlay, this.loopLayer);
     this.drawOverlay();
-
-    if (this.loop) {
-      const start = geometry.edgeX(barPosition(score, this.loop.start));
-      // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
-      const end = geometry.edgeX(barPosition(score, Math.max(this.loop.start, this.loop.end - 1e-6)));
-      this.strip.append(
-        svg('rect', { x: start, y: top - 3 * space, width: Math.max(0, end - start), height: bottom - top + 6 * space, fill: COLORS.loop }),
-      );
-    }
+    this.drawLoop();
 
     const barLines = drawBarLines(context);
     this.strip.append(...barLines.lines, ...drawSignatureChanges(context), ...barLines.final, ...drawClefChanges(context));
