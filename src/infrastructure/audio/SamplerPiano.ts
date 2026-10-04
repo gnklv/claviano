@@ -106,7 +106,7 @@ export class SamplerPiano implements AudioOutput, Instrument {
       this.set = {
         baseUrl,
         layers: manifest.layers.map((layer) => ({
-          files: new Map(layer.notes.map((note) => [note.pitch, note.file])),
+          files: new Map(layer.notes.map((note) => [note.pitch, `${note.file}?v=${manifest.version}`])),
           recorded: (layer.velocity[0] + layer.velocity[1]) / 2 / 127,
         })),
         base,

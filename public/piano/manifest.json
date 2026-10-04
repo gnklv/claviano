@@ -6,6 +6,7 @@
   "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
   "source": "https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html",
   "changes": "A selection of the loudness layers, tails shortened, converted to MP3.",
+  "version": "568659b1",
   "base": "v8",
   "layers": [
     {

@@ -6,6 +6,7 @@ import type { Score } from './domain/score';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
+import { startOfflineCache } from './infrastructure/offline/offlineCache';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
@@ -18,7 +19,9 @@ import './ui/styles.css';
 // The piano's samples load in the background; until they are in (or if they never are), the synth plays.
 const audioContext = new AudioContext();
 const piano = new SamplerPiano(audioContext, new WebAudioSynth(audioContext));
-void piano.load(`${import.meta.env.BASE_URL}piano/`);
+// In the built app a service worker keeps the samples on disk; they are fetched once it is in place.
+const offline = import.meta.env.PROD ? startOfflineCache(import.meta.env.BASE_URL) : Promise.resolve();
+void offline.then(() => piano.load(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
 // The notes of the piece that is open are fetched first.

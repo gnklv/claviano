@@ -11,7 +11,8 @@
  * Run: npm run samples -- [path to its 44.1khz16bit folder]
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -53,6 +54,8 @@ if (!existsSync(SOURCE)) {
 rmSync(OUT, { recursive: true, force: true });
 const files = readdirSync(SOURCE);
 let total = 0;
+/** A fingerprint of every file: the set's version, so browsers keep the samples until they change. */
+const contents = createHash('sha1');
 
 const layers = LAYERS.map(({ layer, velocity }) => {
   const folder = `v${layer}`;
@@ -74,8 +77,10 @@ const layers = LAYERS.map(({ layer, velocity }) => {
         '-c:a', 'libmp3lame', '-q:a', String(MP3_QUALITY),
         join(OUT, path),
       ]);
-      const bytes = statSync(join(OUT, path)).size;
+      const content = readFileSync(join(OUT, path));
+      const bytes = content.length;
       total += bytes;
+      contents.update(path).update(content);
       return { pitch, file: path, bytes };
     });
   console.log(`${folder}: ${notes.length} notes, ${Math.round(notes.reduce((sum, n) => sum + n.bytes, 0) / 1024)} KB`);
@@ -90,6 +95,7 @@ const manifest = {
   licenseUrl: 'https://creativecommons.org/licenses/by/3.0/',
   source: 'https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html',
   changes: 'A selection of the loudness layers, tails shortened, converted to MP3.',
+  version: contents.digest('hex').slice(0, 8),
   base: `v${BASE_LAYER}`,
   layers,
 };

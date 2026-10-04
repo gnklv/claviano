@@ -9,6 +9,8 @@ export interface PianoManifest {
   readonly name: string;
   readonly author: string;
   readonly license: string;
+  /** Changes when the set is rebuilt with other content; part of the samples' addresses, for caching. */
+  readonly version: string;
   /** The loudness layers, softest first. */
   readonly layers: readonly PianoLayer[];
   /** The id of the layer to fetch first: the piano plays from it alone until the others are in. */
