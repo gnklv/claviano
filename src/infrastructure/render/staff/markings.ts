@@ -1,6 +1,7 @@
 import { barAtBeat, clefAt, writtenBarNumber } from '../../../domain/score';
 import type { StaffOctaveShift } from '../notationLayout';
-import { beatPosition, cancelledSteps, keySignatureSteps, tapeBars, type Clef } from '../staffLayout';
+import { cancelledSteps, keySignatureSteps } from '../../../domain/notation/signatures';
+import { beatPosition, tapeBars, type Clef } from '../staffLayout';
 import type { StaffContext } from './context';
 import {
   CHANGE_GAP_BEFORE,

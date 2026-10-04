@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createScore } from '../src/domain/score';
-import {
-  barPosition,
-  beatPosition,
-  cancelledSteps,
-  keySignatureSteps,
-  beatAtPosition,
-  signatureChanges,
-  tapeBars,
-} from '../src/infrastructure/render/staffLayout';
+import { cancelledSteps, keySignatureSteps, signatureChanges } from '../src/domain/notation/signatures';
+import { barPosition, beatAtPosition, beatPosition, tapeBars } from '../src/infrastructure/render/staffLayout';
 
 /** Bars at 0, 2 and 4 seconds; the last one ends at 5 seconds (it is shorter). */
 const score = createScore(

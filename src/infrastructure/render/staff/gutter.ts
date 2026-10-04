@@ -1,5 +1,6 @@
 import type { KeySignature, TimeSignature } from '../../../domain/score';
-import { keySignatureSteps, type Clef } from '../staffLayout';
+import { keySignatureSteps } from '../../../domain/notation/signatures';
+import type { Clef } from '../staffLayout';
 import { CLEF_AREA, FLAT_ADVANCE, LINES_PER_STAFF, SHARP_ADVANCE, keySignatureWidth, timeSignatureWidth, type StaffGeometry } from './geometry';
 import { CLEF_GLYPH, CLEF_LINE_STEP, FLAT, MUSIC_FONT, SHARP, timeDigits } from './glyphs';
 import { COLORS, svg } from './svg';

@@ -1,6 +1,7 @@
 import type { KeySignature, Score, TimeSignature } from '../../../domain/score';
 import { lastAtOrBefore } from '../../../domain/search';
-import { beatAtPosition, cancelledSteps, signatureChanges, tapeBars, type Clef, type SignatureChange } from '../staffLayout';
+import { cancelledSteps, signatureChanges, type SignatureChange } from '../../../domain/notation/signatures';
+import { beatAtPosition, tapeBars, type Clef } from '../staffLayout';
 
 /*
  * All sizes are in staff spaces (the distance between two staff lines),

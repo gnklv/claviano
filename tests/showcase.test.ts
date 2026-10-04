@@ -11,7 +11,7 @@ import { barNumber, hasPickup } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { layoutNotation } from '../src/infrastructure/render/notationLayout';
 import { layoutPedal } from '../src/infrastructure/render/pedalLayout';
-import { signatureChanges } from '../src/infrastructure/render/staffLayout';
+import { signatureChanges } from '../src/domain/notation/signatures';
 import { soundingDurations } from '../src/domain/pedal';
 
 // Tests run from the project root; in happy-dom import.meta.url is not a file path.

@@ -75,6 +75,12 @@ src/
                        file): quantization to a 1/32 grid, note values up to the next note,
                        spelling (Fa♯ or Sol♭) and accidentals per bar, the staff for each hand
                        (staffPosition.ts), 8va for far runs, beams by the beat (beaming.ts).
+                       engraving.ts — engrave: how the notation is set on the staves, in staff
+                       steps: stems, seconds, voices, ledger lines, beams and tuplets, ties and
+                       slurs, articulations, fermatas, ornaments, rests, grace notes;
+                       pedalEngraving.ts for pedal marks, signatures.ts for key signatures and
+                       where the key and metre change. No pixels: horizontal places are the
+                       caller's.
   application/
     ports/           AudioOutput, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore.
@@ -101,10 +107,10 @@ src/
                        fall as plain labels ("Pedal ↓", "Left pedal ↑"…) beside three pedals.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
-                       the notation laid out by notationLayout (for MIDI the domain writes
-                       it down first) and beamed by beams.ts; sounding notes light up.
-                       Pedal marks ("Ped." / "✱" or a bracket line, "Sost.", "una corda")
-                       come from pedalLayout.
+                       the notation as the domain engraves it (notationLayout and pedalLayout
+                       only ask for it with places along the tape); the staff/ folder turns it
+                       into pixels and SVG, beams.ts and curves.ts into beam lines and slurs;
+                       sounding notes light up.
   ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
                      per-frame work (canvas, position readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them

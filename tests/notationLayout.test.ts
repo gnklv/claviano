@@ -6,14 +6,8 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { spell } from '../src/domain/notation/spelling';
 import { staffFor } from '../src/domain/notation/staffPosition';
 import type { WrittenNote, WrittenRest } from '../src/domain/notation/written';
-import {
-  layoutNotation,
-  ledgerSteps,
-  shiftVoicesApart,
-  untangleVoices,
-  withSeconds,
-  type StaffChord,
-} from '../src/infrastructure/render/notationLayout';
+import { ledgerSteps, shiftVoicesApart, untangleVoices, withSeconds, type StaffChord } from '../src/domain/notation/engraving';
+import { layoutNotation } from '../src/infrastructure/render/notationLayout';
 
 const chordsOf = (score: Parameters<typeof layoutNotation>[0]) => layoutNotation(score).chords;
 
