@@ -18,6 +18,8 @@ export const en = {
   themeLight: 'Light',
   themeDark: 'Dark',
   language: 'Language',
+  creditPiano: 'Piano sound',
+  creditPianoChanges: 'shortened and compressed',
   pedal: 'Pedal',
   on: 'On',
   off: 'Off',

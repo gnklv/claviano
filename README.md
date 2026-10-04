@@ -26,6 +26,12 @@ pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). 
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 `tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
 
+**Piano sound.** The samples in `public/piano` come from the
+[Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (a Yamaha C5)
+by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+They were changed for the web: three of the sixteen loudness layers, tails shortened to 12 seconds,
+converted to MP3. `scripts/samples.ts` (`npm run samples`) rebuilds them from the original.
+
 ## Controls
 
 | | |
@@ -70,7 +76,13 @@ src/
                        MusicXmlParser — uncompressed MusicXML (.musicxml/.xml) via DOMParser:
                        sounding notes for playback (ties merged) and the notes as printed
                        (value, tuplet, accidental, stem, beams, clef, pedal) for the staff.
-    audio/             WebAudioSynth — additive synth with a piano-like envelope.
+    audio/             SamplerPiano — a piano played from samples (public/piano): three
+                       loudness layers, every third key recorded and the others shifted in
+                       pitch; the open piece's notes are fetched first.
+                       WebAudioSynth — additive synth with a piano-like envelope: plays until
+                       the samples are in, and the metronome.
+    offline/           offlineCache — starts the service worker (public/sw.js) that keeps the
+                       app and the samples on disk: a second visit works without the network.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + keyboard on Canvas 2D, showing only
                        the octaves the piece uses (keyboardRange). When keys would get too
@@ -100,7 +112,7 @@ timer jitter; the view only reads `playback.position` each frame.
 
 ## Roadmap
 
-- [ ] Sampled piano (e.g. Salamander Grand Piano) behind `AudioOutput`
+- [x] Sampled piano (Salamander Grand Piano) behind `AudioOutput`, kept on disk by a service worker
 - [ ] Web MIDI input and "wait mode"
 - [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
 - [x] MusicXML stage 2: staff as written (values, tuplets, accidentals, stems, beams, clef changes)

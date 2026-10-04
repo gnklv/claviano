@@ -12,6 +12,8 @@ export const ru: Dictionary = {
   themeLight: 'Светлая',
   themeDark: 'Тёмная',
   language: 'Язык',
+  creditPiano: 'Звук рояля',
+  creditPianoChanges: 'укорочен и сжат',
   pedal: 'Педаль',
   on: 'Вкл',
   off: 'Выкл',

@@ -31,6 +31,14 @@ const id = 'settings-menu';
         <LanguageSwitch />
       </div>
       <PracticeSettings />
+      <!-- The samples' licence (CC BY) asks for the author, the licence and what was changed. -->
+      <p class="credit">
+        {{ t('creditPiano') }}:
+        <a href="https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html" target="_blank" rel="noopener">Salamander Grand Piano</a>,
+        Alexander Holm,
+        <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>
+        ({{ t('creditPianoChanges') }})
+      </p>
     </div>
   </div>
 </template>
@@ -111,5 +119,19 @@ const id = 'settings-menu';
 
 .label {
   color: var(--muted);
+}
+
+.credit {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  max-width: 260px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.credit a {
+  color: inherit;
 }
 </style>
