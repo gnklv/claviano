@@ -352,7 +352,14 @@ export class Playback {
       const velocity = (soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity) * RESUMED_LOUDNESS;
       // The key may be up already, the pedal alone holding the note.
       const held = Math.min(left, Math.max(0, note.start + note.duration - position));
-      this.audio.playNote(note.pitch, velocity, this.toAudio(position), left / this.currentTempo, soft, held / this.currentTempo);
+      this.audio.playNote({
+        pitch: note.pitch,
+        velocity,
+        at: this.toAudio(position),
+        duration: left / this.currentTempo,
+        soft,
+        held: held / this.currentTempo,
+      });
     }
   }
 
@@ -390,7 +397,14 @@ export class Playback {
         const soft = this.pedalOn && this.softened[index];
         const velocity = soft ? note.velocity * SOFT_PEDAL_LOUDNESS : note.velocity;
         const held = Math.min(note.duration, duration);
-        this.audio.playNote(note.pitch, velocity, this.toAudio(note.start), duration / this.currentTempo, soft, held / this.currentTempo);
+        this.audio.playNote({
+          pitch: note.pitch,
+          velocity,
+          at: this.toAudio(note.start),
+          duration: duration / this.currentTempo,
+          soft,
+          held: held / this.currentTempo,
+        });
       }
       // As with the clicks: the index moves on even with the pedal off. The pedal coming up at the
       // end of the piece or after its last note is heard too, like the last chord ringing on.

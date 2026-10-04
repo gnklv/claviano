@@ -1,4 +1,4 @@
-import type { AudioOutput } from '../../application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay } from '../../application/ports/AudioOutput';
 import type { Instrument, InstrumentStatus, NoteToPrepare } from '../../application/ports/Instrument';
 import {
   describeSet,
@@ -277,13 +277,14 @@ export class SamplerPiano implements AudioOutput, Instrument {
     if (this.ctx.state !== 'running') await this.ctx.resume();
   }
 
-  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false, held = duration): void {
+  playNote(note: NoteToPlay): void {
+    const { pitch, velocity, at, duration, soft, held } = note;
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
     const sampleOf = (layer: number) => this.decoded.get(set?.layers[layer].get(recorded) ?? '');
     const base = set ? sampleOf(set.base) : undefined;
     if (!set || !base || !this.on || this.currentStatus !== 'ready') {
-      this.fallback.playNote(pitch, velocity, at, duration, soft, held);
+      this.fallback.playNote(note);
       return;
     }
     // The layer recorded nearest to this strike gives the tone: mellow when soft, bright when loud.

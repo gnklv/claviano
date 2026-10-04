@@ -1,4 +1,4 @@
-import type { AudioOutput } from '../../application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay } from '../../application/ports/AudioOutput';
 import { pitchFrequency } from '../../domain/pitch';
 
 interface Voice {
@@ -61,7 +61,7 @@ export class WebAudioSynth implements AudioOutput {
     if (this.ctx.state !== 'running') await this.ctx.resume();
   }
 
-  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
+  playNote({ pitch, velocity, at, duration, soft }: NoteToPlay): void {
     const { ctx } = this;
     const start = Math.max(at, ctx.currentTime);
     const end = start + Math.max(duration, 0.05);

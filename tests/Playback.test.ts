@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AudioOutput } from '../src/application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay } from '../src/application/ports/AudioOutput';
 import type { Ticker } from '../src/application/ports/Ticker';
 import { Playback } from '../src/application/use-cases/Playback';
 import type { Hand, Note } from '../src/domain/note';
@@ -7,12 +7,12 @@ import { createScore } from '../src/domain/score';
 
 class FakeAudio implements AudioOutput {
   time = 0;
-  played: { pitch: number; at: number; duration: number; velocity: number; soft: boolean; held?: number }[] = [];
+  played: NoteToPlay[] = [];
   stops = 0;
   now = () => this.time;
   resume = async () => {};
-  playNote(pitch: number, velocity: number, at: number, duration: number, soft = false, held?: number): void {
-    this.played.push({ pitch, at, duration, velocity, soft, held });
+  playNote(note: NoteToPlay): void {
+    this.played.push(note);
   }
   pedalMoves: { at: number; down: boolean }[] = [];
   playPedal(at: number, down: boolean): void {
