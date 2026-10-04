@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "vue-tsc --noEmit",
-    "showcase": "node scripts/showcase.ts"
+    "showcase": "node scripts/showcase.ts",
+    "samples": "node scripts/samples.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

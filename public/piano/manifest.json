@@ -1,0 +1,170 @@
+{
+  "name": "Salamander Grand Piano V3",
+  "instrument": "Yamaha C5",
+  "author": "Alexander Holm",
+  "license": "CC BY 3.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+  "source": "https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html",
+  "changes": "A selection of the loudness layers, tails shortened, converted to MP3.",
+  "layers": [
+    {
+      "id": "v8",
+      "velocity": [
+        57,
+        64
+      ],
+      "notes": [
+        {
+          "pitch": 21,
+          "file": "v8/21.mp3",
+          "bytes": 70288
+        },
+        {
+          "pitch": 24,
+          "file": "v8/24.mp3",
+          "bytes": 71685
+        },
+        {
+          "pitch": 27,
+          "file": "v8/27.mp3",
+          "bytes": 77698
+        },
+        {
+          "pitch": 30,
+          "file": "v8/30.mp3",
+          "bytes": 78066
+        },
+        {
+          "pitch": 33,
+          "file": "v8/33.mp3",
+          "bytes": 78951
+        },
+        {
+          "pitch": 36,
+          "file": "v8/36.mp3",
+          "bytes": 78772
+        },
+        {
+          "pitch": 39,
+          "file": "v8/39.mp3",
+          "bytes": 79631
+        },
+        {
+          "pitch": 42,
+          "file": "v8/42.mp3",
+          "bytes": 77703
+        },
+        {
+          "pitch": 45,
+          "file": "v8/45.mp3",
+          "bytes": 76295
+        },
+        {
+          "pitch": 48,
+          "file": "v8/48.mp3",
+          "bytes": 70773
+        },
+        {
+          "pitch": 51,
+          "file": "v8/51.mp3",
+          "bytes": 71905
+        },
+        {
+          "pitch": 54,
+          "file": "v8/54.mp3",
+          "bytes": 70108
+        },
+        {
+          "pitch": 57,
+          "file": "v8/57.mp3",
+          "bytes": 67454
+        },
+        {
+          "pitch": 60,
+          "file": "v8/60.mp3",
+          "bytes": 70640
+        },
+        {
+          "pitch": 63,
+          "file": "v8/63.mp3",
+          "bytes": 64338
+        },
+        {
+          "pitch": 66,
+          "file": "v8/66.mp3",
+          "bytes": 62812
+        },
+        {
+          "pitch": 69,
+          "file": "v8/69.mp3",
+          "bytes": 60314
+        },
+        {
+          "pitch": 72,
+          "file": "v8/72.mp3",
+          "bytes": 58908
+        },
+        {
+          "pitch": 75,
+          "file": "v8/75.mp3",
+          "bytes": 58434
+        },
+        {
+          "pitch": 78,
+          "file": "v8/78.mp3",
+          "bytes": 54370
+        },
+        {
+          "pitch": 81,
+          "file": "v8/81.mp3",
+          "bytes": 47743
+        },
+        {
+          "pitch": 84,
+          "file": "v8/84.mp3",
+          "bytes": 29432
+        },
+        {
+          "pitch": 87,
+          "file": "v8/87.mp3",
+          "bytes": 33936
+        },
+        {
+          "pitch": 90,
+          "file": "v8/90.mp3",
+          "bytes": 27953
+        },
+        {
+          "pitch": 93,
+          "file": "v8/93.mp3",
+          "bytes": 30861
+        },
+        {
+          "pitch": 96,
+          "file": "v8/96.mp3",
+          "bytes": 19837
+        },
+        {
+          "pitch": 99,
+          "file": "v8/99.mp3",
+          "bytes": 23114
+        },
+        {
+          "pitch": 102,
+          "file": "v8/102.mp3",
+          "bytes": 24494
+        },
+        {
+          "pitch": 105,
+          "file": "v8/105.mp3",
+          "bytes": 19552
+        },
+        {
+          "pitch": 108,
+          "file": "v8/108.mp3",
+          "bytes": 20519
+        }
+      ]
+    }
+  ]
+}
