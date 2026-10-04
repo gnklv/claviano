@@ -6,7 +6,167 @@
   "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
   "source": "https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html",
   "changes": "A selection of the loudness layers, tails shortened, converted to MP3.",
+  "base": "v8",
   "layers": [
+    {
+      "id": "v4",
+      "velocity": [
+        37,
+        43
+      ],
+      "notes": [
+        {
+          "pitch": 21,
+          "file": "v4/21.mp3",
+          "bytes": 62760
+        },
+        {
+          "pitch": 24,
+          "file": "v4/24.mp3",
+          "bytes": 67884
+        },
+        {
+          "pitch": 27,
+          "file": "v4/27.mp3",
+          "bytes": 69545
+        },
+        {
+          "pitch": 30,
+          "file": "v4/30.mp3",
+          "bytes": 69912
+        },
+        {
+          "pitch": 33,
+          "file": "v4/33.mp3",
+          "bytes": 70980
+        },
+        {
+          "pitch": 36,
+          "file": "v4/36.mp3",
+          "bytes": 70770
+        },
+        {
+          "pitch": 39,
+          "file": "v4/39.mp3",
+          "bytes": 74443
+        },
+        {
+          "pitch": 42,
+          "file": "v4/42.mp3",
+          "bytes": 70016
+        },
+        {
+          "pitch": 45,
+          "file": "v4/45.mp3",
+          "bytes": 70175
+        },
+        {
+          "pitch": 48,
+          "file": "v4/48.mp3",
+          "bytes": 64271
+        },
+        {
+          "pitch": 51,
+          "file": "v4/51.mp3",
+          "bytes": 68388
+        },
+        {
+          "pitch": 54,
+          "file": "v4/54.mp3",
+          "bytes": 61071
+        },
+        {
+          "pitch": 57,
+          "file": "v4/57.mp3",
+          "bytes": 61225
+        },
+        {
+          "pitch": 60,
+          "file": "v4/60.mp3",
+          "bytes": 64878
+        },
+        {
+          "pitch": 63,
+          "file": "v4/63.mp3",
+          "bytes": 59832
+        },
+        {
+          "pitch": 66,
+          "file": "v4/66.mp3",
+          "bytes": 58814
+        },
+        {
+          "pitch": 69,
+          "file": "v4/69.mp3",
+          "bytes": 55854
+        },
+        {
+          "pitch": 72,
+          "file": "v4/72.mp3",
+          "bytes": 56428
+        },
+        {
+          "pitch": 75,
+          "file": "v4/75.mp3",
+          "bytes": 56138
+        },
+        {
+          "pitch": 78,
+          "file": "v4/78.mp3",
+          "bytes": 51192
+        },
+        {
+          "pitch": 81,
+          "file": "v4/81.mp3",
+          "bytes": 30728
+        },
+        {
+          "pitch": 84,
+          "file": "v4/84.mp3",
+          "bytes": 25243
+        },
+        {
+          "pitch": 87,
+          "file": "v4/87.mp3",
+          "bytes": 31017
+        },
+        {
+          "pitch": 90,
+          "file": "v4/90.mp3",
+          "bytes": 25373
+        },
+        {
+          "pitch": 93,
+          "file": "v4/93.mp3",
+          "bytes": 28337
+        },
+        {
+          "pitch": 96,
+          "file": "v4/96.mp3",
+          "bytes": 18925
+        },
+        {
+          "pitch": 99,
+          "file": "v4/99.mp3",
+          "bytes": 21915
+        },
+        {
+          "pitch": 102,
+          "file": "v4/102.mp3",
+          "bytes": 23686
+        },
+        {
+          "pitch": 105,
+          "file": "v4/105.mp3",
+          "bytes": 18119
+        },
+        {
+          "pitch": 108,
+          "file": "v4/108.mp3",
+          "bytes": 15238
+        }
+      ]
+    },
     {
       "id": "v8",
       "velocity": [
@@ -163,6 +323,165 @@
           "pitch": 108,
           "file": "v8/108.mp3",
           "bytes": 20519
+        }
+      ]
+    },
+    {
+      "id": "v13",
+      "velocity": [
+        97,
+        104
+      ],
+      "notes": [
+        {
+          "pitch": 21,
+          "file": "v13/21.mp3",
+          "bytes": 75931
+        },
+        {
+          "pitch": 24,
+          "file": "v13/24.mp3",
+          "bytes": 77397
+        },
+        {
+          "pitch": 27,
+          "file": "v13/27.mp3",
+          "bytes": 84002
+        },
+        {
+          "pitch": 30,
+          "file": "v13/30.mp3",
+          "bytes": 82717
+        },
+        {
+          "pitch": 33,
+          "file": "v13/33.mp3",
+          "bytes": 86348
+        },
+        {
+          "pitch": 36,
+          "file": "v13/36.mp3",
+          "bytes": 88050
+        },
+        {
+          "pitch": 39,
+          "file": "v13/39.mp3",
+          "bytes": 85844
+        },
+        {
+          "pitch": 42,
+          "file": "v13/42.mp3",
+          "bytes": 84636
+        },
+        {
+          "pitch": 45,
+          "file": "v13/45.mp3",
+          "bytes": 86965
+        },
+        {
+          "pitch": 48,
+          "file": "v13/48.mp3",
+          "bytes": 76165
+        },
+        {
+          "pitch": 51,
+          "file": "v13/51.mp3",
+          "bytes": 77973
+        },
+        {
+          "pitch": 54,
+          "file": "v13/54.mp3",
+          "bytes": 75902
+        },
+        {
+          "pitch": 57,
+          "file": "v13/57.mp3",
+          "bytes": 76732
+        },
+        {
+          "pitch": 60,
+          "file": "v13/60.mp3",
+          "bytes": 77175
+        },
+        {
+          "pitch": 63,
+          "file": "v13/63.mp3",
+          "bytes": 67395
+        },
+        {
+          "pitch": 66,
+          "file": "v13/66.mp3",
+          "bytes": 67465
+        },
+        {
+          "pitch": 69,
+          "file": "v13/69.mp3",
+          "bytes": 63343
+        },
+        {
+          "pitch": 72,
+          "file": "v13/72.mp3",
+          "bytes": 63111
+        },
+        {
+          "pitch": 75,
+          "file": "v13/75.mp3",
+          "bytes": 62586
+        },
+        {
+          "pitch": 78,
+          "file": "v13/78.mp3",
+          "bytes": 55813
+        },
+        {
+          "pitch": 81,
+          "file": "v13/81.mp3",
+          "bytes": 49677
+        },
+        {
+          "pitch": 84,
+          "file": "v13/84.mp3",
+          "bytes": 31967
+        },
+        {
+          "pitch": 87,
+          "file": "v13/87.mp3",
+          "bytes": 36024
+        },
+        {
+          "pitch": 90,
+          "file": "v13/90.mp3",
+          "bytes": 28893
+        },
+        {
+          "pitch": 93,
+          "file": "v13/93.mp3",
+          "bytes": 31389
+        },
+        {
+          "pitch": 96,
+          "file": "v13/96.mp3",
+          "bytes": 23119
+        },
+        {
+          "pitch": 99,
+          "file": "v13/99.mp3",
+          "bytes": 24005
+        },
+        {
+          "pitch": 102,
+          "file": "v13/102.mp3",
+          "bytes": 25568
+        },
+        {
+          "pitch": 105,
+          "file": "v13/105.mp3",
+          "bytes": 19974
+        },
+        {
+          "pitch": 108,
+          "file": "v13/108.mp3",
+          "bytes": 22008
         }
       ]
     }

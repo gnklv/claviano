@@ -4,7 +4,7 @@
  *
  * The original has 16 loudness layers of 30 notes each (every minor third from the lowest A; the
  * notes between are played from their neighbour, a semitone up or down), as 1.1 GB of WAV. Here:
- * a few layers, tails cut short, MP3 (the one format every browser decodes).
+ * three layers (soft, medium, loud), tails cut short, MP3 (the one format every browser decodes).
  *
  * Needs ffmpeg, and the original unpacked (44.1 kHz, 16 bit) from
  * https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html
@@ -22,7 +22,13 @@ const OUT = join(import.meta.dirname, '../public/piano');
  * The layers to keep, of the original's 16 (1 the softest), and the MIDI velocities each was
  * recorded for (from the original's .sfz).
  */
-const LAYERS: { layer: number; velocity: [number, number] }[] = [{ layer: 8, velocity: [57, 64] }];
+const LAYERS: { layer: number; velocity: [number, number] }[] = [
+  { layer: 4, velocity: [37, 43] },
+  { layer: 8, velocity: [57, 64] },
+  { layer: 13, velocity: [97, 104] },
+];
+/** The layer the player fetches first and plays from alone until the others are in. */
+const BASE_LAYER = 8;
 
 /** A bass note rings for 25 seconds; nobody waits that long. Cut there, fading out over the last part. */
 const MAX_SECONDS = 12;
@@ -84,6 +90,7 @@ const manifest = {
   licenseUrl: 'https://creativecommons.org/licenses/by/3.0/',
   source: 'https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html',
   changes: 'A selection of the loudness layers, tails shortened, converted to MP3.',
+  base: `v${BASE_LAYER}`,
   layers,
 };
 writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);

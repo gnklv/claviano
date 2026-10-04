@@ -1,11 +1,13 @@
 import type { AudioOutput } from '../../application/ports/AudioOutput';
 import type { Instrument, InstrumentStatus } from '../../application/ports/Instrument';
 import {
-  loadOrder,
+  fetchOrder,
+  layerFor,
   nearestRecorded,
   neededRecorded,
   onsetSeconds,
   playbackRate,
+  sampleLevel,
   velocityGain,
   type PianoManifest,
 } from './pianoSamples';
@@ -14,6 +16,8 @@ interface Sample {
   readonly buffer: AudioBuffer;
   /** Where the sound starts in the buffer (see onsetSeconds). */
   readonly onset: number;
+  /** How loud it is by itself (see sampleLevel). */
+  readonly level: number;
 }
 
 interface Voice {
@@ -21,13 +25,15 @@ interface Voice {
   readonly gain: GainNode;
 }
 
-/** The loudness layer being fetched: where its files are, and the loudness (0–1) it was recorded at. */
-interface Layer {
+/** The sample set: its loudness layers (softest first) and the pitches each is recorded at. */
+interface SampleSet {
   readonly baseUrl: string;
-  readonly files: ReadonlyMap<number, string>;
-  /** Its recorded pitches, lowest first. */
+  /** For each layer, its files by recorded pitch and the velocity (0–1) it was recorded at. */
+  readonly layers: readonly { readonly files: ReadonlyMap<number, string>; readonly recorded: number }[];
+  /** The layer fetched first: the piano plays from it alone until the others are in. */
+  readonly base: number;
+  /** The recorded pitches, lowest first (the same in every layer). */
   readonly pitches: readonly number[];
-  readonly recorded: number;
 }
 
 /** Samples fetched at once: enough to fill the connection, few enough for the needed ones to come first. */
@@ -42,18 +48,20 @@ const SOFT_CUTOFF_HZ = 2200;
 
 /**
  * A piano played from recorded samples (see pianoSamples). The samples arrive over the network,
- * those of the piece's notes first. Until all of the piece's are in, and if they never arrive
- * (offline, a blocked request), a fallback output plays instead: the whole piece, not note by
- * note, so the two sounds never mix. The metronome's clicks always come from the fallback.
+ * those of the piece's notes first, the base layer before the others. Until the base layer has
+ * all of the piece's notes, and if they never arrive (offline, a blocked request), a fallback
+ * output plays instead: the whole piece, not note by note, so the two sounds never mix. A soft or
+ * a loud note whose own layer is not in yet is played from the base layer. The metronome's clicks
+ * always come from the fallback.
  */
 export class SamplerPiano implements AudioOutput, Instrument {
   private readonly output: AudioNode;
   private readonly voices = new Set<Voice>();
   private readonly listeners = new Set<() => void>();
-  private layer: Layer | null = null;
-  /** The samples that are in, by recorded pitch; and those asked for. */
-  private readonly samples = new Map<number, Sample>();
-  private readonly asked = new Set<number>();
+  private set: SampleSet | null = null;
+  /** The samples that are in: for each layer, by recorded pitch; and those asked for ("layer:pitch"). */
+  private samples: Map<number, Sample>[] = [];
+  private readonly asked = new Set<string>();
   private fetching = 0;
   /** The pitches of the piece being played; null before any piece: then every sample counts. */
   private preferred: readonly number[] | null = null;
@@ -93,12 +101,16 @@ export class SamplerPiano implements AudioOutput, Instrument {
   async load(baseUrl: string): Promise<void> {
     try {
       const manifest = (await (await fetchOk(`${baseUrl}manifest.json`)).json()) as PianoManifest;
-      const layer = manifest.layers[0];
-      this.layer = {
+      const base = Math.max(0, manifest.layers.findIndex((layer) => layer.id === manifest.base));
+      this.samples = manifest.layers.map(() => new Map());
+      this.set = {
         baseUrl,
-        files: new Map(layer.notes.map((note) => [note.pitch, note.file])),
-        pitches: layer.notes.map((note) => note.pitch),
-        recorded: (layer.velocity[0] + layer.velocity[1]) / 2 / 127,
+        layers: manifest.layers.map((layer) => ({
+          files: new Map(layer.notes.map((note) => [note.pitch, note.file])),
+          recorded: (layer.velocity[0] + layer.velocity[1]) / 2 / 127,
+        })),
+        base,
+        pitches: manifest.layers[base].notes.map((note) => note.pitch),
       };
     } catch (error) {
       this.fail(error);
@@ -109,21 +121,23 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   /** The recorded pitches the piece is played from (all of them before any piece). */
-  private needed(layer: Layer): Set<number> {
-    return this.preferred ? neededRecorded(layer.pitches, this.preferred) : new Set(layer.pitches);
+  private needed(set: SampleSet): Set<number> {
+    return this.preferred ? neededRecorded(set.pitches, this.preferred) : new Set(set.pitches);
   }
 
   /** Keeps CONCURRENT_FETCHES samples on their way, the needed ones first. */
   private fetchMore(): void {
-    const { layer } = this;
-    if (!layer || this.failed) return;
-    const order = loadOrder(layer.pitches, this.needed(layer)).filter((pitch) => !this.asked.has(pitch));
-    for (const pitch of order.slice(0, CONCURRENT_FETCHES - this.fetching)) {
-      this.asked.add(pitch);
+    const { set } = this;
+    if (!set || this.failed) return;
+    const order = fetchOrder(set.pitches, this.needed(set), set.layers.length, set.base).filter(
+      ([layer, pitch]) => !this.asked.has(`${layer}:${pitch}`),
+    );
+    for (const [layer, pitch] of order.slice(0, CONCURRENT_FETCHES - this.fetching)) {
+      this.asked.add(`${layer}:${pitch}`);
       this.fetching++;
-      this.fetchSample(layer.baseUrl + layer.files.get(pitch)!)
+      this.fetchSample(set.baseUrl + set.layers[layer].files.get(pitch)!)
         .then((sample) => {
-          this.samples.set(pitch, sample);
+          this.samples[layer].set(pitch, sample);
           this.fetching--;
           this.update();
           this.fetchMore();
@@ -137,7 +151,8 @@ export class SamplerPiano implements AudioOutput, Instrument {
       const data = await (await fetchOk(url)).arrayBuffer();
       const buffer = await this.ctx.decodeAudioData(data);
       const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
-      return { buffer, onset: onsetSeconds(channels, buffer.sampleRate) };
+      const onset = onsetSeconds(channels, buffer.sampleRate);
+      return { buffer, onset, level: sampleLevel(channels, buffer.sampleRate, onset) };
     } catch (error) {
       if (attempt >= FETCH_ATTEMPTS) throw error;
       return this.fetchSample(url, attempt + 1);
@@ -152,8 +167,8 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   private update(): void {
-    const { layer } = this;
-    const ready = layer !== null && [...this.needed(layer)].every((pitch) => this.samples.has(pitch));
+    const { set } = this;
+    const ready = set !== null && [...this.needed(set)].every((pitch) => this.samples[set.base].has(pitch));
     // What is already in keeps playing even if the rest fails to arrive.
     const status: InstrumentStatus = ready ? 'ready' : this.failed ? 'unavailable' : 'loading';
     if (status === this.currentStatus) return;
@@ -170,13 +185,16 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   playNote(pitch: number, velocity: number, at: number, duration: number, soft = false): void {
-    const { ctx, layer } = this;
-    const recorded = layer ? nearestRecorded(layer.pitches, pitch) : pitch;
-    const sample = this.samples.get(recorded);
-    if (!layer || !sample || this.currentStatus !== 'ready') {
+    const { ctx, set } = this;
+    const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
+    const base = set ? this.samples[set.base].get(recorded) : undefined;
+    if (!set || !base || this.currentStatus !== 'ready') {
       this.fallback.playNote(pitch, velocity, at, duration, soft);
       return;
     }
+    // The layer recorded nearest to this strike gives the tone: mellow when soft, bright when loud.
+    const own = this.samples[layerFor(set.layers.map((layer) => layer.recorded), velocity)].get(recorded);
+    const sample = own && own.level > 0 ? own : base;
     const start = Math.max(at, ctx.currentTime);
     const end = start + Math.max(duration, 0.05);
 
@@ -186,7 +204,9 @@ export class SamplerPiano implements AudioOutput, Instrument {
 
     // The sample carries the note's own decay; the gain only sets its loudness and the release.
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(velocityGain(velocity, layer.recorded), start);
+    // As loud as the base layer would be at this velocity, whichever layer plays: only the tone differs.
+    const level = velocityGain(velocity, set.layers[set.base].recorded) * (base.level / sample.level);
+    gain.gain.setValueAtTime(level, start);
     gain.gain.setTargetAtTime(0, end, RELEASE);
     gain.connect(this.output);
 

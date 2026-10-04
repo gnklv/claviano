@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { loadOrder, nearestRecorded, neededRecorded, onsetSeconds, playbackRate, velocityGain } from '../src/infrastructure/audio/pianoSamples';
+import {
+  fetchOrder,
+  layerFor,
+  loadOrder,
+  nearestRecorded,
+  neededRecorded,
+  onsetSeconds,
+  playbackRate,
+  sampleLevel,
+  velocityGain,
+} from '../src/infrastructure/audio/pianoSamples';
 
 /** Every third key, as recorded: A0, C1, D#1, F#1, A1 … */
 const recorded = Array.from({ length: 30 }, (_, i) => 21 + 3 * i);
@@ -37,6 +47,47 @@ describe('loadOrder', () => {
 
   it('goes from the middle outwards when nothing is needed yet', () => {
     expect(loadOrder(recorded, new Set()).slice(0, 3)).toEqual([60, 57, 63]);
+  });
+});
+
+describe('fetchOrder', () => {
+  it('fetches the piece from the base layer, then from the others, then the rest of the keyboard', () => {
+    // Three layers, the middle one the base; the piece needs two recorded notes.
+    const order = fetchOrder(recorded, new Set([60, 63]), 3, 1);
+    expect(order.slice(0, 6)).toEqual([
+      [1, 60],
+      [1, 63],
+      [0, 60],
+      [0, 63],
+      [2, 60],
+      [2, 63],
+    ]);
+    expect(order[6]).toEqual([1, 57]);
+    expect(order).toHaveLength(90);
+  });
+});
+
+describe('layerFor', () => {
+  const layers = [0.3, 0.5, 0.8];
+
+  it('plays a note from the layer recorded nearest to its strike', () => {
+    expect(layerFor(layers, 0.1)).toBe(0);
+    expect(layerFor(layers, 0.45)).toBe(1);
+    expect(layerFor(layers, 0.7)).toBe(2);
+    expect(layerFor(layers, 1)).toBe(2);
+  });
+});
+
+describe('sampleLevel', () => {
+  it('is the RMS of the sound from its onset', () => {
+    const silence = new Float32Array(100);
+    const sound = new Float32Array(1000).fill(0.5);
+    const channel = new Float32Array([...silence, ...sound]);
+    expect(sampleLevel([channel, channel], 1000, 0.1)).toBeCloseTo(0.5);
+  });
+
+  it('is nothing for an empty sample', () => {
+    expect(sampleLevel([new Float32Array(0)], 44100, 0)).toBe(0);
   });
 });
 
