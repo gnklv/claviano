@@ -1,5 +1,6 @@
 // Composition root: the only place that knows about concrete implementations.
 import { createApp } from 'vue';
+import { BarLoop } from './application/use-cases/BarLoop';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { Playback } from './application/use-cases/Playback';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
@@ -31,6 +32,7 @@ if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } }
 createApp(App)
   .provide(depsKey, {
     playback,
+    barLoop: new BarLoop(playback),
     instrument: piano,
     loadScore: new LoadScore([new MidiFileParser(), musicXml]),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),

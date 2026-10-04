@@ -3,13 +3,12 @@ import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { RollView } from '../../application/ports/RollView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useBarLoop } from '../composables/useBarLoop';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import { readRollColors } from '../theme/readRollColors';
 import { useTheme } from '../theme/useTheme';
 
-const { playback, createRoll } = useDeps();
+const { playback, barLoop: loop, createRoll } = useDeps();
 const { noteLabel, t } = useI18n();
 /** The right pedal is just "Pedal": it is the one people mean. */
 const PEDAL_LABELS = {
@@ -54,7 +53,6 @@ useAnimationFrame(() => {
 
 /** A pointer moves this many pixels before it counts as dragging rather than tapping. */
 const DRAG_PX = 6;
-const loop = useBarLoop(playback);
 
 /** The finger or mouse currently pressed, where it was last, and which way it drags once it does. */
 let press: { pointerId: number; x: number; y: number; startX: number; startY: number; drag: 'none' | 'time' | 'keys' } | null = null;

@@ -2,6 +2,7 @@ import { inject, type InjectionKey } from 'vue';
 import type { Instrument } from '../application/ports/Instrument';
 import type { RollView } from '../application/ports/RollView';
 import type { StaffView } from '../application/ports/StaffView';
+import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { LoadScore } from '../application/use-cases/LoadScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Score } from '../domain/score';
@@ -18,6 +19,7 @@ export interface Demo {
 /** Everything the UI needs from the outside world; wired up in main.ts. */
 export interface AppDeps {
   readonly playback: Playback;
+  readonly barLoop: BarLoop;
   /** The piano's sound: whether it has loaded. */
   readonly instrument: Instrument;
   readonly loadScore: LoadScore;

@@ -3,12 +3,11 @@ import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useBarLoop } from '../composables/useBarLoop';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
-const { playback, createStaff } = useDeps();
+const { playback, barLoop: loop, createStaff } = useDeps();
 const state = usePlaybackState(playback);
 const { t, locale } = useI18n();
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
@@ -47,7 +46,6 @@ useAnimationFrame(() => staff?.render(playback.position, (hand) => playback.isHa
 const DRAG_PX = 6;
 /** On a touch screen, holding this long before moving selects bars to loop instead of dragging the tape. */
 const LONG_PRESS_MS = 450;
-const loop = useBarLoop(playback);
 const grabbing = ref(false);
 
 /** The press in progress: where it started on the page, what it does, and the bar it has reached. */

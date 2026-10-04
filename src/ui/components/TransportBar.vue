@@ -14,7 +14,7 @@ const SEEK_STEPS = 1000;
 /** How long the metronome's dot stays lit after a click, in seconds. */
 const PULSE_SECONDS = 0.1;
 
-const { playback } = useDeps();
+const { playback, barLoop } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
@@ -90,10 +90,10 @@ function onSeekEnd(): void {
 
 // --- Bar loop ---
 
-const loop = useBarLoop(playback);
+const loop = useBarLoop(barLoop);
 const loopEnabled = loop.enabled;
-const loopFrom = computed({ get: () => loop.from.value, set: (bar: number) => loop.setFrom(bar) });
-const loopTo = computed({ get: () => loop.to.value, set: (bar: number) => loop.setTo(bar) });
+const loopFrom = computed({ get: () => loop.from.value, set: (bar: number) => barLoop.setFrom(bar) });
+const loopTo = computed({ get: () => loop.to.value, set: (bar: number) => barLoop.setTo(bar) });
 
 function togglePlay(): void {
   if (playback.playing) playback.pause();

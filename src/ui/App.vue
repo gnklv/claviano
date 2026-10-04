@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ScoreLoadError, type ScoreLoadErrorCode } from '../application/ports/ScoreParser';
-import { barAt, barNumber, type Score } from '../domain/score';
+import { stepBar } from '../application/use-cases/stepBar';
+import { barNumber, type Score } from '../domain/score';
 import DemoMenu from './components/DemoMenu.vue';
 import InstrumentNotice from './components/InstrumentNotice.vue';
 import LanguageSwitch from './components/LanguageSwitch.vue';
@@ -92,14 +93,6 @@ function onDrop(event: DragEvent): void {
   if (file) void openFile(file);
 }
 
-function stepBar(delta: number): void {
-  const score = playback.score;
-  if (!score) return;
-  const target = Math.min(Math.max(barAt(score, playback.position + 0.01) + delta, 0), score.bars.length - 1);
-  const start = score.bars[target];
-  if (start !== undefined) playback.seek(start);
-}
-
 function onKeyDown(event: KeyboardEvent): void {
   const input = event.target instanceof HTMLInputElement ? event.target : null;
   // Typing a bar number is left alone; so are the arrows on a slider (tempo, position), which move it.
@@ -112,7 +105,7 @@ function onKeyDown(event: KeyboardEvent): void {
     else void playback.play();
   } else if (arrow) {
     event.preventDefault();
-    stepBar(event.code === 'ArrowLeft' ? -1 : 1);
+    stepBar(playback, event.code === 'ArrowLeft' ? -1 : 1);
   }
 }
 
