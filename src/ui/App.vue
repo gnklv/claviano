@@ -1,68 +1,40 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import type { OpenFailure } from '../application/use-cases/OpenScore';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { stepBar } from '../application/use-cases/stepBar';
-import { barNumber } from '../domain/score';
-import DemoMenu from './components/DemoMenu.vue';
-import InstrumentNotice from './components/InstrumentNotice.vue';
-import LanguageSwitch from './components/LanguageSwitch.vue';
-import CountInOverlay from './components/CountInOverlay.vue';
-import PianoRoll from './components/PianoRoll.vue';
-import PracticeSettings from './components/PracticeSettings.vue';
-import StaffView from './components/StaffView.vue';
-import SettingsMenu from './components/SettingsMenu.vue';
-import ThemeSwitch from './components/ThemeSwitch.vue';
-import TransportBar from './components/TransportBar.vue';
-import ViewModeSwitch from './components/ViewModeSwitch.vue';
-import { useOpenScore } from './composables/useOpenScore';
 import { usePlaybackState } from './composables/usePlaybackState';
-import { useViewMode } from './composables/useViewMode';
 import { useDeps } from './deps';
-import type { MessageKey } from './i18n/en';
 import { useI18n } from './i18n/useI18n';
+import { createNavigation } from './navigation/useScreen';
+import LibraryScreen from './screens/LibraryScreen.vue';
+import PieceScreen from './screens/PieceScreen.vue';
 
-const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
-  'unsupported-format': 'errorUnsupportedFormat',
-  'invalid-file': 'errorInvalidFile',
-  'unsupported-feature': 'errorUnsupportedFeature',
-  unknown: 'errorUnknown',
-};
+/*
+ * The shell: which screen is shown, and what works on every screen: a file dropped onto the
+ * window, and the keys of the computer's keyboard.
+ */
 
-const { playback, openScore, demos } = useDeps();
+const { playback, openScore } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
-const viewMode = useViewMode();
 const dragging = ref(false);
 
-/** What is open and what failed to, as data, so the text follows a language switch. */
-const opened = useOpenScore(openScore);
-const demoTitle = (id: string): string => t(demos.find((demo) => demo.id === id)?.title ?? 'errorUnknown');
+const navigation = createNavigation((screen) => screen === 'library' || playback.score !== null);
+const { screen } = navigation;
+onUnmounted(() => navigation.dispose());
 
-const title = computed(() => {
-  const { demo, failure } = opened.value;
-  if (failure) {
-    const file = 'file' in failure.source ? failure.source.file : demoTitle(failure.source.demo.id);
-    return t('openError', { file, reason: t(ERROR_MESSAGES[failure.reason]) });
-  }
-  const score = state.value.score;
-  if (!score) return t('emptyHint');
-  return t('scoreSummary', {
-    title: demo ? demoTitle(demo.id) : score.title,
-    // A pickup is not counted as a bar of its own: the count is the last bar's number.
-    bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
-    notes: t('notesCount', { count: score.notes.length }),
-  });
+// A piece that has just opened is shown; leaving it for the library, the music stops.
+watch(
+  () => state.value.score,
+  (score) => {
+    if (score) navigation.go('piece');
+  },
+);
+watch(screen, (shown) => {
+  if (shown === 'library') playback.pause();
 });
 
 async function openFile(file: File): Promise<void> {
   openScore.openFile(file.name, await file.arrayBuffer());
-}
-
-function onFileChosen(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (file) void openFile(file);
-  input.value = '';
 }
 
 function onDrop(event: DragEvent): void {
@@ -72,6 +44,8 @@ function onDrop(event: DragEvent): void {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
+  // The keys play the piece: in the library there is nothing for them to do.
+  if (screen.value !== 'piece') return;
   const input = event.target instanceof HTMLInputElement ? event.target : null;
   // Typing a bar number is left alone; so are the arrows on a slider (tempo, position), which move it.
   if (input?.type === 'number') return;
@@ -89,7 +63,7 @@ function onKeyDown(event: KeyboardEvent): void {
 
 /** Otherwise Space would also "click" whichever button or checkbox has focus. */
 function onKeyUp(event: KeyboardEvent): void {
-  if (event.code === 'Space') event.preventDefault();
+  if (screen.value === 'piece' && event.code === 'Space') event.preventDefault();
 }
 
 onMounted(() => {
@@ -105,166 +79,35 @@ onUnmounted(() => {
 <template>
   <div
     class="app"
+    :class="{ dragging }"
+    :data-drop-hint="t('dropHint')"
     @dragover.prevent="dragging = true"
     @dragleave="dragging = !!$event.relatedTarget"
     @drop.prevent="onDrop"
   >
-    <header class="bar">
-      <strong class="logo">{{ t('appTitle') }}</strong>
-      <label class="button">
-        {{ t('openMidi') }}
-        <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
-      </label>
-      <DemoMenu :demos="demos" @choose="openScore.openDemo($event)" />
-      <span class="title">{{ title }}</span>
-      <!-- Wide screens show the settings inline; narrow ones tuck them behind ⚙ (see styles below). -->
-      <div class="settings-inline">
-        <ViewModeSwitch />
-        <ThemeSwitch />
-        <LanguageSwitch />
-        <!-- Only where the ⚙ menu cannot open (no Popover API): see styles below. -->
-        <div class="practice-inline"><PracticeSettings /></div>
-      </div>
-      <SettingsMenu class="settings-menu" />
-    </header>
-
-    <main class="stage" :class="[`view-${viewMode}`, { dragging }]" :data-drop-hint="t('dropHint')">
-      <StaffView v-if="viewMode !== 'keys'" class="view staff" />
-      <PianoRoll v-if="viewMode !== 'staff'" class="view" />
-      <CountInOverlay />
-      <InstrumentNotice />
-    </main>
-
-    <TransportBar />
+    <PieceScreen v-if="screen === 'piece'" @back="navigation.go('library')" />
+    <LibraryScreen v-else @file="openFile" @demo="openScore.openDemo($event)" />
   </div>
 </template>
 
 <style scoped>
 .app {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  /* One column no wider than the screen: by default it would grow to fit the title's one long line. */
-  grid-template-columns: minmax(0, 1fr);
+  position: relative;
   height: 100%;
 }
 
-.bar:first-child {
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-size: 16px;
-  letter-spacing: 0.02em;
-}
-
-.title {
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex: 1;
-}
-
-.settings-inline {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-}
-
-.practice-inline {
-  display: none;
-}
-
-/* Below this width the inline settings no longer fit next to the title; the ⚙ menu has them all. */
-@media (max-width: 900px) {
-  .settings-inline {
-    display: none;
-  }
-
-  .settings-menu {
-    margin-left: auto;
-  }
-
-  /* The title gets its own full-width row under the buttons. */
-  .title {
-    order: 1;
-    flex-basis: 100%;
-  }
-}
-
-/* Narrow phones: the logo, both buttons and ⚙ fit one row with a little less air between them. */
-@media (max-width: 420px) {
-  .bar:first-child {
-    column-gap: 10px;
-  }
-}
-
-/*
- * Browsers without the Popover API (e.g. iPhones stuck on iOS 16) would show the menu card
- * permanently. There we skip the menu and keep the settings inline, as on wide screens.
- */
-@supports not selector(:popover-open) {
-  .settings-inline {
-    display: inline-flex;
-  }
-
-  .practice-inline {
-    display: contents;
-  }
-
-  .settings-menu {
-    display: none;
-  }
-}
-
-.stage {
-  position: relative;
-  min-height: 0;
-  /* In landscape the notch is on a side; keep the keyboard edges out from under it. */
-  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
-  display: grid;
-  grid-template-rows: 1fr;
-}
-
-.stage.view-both {
-  grid-template-rows: minmax(160px, 38%) 1fr;
-}
-
-.view {
-  min-height: 0;
-}
-
-.view-both .staff {
-  border-bottom: 1px solid var(--border);
-}
-
-.stage.dragging::after {
+/* A file held over the window, on any screen. */
+.app.dragging::after {
   content: attr(data-drop-hint);
   position: absolute;
   inset: 12px;
+  z-index: 10;
   display: grid;
   place-items: center;
   border: 2px dashed var(--accent);
   border-radius: 12px;
   background: var(--drop-overlay);
   font-size: 18px;
-}
-
-/*
- * Short screens (a phone in landscape): every pixel of height goes to the music.
- * The title stays in the button row, and the staff gets a share instead of a fixed minimum.
- * Kept last so it overrides the rules above for the same elements.
- */
-@media (max-height: 500px) {
-  .title {
-    order: 0;
-    flex-basis: 0;
-  }
-
-  .stage.view-both {
-    grid-template-rows: 45% 1fr;
-  }
+  pointer-events: none;
 }
 </style>

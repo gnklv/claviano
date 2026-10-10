@@ -37,9 +37,11 @@ export const ru: Dictionary = {
 
   openMidi: 'Открыть файл',
   demo: 'Демо',
-  demoOde: 'Ода к радости (демо)',
+  demoOde: 'Ода к радости',
   demoShowcase: 'Витрина: всё, что умеет плеер',
-  emptyHint: 'Перетащите файл MIDI или MusicXML в окно или нажмите «Демо»',
+  openFormats: 'MIDI, MusicXML, MXL',
+  libraryHint: 'Или перетащите файл в окно',
+  backToLibrary: 'К библиотеке',
   dropHint: 'Отпустите, чтобы открыть',
   scoreSummary: '{title} · {bars} · {notes}',
   barsCount: { one: '{count} такт', few: '{count} такта', many: '{count} тактов', other: '{count} такта' },

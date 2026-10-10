@@ -43,9 +43,11 @@ export const en = {
 
   openMidi: 'Open file',
   demo: 'Demo',
-  demoOde: 'Ode to Joy (demo)',
+  demoOde: 'Ode to Joy',
   demoShowcase: 'Showcase: everything the player can do',
-  emptyHint: 'Drop a MIDI or MusicXML file into the window or press “Demo”',
+  openFormats: 'MIDI, MusicXML, MXL',
+  libraryHint: 'Or drop a file onto the window',
+  backToLibrary: 'Back to the library',
   dropHint: 'Release to open',
   scoreSummary: '{title} · {bars} · {notes}',
   barsCount: { one: '{count} bar', other: '{count} bars' },
