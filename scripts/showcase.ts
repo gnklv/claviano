@@ -115,6 +115,8 @@ const endingStart = (n: number) => `<barline location="left"><ending number="${n
 const endingStop = (n: number, type: 'stop' | 'discontinue') => `<barline location="right"><ending number="${n}" type="${type}"/></barline>`;
 /** A sign (segno, coda) printed over the bar, with the <sound> that makes it a jump target. */
 const sign = (name: 'segno' | 'coda') => `<direction placement="above"><direction-type><${name}/></direction-type><sound ${name}="${name}"/></direction>`;
+/** Words in italics over the staff: a way of playing, a change of pace. */
+const words = (text: string) => `<direction placement="above"><direction-type><words font-style="italic">${text}</words></direction-type></direction>`;
 const direction = (words: string, sound: string) =>
   `<direction placement="above"><direction-type><words>${words}</words></direction-type><sound ${sound}/></direction>`;
 /**
@@ -437,40 +439,52 @@ const measures: string[] = [
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 26–30: repeats and jumps. Played: 26 27 | 26 28 29 | D.S. → 26 28 | To Coda → 30.
-  // 26: segno and ‖:.
+  // 26: slowing down. "rit." over a run of eighths: each a little longer than the one before,
+  // hardly at first and more towards the end, down to 0.85 of the pace (in the middle of
+  // a piece it is a breath, not a stop). "a tempo" at the next bar gives the pace back.
   `<measure number="26">
+    ${direction('Slowing down', '')}
+    ${words('rit.')}
+    ${['D5', 'E5', 'F#5', 'G5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(4)[i]] })).join('')}
+    ${['A5', 'G5', 'F#5', 'E5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(4)[i]] })).join('')}
+    ${backup(W)}${note('D3', H, { type: 'half', staff: 2 })}${note('A2', H, { type: 'half', staff: 2 })}
+  </measure>`,
+
+  // 27–31: repeats and jumps. Played: 27 28 | 27 29 30 | D.S. → 27 29 | To Coda → 31.
+  // 27: segno and ‖:.
+  `<measure number="27">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
+    ${words('a tempo')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 27: first ending, back to ‖:.
-  `<measure number="27">
+  // 28: first ending, back to ‖:.
+  `<measure number="28">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 28: second ending; after the D.S. it leads to the coda.
-  `<measure number="28">
+  // 29: second ending; after the D.S. it leads to the coda.
+  `<measure number="29">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 29: back to the segno.
-  `<measure number="29">
+  // 30: back to the segno.
+  `<measure number="30">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 30: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 31: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="30">
+  `<measure number="31">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

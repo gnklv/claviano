@@ -6,6 +6,7 @@ import { dynamicsAlongPage, levelCurve, withHairpinLevels } from './dynamics';
 import { graceTiming } from './grace';
 import { performanceOrder, type BarNavigation } from './navigation';
 import type { Notation, PedalMove, TempoChange } from './notation';
+import { PACE_DEPTHS, paceTempos, type PaceDepths } from './pace';
 import { arpeggioDelays, neighbour, playOrnament, playTremolo, playTremoloBetween } from './ornaments';
 import { midiOf } from './spelling';
 import type { Articulation } from './written';
@@ -18,7 +19,8 @@ import type { Articulation } from './written';
  * - articulation shortens or stresses a note; dynamics set how loud it is (dynamics.ts);
  * - tied notes sound as one; a fermata holds the music;
  * - repeats, voltas and jumps decide the order the bars are played in (navigation.ts);
- * - tempo marks turn beats into seconds; pedal marks into when the pedals are down.
+ * - tempo marks turn beats into seconds, and the words of pace ("rit.", "a tempo") bend the tempo (pace.ts);
+ * - pedal marks say when the pedals are down.
  *
  * Nothing here knows which file format the notation was read from, nor how it is drawn.
  */
@@ -73,7 +75,7 @@ interface PendingNote {
 type MutableNavigation = { -readonly [K in keyof BarNavigation]: BarNavigation[K] };
 
 /** Plays the notation: the score with its notes in time, and the notation kept beside them for the staff. */
-export function performNotation(notation: Notation): Score {
+export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPTHS): Score {
   const measures: Measure[] = notation.bars.map((bar) => ({
     start: bar.start,
     length: bar.length,
@@ -82,7 +84,8 @@ export function performNotation(notation: Notation): Score {
     tempos: [],
     pedal: [],
   }));
-  for (const tempo of notation.tempos) measures[tempo.bar]?.tempos.push(tempo);
+  // The tempo as set, and as the words of pace move it ("rit.", "a tempo").
+  for (const tempo of [...notation.tempos, ...paceTempos(notation, DEFAULT_TEMPO, pace)]) measures[tempo.bar]?.tempos.push(tempo);
   for (const move of notation.pedalMoves) measures[move.bar]?.pedal.push(move);
 
   // Grace notes: when each sounds, and how much later the note it leads to comes in.

@@ -1,4 +1,5 @@
 import type { ScoreParser } from '../../application/ports/ScoreParser';
+import { PACE_DEPTHS, type PaceDepths } from '../../domain/notation/pace';
 import { performNotation } from '../../domain/notation/performance';
 import type { Score } from '../../domain/score';
 import { PartReader } from './musicxml/PartReader';
@@ -19,6 +20,9 @@ export { InvalidMusicXmlError };
  */
 
 export class MusicXmlParser implements ScoreParser {
+  /** `pace`: how far the words of pace ("rit.") go; the usual depths when not given. */
+  constructor(private readonly pace: PaceDepths = PACE_DEPTHS) {}
+
   canParse(fileName: string): boolean {
     return /\.(musicxml|xml|mxl)$/i.test(fileName);
   }
@@ -35,7 +39,7 @@ export class MusicXmlParser implements ScoreParser {
 
     const part = pianoPart(root);
     if (!part) throw new InvalidMusicXmlError('The score has no parts');
-    return performNotation(new PartReader(workTitle(root) ?? title).read(part));
+    return performNotation(new PartReader(workTitle(root) ?? title).read(part), this.pace);
   }
 }
 
