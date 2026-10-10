@@ -142,7 +142,6 @@ timer jitter; the view only reads `playback.position` each frame.
 ## Roadmap
 
 - [x] Sampled piano (Salamander Grand Piano) behind `AudioOutput`, kept on disk by a service worker
-- [ ] Web MIDI input and "wait mode"
 - [x] MusicXML parser, stage 1: play and show uncompressed MusicXML
 - [x] MusicXML stage 2: staff as written (values, tuplets, accidentals, stems, beams, clef changes)
 - [x] Stage 3: rests (placement rules, whole-bar rests, two voices) and tie arcs (MusicXML)
@@ -185,3 +184,21 @@ timer jitter; the view only reads `playback.position` each frame.
       (through both hands as one wave). Each is drawn as printed and played as its notes
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter
+
+Next, roughly in this order (see [the concept](docs/concept.md): a library to start from, learning
+a piece, free play):
+
+- [ ] Redesign, step 1: the three screens (library, learning, free play) and the new transport
+      bar: what is always at hand, what is needed once a session, what is seldom changed
+- [ ] Phones and tablets: go through the app on an iPhone and an iPad (the iOS Simulator will do
+      for layout and touch; sound, memory and smoothness need real devices), fix what is cramped
+      or slow, check the samples in iOS Safari
+- [ ] The library: opened pieces kept in the browser, each with the bar it was left at
+- [ ] Free play from the keys on the screen: what is played is written down and saved as a piece
+- [ ] Volume: sliders for the piano and the metronome (in the settings panel)
+- [ ] Install as an app on the phone (web app manifest, icons; the service worker is there)
+- [ ] Listening through the microphone (to research first): following a piece as it is played from
+      the notes (which notes were right, a "wait mode" without a cable), and free play by ear
+- [ ] Sheet music from PDF (to research first): reading printed notes into the notation
+- [ ] Files with several instruments (low priority: the app is for one)
+- [ ] Web MIDI input and "wait mode" (last: needs a keyboard and a cable to try)
