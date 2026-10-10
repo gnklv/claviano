@@ -316,6 +316,8 @@ export class PartReader {
     const beats = duration / this.divisions;
 
     if (rest) {
+      // A hidden rest only takes its time (it keeps a voice in step); nothing is printed.
+      if (element.getAttribute('print-object') === 'no') return;
       const staff = childNumber(element, 'staff') ?? 1;
       this.rests.push(readRest(element, rest, { staff, clef: this.clefs.get(staff) ?? 'treble', beat, beats }));
       return;

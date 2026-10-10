@@ -7,7 +7,7 @@ import { layoutGraces } from './graces';
 import { layoutArpeggios, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
 import { layoutRests } from './rests';
 import { layoutSlurs, layoutTies } from './slurs';
-import type { Beam, NotationLayout, StaffChord, StaffOctaveShift, Tuplet } from './types';
+import type { Beam, NotationLayout, StaffChord, StaffNote, StaffOctaveShift, Tuplet } from './types';
 
 /*
  * Engraving: how notation is set on the staves. From the notes as written to what stands where:
@@ -30,9 +30,28 @@ export { ledgerSteps, shiftVoicesApart, stepSpan, untangleVoices, withSeconds } 
 
 /** Engraves a score: its notation, set on the staves. */
 export function engrave(score: Score): NotationLayout {
-  const layout = layoutWritten(score, score.notation.notes, score.notation.rests);
+  const layout = layoutWritten(score, printedNotes(score.notation.notes), score.notation.rests);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
   return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
+}
+
+/** The notes that are printed. Where the first note of a chord is hidden, the next one leads the chord. */
+function printedNotes(notes: readonly WrittenNote[]): readonly WrittenNote[] {
+  if (!notes.some((note) => note.hidden)) return notes;
+  const printed: WrittenNote[] = [];
+  let leaderless = false; // the chord being read has lost its first note
+  for (const note of notes) {
+    if (!note.chord) leaderless = false;
+    if (note.hidden) {
+      leaderless ||= !note.chord;
+    } else if (note.chord && leaderless) {
+      printed.push({ ...note, chord: false });
+      leaderless = false;
+    } else {
+      printed.push(note);
+    }
+  }
+  return printed;
 }
 
 /**
@@ -55,7 +74,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const bar = barAtBeat(score, first.beat);
     const notes = group
       // The clef in force (not the staff) decides where a pitch sits.
-      .map((note) => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental }))
+      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, ...(note.headless ? { headless: true } : {}) }))
       .sort((a, b) => a.step - b.step);
     const { top, bottom } = stepSpan(notes);
     const chord: StaffChord = {

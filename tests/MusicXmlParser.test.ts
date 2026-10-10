@@ -738,6 +738,43 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  describe('what the engraver hid', () => {
+    it('plays a hidden note and prints nothing for it', () => {
+      const hidden = note('E', 4, 2).replace('<note', '<note print-object="no"');
+      const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 2)}${hidden}${note('G', 4, 4)}</measure>`), 'test');
+      expect(s.notes.map((n) => n.pitch)).toEqual([60, 64, 67]);
+      expect(s.notation.notes.map((n) => n.hidden ?? false)).toEqual([false, true, false]);
+      expect(layoutNotation(s).chords.map((c) => c.beat)).toEqual([0, 1, 2].filter((beat) => beat !== 1));
+    });
+
+    it('keeps the rest of a chord on its stem when the first note of the chord is hidden', () => {
+      const hidden = note('C', 4, 4).replace('<note', '<note print-object="no"');
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${hidden}${note('E', 4, 4, { extra: '<chord/>' })}${note('G', 4, 4, { extra: '<chord/>' })}${note('C', 5, 4)}</measure>`),
+        'test',
+      );
+      expect(s.notes.map((n) => n.pitch).sort()).toEqual([60, 64, 67, 72]);
+      const chords = layoutNotation(s).chords;
+      expect(chords.map((c) => c.notes.length)).toEqual([2, 1]);
+      expect(chords[0].beat).toBe(0);
+    });
+
+    it('skips a hidden rest but keeps its time', () => {
+      const hiddenRest = '<note print-object="no"><rest/><duration>2</duration><voice>1</voice><type>quarter</type></note>';
+      const s = parser.parse(score(`<measure number="1">${attributes()}${hiddenRest}${note('E', 4, 2)}${note('G', 4, 4)}</measure>`), 'test');
+      expect(s.notation.rests).toEqual([]);
+      expect(s.notation.notes.map((n) => n.beat)).toEqual([1, 2]);
+    });
+
+    it('reads a note without a head, which still sounds', () => {
+      const headless = note('C', 4, 4, { extra: '<notehead>none</notehead>' });
+      const s = parser.parse(score(`<measure number="1">${attributes()}${headless}${note('E', 4, 4)}</measure>`), 'test');
+      expect(s.notation.notes.map((n) => n.headless ?? false)).toEqual([true, false]);
+      expect(s.notes.map((n) => n.pitch)).toEqual([60, 64]);
+      expect(layoutNotation(s).chords.map((c) => c.notes[0].headless ?? false)).toEqual([true, false]);
+    });
+  });
+
   describe('pedals', () => {
     const pedal = (type: string, attrs = '', offset = '') =>
       `<direction placement="below"><direction-type><pedal type="${type}" ${attrs}/></direction-type>${offset}</direction>`;

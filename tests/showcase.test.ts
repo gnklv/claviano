@@ -24,11 +24,11 @@ const chordsIn = (number: number, staff: 'treble' | 'bass' = 'treble') =>
   layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.beat - b.beat);
 
 describe('showcase score', () => {
-  it('opens with a pickup and numbers bars 0–27', () => {
+  it('opens with a pickup and numbers bars 0–28', () => {
     expect(score.title).toBe('Claviano showcase');
     expect(hasPickup(score)).toBe(true);
     expect(barNumber(score, 0)).toBe(0);
-    expect(barNumber(score, score.bars.length - 1)).toBe(27);
+    expect(barNumber(score, score.bars.length - 1)).toBe(28);
   });
 
   it('has every note value, dotted ones and ledger lines', () => {
@@ -221,16 +221,44 @@ describe('showcase score', () => {
     expect(roll.every((n, i) => i === 0 || n.beat > roll[i - 1].beat)).toBe(true);
   });
 
+  it('prints the eighths of bar 23 without heads where they share a note with the melody, and nothing for the hidden rest', () => {
+    const voices = chordsIn(23);
+    // At each half of the bar two chords stand on one note: the melody's with its head, the eighths' without.
+    for (const beat of [0, 2]) {
+      const shared = voices.filter((c) => Math.abs(c.beat - score.notation.bars[23].start - beat) < 1e-6);
+      expect(shared.map((c) => [c.duration.value, c.stemUp, c.notes.map((n) => n.headless ?? false)])).toEqual([
+        ['half', true, [false]],
+        ['eighth', false, [true]],
+      ]);
+      expect(shared[0].notes[0].step).toBe(shared[1].notes[0].step);
+    }
+    // The headless eighths still lead their beams.
+    const headless = layout.chords.map((c, i) => ({ c, i })).filter(({ c }) => c.notes.some((n) => n.headless));
+    expect(headless).toHaveLength(2);
+    expect(headless.every(({ c, i }) => c.beam !== null && layout.beams[c.beam].chords[0] === i)).toBe(true);
+    // Both notes sound: the melody's half note and the eighth on the same key.
+    const start = score.barBeats[score.barWritten.indexOf(23)];
+    expect(score.notes.filter((n) => Math.abs(n.beat - start) < 1e-6 && n.hand === 'right').map((n) => [n.pitch, n.beats])).toEqual([
+      [pitch('Re', 5), 2],
+      [pitch('Re', 5), 0.5],
+    ]);
+
+    // The left hand's first half is a hidden rest: no rest is printed there, and the note comes in on time.
+    const inBar = (beat: number) => beat >= score.notation.bars[23].start - 1e-6 && beat < score.notation.bars[24].start - 1e-6;
+    expect(layout.rests.filter((r) => inBar(r.beat))).toEqual([]);
+    expect(chordsIn(23, 'bass').map((c) => c.beat - score.notation.bars[23].start)).toEqual([2]);
+  });
+
   it('plays repeats, voltas, D.S. and the coda in order, while the page keeps each bar once', () => {
-    // Printed bars are played in this order from bar 23 on (the pickup is bar 0, so index = number).
-    const tail = score.barWritten.slice(score.barWritten.indexOf(23));
-    expect(tail).toEqual([23, 24, 23, 25, 26, 23, 25, 27]);
-    expect(score.notation.bars).toHaveLength(28);
-    expect(score.notation.bars[23].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
-    expect(score.notation.bars[24].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
-    expect(score.notation.bars[25].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
-    expect(score.notation.bars[26].navigation).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
-    expect(score.notation.bars[27].navigation).toMatchObject({ coda: true, codaSign: true });
+    // Printed bars are played in this order from bar 24 on (the pickup is bar 0, so index = number).
+    const tail = score.barWritten.slice(score.barWritten.indexOf(24));
+    expect(tail).toEqual([24, 25, 24, 26, 27, 24, 26, 28]);
+    expect(score.notation.bars).toHaveLength(29);
+    expect(score.notation.bars[24].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
+    expect(score.notation.bars[25].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
+    expect(score.notation.bars[26].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
+    expect(score.notation.bars[27].navigation).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
+    expect(score.notation.bars[28].navigation).toMatchObject({ coda: true, codaSign: true });
   });
 
   it('holds the fermata of bar 15: its half note sounds twice as long, and the bar lasts longer', () => {

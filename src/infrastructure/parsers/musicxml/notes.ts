@@ -121,6 +121,8 @@ export function readWritten(
         ? 'down'
         : 'up'
       : null,
+    ...(element.getAttribute('print-object') === 'no' ? { hidden: true } : {}),
+    ...(childText(element, 'notehead') === 'none' ? { headless: true } : {}),
     slurs: [...element.querySelectorAll(':scope > notations > slur')].flatMap((slur): SlurMark[] => {
       const type = slur.getAttribute('type');
       if (type !== 'start' && type !== 'stop') return []; // "continue" only matters across systems

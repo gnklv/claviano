@@ -1,4 +1,4 @@
-chords: 171
+chords: 182
   {"staff":"treble","hand":"right","beat":0,"beats":0.5,"bar":0,"beam":0,"notes":[{"step":6}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":0.5,"beats":0.5,"bar":0,"beam":0,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":1,"beats":2,"bar":1,"notes":[{"step":-4}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2,-4]}
@@ -153,27 +153,38 @@ chords: 171
   {"staff":"bass","hand":"left","beat":83,"beats":1,"bar":22,"notes":[{"step":0}],"duration":{"value":"half","dots":0}}
   {"staff":"treble","hand":"right","beat":84,"beats":2,"bar":22,"notes":[{"step":2},{"step":5},{"step":7}],"duration":{"value":"half","dots":0},"stemUp":true}
   {"staff":"bass","hand":"left","beat":84,"beats":2,"bar":22,"notes":[{"step":2},{"step":7},{"step":11}],"duration":{"value":"half","dots":0},"stemUp":true,"ledgerSteps":[10]}
-  {"staff":"treble","hand":"right","beat":86,"beats":1,"bar":23,"notes":[{"step":2}],"duration":{"value":"quarter","dots":0}}
-  {"staff":"bass","hand":"left","beat":86,"beats":2,"bar":23,"notes":[{"step":7}],"duration":{"value":"half","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":87,"beats":1,"bar":23,"notes":[{"step":1}],"duration":{"value":"quarter","dots":0}}
-  {"staff":"treble","hand":"right","beat":88,"beats":1,"bar":23,"notes":[{"step":0}],"duration":{"value":"quarter","dots":0}}
+  {"staff":"treble","hand":"right","beat":86,"beats":2,"bar":23,"notes":[{"step":2}],"duration":{"value":"half","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":86,"beats":0.5,"bar":23,"beam":23,"notes":[{"step":2,"headless":true}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":86.5,"beats":0.5,"bar":23,"beam":23,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":87,"beats":0.5,"bar":23,"beam":23,"notes":[{"step":7}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":87.5,"beats":0.5,"bar":23,"beam":23,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":88,"beats":2,"bar":23,"notes":[{"step":1}],"duration":{"value":"half","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":88,"beats":0.5,"bar":23,"beam":24,"notes":[{"step":1,"headless":true}],"duration":{"value":"eighth","dots":0}}
   {"staff":"bass","hand":"left","beat":88,"beats":2,"bar":23,"notes":[{"step":4}],"duration":{"value":"half","dots":0}}
-  {"staff":"treble","hand":"right","beat":89,"beats":1,"bar":23,"notes":[{"step":-1}],"duration":{"value":"quarter","dots":0}}
-  {"staff":"treble","hand":"right","beat":90,"beats":2,"bar":24,"notes":[{"step":-2}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
-  {"staff":"bass","hand":"left","beat":90,"beats":4,"bar":24,"notes":[{"step":4}],"duration":{"value":"whole","dots":0}}
-  {"staff":"treble","hand":"right","beat":92,"beats":2,"bar":24,"notes":[{"step":0}],"duration":{"value":"half","dots":0}}
-  {"staff":"treble","hand":"right","beat":94,"beats":2,"bar":25,"notes":[{"step":-3}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
-  {"staff":"bass","hand":"left","beat":94,"beats":4,"bar":25,"notes":[{"step":8}],"duration":{"value":"whole","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":96,"beats":2,"bar":25,"notes":[{"step":-2}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
-  {"staff":"treble","hand":"right","beat":98,"beats":2,"bar":26,"notes":[{"step":1}],"duration":{"value":"half","dots":0}}
-  {"staff":"bass","hand":"left","beat":98,"beats":4,"bar":26,"notes":[{"step":7}],"duration":{"value":"whole","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":100,"beats":2,"bar":26,"notes":[{"step":3}],"duration":{"value":"half","dots":0}}
-  {"staff":"treble","hand":"right","beat":102,"beats":4,"bar":27,"notes":[{"step":-2},{"step":0},{"step":2}],"duration":{"value":"whole","dots":0},"ledgerSteps":[-2]}
-  {"staff":"bass","hand":"left","beat":102,"beats":4,"bar":27,"notes":[{"step":4},{"step":11}],"duration":{"value":"whole","dots":0},"stemUp":true,"ledgerSteps":[10]}
+  {"staff":"treble","hand":"right","beat":88.5,"beats":0.5,"bar":23,"beam":24,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":89,"beats":0.5,"bar":23,"beam":24,"notes":[{"step":6}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":89.5,"beats":0.5,"bar":23,"beam":24,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":90,"beats":1,"bar":24,"notes":[{"step":2}],"duration":{"value":"quarter","dots":0}}
+  {"staff":"bass","hand":"left","beat":90,"beats":2,"bar":24,"notes":[{"step":7}],"duration":{"value":"half","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":91,"beats":1,"bar":24,"notes":[{"step":1}],"duration":{"value":"quarter","dots":0}}
+  {"staff":"treble","hand":"right","beat":92,"beats":1,"bar":24,"notes":[{"step":0}],"duration":{"value":"quarter","dots":0}}
+  {"staff":"bass","hand":"left","beat":92,"beats":2,"bar":24,"notes":[{"step":4}],"duration":{"value":"half","dots":0}}
+  {"staff":"treble","hand":"right","beat":93,"beats":1,"bar":24,"notes":[{"step":-1}],"duration":{"value":"quarter","dots":0}}
+  {"staff":"treble","hand":"right","beat":94,"beats":2,"bar":25,"notes":[{"step":-2}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
+  {"staff":"bass","hand":"left","beat":94,"beats":4,"bar":25,"notes":[{"step":4}],"duration":{"value":"whole","dots":0}}
+  {"staff":"treble","hand":"right","beat":96,"beats":2,"bar":25,"notes":[{"step":0}],"duration":{"value":"half","dots":0}}
+  {"staff":"treble","hand":"right","beat":98,"beats":2,"bar":26,"notes":[{"step":-3}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
+  {"staff":"bass","hand":"left","beat":98,"beats":4,"bar":26,"notes":[{"step":8}],"duration":{"value":"whole","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":100,"beats":2,"bar":26,"notes":[{"step":-2}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
+  {"staff":"treble","hand":"right","beat":102,"beats":2,"bar":27,"notes":[{"step":1}],"duration":{"value":"half","dots":0}}
+  {"staff":"bass","hand":"left","beat":102,"beats":4,"bar":27,"notes":[{"step":7}],"duration":{"value":"whole","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":104,"beats":2,"bar":27,"notes":[{"step":3}],"duration":{"value":"half","dots":0}}
+  {"staff":"treble","hand":"right","beat":106,"beats":4,"bar":28,"notes":[{"step":-2},{"step":0},{"step":2}],"duration":{"value":"whole","dots":0},"ledgerSteps":[-2]}
+  {"staff":"bass","hand":"left","beat":106,"beats":4,"bar":28,"notes":[{"step":4},{"step":11}],"duration":{"value":"whole","dots":0},"stemUp":true,"ledgerSteps":[10]}
 octaveShifts: 2
   {"staff":"treble","start":46,"end":50,"octaves":1}
   {"staff":"bass","start":48,"end":50,"octaves":-1}
-beams: 23
+beams: 25
   {"chords":[0,1],"stemUp":true}
   {"chords":[6,8,9,10]}
   {"chords":[11,12]}
@@ -197,6 +208,8 @@ beams: 23
   {"chords":[89,90,91]}
   {"chords":[117,118,120,121],"stemUp":true}
   {"chords":[123,124,125,126],"stemUp":true}
+  {"chords":[155,156,157,158]}
+  {"chords":[160,162,163,164]}
 tuplets: 4
   {"chords":[46,48,49],"number":3,"showNumber":true,"above":true}
   {"chords":[51,52,54],"number":3,"above":true}
@@ -237,8 +250,8 @@ marks: 15
   {"chord":132,"kind":"staccato","above":true,"step":-1}
   {"chord":133,"kind":"staccato","above":true,"step":-1}
   {"chord":134,"kind":"staccato","above":true,"step":-1}
-  {"chord":169,"kind":"fermata","above":true,"step":-5}
-  {"chord":170,"kind":"fermata","step":14}
+  {"chord":180,"kind":"fermata","above":true,"step":-5}
+  {"chord":181,"kind":"fermata","step":14}
 slurs: 2
   {"from":107,"to":112,"above":true,"between":[109,110]}
   {"from":108,"to":117,"between":[111,114,115]}
@@ -263,11 +276,11 @@ pedal.signs: 6
   {"beat":50,"kind":"release"}
   {"beat":58,"kind":"press"}
   {"beat":62,"kind":"release"}
-  {"beat":102,"kind":"press"}
+  {"beat":106,"kind":"press"}
   {"beat":66,"kind":"sostenuto"}
 pedal.lines: 3
   {"pedal":"sustain","from":62,"to":66,"changes":[64]}
-  {"pedal":"sustain","from":102,"to":106,"afterSign":true}
+  {"pedal":"sustain","from":106,"to":110,"afterSign":true}
   {"pedal":"sostenuto","from":66,"to":70,"afterSign":true}
 pedal.words: 2
   {"beat":43,"text":"una corda"}

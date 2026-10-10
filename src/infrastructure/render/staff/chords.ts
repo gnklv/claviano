@@ -84,6 +84,8 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
   }
 
   for (const note of chord.notes) {
+    // No head, and so nothing that goes with a head: the voice that has the head carries those.
+    if (note.headless) continue;
     const y = yOf(note.step);
     group.append(glyph(NOTEHEAD[value], note.displaced ? left + shift : left, y));
     // Accidentals keep clear of every head (a voice moved aside for a second keeps them left of the

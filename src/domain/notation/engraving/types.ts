@@ -21,6 +21,8 @@ export interface StaffNote {
    * the left of a down-stem.
    */
   readonly displaced?: boolean;
+  /** No head is drawn: the stem and beams only (another voice has this note's head). */
+  readonly headless?: boolean;
 }
 
 /** Notes on one staff that start together and look the same share a stem: a chord (or a single note). */

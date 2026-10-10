@@ -90,6 +90,13 @@ export interface WrittenNote {
   readonly tremolo: { readonly type: 'single' | 'start' | 'stop'; readonly strokes: number } | null;
   /** Part of a rolled chord (a wavy line before it): from the bottom up, or from the top down. */
   readonly arpeggio: 'up' | 'down' | null;
+  /** Not printed: it only sounds (the engraver hid it). */
+  readonly hidden?: boolean;
+  /**
+   * Printed without its head: a stem and beams only. So a voice shares a note with another voice,
+   * which has the head.
+   */
+  readonly headless?: boolean;
 }
 
 /** A grace note as printed: a small note with no time of its own on the page (see grace.ts for how it is played). */
