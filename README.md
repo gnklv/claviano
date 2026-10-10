@@ -184,6 +184,8 @@ timer jitter; the view only reads `playback.position` each frame.
       (through both hands as one wave). Each is drawn as printed and played as its notes
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter
+- [x] A repeated note is seen to be repeated: its key goes out for a moment before each new
+      strike, as a finger leaves it (the falling tiles keep their written length and touch)
 - [x] Read as printed (MusicXML): notes and rests the engraver hid, notes without heads (a voice
       sharing a note with another), clefs with an 8, small (cue-size) notes, notes in brackets,
       fingering; the pedal as MuseScore 4 writes it; a title that is no editor's placeholder
@@ -226,10 +228,6 @@ the research for steps 8 and 9; checks on real devices and on GitHub Pages.
 
 Small things noticed, to fix between the steps:
 
-- [ ] A key struck again at once stays lit: when one note is repeated with no gap between the
-      notes, its key on the keyboard (and its chord on the staff) is in colour all the way through,
-      though the key comes up and goes down again. The key should go out for a moment before each
-      new strike, as a finger leaves it; the falling tiles should show the gap too
 - [ ] The top of the staff is cut off when the stage is low (a phone on its side, a wide and
       short window): an 8va bracket, words and tempo marks over high notes run past the edge.
       With step 3

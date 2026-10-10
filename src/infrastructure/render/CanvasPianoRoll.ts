@@ -1,3 +1,4 @@
+import { keyReleasesOf } from '../../domain/keys';
 import { noteEnd, type Hand } from '../../domain/note';
 import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { isBlackKey } from '../../domain/pitch';
@@ -278,10 +279,12 @@ export class CanvasPianoRoll implements RollView {
   private soundingAt(frame: RollFrame): Map<number, Hand> {
     const active = new Map<number, Hand>();
     const { score, position } = frame;
+    // A key is down until its finger leaves it: a moment before the same key is struck again.
+    const releases = keyReleasesOf(score);
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
       const note = score.notes[i]!;
       if (note.start > position) break;
-      if (noteEnd(note) >= position && frame.isHandEnabled(note.hand)) active.set(note.pitch, note.hand);
+      if (releases[i]! >= position && frame.isHandEnabled(note.hand)) active.set(note.pitch, note.hand);
     }
     return active;
   }
@@ -465,6 +468,8 @@ export class CanvasPianoRoll implements RollView {
     const { score, position } = frame;
     const until = position + this.secondsVisible;
     const { notes } = score;
+    // A tile is as long as its note is written: a repeated note's tiles touch. (That the finger
+    // leaves the key between them is shown on the keyboard: see soundingAt.)
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < notes.length; i++) {
       const note = notes[i]!;
       if (note.start > until) break;
