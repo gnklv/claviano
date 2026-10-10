@@ -1,13 +1,13 @@
 import type { KeySignature, TimeSignature } from '../../../domain/score';
 import { keySignatureSteps } from '../../../domain/notation/signatures';
-import type { Clef } from '../staffLayout';
+import type { Clef, ClefSign } from '../../../domain/notation/written';
 import { CLEF_AREA, FLAT_ADVANCE, LINES_PER_STAFF, SHARP_ADVANCE, keySignatureWidth, timeSignatureWidth, type StaffGeometry } from './geometry';
-import { CLEF_GLYPH, CLEF_LINE_STEP, FLAT, MUSIC_FONT, SHARP, timeDigits } from './glyphs';
+import { CLEF_GLYPH, CLEF_LINE_STEP, FLAT, MUSIC_FONT, octaveClefGlyph, SHARP, timeDigits } from './glyphs';
 import { COLORS, svg } from './svg';
 
 /** What the left column shows: the clefs in force (upper, lower) and, with music, the signatures. */
 export interface GutterContent {
-  clefs: [Clef, Clef];
+  clefs: [ClefSign, ClefSign];
   signatures: { key: KeySignature; time: TimeSignature } | null;
 }
 
@@ -46,15 +46,15 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
   // The clefs in force under the cursor; usually treble above and bass below.
   const [upper, lower] = clefs;
   shapes.push(
-    glyph(CLEF_GLYPH[upper], space * 1.2, geometry.trebleTop() + (CLEF_LINE_STEP[upper] * space) / 2),
-    glyph(CLEF_GLYPH[lower], space * 1.2, geometry.bassTop() + (CLEF_LINE_STEP[lower] * space) / 2),
+    glyph(octaveClefGlyph(upper) ?? CLEF_GLYPH[upper.clef], space * 1.2, geometry.trebleTop() + (CLEF_LINE_STEP[upper.clef] * space) / 2),
+    glyph(octaveClefGlyph(lower) ?? CLEF_GLYPH[lower.clef], space * 1.2, geometry.bassTop() + (CLEF_LINE_STEP[lower.clef] * space) / 2),
   );
 
   if (!signatures) return shapes;
   const { key, time } = signatures;
   const staves: [Clef, number][] = [
-    [upper, geometry.trebleTop()],
-    [lower, geometry.bassTop()],
+    [upper.clef, geometry.trebleTop()],
+    [lower.clef, geometry.bassTop()],
   ];
 
   // Each accidental sits on its line or space: a step is half a staff space.

@@ -18,6 +18,17 @@ export interface ClefChange {
   readonly staff: number;
   readonly beat: number;
   readonly clef: Clef;
+  /**
+   * A clef with a small 8 over it (1) or under it (−1), or a 15 (±2): the notes sound that many
+   * octaves above where they are printed.
+   */
+  readonly octaves?: number;
+}
+
+/** A clef as printed: the sign, and the octaves it moves the notes by (0 for a plain clef). */
+export interface ClefSign {
+  readonly clef: Clef;
+  readonly octaves: number;
 }
 
 /** "3 in the time of 2": a triplet is { actual: 3, normal: 2 }. */

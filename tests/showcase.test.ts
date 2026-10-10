@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
-import { barNumber, hasPickup } from '../src/domain/score';
+import { barNumber, clefSignAt, hasPickup } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { engrave as layoutNotation } from '../src/domain/notation/engraving';
 import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
@@ -24,11 +24,11 @@ const chordsIn = (number: number, staff: 'treble' | 'bass' = 'treble') =>
   layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.beat - b.beat);
 
 describe('showcase score', () => {
-  it('opens with a pickup and numbers bars 0–28', () => {
+  it('opens with a pickup and numbers bars 0–29', () => {
     expect(score.title).toBe('Claviano showcase');
     expect(hasPickup(score)).toBe(true);
     expect(barNumber(score, 0)).toBe(0);
-    expect(barNumber(score, score.bars.length - 1)).toBe(28);
+    expect(barNumber(score, score.bars.length - 1)).toBe(29);
   });
 
   it('has every note value, dotted ones and ledger lines', () => {
@@ -103,7 +103,7 @@ describe('showcase score', () => {
   it('changes key, metre, clef, tempo and loudness along the way', () => {
     expect(score.notation.keySignatures.map((k) => k.fifths)).toEqual([0, -3, 2]);
     expect(score.notation.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4']);
-    expect(score.notation.clefs.filter((c) => c.staff === 2).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
+    expect(score.notation.clefs.filter((c) => c.staff === 2 && c.beat < score.notation.bars[24].start).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
     // Bars 10 and 12 are both 6/8, but bar 12 is at 60 instead of 90, so it lasts longer.
     // (With the pickup, a bar's index equals its printed number.)
     const seconds = (bar: number) => score.bars[bar + 1] - score.bars[bar];
@@ -249,16 +249,37 @@ describe('showcase score', () => {
     expect(chordsIn(23, 'bass').map((c) => c.beat - score.notation.bars[23].start)).toEqual([2]);
   });
 
+  it('prints bar 24 in clefs with an 8: an octave from where it sounds, and back to plain clefs after', () => {
+    const start = score.notation.bars[24].start;
+    const end = score.notation.bars[25].start;
+    expect(clefSignAt(score, 1, start)).toEqual({ clef: 'treble', octaves: 1 });
+    expect(clefSignAt(score, 2, start)).toEqual({ clef: 'bass', octaves: -1 });
+    expect(clefSignAt(score, 1, end)).toEqual({ clef: 'treble', octaves: 0 });
+    expect(clefSignAt(score, 2, end)).toEqual({ clef: 'bass', octaves: 0 });
+
+    // Sounding Re6, Fa#6, La6, Fa#6 and Re2, La1…
+    const played = score.barBeats[score.barWritten.indexOf(24)];
+    const sounding = (hand: 'left' | 'right') => score.notes.filter((n) => n.hand === hand && n.beat >= played - 1e-6 && n.beat < played + 4 - 1e-6).map((n) => n.pitch);
+    expect(sounding('right')).toEqual([pitch('Re', 6), pitch('Fa#', 6), pitch('La', 6), pitch('Fa#', 6)]);
+    expect(sounding('left')).toEqual([pitch('Re', 2), pitch('La', 1)]);
+    // …printed where Re5, Fa#5, La5, Fa#5 and Re3, La2 stand in plain clefs: on the staves, not far off on ledger lines.
+    const plain = (number: number, staff: 'treble' | 'bass') => chordsIn(number, staff).map((c) => c.notes[0].step);
+    expect(plain(24, 'treble')).toEqual([2, 0, -2, 0]);
+    expect(plain(24, 'bass')).toEqual([4, 7]);
+    // One ledger line in all (La5, just over the staff); as they sound, every note would need two or more.
+    expect([...chordsIn(24), ...chordsIn(24, 'bass')].flatMap((c) => c.ledgerSteps)).toEqual([-2]);
+  });
+
   it('plays repeats, voltas, D.S. and the coda in order, while the page keeps each bar once', () => {
-    // Printed bars are played in this order from bar 24 on (the pickup is bar 0, so index = number).
-    const tail = score.barWritten.slice(score.barWritten.indexOf(24));
-    expect(tail).toEqual([24, 25, 24, 26, 27, 24, 26, 28]);
-    expect(score.notation.bars).toHaveLength(29);
-    expect(score.notation.bars[24].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
-    expect(score.notation.bars[25].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
-    expect(score.notation.bars[26].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
-    expect(score.notation.bars[27].navigation).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
-    expect(score.notation.bars[28].navigation).toMatchObject({ coda: true, codaSign: true });
+    // Printed bars are played in this order from bar 25 on (the pickup is bar 0, so index = number).
+    const tail = score.barWritten.slice(score.barWritten.indexOf(25));
+    expect(tail).toEqual([25, 26, 25, 27, 28, 25, 27, 29]);
+    expect(score.notation.bars).toHaveLength(30);
+    expect(score.notation.bars[25].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
+    expect(score.notation.bars[26].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
+    expect(score.notation.bars[27].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });
+    expect(score.notation.bars[28].navigation).toMatchObject({ jump: 'dalsegno', text: 'D.S. al Coda' });
+    expect(score.notation.bars[29].navigation).toMatchObject({ coda: true, codaSign: true });
   });
 
   it('holds the fermata of bar 15: its half note sounds twice as long, and the bar lasts longer', () => {

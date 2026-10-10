@@ -738,6 +738,35 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  describe('clefs with an 8', () => {
+    const clef = (sign: string, line: number, octaves?: number) =>
+      `<attributes><clef number="1"><sign>${sign}</sign><line>${line}</line>${octaves === undefined ? '' : `<clef-octave-change>${octaves}</clef-octave-change>`}</clef></attributes>`;
+
+    it('prints the notes an octave from where they sound, and says so with the clef', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${clef('G', 2, 1)}${note('C', 6, 4)}${clef('G', 2)}${note('C', 6, 4)}</measure>`),
+        'test',
+      );
+      expect(s.notes.map((n) => n.pitch)).toEqual([84, 84]);
+      expect(s.notation.notes.map((n) => n.pitch.octave)).toEqual([5, 6]);
+      expect(s.notation.clefs.filter((c) => c.staff === 1).map((c) => [c.beat, c.clef, c.octaves ?? 0])).toEqual([
+        [0, 'treble', 1],
+        [2, 'treble', 0],
+      ]);
+    });
+
+    it('prints notes higher under a clef with an 8 below it, and adds up with an 8va bracket', () => {
+      const shift = (type: string) => `<direction><direction-type><octave-shift type="${type}" size="8"/></direction-type></direction>`;
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${clef('G', 2, -1)}${note('C', 3, 4)}${clef('G', 2, 1)}${shift('down')}${note('C', 7, 4)}${shift('stop')}</measure>`),
+        'test',
+      );
+      expect(s.notes.map((n) => n.pitch)).toEqual([48, 96]);
+      // Do3 under the low clef is printed as Do4; Do7 in the high clef under 8va, as Do5.
+      expect(s.notation.notes.map((n) => n.pitch.octave)).toEqual([4, 5]);
+    });
+  });
+
   describe('what the engraver hid', () => {
     it('plays a hidden note and prints nothing for it', () => {
       const hidden = note('E', 4, 2).replace('<note', '<note print-object="no"');

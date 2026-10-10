@@ -146,7 +146,9 @@ const wedge = (type: 'crescendo' | 'diminuendo' | 'stop') =>
 const attributes = (inner: string) => `<attributes>${inner}</attributes>`;
 const key = (fifths: number) => `<key><fifths>${fifths}</fifths></key>`;
 const time = (beats: number, beatType: number) => `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>`;
-const clef = (staff: 1 | 2, sign: 'G' | 'F') => `<clef number="${staff}"><sign>${sign}</sign><line>${sign === 'G' ? 2 : 4}</line></clef>`;
+/** A clef; `octaves`: with a small 8 over it (1) or under it (−1). */
+const clef = (staff: 1 | 2, sign: 'G' | 'F', octaves = 0) =>
+  `<clef number="${staff}"><sign>${sign}</sign><line>${sign === 'G' ? 2 : 4}</line>${octaves ? `<clef-octave-change>${octaves}</clef-octave-change>` : ''}</clef>`;
 
 /** Beam marks for a run of notes on one level: begin, continue…, end. */
 const run = (count: number) => Array.from({ length: count }, (_, i) => (i === 0 ? 'begin' : i === count - 1 ? 'end' : 'continue'));
@@ -409,40 +411,51 @@ const measures: string[] = [
     ${backup(W)}${rest(H, { type: 'half', staff: 2, hidden: true })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
 
-  // 24–28: repeats and jumps. Played: 24 25 | 24 26 27 | D.S. → 24 26 | To Coda → 28.
-  // 24: segno and ‖:.
+  // 24: clefs with an 8. The right hand's treble clef has a small 8 over it: the notes sound an
+  // octave above where they are printed (Re6, written as Re5); the left hand's bass clef has an 8
+  // under it and sounds an octave below. The next bar puts the plain clefs back.
   `<measure number="24">
+    ${attributes(clef(1, 'G', 1) + clef(2, 'F', -1))}
+    ${direction('Clefs with an 8', '')}
+    ${['D6', 'F#6', 'A6', 'F#6'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
+    ${backup(W)}${note('D2', H, { type: 'half', staff: 2 })}${note('A1', H, { type: 'half', staff: 2 })}
+  </measure>`,
+
+  // 25–29: repeats and jumps. Played: 25 26 | 25 27 28 | D.S. → 25 27 | To Coda → 29.
+  // 25: segno and ‖:.
+  `<measure number="25">
+    ${attributes(clef(1, 'G') + clef(2, 'F'))}
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 25: first ending, back to ‖:.
-  `<measure number="25">
+  // 26: first ending, back to ‖:.
+  `<measure number="26">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 26: second ending; after the D.S. it leads to the coda.
-  `<measure number="26">
+  // 27: second ending; after the D.S. it leads to the coda.
+  `<measure number="27">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 27: back to the segno.
-  `<measure number="27">
+  // 28: back to the segno.
+  `<measure number="28">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 28: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 29: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="28">
+  `<measure number="29">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

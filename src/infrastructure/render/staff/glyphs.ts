@@ -1,6 +1,7 @@
 import type { NoteValue } from '../../../domain/notation/noteValue';
 import type { OrnamentKind } from '../../../domain/notation/ornaments';
 import type { Accidental } from '../../../domain/notation/spelling';
+import type { ClefSign } from '../../../domain/notation/written';
 import type { Clef } from '../staffLayout';
 import type { StaffMark } from '../../../domain/notation/engraving';
 
@@ -23,6 +24,15 @@ const F_CLEF_CHANGE = ''; // (U+E07B is the C clef change)
 export const CLEF_LINE_STEP: Record<Clef, number> = { treble: 6, bass: 2 };
 export const CLEF_GLYPH: Record<Clef, string> = { treble: G_CLEF, bass: F_CLEF };
 export const CLEF_CHANGE_GLYPH: Record<Clef, string> = { treble: G_CLEF_CHANGE, bass: F_CLEF_CHANGE };
+/** Clefs with a small 8 (or 15) over or under them, by the octaves the notes sound above what is printed. */
+const OCTAVE_CLEF_GLYPH: Record<Clef, Readonly<Record<number, string>>> = {
+  treble: { 1: '', 2: '', [-1]: '', [-2]: '' },
+  bass: { 1: '', 2: '', [-1]: '', [-2]: '' },
+};
+/** The glyph of a clef as printed; null for a plain one (see CLEF_GLYPH and CLEF_CHANGE_GLYPH). */
+export const octaveClefGlyph = ({ clef, octaves }: ClefSign): string | null => OCTAVE_CLEF_GLYPH[clef][octaves] ?? null;
+/** The music font has no small clefs with an 8: at a change the full one is drawn this much smaller, like the small plain clefs. */
+export const CLEF_CHANGE_SCALE = 2 / 3;
 
 export const SHARP = '';
 export const FLAT = '';

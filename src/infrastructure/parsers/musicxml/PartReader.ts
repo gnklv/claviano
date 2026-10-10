@@ -43,6 +43,8 @@ export class PartReader {
     [1, 'treble'],
     [2, 'bass'],
   ]);
+  /** The octaves the clef in force on each staff moves its notes by (a clef with an 8). */
+  private readonly clefOctaves = new Map<number, number>();
   /** Octave shifts in force on each staff: where they started, how many octaves. */
   private readonly openShifts = new Map<number, { start: number; octaves: number }>();
   /** Hairpins not yet closed, by their number. */
@@ -174,8 +176,11 @@ export class PartReader {
       if (sign !== 'G' && sign !== 'F') continue; // C clefs are rare in piano music
       const staff = Number(clef.getAttribute('number') ?? 1);
       const value: Clef = sign === 'G' ? 'treble' : 'bass';
+      // A small 8 over or under the clef: the notes sound an octave away from where they are printed.
+      const octaves = childNumber(clef, 'clef-octave-change') ?? 0;
       this.clefs.set(staff, value);
-      this.clefChanges.push({ staff, beat: beat(), clef: value });
+      this.clefOctaves.set(staff, octaves);
+      this.clefChanges.push({ staff, beat: beat(), clef: value, ...(octaves ? { octaves } : {}) });
     }
 
     const time = element.querySelector(':scope > time');
@@ -267,6 +272,14 @@ export class PartReader {
     if (type === 'up' || type === 'down') this.openShifts.set(staff, { start: beat, octaves: type === 'down' ? octaves : -octaves });
   }
 
+  /**
+   * How many octaves lower than they sound the notes of a staff are printed now: under an 8va
+   * bracket, and in a clef with an 8 over it (negative: printed higher).
+   */
+  private printedLower(staff: number): number {
+    return (this.openShifts.get(staff)?.octaves ?? 0) + (this.clefOctaves.get(staff) ?? 0);
+  }
+
   /** The staff a <note> is on, with the hand that plays it and the clef it is read in. */
   private placeOf(note: Element): { staff: number; hand: Hand; clef: Clef } {
     const staff = childNumber(note, 'staff') ?? 1;
@@ -283,8 +296,8 @@ export class PartReader {
     if (!pitch) return;
     const place = this.placeOf(element);
     const read = readWritten(element, pitch, { ...place, isChord: false, beat: 0, beats: 0, ties: [] });
-    // <pitch> is what sounds; under an octave shift the note is printed octaves away from it.
-    const shiftBy = this.openShifts.get(place.staff)?.octaves ?? 0;
+    // <pitch> is what sounds; under an octave shift or in a clef with an 8 the note is printed octaves away from it.
+    const shiftBy = this.printedLower(place.staff);
     this.bar.graces.push({
       ...place,
       pitch: { ...read.pitch, octave: read.pitch.octave - shiftBy },
@@ -327,8 +340,8 @@ export class PartReader {
     const place = this.placeOf(element);
     const ties = [...element.querySelectorAll(':scope > tie')].map((tie) => tie.getAttribute('type'));
     const written = readWritten(element, pitch, { ...place, isChord, beat, beats, ties });
-    // <pitch> is what sounds; under an octave shift the note is printed octaves away from it.
-    const shiftBy = this.openShifts.get(place.staff)?.octaves ?? 0;
+    // <pitch> is what sounds; under an octave shift or in a clef with an 8 the note is printed octaves away from it.
+    const shiftBy = this.printedLower(place.staff);
     const ownDynamics = Number(element.getAttribute('dynamics'));
     this.notes.push({
       ...written,

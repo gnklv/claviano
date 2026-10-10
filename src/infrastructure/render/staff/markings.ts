@@ -16,6 +16,7 @@ import {
 } from './geometry';
 import {
   CLEF_CHANGE_GLYPH,
+  CLEF_CHANGE_SCALE,
   CLEF_LINE_STEP,
   CODA,
   FLAT,
@@ -26,6 +27,7 @@ import {
   NATURAL,
   OCTAVE_GLYPH_ABOVE,
   OCTAVE_GLYPH_BELOW,
+  octaveClefGlyph,
   REPEAT_LEFT,
   REPEAT_RIGHT,
   SEGNO,
@@ -99,14 +101,16 @@ export function drawClefChanges({ score, geometry }: StaffContext): SVGElement[]
     if (change.beat <= 1e-9) continue; // the opening clefs live in the left column
     const bar = barAtBeat(score, change.beat);
     const staffTop = change.staff === 1 ? geometry.trebleTop() : geometry.bassTop();
+    const octaveClef = octaveClefGlyph({ clef: change.clef, octaves: change.octaves ?? 0 });
     const text = svg('text', {
       x: geometry.px(beatPosition(score, bar, change.beat)) - 2.6 * space,
       y: staffTop + (CLEF_LINE_STEP[change.clef] * space) / 2,
       fill: COLORS.clef,
-      'font-size': space * 4,
+      // A clef with an 8 has no small glyph of its own: the full one, drawn smaller.
+      'font-size': space * 4 * (octaveClef ? CLEF_CHANGE_SCALE : 1),
       'font-family': MUSIC_FONT,
     });
-    text.textContent = CLEF_CHANGE_GLYPH[change.clef];
+    text.textContent = octaveClef ?? CLEF_CHANGE_GLYPH[change.clef];
     shapes.push(text);
   }
   return shapes;

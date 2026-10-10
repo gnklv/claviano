@@ -1,7 +1,7 @@
 import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
-import type { Clef, ClefChange, WrittenGraces, WrittenNote, WrittenRest } from './notation/written';
+import type { Clef, ClefChange, ClefSign, WrittenGraces, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicLevel, DynamicMark, Hairpin } from './notation/dynamics';
 import type { Notation } from './notation/notation';
@@ -420,12 +420,15 @@ export function barLengthInBeats({ numerator, denominator }: TimeSignature): num
   return (numerator * 4) / denominator;
 }
 
-/** The clef in force on a staff (1 upper, 2 lower) at `beat`. */
-export function clefAt(score: Score, staff: number, beat: number): Clef {
-  let clef: Clef = staff === 1 ? 'treble' : 'bass';
+/** The clef in force on a staff (1 upper, 2 lower) at `beat`, as printed: with the octaves it moves the notes by. */
+export function clefSignAt(score: Score, staff: number, beat: number): ClefSign {
+  let sign: ClefSign = { clef: staff === 1 ? 'treble' : 'bass', octaves: 0 };
   for (const change of score.notation.clefs) {
     if (change.beat > beat + 1e-9) break;
-    if (change.staff === staff) clef = change.clef;
+    if (change.staff === staff) sign = { clef: change.clef, octaves: change.octaves ?? 0 };
   }
-  return clef;
+  return sign;
 }
+
+/** The clef in force on a staff (1 upper, 2 lower) at `beat`. */
+export const clefAt = (score: Score, staff: number, beat: number): Clef => clefSignAt(score, staff, beat).clef;

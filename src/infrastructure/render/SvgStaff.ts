@@ -1,7 +1,7 @@
 import type { StaffView } from '../../application/ports/StaffView';
 import {
   barAtBeat,
-  clefAt,
+  clefSignAt,
   writtenBarStart,
   writtenPositionAt,
   writtenBeatAt,
@@ -28,7 +28,8 @@ import {
   type Tie,
   type Tuplet,
 } from '../../domain/notation/engraving';
-import { barPosition, tapeBars, type Clef } from './staffLayout';
+import type { ClefSign } from '../../domain/notation/written';
+import { barPosition, tapeBars } from './staffLayout';
 import { drawBeam, drawChord, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
@@ -338,15 +339,18 @@ export class SvgStaff implements StaffView {
   /** What the left column shows under the cursor: the clefs, and the key and time signatures. */
   private gutterContent(): GutterContent {
     const score = this.score;
-    if (!score) return { clefs: ['treble', 'bass'], signatures: null };
-    const clefs: [Clef, Clef] = [clefAt(score, 1, this.currentBeat), clefAt(score, 2, this.currentBeat)];
+    if (!score) return { clefs: [
+          { clef: 'treble', octaves: 0 },
+          { clef: 'bass', octaves: 0 },
+        ], signatures: null };
+    const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, this.currentBeat), clefSignAt(score, 2, this.currentBeat)];
     if (score.notes.length === 0) return { clefs, signatures: null };
     return { clefs, signatures: { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) } };
   }
 
   private signaturesKey(): string {
     const { clefs, signatures } = this.gutterContent();
-    const key = clefs.join('/');
+    const key = clefs.map((sign) => `${sign.clef}${sign.octaves}`).join('/');
     return signatures ? `${key} ${signatures.key.fifths} ${signatures.time.numerator}/${signatures.time.denominator}` : key;
   }
 
