@@ -223,3 +223,13 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
 
 At any time, between the steps: looking through real pieces for what is drawn or played wrong;
 the research for steps 8 and 9; checks on real devices and on GitHub Pages.
+
+Small things noticed, to fix between the steps:
+
+- [ ] A key struck again at once stays lit: when one note is repeated with no gap between the
+      notes, its key on the keyboard (and its chord on the staff) is in colour all the way through,
+      though the key comes up and goes down again. The key should go out for a moment before each
+      new strike, as a finger leaves it; the falling tiles should show the gap too
+- [ ] The top of the staff is cut off when the stage is low (a phone on its side, a wide and
+      short window): an 8va bracket, words and tempo marks over high notes run past the edge.
+      With step 3
