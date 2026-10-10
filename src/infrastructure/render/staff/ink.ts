@@ -8,9 +8,13 @@ export const STEM_LENGTH = 3.5;
 /** Longer stems for three flags, so the flags don't run into the notehead. */
 export const STEM_LENGTH_32ND = 4.25;
 const STEM_WIDTH = 0.12;
+/** Small (cue-size) notes are drawn this much smaller. */
+const SMALL_NOTE_SCALE = 0.7;
 
 /** Where a chord's parts go, in pixels. */
 export interface ChordGeometry {
+  /** The size its glyphs are drawn at: a staff space in pixels, less for a small (cue-size) chord. */
+  size: number;
   yOf: (step: number) => number;
   headWidth: number;
   left: number;
@@ -84,7 +88,7 @@ export class StaffInk {
   stemEnd(index: number): number {
     const chord = this.chord(index);
     const g = this.of(chord);
-    return this.stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * this.staff.space : g.lowest + STEM_LENGTH * this.staff.space);
+    return this.stemEnds.get(index) ?? (chord.stemUp ? g.highest - STEM_LENGTH * g.size : g.lowest + STEM_LENGTH * g.size);
   }
 
   /**
@@ -145,11 +149,13 @@ export class StaffInk {
     const { space } = this.staff;
     const top = this.staff.staffTop(chord.staff);
     const yOf = (step: number) => top + (step * space) / 2;
-    const headWidth = HEAD_WIDTH[chord.duration.value] * space;
+    const size = space * (chord.small ? SMALL_NOTE_SCALE : 1);
+    const headWidth = HEAD_WIDTH[chord.duration.value] * size;
     const left = this.placeOf(chord) - headWidth / 2 + (chord.voiceShift ? headWidth : 0);
-    const stemWidth = STEM_WIDTH * space;
+    const stemWidth = STEM_WIDTH * size;
     const span = stepSpan(chord.notes);
     return {
+      size,
       yOf,
       headWidth,
       left,

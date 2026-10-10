@@ -45,6 +45,8 @@ export interface StaffChord {
    * second apart, so their heads do not sit on each other.
    */
   readonly voiceShift?: boolean;
+  /** Printed small (cue size): heads, stem, flags and beams all smaller. */
+  readonly small?: boolean;
   /** Sorted from the top of the staff down. */
   readonly notes: readonly StaffNote[];
   readonly duration: WrittenDuration;

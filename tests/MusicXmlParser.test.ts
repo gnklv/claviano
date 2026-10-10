@@ -800,6 +800,17 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  it('reads cue-size notes as small, and plays them as any others', () => {
+    const small = note('E', 4, 4).replace('</note>', '<type size="cue">quarter</type></note>');
+    const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 4, { extra: '<type>quarter</type>' })}${small}</measure>`), 'test');
+    expect(s.notation.notes.map((n) => n.small ?? false)).toEqual([false, true]);
+    expect(s.notes.map((n) => [n.pitch, n.velocity])).toEqual([
+      [60, s.notes[0].velocity],
+      [64, s.notes[0].velocity],
+    ]);
+    expect(layoutNotation(s).chords.map((c) => c.small ?? false)).toEqual([false, true]);
+  });
+
   describe('what the engraver hid', () => {
     it('plays a hidden note and prints nothing for it', () => {
       const hidden = note('E', 4, 2).replace('<note', '<note print-object="no"');

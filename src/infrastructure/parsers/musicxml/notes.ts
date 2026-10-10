@@ -121,6 +121,7 @@ export function readWritten(
         ? 'down'
         : 'up'
       : null,
+    ...(/cue/.test(element.querySelector(':scope > type')?.getAttribute('size') ?? '') ? { small: true } : {}),
     ...(element.getAttribute('print-object') === 'no' ? { hidden: true } : {}),
     ...(childText(element, 'notehead') === 'none' ? { headless: true } : {}),
     slurs: [...element.querySelectorAll(':scope > notations > slur')].flatMap((slur): SlurMark[] => {

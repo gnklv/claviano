@@ -85,6 +85,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       bar,
       beam: null,
       handMark: false,
+      ...(first.small ? { small: true } : {}),
       notes,
       duration: first.duration,
       stemUp: first.stem ? first.stem === 'up' : stemUpFor(top, bottom),

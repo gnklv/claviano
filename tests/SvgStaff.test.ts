@@ -235,6 +235,22 @@ describe('SvgStaff', () => {
     expect(after.every((element, i) => element === before[i])).toBe(true);
   });
 
+  it('draws small notes smaller: heads, stems and beams', () => {
+    const { container } = drawStaff(showcase());
+    const noteheads = [...container.querySelectorAll('text')].filter((text) => text.getAttribute('font-family') === 'Bravura' && /^[-]$/.test(text.textContent));
+    const sizes = [...new Set(noteheads.map((head) => Number(head.getAttribute('font-size'))))].sort((a, b) => b - a);
+    // Three sizes of notehead in the piece: full, small (seven tenths of it), and the grace notes' (smaller still).
+    const [full, small, grace] = sizes;
+    expect(sizes).toHaveLength(3);
+    expect(small / full).toBeCloseTo(0.7);
+    expect(grace).toBeLessThan(small);
+    // Six small heads: the five small chords of bar 25, one of them of two notes.
+    expect(noteheads.filter((head) => Number(head.getAttribute('font-size')) === small)).toHaveLength(6);
+    // Their stems are thinner too.
+    const stems = [...container.querySelectorAll('line')].filter((line) => line.getAttribute('x1') === line.getAttribute('x2') && line.style.stroke === 'currentColor');
+    expect(new Set(stems.map((stem) => stem.getAttribute('stroke-width'))).size).toBeGreaterThanOrEqual(2);
+  });
+
   it('writes the hand marks in the language it is told', () => {
     // The left hand comes up onto the upper staff: the note it plays there is marked.
     const note = (pitch: number, beat: number, hand: Hand) => ({ pitch, start: beat / 2, duration: 0.5, beat, beats: 1, velocity: 0.7, hand });

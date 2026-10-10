@@ -101,6 +101,8 @@ export interface WrittenNote {
   readonly tremolo: { readonly type: 'single' | 'start' | 'stop'; readonly strokes: number } | null;
   /** Part of a rolled chord (a wavy line before it): from the bottom up, or from the top down. */
   readonly arpeggio: 'up' | 'down' | null;
+  /** Printed small (cue size): a part that stands behind the main one, an optional note. It sounds as any other. */
+  readonly small?: boolean;
   /** Not printed: it only sounds (the engraver hid it). */
   readonly hidden?: boolean;
   /**
