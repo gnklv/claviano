@@ -50,10 +50,11 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="10018.17" x2="10018.17" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="10422.26" x2="10422.26" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="10826.35" x2="10826.35" y1="62.5" y2="237.5"
-        line stroke-width="1" style="stroke: var(--bar-line);" x1="11250.44" x2="11250.44" y1="62.5" y2="237.5"
-        line stroke-width="1" style="stroke: var(--bar-line);" x1="11682.03" x2="11682.03" y1="62.5" y2="237.5"
+        line stroke-width="1" style="stroke: var(--bar-line);" x1="11230.44" x2="11230.44" y1="62.5" y2="237.5"
+        line stroke-width="1" style="stroke: var(--bar-line);" x1="11654.53" x2="11654.53" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="12086.12" x2="12086.12" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="12490.21" x2="12490.21" y1="62.5" y2="237.5"
+        line stroke-width="1" style="stroke: var(--bar-line);" x1="12894.3" x2="12894.3" y1="62.5" y2="237.5"
         line stroke-width="1" style="stroke: var(--bar-line);" x1="3714.09" x2="3714.09" y1="62.5" y2="237.5"
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="3730.34" y="87.5" U+E260
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="3742.84" y="68.75" U+E260
@@ -80,8 +81,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="5123.86" y="100" U+E084
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="5123.86" y="200" U+E084
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="5123.86" y="225" U+E084
-        line stroke-width="1" style="stroke: var(--bar-line);" x1="12886.8" x2="12886.8" y1="62.5" y2="237.5"
-        line stroke-width="5" style="stroke: var(--bar-line);" x1="12894.3" x2="12894.3" y1="62.5" y2="237.5"
+        line stroke-width="1" style="stroke: var(--bar-line);" x1="13290.89" x2="13290.89" y1="62.5" y2="237.5"
+        line stroke-width="5" style="stroke: var(--bar-line);" x1="13298.39" x2="13298.39" y1="62.5" y2="237.5"
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="4199.43" y="225" U+E07A
         text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="4603.52" y="200" U+E07C
         text font-family="Bravura" font-size="33.33" style="fill: var(--ink);" x="9599.08" y="100" U+E053
@@ -133,34 +134,35 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="10023.17" y="-1.25" 25
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="10427.26" y="47.5" 26
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="10831.35" y="47.5" 27
-          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="11255.44" y="36.25" 28
-          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="11687.03" y="30" 29
-          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="12091.12" y="47.5" 30
-          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="12495.21" y="36.25" 31
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="10826.35" y="112.5" U+E040
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="10826.35" y="237.5" U+E040
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="10838.85" y="30" U+E047
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="end" x="11682.03" y="112.5" U+E041
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="end" x="11682.03" y="237.5" U+E041
-          polyline points="11254.19,23.75 11254.19,3.75 11678.28,3.75 11678.28,23.75" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
-          text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="11260.44" y="21.25" 1.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12079.87" y="20" To Coda
-          polyline points="11685.78,17.5 11685.78,-2.5 12082.37,-2.5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
-          text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="11692.03" y="15" 2.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12483.96" y="20" D.S. al Coda
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="12502.71" y="30" U+E048
+          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="11235.44" y="47.5" 28
+          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="11659.53" y="36.25" 29
+          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="12091.12" y="30" 30
+          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="12495.21" y="47.5" 31
+          text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="12899.3" y="36.25" 32
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="11230.44" y="112.5" U+E040
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="11230.44" y="237.5" U+E040
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="11242.94" y="30" U+E047
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="end" x="12086.12" y="112.5" U+E041
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="end" x="12086.12" y="237.5" U+E041
+          polyline points="11658.28,23.75 11658.28,3.75 12082.37,3.75 12082.37,23.75" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
+          text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="11664.53" y="21.25" 1.
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12483.96" y="20" To Coda
+          polyline points="12089.87,17.5 12089.87,-2.5 12486.46,-2.5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
+          text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="12096.12" y="15" 2.
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12888.05" y="20" D.S. al Coda
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="12906.8" y="30" U+E048
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="5158.86" y="26.25" U+E511
           polyline points="5207.61,16.25 5551.7,16.25 5551.7,28.75" stroke-dasharray="7.5 5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="5360.91" y="318.75" U+E51C
           polyline points="5404.66,308.75 5551.7,308.75 5551.7,296.25" stroke-dasharray="7.5 5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           polyline points="6775.23,270 6775.23,285 6977.27,285 6983.52,270 6989.77,285 7155.57,285 7155.57,270" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
-          polyline points="12556.46,326.25 12881.8,326.25 12881.8,311.25" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
+          polyline points="12960.55,326.25 13285.89,326.25 13285.89,311.25" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           polyline points="7238.07,295 7559.66,295 7559.66,280" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="5158.86" y="295" U+E650
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="5541.7" y="356.25" U+E655
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="6371.14" y="285" U+E650
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="6753.98" y="285" U+E655
-          text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="12501.46" y="326.25" U+E650
+          text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="12905.55" y="326.25" U+E650
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="7179.32" y="295" U+E659
           text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="4646.02" y="135" una corda
           text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5175.11" y="135" tre corde
@@ -200,10 +202,11 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9244.99" y="18.75" Shared notes
           text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9625.33" y="20" Clefs with an 8
           text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10053.17" y="-6.25" Small notes
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10433.51" y="20" Slowing down
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10544.91" y="20" rit.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10857.6" y="20" Repeats
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10926.75" y="20" a tempo
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10433.51" y="20" Fingering
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10837.6" y="20" Slowing down
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10949" y="20" rit.
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11290.44" y="20" Repeats
+          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11261.69" y="-2.5" a tempo
         g style="color: var(--right);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-7.37" y="100" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="6.63" x2="6.63" y1="97.88" y2="56.25"
@@ -884,90 +887,125 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
         g style="color: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10432.38" y="75" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="10433.13" x2="10433.13" y1="77.13" y2="118.75"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10439.76" y="40.63" U+ED11
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10432.38" y="212.5" U+E0A3
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10432.38" y="212.5" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="10433.13" x2="10433.13" y1="214.63" y2="256.25"
-        g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10482.89" y="68.75" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10483.64" x2="10483.64" y1="70.88" y2="114.58"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10439.76" y="278.13" U+ED15
         g style="color: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10533.41" y="62.5" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10534.16" x2="10534.16" y1="64.63" y2="110.42"
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10534.16" x2="10534.16" y1="64.63" y2="106.25"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10540.78" y="40.63" U+ED13
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10583.92" y="56.25" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10584.67" x2="10584.67" y1="58.38" y2="106.25"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10533.41" y="187.5" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10534.16" x2="10534.16" y1="189.63" y2="231.25"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10540.78" y="259.38" U+ED12
         g style="color: var(--ink);"
           line stroke-width="2" style="stroke: currentColor;" x1="10629.43" x2="10654.18" y1="50" y2="50"
+          line stroke-width="2" style="stroke: currentColor;" x1="10629.43" x2="10654.18" y1="37.5" y2="37.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10634.43" y="31.25" U+E0A4
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10634.43" y="50" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10635.18" x2="10635.18" y1="52.13" y2="93.75"
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10635.18" x2="10635.18" y1="33.38" y2="93.75"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10641.8" y="9.38" U+ED12
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10641.8" y="-9.37" U+ED15
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10634.43" y="231.25" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10648.43" x2="10648.43" y1="229.13" y2="187.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10634.43" y="200" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10635.18" x2="10635.18" y1="202.13" y2="243.75"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="10641.8" y="265.63" U+ED13
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10684.94" y="56.25" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10685.69" x2="10685.69" y1="58.38" y2="97.92"
+          line stroke-width="2" style="stroke: currentColor;" x1="10730.45" x2="10755.2" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10735.45" y="43.75" U+E0A4
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="end" x="10734.45" y="43.75" U+E0F5
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10751.2" y="43.75" U+E0F6
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10736.2" x2="10736.2" y1="45.88" y2="87.5"
+          text font-family="'Times New Roman', Georgia, serif" font-size="18.75" style="fill: currentColor;" text-anchor="middle" x="10742.83" y="31.25" 2-1
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10735.45" y="62.5" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10736.2" x2="10736.2" y1="64.63" y2="102.08"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10836.47" y="75" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10837.22" x2="10837.22" y1="77.13" y2="118.75"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10785.96" y="68.75" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10786.71" x2="10786.71" y1="70.88" y2="106.25"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10836.47" y="212.5" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10837.22" x2="10837.22" y1="214.63" y2="256.25"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10856.47" y="75" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10857.22" x2="10857.22" y1="77.13" y2="118.75"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10886.99" y="68.75" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10887.74" x2="10887.74" y1="70.88" y2="114.58"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10856.47" y="231.25" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10870.47" x2="10870.47" y1="229.13" y2="187.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10937.5" y="62.5" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10938.25" x2="10938.25" y1="64.63" y2="110.42"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10957.5" y="68.75" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="10958.25" x2="10958.25" y1="70.88" y2="112.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10988.01" y="56.25" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="10988.76" x2="10988.76" y1="58.38" y2="106.25"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11058.52" y="62.5" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11059.27" x2="11059.27" y1="64.63" y2="106.25"
+          line stroke-width="2" style="stroke: currentColor;" x1="11033.52" x2="11058.27" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11038.52" y="50" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11039.27" x2="11039.27" y1="52.13" y2="93.75"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11058.52" y="212.5" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11059.27" x2="11059.27" y1="214.63" y2="256.25"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11038.52" y="231.25" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11052.52" x2="11052.52" y1="229.13" y2="187.5"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11159.54" y="56.25" U+E0A4
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11160.29" x2="11160.29" y1="58.38" y2="100"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11089.03" y="56.25" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11089.78" x2="11089.78" y1="58.38" y2="97.92"
         g style="color: var(--ink);"
-          line stroke-width="2" style="stroke: currentColor;" x1="11255.56" x2="11280.31" y1="50" y2="50"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11260.56" y="50" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11261.31" x2="11261.31" y1="52.13" y2="93.75"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11139.54" y="62.5" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11140.29" x2="11140.29" y1="64.63" y2="102.08"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11257.38" y="212.5" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11190.05" y="68.75" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11190.8" x2="11190.8" y1="70.88" y2="106.25"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11462.61" y="62.5" U+E0A3
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11260.56" y="75" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11261.31" x2="11261.31" y1="77.13" y2="118.75"
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11260.56" y="231.25" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11274.56" x2="11274.56" y1="229.13" y2="187.5"
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11361.59" y="68.75" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11362.34" x2="11362.34" y1="70.88" y2="112.5"
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11462.61" y="62.5" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="11463.36" x2="11463.36" y1="64.63" y2="106.25"
         g style="color: var(--ink);"
-          line stroke-width="2" style="stroke: currentColor;" x1="11687.16" x2="11711.91" y1="50" y2="50"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11692.16" y="43.75" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11692.91" x2="11692.91" y1="45.88" y2="87.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11462.61" y="212.5" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11463.36" x2="11463.36" y1="214.63" y2="256.25"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11688.97" y="237.5" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11563.63" y="56.25" U+E0A4
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11564.38" x2="11564.38" y1="58.38" y2="100"
         g style="color: var(--ink);"
-          line stroke-width="2" style="stroke: currentColor;" x1="11889.2" x2="11913.95" y1="50" y2="50"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11894.2" y="50" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="11894.95" x2="11894.95" y1="52.13" y2="93.75"
+          line stroke-width="2" style="stroke: currentColor;" x1="11659.66" x2="11684.41" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11664.66" y="50" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11665.41" x2="11665.41" y1="52.13" y2="93.75"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12096.25" y="68.75" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="12097" x2="12097" y1="70.88" y2="112.5"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11661.47" y="212.5" U+E0A2
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12093.06" y="231.25" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="11866.7" y="62.5" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="11867.45" x2="11867.45" y1="64.63" y2="106.25"
         g style="color: var(--ink);"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12298.29" y="81.25" U+E0A3
-          line stroke-width="1.5" style="stroke: currentColor;" x1="12299.04" x2="12299.04" y1="83.38" y2="125"
+          line stroke-width="2" style="stroke: currentColor;" x1="12091.25" x2="12116" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12096.25" y="43.75" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="12097" x2="12097" y1="45.88" y2="87.5"
         g style="color: var(--ink);"
-          line stroke-width="2" style="stroke: currentColor;" x1="12492.15" x2="12523.28" y1="50" y2="50"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="50" U+E0A2
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="62.5" U+E0A2
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="75" U+E0A2
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="12507.71" y="31.25" U+E4C0
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12093.06" y="237.5" U+E0A2
         g style="color: var(--ink);"
-          line stroke-width="2" style="stroke: currentColor;" x1="12492.15" x2="12523.28" y1="250" y2="250"
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="212.5" U+E0A2
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="256.25" U+E0A2
-          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="12507.71" y="275" U+E4C1
+          line stroke-width="2" style="stroke: currentColor;" x1="12293.29" x2="12318.04" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12298.29" y="50" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="12299.04" x2="12299.04" y1="52.13" y2="93.75"
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12500.34" y="68.75" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="12501.09" x2="12501.09" y1="70.88" y2="112.5"
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12497.15" y="231.25" U+E0A2
+        g style="color: var(--ink);"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12702.38" y="81.25" U+E0A3
+          line stroke-width="1.5" style="stroke: currentColor;" x1="12703.13" x2="12703.13" y1="83.38" y2="125"
+        g style="color: var(--ink);"
+          line stroke-width="2" style="stroke: currentColor;" x1="12896.24" x2="12927.37" y1="50" y2="50"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12901.24" y="50" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12901.24" y="62.5" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12901.24" y="75" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="12911.8" y="31.25" U+E4C0
+        g style="color: var(--ink);"
+          line stroke-width="2" style="stroke: currentColor;" x1="12896.24" x2="12927.37" y1="250" y2="250"
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12901.24" y="212.5" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" x="12901.24" y="256.25" U+E0A2
+          text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="middle" x="12911.8" y="275" U+E4C1
         g style="color: var(--ink);"
           text font-family="Bravura" font-size="32.5" style="fill: currentColor;" x="7985.75" y="68.75" U+E0A4
           line stroke-width="1.25" style="stroke: currentColor;" x1="7994.71" x2="7994.71" y1="67.37" y2="38.75"
@@ -1023,8 +1061,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           polygon points="4022.51,112.57 4158.71,99.93 4158.71,93.68 4022.51,106.32" style="fill: currentColor;"
           polygon points="5965.92,118.94 6017.93,106.06 6017.93,99.81 5965.92,112.69" style="fill: currentColor;"
           polygon points="6066.94,106.44 6118.95,93.56 6118.95,87.31 6066.94,100.19" style="fill: currentColor;"
-          polygon points="10432.38,118.81 10585.42,106.19 10585.42,99.94 10432.38,112.56" style="fill: currentColor;"
-          polygon points="10634.43,93.69 10787.46,106.31 10787.46,100.06 10634.43,87.44" style="fill: currentColor;"
+          polygon points="10836.47,118.81 10989.51,106.19 10989.51,99.94 10836.47,112.56" style="fill: currentColor;"
+          polygon points="11038.52,93.69 11191.55,106.31 11191.55,100.06 11038.52,87.44" style="fill: currentColor;"
           polygon points="4237.81,181.32 4374,168.68 4374,174.93 4237.81,187.57" style="fill: currentColor;"
           polygon points="4426.6,250.07 4562.8,237.43 4562.8,231.18 4426.6,243.82" style="fill: currentColor;"
           polygon points="6383.26,168.81 6536.3,156.19 6536.3,162.44 6383.26,175.06" style="fill: currentColor;"

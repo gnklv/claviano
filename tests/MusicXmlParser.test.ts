@@ -771,6 +771,27 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  it('reads the finger printed at a note, with its side when the file says, and a head in brackets', () => {
+    const finger = (text: string, placement = '') => `<notations><technical><fingering ${placement}>${text}</fingering></technical></notations>`;
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}
+        ${note('C', 4, 2, { extra: finger('1') })}${note('E', 4, 2, { extra: finger('3', 'placement="below"') })}
+        ${note('G', 4, 2, { extra: finger('2-1', 'placement="above"') })}${note('C', 5, 2, { extra: '<notehead parentheses="yes">normal</notehead>' })}</measure>`),
+      'test',
+    );
+    expect(s.notation.notes.map((n) => n.fingering ?? null)).toEqual([{ text: '1', below: null }, { text: '3', below: true }, { text: '2-1', below: false }, null]);
+    expect(s.notation.notes.map((n) => n.parenthesized ?? false)).toEqual([false, false, false, true]);
+    const layout = layoutNotation(s);
+    // With no side given, over the upper staff; "below" is under it.
+    expect(layout.fingerings.map((f) => [f.text, f.above])).toEqual([
+      ['1', true],
+      ['3', false],
+      ['2-1', true],
+    ]);
+    expect(layout.chords.map((c) => c.notes[0].parenthesized ?? false)).toEqual([false, false, false, true]);
+    expect(s.notes).toHaveLength(4);
+  });
+
   describe('words in the music', () => {
     const said = (text: string, { attrs = '', placement = 'above', sound = '' } = {}) =>
       `<direction placement="${placement}"><direction-type><words ${attrs}>${text}</words></direction-type>${sound}</direction>`;

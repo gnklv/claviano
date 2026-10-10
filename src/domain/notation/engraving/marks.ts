@@ -1,9 +1,9 @@
 import { pageEnd, type Score } from '../../score';
 import { firstAtOrAfter } from '../../search';
-import { BOTTOM_LINE_STEP } from '../staffPosition';
+import { BOTTOM_LINE_STEP, staffStep } from '../staffPosition';
 import type { Articulation, WrittenChord, WrittenNote, WrittenRest } from '../written';
 import { stepSpan, voicesByStaffAndBar } from './chords';
-import type { StaffArpeggio, StaffChord, StaffMark, StaffOrnament, StaffTremolo } from './types';
+import type { StaffArpeggio, StaffChord, StaffFingering, StaffMark, StaffOrnament, StaffTremolo } from './types';
 
 /*
  * Signs at a note: articulations and fermatas, ornaments, tremolo strokes and the sign of a rolled
@@ -126,6 +126,48 @@ export function layoutOrnaments(
     }
   });
   return ornaments;
+}
+
+/** A fingering number is about three steps tall; numbers of a chord stack this far apart. */
+const FINGERING_STEPS = 3;
+
+/**
+ * Fingerings go outside the staff on the side the source says, or else over the upper staff and
+ * under the lower one: clear of the chord's notes, its stem, and the marks and ornaments on that
+ * side. The fingers of a chord stack in the order of its notes, the outer note's finger outermost.
+ */
+export function layoutFingerings(
+  groups: readonly WrittenChord[],
+  chords: readonly StaffChord[],
+  marks: readonly StaffMark[],
+  ornaments: readonly StaffOrnament[],
+): StaffFingering[] {
+  const fingerings: StaffFingering[] = [];
+  groups.forEach((group, index) => {
+    const fingered = group.filter((note) => note.fingering);
+    if (fingered.length === 0) return;
+    const chord = chords[index]!;
+    const { top, bottom } = stepSpan(chord.notes);
+    const stemmed = chord.duration.value !== 'whole';
+    for (const above of [true, false]) {
+      const side = fingered.filter((note) => (note.fingering!.below === null ? note.staff >= 2 : note.fingering!.below) !== above);
+      if (side.length === 0) continue;
+      const extremes = [above ? top : bottom];
+      if (stemmed && chord.stemUp === above) extremes.push(above ? top - STEM_STEPS : bottom + STEM_STEPS);
+      for (const mark of marks) if (mark.chord === index && mark.above === above) extremes.push(mark.step + (above ? -3 : 3));
+      // An ornament sign is about four steps tall beyond its near edge.
+      for (const ornament of ornaments) if (ornament.chord === index && ornament.above === above) extremes.push(ornament.step + (above ? -4 : 4));
+      const outermost = above ? Math.min(...extremes) : Math.max(...extremes);
+      let step = above ? Math.min(TOP_LINE_STEP - 2, outermost - 2) : Math.max(BOTTOM_LINE_STEP + 2, outermost + 2);
+      // Nearest the chord first: its lowest note's finger when above, its highest one's when below.
+      const outward = [...side].sort((a, b) => (above ? 1 : -1) * (staffStep(b.pitch, b.clef) - staffStep(a.pitch, a.clef)));
+      for (const note of outward) {
+        fingerings.push({ chord: index, text: note.fingering!.text, above, step });
+        step += above ? -FINGERING_STEPS : FINGERING_STEPS;
+      }
+    }
+  });
+  return fingerings;
 }
 
 /** Tremolo strokes: on the chord's own stem, or towards the next chord of its voice that ends the tremolo. */

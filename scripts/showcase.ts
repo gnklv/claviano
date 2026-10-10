@@ -38,6 +38,10 @@ interface NoteOptions {
   arpeggiate?: 'up' | 'down';
   /** Printed small (cue size). */
   small?: boolean;
+  /** The finger to play it with, printed at the note. */
+  fingering?: string;
+  /** The head in brackets: a note that may be left out. */
+  parentheses?: boolean;
   /** Printed without its head: another voice has this note's head. */
   headless?: boolean;
   /** A grace note: small, with no time of its own (pass 0 as its duration); `slash` for an acciaccatura. */
@@ -65,6 +69,7 @@ function note(name: string, duration: number, options: NoteOptions): string {
       (m) => `<slur type="${m.type}" number="${m.number ?? 1}"${m.placement ? ` placement="${m.placement}"` : ''}/>`,
     ),
     options.ornaments ? `<ornaments>${options.ornaments}</ornaments>` : '',
+    options.fingering ? `<technical><fingering>${options.fingering}</fingering></technical>` : '',
     options.articulations?.length ? `<articulations>${options.articulations.map((a) => `<${a}/>`).join('')}</articulations>` : '',
     options.fermata ? `<fermata type="${options.fermata}"/>` : '',
     options.arpeggiate ? `<arpeggiate direction="${options.arpeggiate}"/>` : '',
@@ -82,7 +87,7 @@ function note(name: string, duration: number, options: NoteOptions): string {
     options.accidental ? `<accidental>${options.accidental}</accidental>` : '',
     tuplet ? `<time-modification><actual-notes>${tuplet.actual}</actual-notes><normal-notes>${tuplet.normal}</normal-notes></time-modification>` : '',
     options.stem ? `<stem>${options.stem}</stem>` : '',
-    options.headless ? '<notehead>none</notehead>' : '',
+    options.headless ? '<notehead>none</notehead>' : options.parentheses ? '<notehead parentheses="yes">normal</notehead>' : '',
     `<staff>${staff}</staff>`,
     ...(options.beams ?? []).map((mark, i) => `<beam number="${i + 1}">${mark}</beam>`),
     notations ? `<notations>${notations}</notations>` : '',
@@ -91,8 +96,8 @@ function note(name: string, duration: number, options: NoteOptions): string {
 }
 
 /** Several notes sharing one stem: the first carries the options, the rest are marked as chord. */
-const chord = (names: string[], duration: number, options: NoteOptions & { ties?: (Tie | undefined)[] }) =>
-  names.map((name, i) => note(name, duration, { ...options, tie: options.ties?.[i] ?? options.tie, chord: i > 0 })).join('');
+const chord = (names: string[], duration: number, options: NoteOptions & { ties?: (Tie | undefined)[]; fingerings?: string[] }) =>
+  names.map((name, i) => note(name, duration, { ...options, tie: options.ties?.[i] ?? options.tie, fingering: options.fingerings?.[i] ?? options.fingering, chord: i > 0 })).join('');
 
 function rest(duration: number, options: { type?: string; dots?: number; staff?: 1 | 2; voice?: number; measure?: boolean; hidden?: boolean }): string {
   const staff = options.staff ?? 1;
@@ -439,10 +444,22 @@ const measures: string[] = [
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 26: slowing down. "rit." over a run of eighths: each a little longer than the one before,
+  // 26: fingering, and a note in brackets. Fingers over the right hand's notes and under the left
+  // hand's; a chord's fingers stacked in the order of its notes; one finger changed on its key
+  // ("2-1"); the last note of the right hand in brackets: it may be left out.
+  `<measure number="26">
+    ${direction('Fingering', '')}
+    ${note('D5', Q, { type: 'quarter', fingering: '1' })}${note('F#5', Q, { type: 'quarter', fingering: '3' })}
+    ${chord(['A5', 'D6'], Q, { type: 'quarter', fingerings: ['2', '5'] })}${note('B5', Q, { type: 'quarter', fingering: '2-1', parentheses: true })}
+    ${backup(W)}
+    ${note('D3', Q, { type: 'quarter', staff: 2, fingering: '5' })}${note('A3', Q, { type: 'quarter', staff: 2, fingering: '2' })}
+    ${note('F#3', H, { type: 'half', staff: 2, fingering: '3' })}
+  </measure>`,
+
+  // 27: slowing down. "rit." over a run of eighths: each a little longer than the one before,
   // hardly at first and more towards the end, down to 0.85 of the pace (in the middle of
   // a piece it is a breath, not a stop). "a tempo" at the next bar gives the pace back.
-  `<measure number="26">
+  `<measure number="27">
     ${direction('Slowing down', '')}
     ${words('rit.')}
     ${['D5', 'E5', 'F#5', 'G5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(4)[i]] })).join('')}
@@ -450,9 +467,9 @@ const measures: string[] = [
     ${backup(W)}${note('D3', H, { type: 'half', staff: 2 })}${note('A2', H, { type: 'half', staff: 2 })}
   </measure>`,
 
-  // 27–31: repeats and jumps. Played: 27 28 | 27 29 30 | D.S. → 27 29 | To Coda → 31.
-  // 27: segno and ‖:.
-  `<measure number="27">
+  // 28–32: repeats and jumps. Played: 28 29 | 28 30 31 | D.S. → 28 30 | To Coda → 32.
+  // 28: segno and ‖:.
+  `<measure number="28">
     ${repeatStart}
     ${sign('segno')}
     ${direction('Repeats', '')}
@@ -460,31 +477,31 @@ const measures: string[] = [
     ${['D5', 'E5', 'F#5', 'G5'].map((n) => note(n, Q, { type: 'quarter' })).join('')}
     ${backup(W)}${note('A2', H, { type: 'half', staff: 2 })}${note('D3', H, { type: 'half', staff: 2 })}
   </measure>`,
-  // 28: first ending, back to ‖:.
-  `<measure number="28">
+  // 29: first ending, back to ‖:.
+  `<measure number="29">
     ${endingStart(1)}
     ${note('A5', H, { type: 'half' })}${note('F#5', H, { type: 'half' })}
     ${backup(W)}${note('D3', W, { type: 'whole', staff: 2 })}
     ${endingStop(1, 'stop')}${repeatEnd}
   </measure>`,
-  // 29: second ending; after the D.S. it leads to the coda.
-  `<measure number="29">
+  // 30: second ending; after the D.S. it leads to the coda.
+  `<measure number="30">
     ${endingStart(2)}
     ${direction('To Coda', 'tocoda="coda"')}
     ${note('B5', H, { type: 'half' })}${note('A5', H, { type: 'half' })}
     ${backup(W)}${note('G2', W, { type: 'whole', staff: 2 })}
     ${endingStop(2, 'discontinue')}
   </measure>`,
-  // 30: back to the segno.
-  `<measure number="30">
+  // 31: back to the segno.
+  `<measure number="31">
     ${direction('D.S. al Coda', 'dalsegno="segno"')}
     ${note('E5', H, { type: 'half' })}${note('C#5', H, { type: 'half' })}
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 31: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 32: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
   // printed both ways at once: "Ped." and a line.
-  `<measure number="31">
+  `<measure number="32">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}

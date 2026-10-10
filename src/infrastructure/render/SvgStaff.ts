@@ -18,6 +18,7 @@ import {
   type Beam,
   type StaffArpeggio,
   type StaffChord,
+  type StaffFingering,
   type StaffGrace,
   type StaffMark,
   type StaffOctaveShift,
@@ -30,7 +31,7 @@ import {
 } from '../../domain/notation/engraving';
 import type { ClefSign } from '../../domain/notation/written';
 import { barPosition, tapeBars } from './staffLayout';
-import { drawBeam, drawChord, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
+import { drawBeam, drawChord, drawFingering, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
 import { StaffGeometry } from './staff/geometry';
@@ -120,6 +121,7 @@ export class SvgStaff implements StaffView {
   private ornaments: StaffOrnament[] = [];
   private tremolos: StaffTremolo[] = [];
   private arpeggios: StaffArpeggio[] = [];
+  private fingerings: StaffFingering[] = [];
   private chordElements: SVGGElement[] = [];
   private graceElements: SVGGElement[] = [];
   /** Grace notes currently highlighted. */
@@ -171,7 +173,7 @@ export class SvgStaff implements StaffView {
     this.score = score;
     const layout = score
       ? engrave(score)
-      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [] };
+      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
     this.ink.setChords([...layout.chords], layout.marks);
     this.beams = [...layout.beams];
     this.tuplets = [...layout.tuplets];
@@ -184,6 +186,7 @@ export class SvgStaff implements StaffView {
     this.ornaments = [...layout.ornaments];
     this.tremolos = [...layout.tremolos];
     this.arpeggios = [...layout.arpeggios];
+    this.fingerings = [...layout.fingerings];
     this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords));
     this.currentBeat = 0;
@@ -453,6 +456,7 @@ export class SvgStaff implements StaffView {
     // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
     this.graceElements = this.graces.map((grace) => drawGrace(context, grace));
     for (const ornament of this.ornaments) this.chordElements[ornament.chord]?.append(...drawOrnament(context, ornament));
+    for (const fingering of this.fingerings) this.chordElements[fingering.chord]?.append(drawFingering(context, fingering));
     for (const tremolo of this.tremolos) this.chordElements[tremolo.chord]?.append(...drawTremolo(context, tremolo));
     for (const arpeggio of this.arpeggios) this.chordElements[arpeggio.chords[0] ?? -1]?.append(...drawArpeggio(context, arpeggio));
 

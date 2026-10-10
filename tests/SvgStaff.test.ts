@@ -251,6 +251,23 @@ describe('SvgStaff', () => {
     expect(new Set(stems.map((stem) => stem.getAttribute('stroke-width'))).size).toBeGreaterThanOrEqual(2);
   });
 
+  it('draws fingering numbers at their chords, lit with them, and brackets round a note that may be left out', () => {
+    const score = showcase();
+    const { staff, container } = drawStaff(score);
+    const texts = [...container.querySelectorAll('text')];
+    // Numbers 0 to 5 come from the music font; "2-1" is set in the text font.
+    const numbers = texts.filter((text) => /^[-]$/.test(text.textContent));
+    expect(numbers).toHaveLength(7);
+    const change = texts.find((text) => text.textContent === '2-1')!;
+    expect(change.getAttribute('font-family')).not.toBe('Bravura');
+    // Each is inside its chord's group, so it lights up with the chord.
+    expect([...numbers, change].every((text) => text.parentElement?.tagName === 'g' && text.parentElement.style.color !== '')).toBe(true);
+    const brackets = texts.filter((text) => /^[]$/.test(text.textContent));
+    expect(brackets.map((text) => text.textContent)).toEqual(['', '']);
+    expect(brackets[0].parentElement).toBe(change.parentElement);
+    staff.render(0);
+  });
+
   describe('words over the staff', () => {
     const texts = (container: HTMLElement) => [...container.querySelectorAll('text')];
     const find = (container: HTMLElement, said: string) => texts(container).find((text) => text.textContent === said)!;

@@ -4,7 +4,7 @@ import { staffStep } from '../staffPosition';
 import type { Clef, WrittenNote, WrittenRest } from '../written';
 import { ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, stepSpan, untangleVoices, voiceKeys, withSeconds } from './chords';
 import { layoutGraces } from './graces';
-import { layoutArpeggios, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
+import { layoutArpeggios, layoutFingerings, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
 import { layoutRests } from './rests';
 import { layoutSlurs, layoutTies } from './slurs';
 import type { Beam, NotationLayout, StaffChord, StaffNote, StaffOctaveShift, Tuplet } from './types';
@@ -74,7 +74,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const bar = barAtBeat(score, first.beat);
     const notes = group
       // The clef in force (not the staff) decides where a pitch sits.
-      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, ...(note.headless ? { headless: true } : {}) }))
+      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, ...(note.headless ? { headless: true } : {}), ...(note.parenthesized ? { parenthesized: true } : {}) }))
       .sort((a, b) => a.step - b.step);
     const { top, bottom } = stepSpan(notes);
     const chord: StaffChord = {
@@ -155,6 +155,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   const drawn = untangled.chords;
   const groupsInOrder = entries.map((entry) => entry.group);
   const marks = layoutMarks(score, groupsInOrder, drawn, written, rests);
+  const ornaments = layoutOrnaments(score, groupsInOrder, drawn, marks);
   return {
     chords: drawn,
     octaveShifts: score.notation.octaveShifts.map(
@@ -172,9 +173,10 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     marks,
     slurs: layoutSlurs(groupsInOrder, drawn),
     graces: layoutGraces(score, drawn),
-    ornaments: layoutOrnaments(score, groupsInOrder, drawn, marks),
+    ornaments,
     tremolos: layoutTremolos(groupsInOrder, drawn),
     arpeggios: layoutArpeggios(groupsInOrder, drawn),
+    fingerings: layoutFingerings(groupsInOrder, drawn, marks, ornaments),
   };
 }
 

@@ -2,16 +2,18 @@ import type { Hand } from '../../../domain/note';
 import { flagCount } from '../../../domain/notation/noteValue';
 import { avoidNotes, beamLine, beamY, kneeBeamLine, type BeamObstacle } from '../beams';
 import { arc, slur } from '../curves';
-import type { Beam, StaffMark, StaffRest, StaffSlur, Tie, Tuplet } from '../../../domain/notation/engraving';
+import type { Beam, StaffFingering, StaffMark, StaffRest, StaffSlur, Tie, Tuplet } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import {
   ACCIDENTAL_GLYPH,
   AUGMENTATION_DOT,
+  FINGERING_GLYPHS,
   FLAG_DOWN,
   FLAG_UP,
   MARK_GLYPHS,
   MUSIC_FONT,
   NOTEHEAD,
+  NOTEHEAD_BRACKETS,
   REST,
   REST_WIDTH,
   TEXT_FONT,
@@ -23,6 +25,11 @@ import { COLORS, noteGlyph, svg } from './svg';
 const LEDGER_EXTENSION = 0.4;
 const ACCIDENTAL_OFFSET = 1.3;
 const DOT_OFFSET = 0.35;
+/** Brackets stand this far from their notehead, and take this much room (an accidental moves out of their way). */
+const BRACKET_GAP = 0.08;
+const BRACKET_ROOM = 0.55;
+/** A fingering in the text font ("2-1") is this tall, in staff spaces; the music font's numbers are drawn to match. */
+const FINGERING_SIZE = 1.5;
 /** Beams: thickness, distance between stacked beams, stub length for a lone shorter note. */
 const BEAM_THICKNESS = 0.5;
 const BEAM_SPACING = 0.75;
@@ -88,11 +95,17 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     // No head, and so nothing that goes with a head: the voice that has the head carries those.
     if (note.headless) continue;
     const y = yOf(note.step);
-    group.append(glyph(NOTEHEAD[value], note.displaced ? left + shift : left, y));
+    const headLeft = note.displaced ? left + shift : left;
+    group.append(glyph(NOTEHEAD[value], headLeft, y));
+    if (note.parenthesized) {
+      const left = glyph(NOTEHEAD_BRACKETS.left, headLeft - BRACKET_GAP * size, y);
+      left.setAttribute('text-anchor', 'end');
+      group.append(left, glyph(NOTEHEAD_BRACKETS.right, headLeft + headWidth + BRACKET_GAP * size, y));
+    }
     // Accidentals keep clear of every head (a voice moved aside for a second keeps them left of the
     // other voice's head too); dots follow the rightmost head.
     if (note.accidental) {
-      const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0);
+      const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0) - (note.parenthesized ? BRACKET_ROOM * size : 0);
       group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - ACCIDENTAL_OFFSET * size, y));
     }
     // A dot goes in a space: for a note on a line, in the space just above.
@@ -299,6 +312,20 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextEl
   const glyphs = [noteGlyph(space, REST[value], left, y)];
   if (dots) glyphs.push(noteGlyph(space, AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));
   return glyphs;
+}
+
+/** A fingering number, centred over (or under) its chord's noteheads. */
+export function drawFingering({ geometry: { space }, ink }: StaffContext, fingering: StaffFingering): SVGTextElement {
+  const { yOf, left, headWidth } = ink.of(ink.chord(fingering.chord));
+  // Its foot stands on the step when above the chord; under it, the number hangs from the step.
+  const y = yOf(fingering.step) + (fingering.above ? 0 : FINGERING_SIZE * space);
+  const digit = FINGERING_GLYPHS[fingering.text];
+  const number = digit
+    ? noteGlyph(space, digit, left + headWidth / 2, y - 0.75 * space)
+    : svg('text', { x: left + headWidth / 2, y, fill: 'currentColor', 'font-size': space * FINGERING_SIZE, 'font-family': TEXT_FONT });
+  if (!digit) number.textContent = fingering.text;
+  number.setAttribute('text-anchor', 'middle');
+  return number;
 }
 
 /** An articulation or fermata, centred over (or under) the notehead. */

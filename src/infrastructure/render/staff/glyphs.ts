@@ -85,6 +85,11 @@ export const REST_WIDTH: Record<NoteValue, number> = {
   thirtySecond: 1.5,
 };
 
+/** Fingering numbers 0 to 5 in the music font; anything else ("2-1") is set in the text font. */
+export const FINGERING_GLYPHS: Readonly<Record<string, string>> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '' };
+/** Brackets around a notehead: a note that may be left out. */
+export const NOTEHEAD_BRACKETS = { left: '', right: '' } as const;
+
 /** Articulation and fermata glyphs: [above, below]. */
 export const MARK_GLYPHS: Record<StaffMark['kind'], [string, string]> = {
   staccato: ['', ''],

@@ -1,5 +1,5 @@
 title: "Claviano showcase"
-notes: 300
+notes: 308
   {"pitch":67,"start":0,"duration":0.333333,"beat":0,"beats":0.5,"velocity":0.496063,"hand":"right"}
   {"pitch":69,"start":0.333333,"duration":0.333333,"beat":0.5,"beats":0.5,"velocity":0.496063,"hand":"right"}
   {"pitch":36,"start":0.666667,"duration":2.666667,"beat":1,"beats":4,"velocity":0.496063,"hand":"left"}
@@ -255,52 +255,60 @@ notes: 300
   {"pitch":66,"start":67,"duration":0.666667,"beat":97,"beats":1,"velocity":0.755929,"hand":"right"}
   {"pitch":69,"start":67,"duration":0.666667,"beat":97,"beats":1,"velocity":0.755929,"hand":"right"}
   {"pitch":86,"start":67,"duration":0.666667,"beat":97,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":50,"start":67.666667,"duration":1.374225,"beat":98,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":74,"start":67.666667,"duration":0.334695,"beat":98,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":76,"start":68.001362,"duration":0.340328,"beat":98.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":78,"start":68.341689,"duration":0.346359,"beat":99,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":79,"start":68.688049,"duration":0.352843,"beat":99.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":45,"start":69.040892,"duration":1.48775,"beat":100,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":81,"start":69.040892,"duration":0.359841,"beat":100,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":79,"start":69.400733,"duration":0.36743,"beat":100.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":78,"start":69.768164,"duration":0.375703,"beat":101,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":76,"start":70.143867,"duration":0.384775,"beat":101.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
-  {"pitch":45,"start":70.528642,"duration":1.333333,"beat":102,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":74,"start":70.528642,"duration":0.666667,"beat":102,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":76,"start":71.195309,"duration":0.666667,"beat":103,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":50,"start":71.861976,"duration":1.333333,"beat":104,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":78,"start":71.861976,"duration":0.666667,"beat":104,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":79,"start":72.528642,"duration":0.666667,"beat":105,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":50,"start":73.195309,"duration":2.666667,"beat":106,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":81,"start":73.195309,"duration":1.333333,"beat":106,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":78,"start":74.528642,"duration":1.333333,"beat":108,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":45,"start":75.861976,"duration":1.333333,"beat":110,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":74,"start":75.861976,"duration":0.666667,"beat":110,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":76,"start":76.528642,"duration":0.666667,"beat":111,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":50,"start":77.195309,"duration":1.333333,"beat":112,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":78,"start":77.195309,"duration":0.666667,"beat":112,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":79,"start":77.861976,"duration":0.666667,"beat":113,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":43,"start":78.528642,"duration":2.666667,"beat":114,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":83,"start":78.528642,"duration":1.333333,"beat":114,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":81,"start":79.861976,"duration":1.333333,"beat":116,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":45,"start":81.195309,"duration":2.666667,"beat":118,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":76,"start":81.195309,"duration":1.333333,"beat":118,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":73,"start":82.528642,"duration":1.333333,"beat":120,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":45,"start":83.861976,"duration":1.333333,"beat":122,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":74,"start":83.861976,"duration":0.666667,"beat":122,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":76,"start":84.528642,"duration":0.666667,"beat":123,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":50,"start":85.195309,"duration":1.333333,"beat":124,"beats":2,"velocity":0.755929,"hand":"left"}
-  {"pitch":78,"start":85.195309,"duration":0.666667,"beat":124,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":79,"start":85.861976,"duration":0.666667,"beat":125,"beats":1,"velocity":0.755929,"hand":"right"}
-  {"pitch":43,"start":86.528642,"duration":2.666667,"beat":126,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":83,"start":86.528642,"duration":1.333333,"beat":126,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":81,"start":87.861976,"duration":1.333333,"beat":128,"beats":2,"velocity":0.755929,"hand":"right"}
-  {"pitch":38,"start":89.195309,"duration":5.333333,"beat":130,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":50,"start":89.195309,"duration":5.333333,"beat":130,"beats":4,"velocity":0.755929,"hand":"left"}
-  {"pitch":74,"start":89.195309,"duration":5.333333,"beat":130,"beats":4,"velocity":0.755929,"hand":"right"}
-  {"pitch":78,"start":89.195309,"duration":5.333333,"beat":130,"beats":4,"velocity":0.755929,"hand":"right"}
-  {"pitch":81,"start":89.195309,"duration":5.333333,"beat":130,"beats":4,"velocity":0.755929,"hand":"right"}
-bars: 35
+  {"pitch":50,"start":67.666667,"duration":0.666667,"beat":98,"beats":1,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":67.666667,"duration":0.666667,"beat":98,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":57,"start":68.333333,"duration":0.666667,"beat":99,"beats":1,"velocity":0.755929,"hand":"left"}
+  {"pitch":78,"start":68.333333,"duration":0.666667,"beat":99,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":54,"start":69,"duration":1.333333,"beat":100,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":81,"start":69,"duration":0.666667,"beat":100,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":86,"start":69,"duration":0.666667,"beat":100,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":83,"start":69.666667,"duration":0.666667,"beat":101,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":50,"start":70.333333,"duration":1.374225,"beat":102,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":70.333333,"duration":0.334695,"beat":102,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":76,"start":70.668028,"duration":0.340328,"beat":102.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":78,"start":71.008356,"duration":0.346359,"beat":103,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":79,"start":71.354716,"duration":0.352843,"beat":103.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":45,"start":71.707559,"duration":1.48775,"beat":104,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":81,"start":71.707559,"duration":0.359841,"beat":104,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":79,"start":72.0674,"duration":0.36743,"beat":104.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":78,"start":72.434831,"duration":0.375703,"beat":105,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":76,"start":72.810534,"duration":0.384775,"beat":105.5,"beats":0.5,"velocity":0.755929,"hand":"right"}
+  {"pitch":45,"start":73.195309,"duration":1.333333,"beat":106,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":73.195309,"duration":0.666667,"beat":106,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":76,"start":73.861976,"duration":0.666667,"beat":107,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":50,"start":74.528642,"duration":1.333333,"beat":108,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":78,"start":74.528642,"duration":0.666667,"beat":108,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":79,"start":75.195309,"duration":0.666667,"beat":109,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":50,"start":75.861976,"duration":2.666667,"beat":110,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":81,"start":75.861976,"duration":1.333333,"beat":110,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":78,"start":77.195309,"duration":1.333333,"beat":112,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":45,"start":78.528642,"duration":1.333333,"beat":114,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":78.528642,"duration":0.666667,"beat":114,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":76,"start":79.195309,"duration":0.666667,"beat":115,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":50,"start":79.861976,"duration":1.333333,"beat":116,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":78,"start":79.861976,"duration":0.666667,"beat":116,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":79,"start":80.528642,"duration":0.666667,"beat":117,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":43,"start":81.195309,"duration":2.666667,"beat":118,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":83,"start":81.195309,"duration":1.333333,"beat":118,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":81,"start":82.528642,"duration":1.333333,"beat":120,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":45,"start":83.861976,"duration":2.666667,"beat":122,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":76,"start":83.861976,"duration":1.333333,"beat":122,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":73,"start":85.195309,"duration":1.333333,"beat":124,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":45,"start":86.528642,"duration":1.333333,"beat":126,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":86.528642,"duration":0.666667,"beat":126,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":76,"start":87.195309,"duration":0.666667,"beat":127,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":50,"start":87.861976,"duration":1.333333,"beat":128,"beats":2,"velocity":0.755929,"hand":"left"}
+  {"pitch":78,"start":87.861976,"duration":0.666667,"beat":128,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":79,"start":88.528642,"duration":0.666667,"beat":129,"beats":1,"velocity":0.755929,"hand":"right"}
+  {"pitch":43,"start":89.195309,"duration":2.666667,"beat":130,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":83,"start":89.195309,"duration":1.333333,"beat":130,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":81,"start":90.528642,"duration":1.333333,"beat":132,"beats":2,"velocity":0.755929,"hand":"right"}
+  {"pitch":38,"start":91.861976,"duration":5.333333,"beat":134,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":50,"start":91.861976,"duration":5.333333,"beat":134,"beats":4,"velocity":0.755929,"hand":"left"}
+  {"pitch":74,"start":91.861976,"duration":5.333333,"beat":134,"beats":4,"velocity":0.755929,"hand":"right"}
+  {"pitch":78,"start":91.861976,"duration":5.333333,"beat":134,"beats":4,"velocity":0.755929,"hand":"right"}
+  {"pitch":81,"start":91.861976,"duration":5.333333,"beat":134,"beats":4,"velocity":0.755929,"hand":"right"}
+bars: 36
   0
   0.666667
   3.333333
@@ -328,7 +336,7 @@ bars: 35
   62.333333
   65
   67.666667
-  70.528642
+  70.333333
   73.195309
   75.861976
   78.528642
@@ -336,7 +344,8 @@ bars: 35
   83.861976
   86.528642
   89.195309
-barBeats: 35
+  91.861976
+barBeats: 36
   0
   1
   5
@@ -372,7 +381,8 @@ barBeats: 35
   122
   126
   130
-barWritten: 35
+  134
+barWritten: 36
   0
   1
   2
@@ -402,25 +412,26 @@ barWritten: 35
   26
   27
   28
-  27
   29
+  28
   30
-  27
-  29
   31
-duration: 94.528642
-endBeat: 134
+  28
+  30
+  32
+duration: 97.195309
+endBeat: 138
 pedal: 5
   {"start":31.666667,"end":34.333333}
   {"start":41,"end":43.666667}
   {"start":43.666667,"end":45}
   {"start":45,"end":46.333333}
-  {"start":89.195309,"end":94.528642}
+  {"start":91.861976,"end":97.195309}
 sostenutoPedal: 1
   {"start":46.333333,"end":49}
 softPedal: 1
   {"start":28.666667,"end":31.666667}
-timeMap: 52
+timeMap: 53
   {"beat":0,"time":0}
   {"beat":1,"time":0.666667}
   {"beat":5,"time":3.333333}
@@ -449,37 +460,38 @@ timeMap: 52
   {"beat":90,"time":62.333333}
   {"beat":94,"time":65}
   {"beat":98,"time":67.666667}
-  {"beat":98.25,"time":67.833333}
-  {"beat":98.5,"time":68.001362}
-  {"beat":98.75,"time":68.170798}
-  {"beat":99,"time":68.341689}
-  {"beat":99.25,"time":68.514088}
-  {"beat":99.5,"time":68.688049}
-  {"beat":99.75,"time":68.863629}
-  {"beat":100,"time":69.040892}
-  {"beat":100.25,"time":69.219903}
-  {"beat":100.5,"time":69.400733}
-  {"beat":100.75,"time":69.58346}
-  {"beat":101,"time":69.768164}
-  {"beat":101.25,"time":69.954934}
-  {"beat":101.5,"time":70.143867}
-  {"beat":101.75,"time":70.335065}
-  {"beat":102,"time":70.528642}
+  {"beat":102,"time":70.333333}
+  {"beat":102.25,"time":70.5}
+  {"beat":102.5,"time":70.668028}
+  {"beat":102.75,"time":70.837464}
+  {"beat":103,"time":71.008356}
+  {"beat":103.25,"time":71.180755}
+  {"beat":103.5,"time":71.354716}
+  {"beat":103.75,"time":71.530296}
+  {"beat":104,"time":71.707559}
+  {"beat":104.25,"time":71.88657}
+  {"beat":104.5,"time":72.0674}
+  {"beat":104.75,"time":72.250126}
+  {"beat":105,"time":72.434831}
+  {"beat":105.25,"time":72.621601}
+  {"beat":105.5,"time":72.810534}
+  {"beat":105.75,"time":73.001732}
   {"beat":106,"time":73.195309}
   {"beat":110,"time":75.861976}
   {"beat":114,"time":78.528642}
   {"beat":118,"time":81.195309}
   {"beat":122,"time":83.861976}
   {"beat":126,"time":86.528642}
-  {"beat":130,"time":89.195309,"hold":true}
-  {"beat":134,"time":94.528642}
+  {"beat":130,"time":89.195309}
+  {"beat":134,"time":91.861976,"hold":true}
+  {"beat":138,"time":97.195309}
 graceSounds: 4
   {"beat":73.875,"each":0.125}
   {"beat":75,"each":1}
   {"beat":76.75,"each":0.125}
   {"beat":73.875,"each":0.125}
 notation.title: "Claviano showcase"
-notation.bars: 32
+notation.bars: 33
   {"start":0,"length":1,"navigation":{}}
   {"start":1,"length":4,"navigation":{}}
   {"start":5,"length":4,"navigation":{}}
@@ -507,12 +519,13 @@ notation.bars: 32
   {"start":90,"length":4,"navigation":{}}
   {"start":94,"length":4,"navigation":{}}
   {"start":98,"length":4,"navigation":{}}
-  {"start":102,"length":4,"navigation":{"repeatStart":true,"segnoSign":true,"segno":true}}
-  {"start":106,"length":4,"navigation":{"ending":[1],"endingLabel":"1.","endingClosed":true,"repeatEnd":{"times":2}}}
-  {"start":110,"length":4,"navigation":{"ending":[2],"endingLabel":"2.","toCoda":true,"text":"To Coda"}}
-  {"start":114,"length":4,"navigation":{"jump":"dalsegno","text":"D.S. al Coda"}}
-  {"start":118,"length":4,"navigation":{"codaSign":true,"coda":true}}
-notation.notes: 238
+  {"start":102,"length":4,"navigation":{}}
+  {"start":106,"length":4,"navigation":{"repeatStart":true,"segnoSign":true,"segno":true}}
+  {"start":110,"length":4,"navigation":{"ending":[1],"endingLabel":"1.","endingClosed":true,"repeatEnd":{"times":2}}}
+  {"start":114,"length":4,"navigation":{"ending":[2],"endingLabel":"2.","toCoda":true,"text":"To Coda"}}
+  {"start":118,"length":4,"navigation":{"jump":"dalsegno","text":"D.S. al Coda"}}
+  {"start":122,"length":4,"navigation":{"codaSign":true,"coda":true}}
+notation.notes: 246
   {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":4,"alteration":0},"beat":0,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["begin"],"bar":0,"sounding":67}
   {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":4,"alteration":0},"beat":0.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["end"],"bar":0,"sounding":69}
   {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":0,"octave":6,"alteration":0},"beat":1,"beats":2,"duration":{"value":"half","dots":0},"bar":1,"sounding":84}
@@ -721,36 +734,44 @@ notation.notes: 238
   {"staff":1,"voice":"2","hand":"right","clef":"treble","pitch":{"letter":3,"octave":4,"alteration":1},"beat":97,"beats":1,"duration":{"value":"quarter","dots":0},"stem":"down","small":true,"bar":25,"sounding":66}
   {"staff":1,"voice":"2","hand":"right","chord":true,"clef":"treble","pitch":{"letter":5,"octave":4,"alteration":0},"beat":97,"beats":1,"duration":{"value":"quarter","dots":0},"stem":"down","small":true,"bar":25,"sounding":69}
   {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":94,"beats":4,"duration":{"value":"whole","dots":0},"bar":25,"sounding":50}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":98,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["begin"],"bar":26,"sounding":74}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":98.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":26,"sounding":76}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":99,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":26,"sounding":78}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":99.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["end"],"bar":26,"sounding":79}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":100,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["begin"],"bar":26,"sounding":81}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":100.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":26,"sounding":79}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":101,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":26,"sounding":78}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":101.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["end"],"bar":26,"sounding":76}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":98,"beats":2,"duration":{"value":"half","dots":0},"bar":26,"sounding":50}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":100,"beats":2,"duration":{"value":"half","dots":0},"bar":26,"sounding":45}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":102,"beats":1,"duration":{"value":"quarter","dots":0},"bar":27,"sounding":74}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":103,"beats":1,"duration":{"value":"quarter","dots":0},"bar":27,"sounding":76}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":104,"beats":1,"duration":{"value":"quarter","dots":0},"bar":27,"sounding":78}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":105,"beats":1,"duration":{"value":"quarter","dots":0},"bar":27,"sounding":79}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":102,"beats":2,"duration":{"value":"half","dots":0},"bar":27,"sounding":45}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":104,"beats":2,"duration":{"value":"half","dots":0},"bar":27,"sounding":50}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":106,"beats":2,"duration":{"value":"half","dots":0},"bar":28,"sounding":81}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":108,"beats":2,"duration":{"value":"half","dots":0},"bar":28,"sounding":78}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":106,"beats":4,"duration":{"value":"whole","dots":0},"bar":28,"sounding":50}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":6,"octave":5,"alteration":0},"beat":110,"beats":2,"duration":{"value":"half","dots":0},"bar":29,"sounding":83}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":112,"beats":2,"duration":{"value":"half","dots":0},"bar":29,"sounding":81}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":4,"octave":2,"alteration":0},"beat":110,"beats":4,"duration":{"value":"whole","dots":0},"bar":29,"sounding":43}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":114,"beats":2,"duration":{"value":"half","dots":0},"bar":30,"sounding":76}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":0,"octave":5,"alteration":1},"beat":116,"beats":2,"duration":{"value":"half","dots":0},"bar":30,"sounding":73}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":114,"beats":4,"duration":{"value":"whole","dots":0},"bar":30,"sounding":45}
-  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":31,"sounding":74}
-  {"staff":1,"voice":"1","hand":"right","chord":true,"clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":31,"sounding":78}
-  {"staff":1,"voice":"1","hand":"right","chord":true,"clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":31,"sounding":81}
-  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":2,"alteration":0},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"inverted","bar":31,"sounding":38}
-  {"staff":2,"voice":"5","hand":"left","chord":true,"clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"inverted","bar":31,"sounding":50}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":98,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"1"},"bar":26,"sounding":74}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":99,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"3"},"bar":26,"sounding":78}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":100,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"2"},"bar":26,"sounding":81}
+  {"staff":1,"voice":"1","hand":"right","chord":true,"clef":"treble","pitch":{"letter":1,"octave":6,"alteration":0},"beat":100,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"5"},"bar":26,"sounding":86}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":6,"octave":5,"alteration":0},"beat":101,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"2-1"},"parenthesized":true,"bar":26,"sounding":83}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":98,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"5"},"bar":26,"sounding":50}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":3,"alteration":0},"beat":99,"beats":1,"duration":{"value":"quarter","dots":0},"fingering":{"text":"2"},"bar":26,"sounding":57}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":3,"octave":3,"alteration":1},"beat":100,"beats":2,"duration":{"value":"half","dots":0},"fingering":{"text":"3"},"bar":26,"sounding":54}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":102,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["begin"],"bar":27,"sounding":74}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":102.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":27,"sounding":76}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":103,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":27,"sounding":78}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":103.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["end"],"bar":27,"sounding":79}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":104,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["begin"],"bar":27,"sounding":81}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":104.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":27,"sounding":79}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":105,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["continue"],"bar":27,"sounding":78}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":105.5,"beats":0.5,"duration":{"value":"eighth","dots":0},"beams":["end"],"bar":27,"sounding":76}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":102,"beats":2,"duration":{"value":"half","dots":0},"bar":27,"sounding":50}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":104,"beats":2,"duration":{"value":"half","dots":0},"bar":27,"sounding":45}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":106,"beats":1,"duration":{"value":"quarter","dots":0},"bar":28,"sounding":74}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":107,"beats":1,"duration":{"value":"quarter","dots":0},"bar":28,"sounding":76}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":108,"beats":1,"duration":{"value":"quarter","dots":0},"bar":28,"sounding":78}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":4,"octave":5,"alteration":0},"beat":109,"beats":1,"duration":{"value":"quarter","dots":0},"bar":28,"sounding":79}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":106,"beats":2,"duration":{"value":"half","dots":0},"bar":28,"sounding":45}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":108,"beats":2,"duration":{"value":"half","dots":0},"bar":28,"sounding":50}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":110,"beats":2,"duration":{"value":"half","dots":0},"bar":29,"sounding":81}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":112,"beats":2,"duration":{"value":"half","dots":0},"bar":29,"sounding":78}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":110,"beats":4,"duration":{"value":"whole","dots":0},"bar":29,"sounding":50}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":6,"octave":5,"alteration":0},"beat":114,"beats":2,"duration":{"value":"half","dots":0},"bar":30,"sounding":83}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":116,"beats":2,"duration":{"value":"half","dots":0},"bar":30,"sounding":81}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":4,"octave":2,"alteration":0},"beat":114,"beats":4,"duration":{"value":"whole","dots":0},"bar":30,"sounding":43}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"beat":118,"beats":2,"duration":{"value":"half","dots":0},"bar":31,"sounding":76}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":0,"octave":5,"alteration":1},"beat":120,"beats":2,"duration":{"value":"half","dots":0},"bar":31,"sounding":73}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":5,"octave":2,"alteration":0},"beat":118,"beats":4,"duration":{"value":"whole","dots":0},"bar":31,"sounding":45}
+  {"staff":1,"voice":"1","hand":"right","clef":"treble","pitch":{"letter":1,"octave":5,"alteration":0},"beat":122,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":32,"sounding":74}
+  {"staff":1,"voice":"1","hand":"right","chord":true,"clef":"treble","pitch":{"letter":3,"octave":5,"alteration":1},"beat":122,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":32,"sounding":78}
+  {"staff":1,"voice":"1","hand":"right","chord":true,"clef":"treble","pitch":{"letter":5,"octave":5,"alteration":0},"beat":122,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"upright","bar":32,"sounding":81}
+  {"staff":2,"voice":"5","hand":"left","clef":"bass","pitch":{"letter":1,"octave":2,"alteration":0},"beat":122,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"inverted","bar":32,"sounding":38}
+  {"staff":2,"voice":"5","hand":"left","chord":true,"clef":"bass","pitch":{"letter":1,"octave":3,"alteration":0},"beat":122,"beats":4,"duration":{"value":"whole","dots":0},"fermata":"inverted","bar":32,"sounding":50}
 notation.graces: 4
   {"bar":20,"beat":74,"leadsTo":161,"notes":[{"staff":1,"hand":"right","clef":"treble","pitch":{"letter":2,"octave":5,"alteration":0},"slash":true,"value":"eighth","sounding":76}]}
   {"bar":20,"beat":75,"leadsTo":162,"notes":[{"staff":1,"hand":"right","clef":"treble","pitch":{"letter":6,"octave":5,"alteration":0},"value":"eighth","slur":true,"sounding":83}]}
@@ -812,8 +833,8 @@ notation.pedalMoves: 14
   {"bar":17,"pedal":"sustain","beat":66}
   {"bar":18,"pedal":"sostenuto","beat":66,"down":true}
   {"bar":18,"pedal":"sostenuto","beat":70}
-  {"bar":31,"pedal":"sustain","beat":118,"down":true}
-  {"bar":31,"pedal":"sustain","beat":122}
+  {"bar":32,"pedal":"sustain","beat":122,"down":true}
+  {"bar":32,"pedal":"sustain","beat":126}
 notation.pedalMarks: 13
   {"pedal":"soft","beat":43,"type":"start","text":"una corda"}
   {"pedal":"soft","beat":46,"type":"stop","text":"tre corde"}
@@ -826,8 +847,8 @@ notation.pedalMarks: 13
   {"pedal":"sustain","beat":66,"type":"stop","line":true}
   {"pedal":"sostenuto","beat":66,"type":"start","sign":true,"line":true}
   {"pedal":"sostenuto","beat":70,"type":"stop","sign":true,"line":true}
-  {"pedal":"sustain","beat":118,"type":"start","sign":true,"line":true}
-  {"pedal":"sustain","beat":122,"type":"stop","sign":true,"line":true}
+  {"pedal":"sustain","beat":122,"type":"start","sign":true,"line":true}
+  {"pedal":"sustain","beat":126,"type":"stop","sign":true,"line":true}
 notation.octaveShifts: 2
   {"staff":1,"start":46,"end":50,"octaves":1}
   {"staff":2,"start":48,"end":50,"octaves":-1}
@@ -839,7 +860,7 @@ notation.hairpins: 2
   {"start":17,"type":"diminuendo","end":21,"drawn":true}
 notation.dynamicLevels: 1
   {"beat":0,"level":70}
-notation.words: 28
+notation.words: 29
   {"beat":0,"text":"Pickup","tempo":true}
   {"beat":1,"text":"Values"}
   {"beat":9,"text":"Beams"}
@@ -864,7 +885,8 @@ notation.words: 28
   {"beat":86,"text":"Shared notes"}
   {"beat":90,"text":"Clefs with an 8"}
   {"beat":94,"text":"Small notes"}
-  {"beat":98,"text":"Slowing down"}
-  {"beat":98,"text":"rit."}
-  {"beat":102,"text":"Repeats"}
-  {"beat":102,"text":"a tempo"}
+  {"beat":98,"text":"Fingering"}
+  {"beat":102,"text":"Slowing down"}
+  {"beat":102,"text":"rit."}
+  {"beat":106,"text":"Repeats"}
+  {"beat":106,"text":"a tempo"}

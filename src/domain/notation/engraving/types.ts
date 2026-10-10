@@ -23,6 +23,8 @@ export interface StaffNote {
   readonly displaced?: boolean;
   /** No head is drawn: the stem and beams only (another voice has this note's head). */
   readonly headless?: boolean;
+  /** The head stands in brackets: a note that may be left out. */
+  readonly parenthesized?: boolean;
 }
 
 /** Notes on one staff that start together and look the same share a stem: a chord (or a single note). */
@@ -139,6 +141,15 @@ export interface StaffOrnament {
   readonly lineTo: number | null;
 }
 
+/** A fingering: the number of the finger, over or under its chord. */
+export interface StaffFingering {
+  readonly chord: number;
+  readonly text: string;
+  readonly above: boolean;
+  /** Where the number stands, in staff steps: its foot when above the chord, its head when below. */
+  readonly step: number;
+}
+
 /** Tremolo strokes: on a chord's stem, or between it and the chord `to`. */
 export interface StaffTremolo {
   readonly chord: number;
@@ -189,4 +200,5 @@ export interface NotationLayout {
   readonly ornaments: readonly StaffOrnament[];
   readonly tremolos: readonly StaffTremolo[];
   readonly arpeggios: readonly StaffArpeggio[];
+  readonly fingerings: readonly StaffFingering[];
 }

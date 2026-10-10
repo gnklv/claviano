@@ -339,6 +339,12 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     const left = geometry.barLineX(index) + BAR_NUMBER_INSET * space;
     return { left, right: left + BAR_NUMBER_WIDTH * space, y };
   });
+  // So do the segno and the coda signs, which stand over the start of their bars (about three spaces wide).
+  score.notation.bars.forEach((bar, index) => {
+    if (!bar.navigation.segnoSign && !bar.navigation.codaSign) return;
+    const left = geometry.barLineX(index) + space;
+    numbers.push({ left, right: left + 3 * space, y: geometry.trebleTop() - 2.6 * space });
+  });
   const pastNumbers = (left: number, width: number, y: number): number => {
     const inTheWay = numbers.find((number) => left < number.right + WORDS_GAP * space && left + width > number.left && Math.abs(number.y - y) < WORDS_LINE * space);
     return inTheWay ? inTheWay.right + WORDS_GAP * space : left;

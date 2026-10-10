@@ -49,3 +49,4 @@ graces: 0
 ornaments: 0
 tremolos: 0
 arpeggios: 0
+fingerings: 0

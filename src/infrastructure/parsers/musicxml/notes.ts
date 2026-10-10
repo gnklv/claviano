@@ -122,6 +122,8 @@ export function readWritten(
         : 'up'
       : null,
     ...(/cue/.test(element.querySelector(':scope > type')?.getAttribute('size') ?? '') ? { small: true } : {}),
+    ...fingeringOf(element),
+    ...(element.querySelector(':scope > notehead')?.getAttribute('parentheses') === 'yes' ? { parenthesized: true } : {}),
     ...(element.getAttribute('print-object') === 'no' ? { hidden: true } : {}),
     ...(childText(element, 'notehead') === 'none' ? { headless: true } : {}),
     slurs: [...element.querySelectorAll(':scope > notations > slur')].flatMap((slur): SlurMark[] => {
@@ -137,6 +139,15 @@ export function readWritten(
       ];
     }),
   };
+}
+
+/** The finger printed at a <note>, if any. */
+function fingeringOf(element: Element): Pick<WrittenNote, 'fingering'> {
+  const fingering = element.querySelector(':scope > notations > technical > fingering');
+  const text = fingering?.textContent?.trim();
+  if (!fingering || !text) return {};
+  const placement = fingering.getAttribute('placement');
+  return { fingering: { text, below: placement === 'below' ? true : placement === 'above' ? false : null } };
 }
 
 /** The ornament signs of a <note>, each with the small accidentals printed after it. */
