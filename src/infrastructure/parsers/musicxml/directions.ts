@@ -94,6 +94,8 @@ export function metronomeMark(direction: Element, beat: number): TempoMark | nul
  */
 export interface PedalState {
   sustain: boolean;
+  /** A stretch of the right pedal is open on the page: its mark was printed, its release was not yet. */
+  sustainPrinted: boolean;
   /** The `number` of a sostenuto pedal that is down ('' when unnumbered), or null. */
   sostenuto: string | null;
   sostenutoLast: boolean;
@@ -137,6 +139,7 @@ export function readPedal(
   } else if (pedal && (type === 'start' || type === 'stop' || type === 'change')) {
     // The right pedal.
     state.sustain = type !== 'stop';
+    state.sustainPrinted = type !== 'stop';
     state.sostenutoLast = false;
     // By the standard, signs ("Ped." and "✱") are the default unless the pedal is drawn with a line.
     const line = pedal.getAttribute('line') === 'yes';
@@ -144,10 +147,18 @@ export function readPedal(
     if (type === 'change') events.push({ pedal: 'sustain', beat, down: false });
     events.push({ pedal: 'sustain', beat, down: type !== 'stop' });
     marks.push({ pedal: 'sustain', beat, type, sign, line });
-  } else if (type === 'resume' || type === 'discontinue') {
+  } else if (pedal && (type === 'resume' || type === 'discontinue')) {
+    // A pedal line broken off (at the end of a system) and taken up again: on the tape it runs on.
     state.sustain = type === 'resume';
     if (state.sustain) state.sostenutoLast = false;
     events.push({ pedal: 'sustain', beat, down: state.sustain });
+    // But "resume" with nothing to take up is a press: MuseScore 4 writes "Ped." with a line this way.
+    if (type === 'resume' && !state.sustainPrinted) {
+      state.sustainPrinted = true;
+      const line = pedal.getAttribute('line') === 'yes';
+      const sign = pedal.getAttribute('sign') ? pedal.getAttribute('sign') === 'yes' : !line;
+      marks.push({ pedal: 'sustain', beat, type: 'start', sign, line });
+    }
   } else {
     const damper = sound?.getAttribute('damper-pedal');
     if (damper) {

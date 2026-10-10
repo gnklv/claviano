@@ -760,6 +760,37 @@ describe('MusicXmlParser', () => {
       ]);
     });
 
+    it('reads "resume" with nothing before it as a press: "Ped." and a line, as MuseScore 4 writes them', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('resume', 'line="yes" sign="yes"')}${quarter('C')}${quarter('E')}${pedal('stop', 'line="yes" sign="no"')}
+          ${pedal('resume', 'line="yes" sign="yes"')}${quarter('G')}${quarter('C', 4)}${pedal('stop', 'line="yes" sign="no"')}</measure>`),
+        't',
+      );
+      expect(s.pedal).toEqual([
+        { start: 0, end: 2 },
+        { start: 2, end: 4 },
+      ]);
+      expect(s.notation.pedalMarks).toEqual([
+        { pedal: 'sustain', beat: 0, type: 'start', sign: true, line: true },
+        { pedal: 'sustain', beat: 2, type: 'stop', sign: false, line: true },
+        { pedal: 'sustain', beat: 2, type: 'start', sign: true, line: true },
+        { pedal: 'sustain', beat: 4, type: 'stop', sign: false, line: true },
+      ]);
+    });
+
+    it('lets a pedal line broken off and taken up again run on as one', () => {
+      const s = parser.parse(
+        score(`<measure number="1">${attributes()}${tempo(60)}
+          ${pedal('start', 'line="yes"')}${quarter('C')}${pedal('discontinue', 'line="yes"')}${quarter('E')}${pedal('resume', 'line="yes"')}${quarter('G')}${quarter('C', 4)}${pedal('stop', 'line="yes"')}</measure>`),
+        't',
+      );
+      expect(s.notation.pedalMarks.map((m) => [m.type, m.beat])).toEqual([
+        ['start', 0],
+        ['stop', 4],
+      ]);
+    });
+
     it('places a pedal mark by its offset', () => {
       const s = parser.parse(
         score(`<measure number="1">${attributes()}${tempo(60)}

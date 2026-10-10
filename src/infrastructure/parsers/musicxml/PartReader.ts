@@ -47,7 +47,7 @@ export class PartReader {
   private readonly openShifts = new Map<number, { start: number; octaves: number }>();
   /** Hairpins not yet closed, by their number. */
   private readonly openHairpins = new Map<string, { start: number; type: Hairpin['type']; below: boolean }>();
-  private readonly pedalState: PedalState = { sustain: false, sostenuto: null, sostenutoLast: false };
+  private readonly pedalState: PedalState = { sustain: false, sustainPrinted: false, sostenuto: null, sostenutoLast: false };
 
   // What has been read.
   private readonly bars: { start: number; length: number; navigation: MutableNavigation }[] = [];

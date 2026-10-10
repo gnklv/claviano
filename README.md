@@ -185,20 +185,27 @@ timer jitter; the view only reads `playback.position` each frame.
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter
 
-Next, roughly in this order (see [the concept](docs/concept.md): a library to start from, learning
-a piece, free play):
+Next, in this order (see [the concept](docs/concept.md): a library to start from, learning a
+piece, free play). Each step stands on the one before, so nothing is laid out twice:
 
-- [ ] Redesign, step 1: the three screens (library, learning, free play) and the new transport
-      bar: what is always at hand, what is needed once a session, what is seldom changed
-- [ ] Phones and tablets: go through the app on an iPhone and an iPad (the iOS Simulator will do
-      for layout and touch; sound, memory and smoothness need real devices), fix what is cramped
-      or slow, check the samples in iOS Safari
-- [ ] The library: opened pieces kept in the browser, each with the bar it was left at
-- [ ] Free play from the keys on the screen: what is played is written down and saved as a piece
-- [ ] Volume: sliders for the piano and the metronome (in the settings panel)
-- [ ] Install as an app on the phone (web app manifest, icons; the service worker is there)
-- [ ] Listening through the microphone (to research first): following a piece as it is played from
-      the notes (which notes were right, a "wait mode" without a cable), and free play by ear
-- [ ] Sheet music from PDF (to research first): reading printed notes into the notation
-- [ ] Files with several instruments (low priority: the app is for one)
-- [ ] Web MIDI input and "wait mode" (last: needs a keyboard and a cable to try)
+1. [ ] The frame of screens: the library (for now "Open file" and the demos, nothing remembered)
+       and the learning screen with its new header; moving between them, an address for each
+2. [ ] The new transport bar (always at hand / once a session / seldom) and the settings panel,
+       with volume sliders for the piano and the metronome in it
+3. [ ] Phones and tablets: the "⋯" sheet on a phone upright, strips that hide on a phone on its
+       side; a pass on an iPhone and an iPad in the iOS Simulator (layout and touch), then on real
+       devices (sound, memory, smoothness, the samples in iOS Safari)
+4. [ ] The library remembers: opened pieces kept in the browser, each with its place, tempo, loop
+       and hands; rename, remove, save out as a file
+5. [ ] Install as an app on the phone (web app manifest, icons; the service worker is there):
+       an installed app's library is not wiped by iOS Safari
+6. [ ] Free play from the keys on the screen: what is played is written down as it is played,
+       saved as a piece, saved out as MIDI
+7. [ ] Listening through the microphone (to research first): following a piece as it is played
+       from the notes (a "wait mode" without a cable), then free play by ear
+8. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
+9. [ ] Files with several instruments (low priority: the app is for one)
+10. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
+
+At any time, between the steps: looking through real pieces for what is drawn or played wrong;
+the research for steps 7 and 8; checks on real devices and on GitHub Pages.
