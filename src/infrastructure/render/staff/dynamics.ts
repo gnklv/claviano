@@ -77,6 +77,23 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     }
   }
 
+  // Words under the upper staff ("sempre pianissimo"): on the dynamics' line, after a mark standing at the same place.
+  for (const mark of score.notation.words) {
+    if (!mark.below) continue;
+    const beside = score.notation.dynamics.find((dynamic) => Math.abs(dynamic.beat - mark.beat) < 1e-6);
+    const left = x(mark.beat) + (beside ? (beside.text.length * (beside.letters ? DYNAMIC_LETTER_WIDTH : 0.6) + 1) * space : -0.5 * space);
+    const words = svg('text', {
+      x: left,
+      y: baseline(false, left, left + mark.text.length * 0.6 * space),
+      'font-size': space * 1.3,
+      'font-family': TEXT_FONT,
+      'font-style': 'italic',
+    });
+    words.textContent = mark.text;
+    words.style.setProperty('fill', COLORS.note);
+    shapes.push(words);
+  }
+
   for (const hairpin of score.notation.hairpins) {
     // Clear of a mark at either end: start after it, end before it.
     const markAt = (beat: number) => score.notation.dynamics.find((m) => m.letters && Math.abs(m.beat - beat) < 1e-6);

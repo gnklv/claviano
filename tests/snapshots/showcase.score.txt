@@ -799,3 +799,29 @@ notation.hairpins: 2
   {"start":17,"type":"diminuendo","end":21,"drawn":true}
 notation.dynamicLevels: 1
   {"beat":0,"level":70}
+notation.words: 25
+  {"beat":0,"text":"Pickup","tempo":true}
+  {"beat":1,"text":"Values"}
+  {"beat":9,"text":"Beams"}
+  {"beat":13,"text":"Accidentals"}
+  {"beat":17,"text":"Tuplets"}
+  {"beat":21,"text":"Voices"}
+  {"beat":25,"text":"Rests"}
+  {"beat":29,"text":"Ties"}
+  {"beat":37,"text":"Key and time"}
+  {"beat":40,"text":"Clef change"}
+  {"beat":43,"text":"Slower, piano","tempo":true}
+  {"beat":46,"text":"Range, forte","tempo":true}
+  {"beat":50,"text":"Articulation"}
+  {"beat":54,"text":"Legato, fermata"}
+  {"beat":58,"text":"Pedal"}
+  {"beat":62,"text":"Pedal change"}
+  {"beat":66,"text":"Sostenuto"}
+  {"beat":70,"text":"Seconds"}
+  {"beat":74,"text":"Grace notes"}
+  {"beat":78,"text":"Ornaments"}
+  {"beat":82,"text":"Tremolo, arpeggio"}
+  {"beat":86,"text":"Shared notes"}
+  {"beat":90,"text":"Clefs with an 8"}
+  {"beat":94,"text":"Small notes"}
+  {"beat":98,"text":"Repeats"}

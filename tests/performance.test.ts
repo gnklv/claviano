@@ -57,6 +57,7 @@ const notation = (notes: WrittenNote[], more: Partial<Notation> = {}): Notation 
   dynamics: [],
   hairpins: [],
   dynamicLevels: [],
+  words: [],
   ...more,
 });
 

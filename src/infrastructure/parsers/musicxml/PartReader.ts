@@ -1,10 +1,11 @@
 import type { Hand } from '../../../domain/note';
 import type { DynamicLevel, DynamicMark, Hairpin } from '../../../domain/notation/dynamics';
 import type { Notation, PedalMove, TempoChange } from '../../../domain/notation/notation';
+import type { WordsMark } from '../../../domain/notation/words';
 import type { Clef, ClefChange, WrittenGrace, WrittenGraces, WrittenNote, WrittenRest } from '../../../domain/notation/written';
 import type { PedalMark } from '../../../domain/pedal';
 import type { KeySignature, OctaveShift, TempoMark, TimeSignature } from '../../../domain/score';
-import { metronomeMark, readDynamics, readNavigation, readPedal, type MutableNavigation, type PedalState } from './directions';
+import { metronomeMark, readDynamics, readNavigation, readPedal, readWords, type MutableNavigation, type PedalState } from './directions';
 import { midiPitch, NOTE_TYPES, readRest, readWritten } from './notes';
 import { childNumber, childText } from './xml';
 
@@ -68,6 +69,7 @@ export class PartReader {
   private readonly dynamicLevels: DynamicLevel[] = [];
   private readonly dynamicMarks: DynamicMark[] = [];
   private readonly hairpins: Hairpin[] = [];
+  private readonly words: WordsMark[] = [];
 
   private bar: OpenBar = this.openBar();
 
@@ -97,6 +99,7 @@ export class PartReader {
       dynamics: this.dynamicMarks,
       hairpins: this.hairpins,
       dynamicLevels: this.dynamicLevels,
+      words: this.words,
     };
   }
 
@@ -238,7 +241,9 @@ export class PartReader {
       this.tempoMarks.push({ beat: soundBeat, unit: { value: 'quarter', dots: 0 }, perMinute: Math.round(tempo), printed: false });
     }
 
+    const textBefore = this.bar.navigation.text;
     readNavigation(element, sound, this.bar.navigation);
+    if (isDirection) this.words.push(...readWords(element, sound, beat, this.bar.navigation.text !== textBefore));
 
     const pedal = readPedal(element, sound, beat, this.pedalState);
     this.pedalMoves.push(...pedal.events.map((event) => ({ bar, ...event })));

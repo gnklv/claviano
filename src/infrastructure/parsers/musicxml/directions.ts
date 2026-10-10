@@ -1,5 +1,6 @@
 import { dynamicWords, isDynamicLetters, type DynamicMark, type Hairpin } from '../../../domain/notation/dynamics';
 import type { BarNavigation } from '../../../domain/notation/navigation';
+import { isWords, type WordsMark } from '../../../domain/notation/words';
 import { softPedalWords, type PedalKind, type PedalMark } from '../../../domain/pedal';
 import type { TempoMark } from '../../../domain/score';
 import { NOTE_TYPES } from './notes';
@@ -30,6 +31,24 @@ export function readNavigation(element: Element, sound: Element | null | undefin
   // The words that go with a jump ("D.C. al Fine", "To Coda") are printed over the bar.
   const words = [...(types?.querySelectorAll(':scope > words') ?? [])].map((w) => w.textContent?.trim()).filter(Boolean);
   if ((jumps.dacapo || jumps.dalsegno || jumps.fine || jumps.toCoda) && words.length > 0) nav.text = words.join(' ');
+}
+
+/**
+ * The words a <direction> carries, other than those read elsewhere: dynamics ("cresc."), the left
+ * pedal ("una corda"), the words of a jump. Bold words, and words that set the tempo, are a tempo.
+ */
+export function readWords(direction: Element, sound: Element | null | undefined, beat: number, isJump: boolean): WordsMark[] {
+  if (isJump) return [];
+  const below = direction.getAttribute('placement') === 'below';
+  const setsTempo = Number(sound?.getAttribute('tempo')) > 0;
+  return [...direction.querySelectorAll(':scope > direction-type > words')].flatMap((words) => {
+    const text = words.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    if (!isWords(text) || dynamicWords(text) || softPedalWords(text) !== null || words.getAttribute('print-object') === 'no') return [];
+    // Bold is a tempo; so are plain words that set one ("Adagio"), unless the file prints them as something else.
+    const weight = words.getAttribute('font-weight');
+    const plain = weight === null && words.getAttribute('font-style') !== 'italic';
+    return [{ beat, text, tempo: weight === 'bold' || (setsTempo && plain), below }];
+  });
 }
 
 /**

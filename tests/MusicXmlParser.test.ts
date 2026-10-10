@@ -771,6 +771,40 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  describe('words in the music', () => {
+    const said = (text: string, { attrs = '', placement = 'above', sound = '' } = {}) =>
+      `<direction placement="${placement}"><direction-type><words ${attrs}>${text}</words></direction-type>${sound}</direction>`;
+    const read = (directions: string) =>
+      parser.parse(score(`<measure number="1">${attributes()}${directions}${note('C', 4, 4)}${note('E', 4, 4)}</measure>`), 'test').notation.words;
+
+    it('reads a tempo in words: bold, or plain words that set the tempo', () => {
+      expect(read(said('Allegro', { attrs: 'font-weight="bold"' }))).toEqual([{ beat: 0, text: 'Allegro', tempo: true, below: false }]);
+      expect(read(said('Adagio', { sound: '<sound tempo="60"/>' }))).toEqual([{ beat: 0, text: 'Adagio', tempo: true, below: false }]);
+    });
+
+    it('reads other words as they are placed: over the staff or under it', () => {
+      expect(read(said('tranquillo', { attrs: 'font-style="italic"' }) + said('sempre legato', { placement: 'below' }))).toEqual([
+        { beat: 0, text: 'tranquillo', tempo: false, below: false },
+        { beat: 0, text: 'sempre legato', tempo: false, below: true },
+      ]);
+      // Words printed in another way stay words, even on a direction that sets the tempo.
+      expect(read(said('con espressione', { attrs: 'font-weight="normal"', sound: '<sound tempo="60"/>' }))[0].tempo).toBe(false);
+    });
+
+    it('leaves out what has a place of its own, and what is not words at all', () => {
+      const jump = '<direction><direction-type><words>D.C. al Fine</words></direction-type><sound dacapo="yes"/></direction>';
+      expect(read(said('cresc.') + said('una corda') + jump + said('66', { sound: '<sound tempo="66"/>' }) + said('  ') + said('dolce'))).toEqual([
+        { beat: 0, text: 'dolce', tempo: false, below: false },
+      ]);
+      expect(read('<direction><direction-type><words print-object="no">hidden</words></direction-type></direction>')).toEqual([]);
+    });
+
+    it('puts words where their direction stands in the bar', () => {
+      const words = parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 4)}${said('rit.')}${note('E', 4, 4)}</measure>`), 'test').notation.words;
+      expect(words.map((w) => [w.text, w.beat])).toEqual([['rit.', 2]]);
+    });
+  });
+
   describe('clefs with an 8', () => {
     const clef = (sign: string, line: number, octaves?: number) =>
       `<attributes><clef number="1"><sign>${sign}</sign><line>${line}</line>${octaves === undefined ? '' : `<clef-octave-change>${octaves}</clef-octave-change>`}</clef></attributes>`;

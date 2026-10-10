@@ -210,6 +210,7 @@ export function performNotation(notation: Notation): Score {
       dynamicLevels: notation.dynamicLevels,
       octaveShifts: notation.octaveShifts,
       dynamics: notation.dynamics,
+      words: notation.words,
       hairpins: hairpins.filter((h) => h.drawn),
       pedalMarks: notation.pedalMarks,
       timeSignatures: notation.timeSignatures,

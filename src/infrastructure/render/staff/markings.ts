@@ -300,27 +300,105 @@ export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOct
   return { shapes: [inked(space, glyph, left, y), line], bracket: { staff: shift.staff, above, left, right, y } };
 }
 
-/** Metronome marks over the treble staff where the tempo is set: "♩ = 90", "♩. = 60"; over 8va brackets. */
-export function drawTempoMarks({ score, geometry }: StaffContext, brackets: readonly OctaveBracket[]): SVGElement[] {
+/**
+ * What stands over the upper staff, one line of it: a rough width of words in the text font, to
+ * keep what follows on the line (and other words) clear of them. Nothing is measured: the staff
+ * is drawn without asking the browser for sizes.
+ */
+const WORDS_SIZE = 1.3;
+const wordsWidth = (text: string, bold: boolean, space: number): number => text.length * (bold ? 0.62 : 0.52) * WORDS_SIZE * space;
+/** Words keep this far over the notes under them; lines of words stand this far apart; a metronome mark follows its words after this gap. */
+const WORDS_CLEARANCE = 1;
+const WORDS_LINE = 1.8;
+const WORDS_GAP = 0.8;
+
+/**
+ * The tempo and the words over the upper staff. A tempo in words ("Allegro") is bold, and the
+ * metronome mark at the same place follows it on its line; other words ("tranquillo", "rit.") are
+ * in italics, clear of the notes under them, and above anything already standing there.
+ */
+export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets: readonly OctaveBracket[], barNumberY: readonly number[]): SVGElement[] {
   const { space } = geometry;
   const shapes: SVGElement[] = [];
-  for (const mark of score.notation.tempoMarks) {
-    const x = geometry.px(beatPosition(score, barAtBeat(score, mark.beat), mark.beat)) - 0.5 * space;
-    // Over an 8va bracket if there is one here.
-    const bracket = brackets.find((b) => b.staff === 'treble' && b.above && x < b.right && x + 5 * space > b.left);
-    const y = Math.min(geometry.trebleTop() - TEMPO_MARK_RISE * space, bracket ? bracket.y - TEMPO_OVER_OCTAVE * space : Infinity);
-    const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
-    note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
-    const words = svg('text', {
-      x: x + (TEMPO_NOTE_WIDTH + (mark.unit.dots ? TEMPO_DOT_WIDTH : 0)) * space,
-      y,
-      'font-size': space * 1.3,
-      'font-family': TEXT_FONT,
-      'font-weight': 'bold',
-    });
-    words.textContent = `= ${mark.perMinute}`;
-    for (const element of [note, words]) element.style.setProperty('fill', COLORS.note);
-    shapes.push(note, words);
+  const placeOf = (beat: number) => geometry.px(beatPosition(score, barAtBeat(score, beat), beat)) - 0.5 * space;
+  // Over an 8va bracket if there is one here.
+  const lineY = (left: number, right: number) => {
+    const bracket = brackets.find((b) => b.staff === 'treble' && b.above && left < b.right && right > b.left);
+    return Math.min(geometry.trebleTop() - TEMPO_MARK_RISE * space, bracket ? bracket.y - TEMPO_OVER_OCTAVE * space : Infinity);
+  };
+  const words = (text: string, x: number, y: number, bold: boolean) => {
+    const element = svg('text', { x, y, 'font-size': space * WORDS_SIZE, 'font-family': TEXT_FONT, ...(bold ? { 'font-weight': 'bold' } : { 'font-style': 'italic' }) });
+    element.textContent = text;
+    element.style.setProperty('fill', COLORS.note);
+    return element;
+  };
+  /** What stands over the staff already: later words go above what they would run into. */
+  const standing: { left: number; right: number; y: number }[] = [];
+  /** The bar numbers, which rise over high notes as words do: words step aside, to the right of a number in their way. */
+  const numbers = barNumberY.map((y, index) => {
+    const left = geometry.barLineX(index) + BAR_NUMBER_INSET * space;
+    return { left, right: left + BAR_NUMBER_WIDTH * space, y };
+  });
+  const pastNumbers = (left: number, width: number, y: number): number => {
+    const inTheWay = numbers.find((number) => left < number.right + WORDS_GAP * space && left + width > number.left && Math.abs(number.y - y) < WORDS_LINE * space);
+    return inTheWay ? inTheWay.right + WORDS_GAP * space : left;
+  };
+  const above = score.notation.words.filter((mark) => !mark.below);
+
+  // The tempo line: words, then the metronome mark.
+  const tempoPlaces = new Set([...score.notation.tempoMarks.map((mark) => mark.beat), ...above.filter((mark) => mark.tempo).map((mark) => mark.beat)]);
+  let lastTempoWords = '';
+  for (const beat of [...tempoPlaces].sort((a, b) => a - b)) {
+    const left = placeOf(beat);
+    let x = left;
+    // The same tempo said again (a file slowing down step by step under one "Adagio") is not printed again.
+    const here = above.filter((mark) => mark.tempo && Math.abs(mark.beat - beat) < 1e-6 && mark.text !== lastTempoWords);
+    lastTempoWords = here.at(-1)?.text ?? lastTempoWords;
+    const mark = score.notation.tempoMarks.find((tempo) => Math.abs(tempo.beat - beat) < 1e-6);
+    const width = here.reduce((sum, w) => sum + wordsWidth(w.text, true, space) + WORDS_GAP * space, 0) + (mark ? 5 * space : 0);
+    let y = lineY(left, left + Math.max(width, 5 * space));
+    // Tempo marks close together (a written-out ritardando) step up, each over the one before it.
+    const before = standing.at(-1);
+    if (before && left < before.right + WORDS_GAP * space && Math.abs(before.y - y) < WORDS_LINE * space) y = before.y - WORDS_LINE * space;
+    for (const { text } of here) {
+      shapes.push(words(text, x, y, true));
+      x += wordsWidth(text, true, space) + WORDS_GAP * space;
+    }
+    if (mark) {
+      const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
+      note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
+      note.style.setProperty('fill', COLORS.note);
+      shapes.push(note, words(`= ${mark.perMinute}`, x + (TEMPO_NOTE_WIDTH + (mark.unit.dots ? TEMPO_DOT_WIDTH : 0)) * space, y, true));
+    }
+    standing.push({ left, right: left + width, y });
+  }
+
+  // Other words: after what stands at the same place, on its line ("♩ = 64 tranquillo"); else over
+  // the notes under them, and over anything they would run into.
+  for (const mark of above.filter((w) => !w.tempo)) {
+    let left = placeOf(mark.beat);
+    const width = wordsWidth(mark.text, false, space);
+    const beside = standing.filter((other) => Math.abs(other.left - left) < space).sort((a, b) => b.right - a.right)[0];
+    let y: number;
+    if (beside) {
+      left = beside.right + WORDS_GAP * space;
+      y = beside.y;
+    } else {
+      y = Math.min(lineY(left, left + width), ink.extent('treble', left, left + width).top - WORDS_CLEARANCE * space);
+      for (let moved = true; moved; ) {
+        moved = false;
+        for (const other of standing) {
+          if (left < other.right + WORDS_GAP * space && left + width > other.left - WORDS_GAP * space && Math.abs(other.y - y) < WORDS_LINE * space) {
+            y = other.y - WORDS_LINE * space;
+            moved = true;
+          }
+        }
+      }
+    }
+    // (What stood beside it now reaches to its end: the next words at this place go after it.)
+    if (!beside) left = pastNumbers(left, width, y);
+    standing.push({ left: beside ? beside.left : left, right: left + width, y });
+    shapes.push(words(mark.text, left, y, false));
   }
   return shapes;
 }

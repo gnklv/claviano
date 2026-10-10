@@ -2,6 +2,7 @@ import type { PedalKind, PedalMark } from '../pedal';
 import type { KeySignature, OctaveShift, TempoMark, TimeSignature } from '../score';
 import type { DynamicLevel, DynamicMark, Hairpin } from './dynamics';
 import type { BarNavigation } from './navigation';
+import type { WordsMark } from './words';
 import type { ClefChange, WrittenGraces, WrittenNote, WrittenRest } from './written';
 
 /*
@@ -33,6 +34,8 @@ export interface Notation {
   readonly dynamics: readonly DynamicMark[];
   readonly hairpins: readonly Hairpin[];
   readonly dynamicLevels: readonly DynamicLevel[];
+  /** Words printed in the music: the tempo, the character, a way of playing (see WordsMark). */
+  readonly words: readonly WordsMark[];
 }
 
 export interface WrittenBar {

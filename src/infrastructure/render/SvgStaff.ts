@@ -472,7 +472,7 @@ export class SvgStaff implements StaffView {
     // Dynamics before the pedal: those pushed under the lower staff, the pedal goes under.
     const dynamics = drawDynamics(context);
     restLayer.append(...drawPedal(context, { brackets, dynamics: dynamics.below }), ...dynamics.shapes);
-    restLayer.append(...drawTempoMarks(context, brackets));
+    restLayer.append(...drawTempoMarks(context, brackets, barNumbers.y));
 
     this.strip.append(restLayer, ...this.chordElements, ...this.graceElements, beamLayer);
     this.lastOffset = Number.NaN;

@@ -1,6 +1,7 @@
 import { noteEnd, type Note } from './note';
 import type { BarNavigation } from './notation/navigation';
 import type { PedalMark, PedalSpan } from './pedal';
+import type { WordsMark } from './notation/words';
 import type { Clef, ClefChange, ClefSign, WrittenGraces, WrittenNote, WrittenRest } from './notation/written';
 import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicLevel, DynamicMark, Hairpin } from './notation/dynamics';
@@ -141,6 +142,7 @@ export interface ScoreMusic {
   readonly tempos?: Notation['tempos'];
   readonly pedalMoves?: Notation['pedalMoves'];
   readonly dynamicLevels?: readonly DynamicLevel[];
+  readonly words?: readonly WordsMark[];
 }
 
 export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
@@ -234,6 +236,7 @@ export function createScore(
       dynamics: [...(music.dynamics ?? [])].sort((a, b) => a.beat - b.beat),
       hairpins: [...(music.hairpins ?? [])].sort((a, b) => a.start - b.start),
       dynamicLevels: music.dynamicLevels ?? [],
+      words: [...(music.words ?? [])].sort((a, b) => a.beat - b.beat),
     },
   };
 }

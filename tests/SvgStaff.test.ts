@@ -251,6 +251,36 @@ describe('SvgStaff', () => {
     expect(new Set(stems.map((stem) => stem.getAttribute('stroke-width'))).size).toBeGreaterThanOrEqual(2);
   });
 
+  describe('words over the staff', () => {
+    const texts = (container: HTMLElement) => [...container.querySelectorAll('text')];
+    const find = (container: HTMLElement, said: string) => texts(container).find((text) => text.textContent === said)!;
+
+    it('prints a tempo in bold with its metronome mark after it on the same line, and other words in italics', () => {
+      const { container } = drawStaff(showcase());
+      const tempo = find(container, 'Slower, piano');
+      expect(tempo.getAttribute('font-weight')).toBe('bold');
+      // The "= 60" that follows it on its line (there is another "= 60" earlier in the piece).
+      const after = texts(container)
+        .filter((text) => text.textContent === '= 60' && text.getAttribute('y') === tempo.getAttribute('y'))
+        .map((text) => Number(text.getAttribute('x')) - Number(tempo.getAttribute('x')))
+        .filter((distance) => distance > 0);
+      expect(Math.min(...after)).toBeLessThan(250);
+
+      const label = find(container, 'Beams');
+      expect(label.getAttribute('font-style')).toBe('italic');
+      expect(label.getAttribute('font-weight')).toBeNull();
+    });
+
+    it('keeps words clear of high notes under them', () => {
+      const { container } = drawStaff(showcase());
+      const staffTop = Number(container.querySelector('line')!.getAttribute('y1'));
+      const heights = ['Beams', 'Voices', 'Rests'].map((said) => staffTop - Number(find(container, said).getAttribute('y')));
+      // Over the staff, all of them; and those over high notes stand higher than those over none.
+      expect(heights.every((height) => height > 0)).toBe(true);
+      expect(new Set(heights.map((height) => Math.round(height))).size).toBeGreaterThan(1);
+    });
+  });
+
   it('writes the hand marks in the language it is told', () => {
     // The left hand comes up onto the upper staff: the note it plays there is marked.
     const note = (pitch: number, beat: number, hand: Hand) => ({ pitch, start: beat / 2, duration: 0.5, beat, beats: 1, velocity: 0.7, hand });

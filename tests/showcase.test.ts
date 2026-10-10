@@ -296,6 +296,17 @@ describe('showcase score', () => {
     expect(new Set(inBar.map((n) => n.velocity)).size).toBe(1);
   });
 
+  it('prints the words over the bars: what each bar shows, and the tempo in bold with its metronome mark', () => {
+    const words = score.notation.words;
+    expect(words.map((w) => w.text)).toEqual(expect.arrayContaining(['Beams', 'Voices', 'Shared notes', 'Clefs with an 8', 'Small notes', 'Repeats']));
+    // Words that set a tempo are a tempo; the others are not.
+    expect(words.filter((w) => w.tempo).map((w) => w.text)).toEqual(expect.arrayContaining(['Slower, piano']));
+    expect(words.find((w) => w.text === 'Beams')?.tempo).toBe(false);
+    // The words of dynamics, the left pedal and the jumps are not printed a second time.
+    expect(words.filter((w) => /cresc|dim|corda|corde|coda|fine|d\.s\./i.test(w.text))).toEqual([]);
+    expect(words.every((w) => !w.below)).toBe(true);
+  });
+
   it('plays repeats, voltas, D.S. and the coda in order, while the page keeps each bar once', () => {
     // Printed bars are played in this order from bar 26 on (the pickup is bar 0, so index = number).
     const tail = score.barWritten.slice(score.barWritten.indexOf(26));
