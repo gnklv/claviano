@@ -184,6 +184,13 @@ timer jitter; the view only reads `playback.position` each frame.
       (through both hands as one wave). Each is drawn as printed and played as its notes
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter
+- [x] Read as printed (MusicXML): notes and rests the engraver hid, notes without heads (a voice
+      sharing a note with another), clefs with an 8, small (cue-size) notes, notes in brackets,
+      fingering; the pedal as MuseScore 4 writes it; a title that is no editor's placeholder
+- [x] Words in the music: the tempo in bold with its metronome mark, the character and ways of
+      playing in italics; "rit.", "rall.", "riten.", "accel.", "a tempo" and "Tempo I" are played:
+      a ritardando slows hardly at first and most at the end, further at the end of a piece than
+      in the middle of one
 
 Next, in this order (see [the concept](docs/concept.md): a library to start from, learning a
 piece, free play). Each step stands on the one before, so nothing is laid out twice:
@@ -201,11 +208,18 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        an installed app's library is not wiped by iOS Safari
 6. [ ] Free play from the keys on the screen: what is played is written down as it is played,
        saved as a piece, saved out as MIDI
-7. [ ] Listening through the microphone (to research first): following a piece as it is played
+7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
+       hand (how far each pair of fingers reaches, the thumb passing under, the thumb on black
+       keys, the weak fingers), shown sparingly, as good editions do: where the hand moves or a
+       finger crosses. First single lines, checked on scales and arpeggios, whose fingering is
+       beyond dispute; then chords; held notes last, if at all. There is no one right fingering
+       (two pianists agree on two notes in three): the aim is one that can be played, tried by
+       hand at every stage. A hint, paler than printed fingering; the hand's size is a setting
+8. [ ] Listening through the microphone (to research first): following a piece as it is played
        from the notes (a "wait mode" without a cable), then free play by ear
-8. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
-9. [ ] Files with several instruments (low priority: the app is for one)
-10. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
+9. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
+10. [ ] Files with several instruments (low priority: the app is for one)
+11. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
 
 At any time, between the steps: looking through real pieces for what is drawn or played wrong;
-the research for steps 7 and 8; checks on real devices and on GitHub Pages.
+the research for steps 8 and 9; checks on real devices and on GitHub Pages.
