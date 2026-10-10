@@ -1,4 +1,4 @@
-import type { AudioOutput, NoteToPlay } from '../src/application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay, SoundPart } from '../src/application/ports/AudioOutput';
 import type { Ticker } from '../src/application/ports/Ticker';
 
 /* Stand-ins for the ports, shared by the tests. */
@@ -20,6 +20,10 @@ export class FakeAudio implements AudioOutput {
   clicks: { at: number; accent: boolean }[] = [];
   playClick(at: number, accent: boolean): void {
     this.clicks.push({ at, accent });
+  }
+  volumes: Partial<Record<SoundPart, number>> = {};
+  setVolume(part: SoundPart, volume: number): void {
+    this.volumes[part] = volume;
   }
   stopAll(): void {
     this.stops++;

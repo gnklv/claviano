@@ -1,4 +1,5 @@
-import type { AudioOutput, NoteToPlay } from '../../application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay, SoundPart } from '../../application/ports/AudioOutput';
+import { volumeGain } from './volume';
 import { pitchFrequency } from '../../domain/pitch';
 
 interface Voice {
@@ -6,6 +7,7 @@ interface Voice {
   readonly oscillators: readonly OscillatorNode[];
 }
 
+const MASTER_GAIN = 0.35;
 const ATTACK = 0.005;
 /** Level of the overtone an octave up, and with the soft pedal. */
 const OVERTONE = 0.25;
@@ -26,8 +28,10 @@ const RELEASE = 0.08;
  * piano's limiter, so loud chords don't squash it.
  */
 const CLICK = {
-  accent: { frequency: 1760, level: 0.35 },
-  beat: { frequency: 1320, level: 0.2 },
+  // Loud enough to be heard through a full piano with both volumes at their top (they were
+  // found too quiet at 0.35 and 0.2); the piano is turned down from there, not the clicks up.
+  accent: { frequency: 1760, level: 0.6 },
+  beat: { frequency: 1320, level: 0.36 },
   /** Time constant of its decay: gone in about 30 ms. */
   decay: 0.01,
 };
@@ -39,18 +43,28 @@ const CLICK = {
  */
 export class WebAudioSynth implements AudioOutput {
   private readonly ctx: AudioContext;
-  private readonly output: AudioNode;
+  private readonly output: GainNode;
+  /** The metronome's clicks go their own way: past the piano's limiter, at their own volume. */
+  private readonly clicks: GainNode;
   private readonly voices = new Set<Voice>();
 
   constructor(ctx: AudioContext = new AudioContext()) {
     this.ctx = ctx;
     const master = ctx.createGain();
-    master.gain.value = 0.35;
+    master.gain.value = MASTER_GAIN;
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -12;
     limiter.ratio.value = 12;
     master.connect(limiter).connect(ctx.destination);
     this.output = master;
+    this.clicks = ctx.createGain();
+    this.clicks.connect(ctx.destination);
+  }
+
+  setVolume(part: SoundPart, volume: number): void {
+    const gain = part === 'instrument' ? this.output.gain : this.clicks.gain;
+    // Glided to, not jumped to: a jump in loudness under a sounding note is heard as a click.
+    gain.setTargetAtTime((part === 'instrument' ? MASTER_GAIN : 1) * volumeGain(volume), this.ctx.currentTime, 0.02);
   }
 
   now(): number {
@@ -106,7 +120,7 @@ export class WebAudioSynth implements AudioOutput {
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(level, start);
     gain.gain.setTargetAtTime(0, start + 0.002, CLICK.decay);
-    gain.connect(ctx.destination);
+    gain.connect(this.clicks);
     const osc = this.oscillator('sine', frequency, gain);
     const voice: Voice = { gain, oscillators: [osc] };
     this.voices.add(voice);

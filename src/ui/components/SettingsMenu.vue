@@ -2,6 +2,7 @@
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitch from './LanguageSwitch.vue';
 import PracticeSettings from './PracticeSettings.vue';
+import VolumeSettings from './VolumeSettings.vue';
 import ThemeSwitch from './ThemeSwitch.vue';
 import ViewModeSwitch from './ViewModeSwitch.vue';
 
@@ -31,6 +32,7 @@ const id = 'settings-menu';
         <LanguageSwitch />
       </div>
       <PracticeSettings />
+      <VolumeSettings />
       <!-- The samples' licence (CC BY) asks for the author, the licence and what was changed. -->
       <p class="credit">
         {{ t('creditPiano') }}:

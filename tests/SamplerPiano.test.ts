@@ -395,6 +395,24 @@ describe('SamplerPiano', () => {
     });
   });
 
+  describe('volume', () => {
+    it('turns the samples and the fallback up and down together: they are one instrument', () => {
+      const setTarget = vi.fn();
+      const quiet = new FakeContext();
+      quiet.createGain = () => ({ ...node(), gain: { ...param(), setTargetAtTime: setTarget } });
+      piano = new SamplerPiano(quiet as unknown as AudioContext, fallback);
+      piano.setVolume('instrument', 0.5);
+      expect(fallback.volumes).toEqual({ instrument: 0.5 });
+      // Half way on the slider is a quarter of the gain: about half as loud to the ear.
+      expect(setTarget.mock.calls[0][0]).toBeCloseTo(0.5 * 0.25);
+    });
+
+    it('leaves the metronome to the fallback, which makes the clicks', () => {
+      piano.setVolume('metronome', 0.4);
+      expect(fallback.volumes).toEqual({ metronome: 0.4 });
+    });
+  });
+
   it('always leaves the metronome’s clicks to the fallback', async () => {
     piano.prepare([toPrepare(60)]);
     piano.start('/piano/');

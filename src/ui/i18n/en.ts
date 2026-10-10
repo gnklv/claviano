@@ -23,6 +23,8 @@ export const en = {
   sound: 'Sound',
   soundPiano: 'Piano',
   soundSynth: 'Synth',
+  volumeNotes: 'Notes volume',
+  volumeMetronome: 'Metronome volume',
   pedal: 'Pedal',
   on: 'On',
   off: 'Off',

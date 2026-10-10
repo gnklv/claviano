@@ -44,7 +44,7 @@ describe('notesToPrepare', () => {
 });
 
 describe('keepInstrumentPrepared', () => {
-  const audio: AudioOutput = { now: () => 0, resume: async () => {}, playNote() {}, playPedal() {}, playClick() {}, stopAll() {} };
+  const audio: AudioOutput = { now: () => 0, resume: async () => {}, playNote() {}, playPedal() {}, playClick() {}, setVolume() {}, stopAll() {} };
   const setup = () => {
     const prepared: (readonly NoteToPrepare[])[] = [];
     const instrument: Instrument = { enabled: true, setEnabled() {}, status: 'ready', onChange: () => () => {}, prepare: (notes) => void prepared.push(notes) };

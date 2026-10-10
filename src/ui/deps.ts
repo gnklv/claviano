@@ -5,6 +5,7 @@ import type { StaffView } from '../application/ports/StaffView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { DemoPiece, OpenScore } from '../application/use-cases/OpenScore';
 import type { Playback } from '../application/use-cases/Playback';
+import type { Volume } from '../application/use-cases/Volume';
 import type { MessageKey } from './i18n/en';
 
 /** A demo with its name in the menu and as the score title, from the dictionary (so it follows the language). */
@@ -16,6 +17,8 @@ export interface Demo extends DemoPiece {
 export interface AppDeps {
   readonly playback: Playback;
   readonly barLoop: BarLoop;
+  /** How loud the notes and the metronome are. */
+  readonly volume: Volume;
   /** The piano's sound: whether it has loaded. */
   readonly instrument: Instrument;
   readonly openScore: OpenScore;

@@ -8,6 +8,7 @@ import { BarLoop } from '../src/application/use-cases/BarLoop';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
+import { Volume } from '../src/application/use-cases/Volume';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import App from '../src/ui/App.vue';
@@ -55,6 +56,7 @@ beforeEach(() => {
   app = createApp(App).provide(depsKey, {
     playback,
     barLoop: new BarLoop(playback),
+    volume: new Volume(new FakeAudio()),
     instrument,
     openScore: new OpenScore(playback, new LoadScore([new MusicXmlParser()])),
     createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),

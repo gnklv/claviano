@@ -17,6 +17,8 @@ export const ru: Dictionary = {
   sound: 'Звук',
   soundPiano: 'Рояль',
   soundSynth: 'Синтезатор',
+  volumeNotes: 'Громкость нот',
+  volumeMetronome: 'Громкость метронома',
   pedal: 'Педаль',
   on: 'Вкл',
   off: 'Выкл',

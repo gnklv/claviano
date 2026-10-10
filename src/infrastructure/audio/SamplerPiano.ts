@@ -1,4 +1,4 @@
-import type { AudioOutput, NoteToPlay } from '../../application/ports/AudioOutput';
+import type { AudioOutput, NoteToPlay, SoundPart } from '../../application/ports/AudioOutput';
 import type { Instrument, InstrumentStatus, NoteToPrepare } from '../../application/ports/Instrument';
 import {
   describeSet,
@@ -16,6 +16,7 @@ import {
   type SampleSet,
   type SamplesWanted,
 } from './pianoSamples';
+import { volumeGain } from './volume';
 
 /** A decoded sample, ready to play. */
 interface Sample {
@@ -62,7 +63,7 @@ const SPARE_LENGTH = 2;
  * The metronome's clicks always come from the fallback.
  */
 export class SamplerPiano implements AudioOutput, Instrument {
-  private readonly output: AudioNode;
+  private readonly output: GainNode;
   private readonly voices = new Set<Voice>();
   private readonly listeners = new Set<() => void>();
   private set: SampleSet | null = null;
@@ -92,6 +93,12 @@ export class SamplerPiano implements AudioOutput, Instrument {
     limiter.ratio.value = 12;
     master.connect(limiter).connect(ctx.destination);
     this.output = master;
+  }
+
+  /** The samples and the fallback (which plays until they are in, and always the clicks) are one instrument: as loud as each other. */
+  setVolume(part: SoundPart, volume: number): void {
+    this.fallback.setVolume(part, volume);
+    if (part === 'instrument') this.output.gain.setTargetAtTime(MASTER_GAIN * volumeGain(volume), this.ctx.currentTime, 0.02);
   }
 
   /** 'ready' once the samples play instead of the fallback. */

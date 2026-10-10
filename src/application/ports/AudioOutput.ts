@@ -15,6 +15,9 @@ export interface NoteToPlay {
   readonly held: number;
 }
 
+/** What is heard: the notes (with the instrument's own noises), and the metronome's clicks. */
+export type SoundPart = 'instrument' | 'metronome';
+
 /** Something that can make piano sound on a shared clock. Times are in the output's own seconds. */
 export interface AudioOutput {
   now(): number;
@@ -25,6 +28,8 @@ export interface AudioOutput {
   playPedal(at: number, down: boolean): void;
   /** A metronome click; `accent` for the first beat of a bar. */
   playClick(at: number, accent: boolean): void;
+  /** How loud a part is, from 0 (silent) to 1 (as loud as it is made); what sounds already follows. */
+  setVolume(part: SoundPart, volume: number): void;
   /** Silences sounding notes and clicks, and cancels every one scheduled for the future. */
   stopAll(): void;
 }

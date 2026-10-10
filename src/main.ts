@@ -5,6 +5,7 @@ import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
+import { Volume } from './application/use-cases/Volume';
 import { rememberPracticeSettings } from './application/use-cases/rememberPracticeSettings';
 import { odeToJoy } from './demo/odeToJoy';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
@@ -30,14 +31,16 @@ void offline.then(() => piano.start(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
 keepInstrumentPrepared(playback, piano);
-rememberPracticeSettings(playback, piano, new LocalSettingsStore('claviano.practice'));
+const volume = new Volume(piano);
+rememberPracticeSettings(playback, piano, volume, new LocalSettingsStore('claviano.practice'));
 const musicXml = new MusicXmlParser();
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano } });
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume } });
 
 createApp(App)
   .provide(depsKey, {
     playback,
     barLoop: new BarLoop(playback),
+    volume,
     instrument: piano,
     openScore: new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml])),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
