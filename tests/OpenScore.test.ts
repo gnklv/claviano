@@ -59,6 +59,11 @@ describe('OpenScore', () => {
       expect(changes).toBe(1);
     });
 
+    it('named with underscores reads with spaces', () => {
+      open.openFile('Sonate_No._14_Moonlight__1st_Movement.tune', bytes('notes'));
+      expect(playback.score?.title).toBe('Sonate No. 14 Moonlight 1st Movement');
+    });
+
     it('of a kind nobody reads fails as an unsupported format', () => {
       open.openFile('photo.jpg', bytes('notes'));
       expect(open.failure).toEqual({ source: { file: 'photo.jpg' }, reason: 'unsupported-format' });

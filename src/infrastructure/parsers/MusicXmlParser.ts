@@ -64,7 +64,27 @@ function scoreInArchive(data: ArrayBuffer): Uint8Array {
   }
 }
 
+/**
+ * What a notation editor names a score nobody named: "Untitled score", "Partitura senza titolo"…
+ * (in the editor's language), or just "Title".
+ */
+const NO_TITLE = /^(title|score)$|untitled|unbenannt|ohne titel|sans titre|senza titolo|sin t[ií]tulo|sem t[ií]tulo|без названия|без имени/i;
+
+/**
+ * The piece's title: the work's, or the movement's, or the one printed at the top of the first
+ * page; null when the file has none (the file's name will do). A placeholder is not a title.
+ */
 function workTitle(root: Element): string | null {
-  const text = (selector: string) => root.querySelector(selector)?.textContent?.trim() || null;
-  return text(':scope > work > work-title') ?? text(':scope > movement-title');
+  const text = (element: Element | null | undefined) => {
+    const title = element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    return title && !NO_TITLE.test(title) ? title : null;
+  };
+  const printed = [...root.querySelectorAll(':scope > credit')].find((credit) => credit.querySelector(':scope > credit-type')?.textContent?.trim() === 'title');
+  return (
+    text(root.querySelector(':scope > work > work-title')) ??
+    text(root.querySelector(':scope > movement-title')) ??
+    // As printed it may end with a comma, when a subtitle follows on the next line.
+    text(printed?.querySelector(':scope > credit-words'))?.replace(/[,;:]$/, '') ??
+    null
+  );
 }

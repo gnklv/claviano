@@ -531,6 +531,39 @@ describe('MusicXmlParser', () => {
     });
   });
 
+  describe('the title', () => {
+    const titled = (extra: string) => parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 8)}</measure>`, extra), 'file-name').title;
+    const credit = (type: string, words: string) => `<credit page="1"><credit-type>${type}</credit-type><credit-words>${words}</credit-words></credit>`;
+
+    it('is the movement’s when the work has none', () => {
+      expect(titled('<movement-title>Allegro</movement-title>')).toBe('Allegro');
+    });
+
+    it('is the one printed on the first page when the file names neither', () => {
+      expect(titled(credit('composer', 'J. S. Bach') + credit('title', 'Prelude I'))).toBe('Prelude I');
+      expect(titled(credit('title', 'Sonate No. 14,') + credit('subtitle', 'Moonlight'))).toBe('Sonate No. 14');
+    });
+
+    it('is not an editor’s placeholder: the printed title, or the file’s name, instead', () => {
+      const placeholder = '<work><work-title>Partitura senza titolo</work-title></work>';
+      expect(titled(placeholder + credit('title', 'La Valse d’Amélie'))).toBe('La Valse d’Amélie');
+      expect(titled(placeholder)).toBe('file-name');
+      for (const name of ['Untitled score', 'Untitled Score', 'Title', 'Partition sans titre', 'Partitura sin título', 'Unbenannte Partitur', 'Партитура без названия']) {
+        expect(titled(`<work><work-title>${name}</work-title></work>`), name).toBe('file-name');
+      }
+    });
+
+    it('keeps a real title that only looks like one of those words', () => {
+      expect(titled('<work><work-title>Title Track</work-title></work>')).toBe('Title Track');
+      expect(titled('<work><work-title>Film Score Suite</work-title></work>')).toBe('Film Score Suite');
+    });
+
+    it('is the file’s name when the file has nothing better', () => {
+      expect(titled('')).toBe('file-name');
+      expect(titled('<work><work-title>  </work-title></work>')).toBe('file-name');
+    });
+  });
+
   it('uses the work title when the file has one', () => {
     const s = parser.parse(score(`<measure number="1">${attributes()}${note('C', 4, 8)}</measure>`, '<work><work-title>Minuet</work-title></work>'), 'file-name');
     expect(s.title).toBe('Minuet');
