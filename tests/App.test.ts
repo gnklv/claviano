@@ -5,6 +5,7 @@ import type { Instrument } from '../src/application/ports/Instrument';
 import type { RollView } from '../src/application/ports/RollView';
 import type { StaffView } from '../src/application/ports/StaffView';
 import { BarLoop } from '../src/application/use-cases/BarLoop';
+import { Library } from '../src/application/use-cases/Library';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
@@ -13,7 +14,7 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import App from '../src/ui/App.vue';
 import { depsKey } from '../src/ui/deps';
-import { FakeAudio, FakeTicker } from './fakes';
+import { FakeAudio, FakePieceShelf, FakeTicker } from './fakes';
 
 /*
  * The app as a whole, with stand-ins for sound and drawing: which screen is shown, how one gets
@@ -26,6 +27,9 @@ const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}
 let playback: Playback;
 let volume: Volume;
 let app: VueApp;
+let shelf: FakePieceShelf;
+/** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
+let start: () => void;
 let root: HTMLElement;
 /** The window's width, as the app asks about it: a phone or not. */
 const screen = { phone: false, short: false, listeners: new Set<() => void>() };
@@ -71,24 +75,33 @@ beforeEach(() => {
     };
     return media as unknown as MediaQueryList;
   });
-  playback = new Playback(new FakeAudio(), new FakeTicker());
-  volume = new Volume(new FakeAudio());
-  root = document.createElement('div');
-  document.body.append(root);
-  app = createApp(App).provide(depsKey, {
-    playback,
-    barLoop: new BarLoop(playback),
-    volume,
-    instrument,
-    openScore: new OpenScore(playback, new LoadScore([new MusicXmlParser()])),
-    createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
-    createStaff: () => view<StaffView>({}),
-    demos: [
+  shelf = new FakePieceShelf();
+  start = () => {
+    playback = new Playback(new FakeAudio(), new FakeTicker());
+    volume = new Volume(new FakeAudio());
+    root = document.createElement('div');
+    document.body.append(root);
+    const demos = [
       { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
       { id: 'lost', title: 'demoShowcase', load: () => Promise.reject(new Error('HTTP 404')) },
-    ],
-  });
-  app.mount(root);
+    ] as const;
+    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser()]));
+    const library = new Library(shelf, openScore, playback, demos);
+    void library.load();
+    app = createApp(App).provide(depsKey, {
+      playback,
+      barLoop: new BarLoop(playback),
+      volume,
+      instrument,
+      openScore,
+      library,
+      createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
+      createStaff: () => view<StaffView>({}),
+      demos,
+    });
+    app.mount(root);
+  };
+  start();
 });
 
 afterEach(() => {
@@ -111,7 +124,7 @@ describe('the app', () => {
     button(/Ode to Joy/).click();
     await settled();
     expect(onPiece()).toBe(true);
-    expect(location.hash).toBe('#/piece');
+    expect(location.hash).toBe('#/piece/demo.ode');
     expect(root.querySelector('.title')?.textContent).toMatch(/^Ode to Joy · 8 bars · \d+ notes$/);
     // Opening files and demos is the library's business: the piece's header has neither.
     expect(root.querySelector('input[type=file]')).toBeNull();
@@ -160,9 +173,86 @@ describe('the app', () => {
     expect(root.querySelector('[role=alert]')).toBeNull();
   });
 
+  const xml = (title: string) =>
+    `<?xml version="1.0"?><score-partwise><work><work-title>${title}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note></measure></part></score-partwise>`;
+
+  describe('the shelf', () => {
+    const cards = () => [...root.querySelectorAll('.card .name')].map((name) => name.textContent);
+    const restart = async () => {
+      app.unmount();
+      root.remove();
+      start();
+      await settled();
+    };
+
+    it('keeps a file that was opened: it stands in the library, the latest first, before the demos', async () => {
+      await drop('first.musicxml', xml('First'));
+      await drop('second.musicxml', xml('Second'));
+      button(/Back to the library/).click();
+      await settled();
+      expect(cards()).toEqual(['Open file', 'Second', 'First', 'Ode to Joy', 'Showcase: everything the player can do']);
+      expect(root.querySelectorAll('.card .note')[1]?.textContent).toBe('today');
+    });
+
+    it('does not keep what did not open, and keeps one card for a file opened twice', async () => {
+      await drop('photo.jpg', 'not music');
+      await drop('first.musicxml', xml('First'));
+      await drop('renamed.musicxml', xml('First'));
+      button(/Back to the library/).click();
+      await settled();
+      expect(cards().filter((name) => name === 'First')).toHaveLength(1);
+      expect(shelf.pieces.size).toBe(1);
+    });
+
+    it('opens a piece from its card, and still has it after the page is loaded again', async () => {
+      await drop('first.musicxml', xml('First'));
+      await restart();
+      location.hash = '#/';
+      await restart();
+      expect(onPiece()).toBe(false);
+      button(/^First/).click();
+      await settled();
+      expect(onPiece()).toBe(true);
+      expect(root.querySelector('.title')?.textContent).toContain('First');
+    });
+
+    it('gives a piece an address of its own: a page loaded there opens that piece again', async () => {
+      await drop('first.musicxml', xml('First'));
+      const address = location.hash;
+      expect(address).toMatch(/^#\/piece\/[a-z0-9]+-[a-z0-9]+$/);
+      await drop('second.musicxml', xml('Second'));
+      expect(location.hash).not.toBe(address);
+
+      location.hash = address;
+      await restart();
+      expect(onPiece()).toBe(true);
+      expect(root.querySelector('.title')?.textContent).toContain('First');
+      expect(location.hash).toBe(address);
+      // So does a demo's.
+      location.hash = '#/piece/demo.ode';
+      await restart();
+      expect(root.querySelector('.title')?.textContent).toContain('Ode to Joy');
+    });
+
+    it('opens in the library when the address names a piece that is not there', async () => {
+      location.hash = '#/piece/gone-123';
+      await restart();
+      expect(onPiece()).toBe(false);
+      expect(location.hash).toBe('#/');
+    });
+
+    it('goes on without a shelf where the browser gives no storage: pieces open, nothing is kept', async () => {
+      shelf.broken = true;
+      await restart();
+      await drop('first.musicxml', xml('First'));
+      expect(onPiece()).toBe(true);
+      button(/Back to the library/).click();
+      await settled();
+      expect(cards()).toEqual(['Open file', 'Ode to Joy', 'Showcase: everything the player can do']);
+    });
+  });
+
   it('opens a file dropped onto the window from either screen', async () => {
-    const xml = (title: string) =>
-      `<?xml version="1.0"?><score-partwise><work><work-title>${title}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note></measure></part></score-partwise>`;
     await drop('first.musicxml', xml('First'));
     expect(onPiece()).toBe(true);
     expect(root.querySelector('.title')?.textContent).toContain('First');

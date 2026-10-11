@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { demoPieceId } from '../application/use-cases/Library';
 import { stepBar } from '../application/use-cases/stepBar';
 import { stepTempo } from '../application/use-cases/stepTempo';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useDeps } from './deps';
 import { useI18n } from './i18n/useI18n';
-import { createNavigation } from './navigation/useScreen';
+import { useLibrary } from './composables/useLibrary';
+import { createNavigation, pieceAt } from './navigation/useScreen';
 import LibraryScreen from './screens/LibraryScreen.vue';
 import PieceScreen from './screens/PieceScreen.vue';
 
@@ -14,28 +16,36 @@ import PieceScreen from './screens/PieceScreen.vue';
  * window, and the keys of the computer's keyboard.
  */
 
-const { playback, openScore } = useDeps();
+const { playback, library } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const dragging = ref(false);
 
-const navigation = createNavigation((screen) => screen === 'library' || playback.score !== null);
+// The piece the address names when the app starts (a reload, a bookmark): opened again below, once the screens stand.
+const askedAtStart = pieceAt(location.hash);
+const navigation = createNavigation(
+  (screen) => screen === 'library' || playback.score !== null,
+  () => library.current,
+);
 const { screen } = navigation;
 onUnmounted(() => navigation.dispose());
+if (askedAtStart !== null) void library.open(askedAtStart);
 
-// A piece that has just opened is shown; leaving it for the library, the music stops.
-watch(
-  () => state.value.score,
-  (score) => {
-    if (score) navigation.go('piece');
-  },
-);
+// A piece that has just opened is shown, under its own address; leaving it for the library, the music stops.
+const shelf = useLibrary(library);
+watch([() => state.value.score, () => shelf.value.current], ([score]) => {
+  if (score) navigation.go('piece');
+});
+// The browser's Forward to another piece's address than the one that is open: that piece is opened.
+watch(navigation.piece, (asked) => {
+  if (asked !== null && asked !== library.current) void library.open(asked);
+});
 watch(screen, (shown) => {
   if (shown === 'library') playback.pause();
 });
 
 async function openFile(file: File): Promise<void> {
-  openScore.openFile(file.name, await file.arrayBuffer());
+  await library.openFile(file.name, await file.arrayBuffer());
 }
 
 function onDrop(event: DragEvent): void {
@@ -99,7 +109,7 @@ onUnmounted(() => {
     @drop.prevent="onDrop"
   >
     <PieceScreen v-if="screen === 'piece'" @back="navigation.go('library')" />
-    <LibraryScreen v-else @file="openFile" @demo="openScore.openDemo($event)" />
+    <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" />
   </div>
 </template>
 

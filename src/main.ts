@@ -1,6 +1,7 @@
 // Composition root: the only place that knows about concrete implementations.
 import { createApp } from 'vue';
 import { BarLoop } from './application/use-cases/BarLoop';
+import { Library } from './application/use-cases/Library';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
@@ -17,10 +18,11 @@ import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
 import { SvgStaff } from './infrastructure/render/SvgStaff';
+import { IndexedDbPieceShelf } from './infrastructure/storage/IndexedDbPieceShelf';
 import { LocalSettingsStore } from './infrastructure/storage/LocalSettingsStore';
 import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
 import App from './ui/App.vue';
-import { depsKey } from './ui/deps';
+import { depsKey, type Demo } from './ui/deps';
 import './ui/styles.css';
 
 // The piano's samples load in the background; until they are in (or if they never are), the synth plays.
@@ -37,7 +39,15 @@ keepInstrumentPrepared(playback, piano);
 const volume = new Volume(piano);
 rememberPracticeSettings(playback, piano, volume, new LocalSettingsStore('claviano.practice'));
 const musicXml = new MusicXmlParser();
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume } });
+const demos: Demo[] = [
+  { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
+  // Fetched only when chosen; public/ files are served under the site's base path.
+  { id: 'showcase', title: 'demoShowcase', load: () => fetchScore(`${import.meta.env.BASE_URL}demos/showcase.musicxml`, musicXml, 'showcase') },
+];
+const openScore = new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml]));
+const library = new Library(new IndexedDbPieceShelf(), openScore, playback, demos);
+void library.load();
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
 createApp(App)
   .provide(depsKey, {
@@ -45,13 +55,10 @@ createApp(App)
     barLoop: new BarLoop(playback),
     volume,
     instrument: piano,
-    openScore: new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml])),
+    openScore,
+    library,
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
-    demos: [
-      { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
-      // Fetched only when chosen; public/ files are served under the site's base path.
-      { id: 'showcase', title: 'demoShowcase', load: () => fetchScore(`${import.meta.env.BASE_URL}demos/showcase.musicxml`, musicXml, 'showcase') },
-    ],
+    demos,
   })
   .mount('#app');

@@ -102,6 +102,8 @@ src/
     ports/           AudioOutput, Instrument, Ticker, ScoreParser — interfaces the core needs.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore,
                      PrepareInstrument (what the instrument must be ready to play).
+                     Library (the shelf of pieces opened before, behind the PieceShelf port;
+                     the same file is the same piece, told by its content).
   infrastructure/    Implementations of the ports:
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
                        (pedals from controllers 64, 66 and 67): notes, tempo and pedals as
@@ -213,12 +215,12 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
 2. [x] The new transport bar (always at hand / once a session / seldom; on a phone the middle
        ones are in a sheet behind "⋯") and the settings panel, with volume sliders for the piano
        and the metronome in it
-3. [ ] Phones and tablets (done: a phone upright and on its side, where the header and the
-       transport leave the screen to the music); a pass on an iPhone and an
-       iPad in the iOS Simulator (layout and touch), then on real devices (sound, memory,
-       smoothness, the samples in iOS Safari)
-4. [ ] The library remembers: opened pieces kept in the browser, each with its place, tempo, loop
-       and hands; rename, remove, save out as a file
+3. [x] Phones and tablets: a phone upright (practice behind "⋯", the staff or the keys) and on its
+       side (the header and the transport leave the screen to the music); a tablet; finger-sized
+       controls; a pass on an iPhone and an iPad in the iOS Simulator and on a real iPhone
+4. [ ] The library remembers. Done: opened pieces are kept in the browser and stand in the
+       library, each under an address of its own. To do: each with its place, tempo, loop and
+       hands; rename, remove, save out as a file; asking the browser to keep the storage
 5. [ ] Install as an app on the phone (web app manifest, icons; the service worker is there):
        an installed app's library is not wiped by iOS Safari
 6. [ ] Free play from the keys on the screen: what is played is written down as it is played,

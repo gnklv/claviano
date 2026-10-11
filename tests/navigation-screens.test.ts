@@ -1,16 +1,21 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createNavigation, screenAt, type Navigation } from '../src/ui/navigation/useScreen';
+import { createNavigation, pieceAt, screenAt, type Navigation } from '../src/ui/navigation/useScreen';
 
 /* Which screen is shown, and how the browser's Back and Forward move between them. */
 
 let hasPiece: boolean;
+/** The piece that is open, for its address. */
+let openPiece: string | null;
 let navigation: Navigation;
 let back: ReturnType<typeof vi.spyOn>;
 let opened = false;
 const open = (hash = '') => {
   location.hash = hash;
-  navigation = createNavigation((screen) => screen === 'library' || hasPiece);
+  navigation = createNavigation(
+    (screen) => screen === 'library' || hasPiece,
+    () => openPiece,
+  );
   opened = true;
 };
 /** The browser moves through its history: the address changes, and the page is told. */
@@ -21,6 +26,7 @@ const browserGoesTo = (hash: string) => {
 
 beforeEach(() => {
   hasPiece = false;
+  openPiece = null;
   back = vi.spyOn(history, 'back').mockImplementation(() => browserGoesTo('#/'));
 });
 afterEach(() => {
@@ -35,6 +41,53 @@ describe('screenAt', () => {
     expect(screenAt('#/piece')).toBe('piece');
     expect(screenAt('#/piece/')).toBe('piece');
     expect(['', '#', '#/', '#/library', '#/something', '#piece'].map(screenAt)).toEqual(Array(6).fill('library'));
+  });
+});
+
+describe('pieceAt', () => {
+  it('reads the piece an address names', () => {
+    expect(pieceAt('#/piece/abc-123')).toBe('abc-123');
+    expect(pieceAt('#/piece/demo.ode/')).toBe('demo.ode');
+    expect(pieceAt('#/piece/a%20b')).toBe('a b');
+    expect(screenAt('#/piece/abc-123')).toBe('piece');
+  });
+
+  it('reads none from the library’s address, a piece’s without a name, or a mangled one', () => {
+    expect(['#/', '#/piece', '#/piece/', '#/piece/%E0%A4%A', '#/piece/a/b'].map(pieceAt)).toEqual(Array(5).fill(null));
+    expect(screenAt('#/piece/a/b')).toBe('library');
+  });
+});
+
+describe('a piece’s address', () => {
+  it('names the piece that is open', () => {
+    hasPiece = true;
+    openPiece = 'abc-123';
+    open();
+    navigation.go('piece');
+    expect(location.hash).toBe('#/piece/abc-123');
+    expect(navigation.piece.value).toBe('abc-123');
+  });
+
+  it('is set right, without a step in the history, when another piece opens in its place', () => {
+    hasPiece = true;
+    openPiece = 'abc-123';
+    open();
+    navigation.go('piece');
+    const steps = history.length;
+    openPiece = 'def-456';
+    navigation.go('piece');
+    expect(location.hash).toBe('#/piece/def-456');
+    expect(navigation.piece.value).toBe('def-456');
+    expect(history.length).toBe(steps);
+  });
+
+  it('is told as the browser moves to it, and is none in the library', () => {
+    hasPiece = true;
+    open();
+    browserGoesTo('#/piece/abc-123');
+    expect(navigation.piece.value).toBe('abc-123');
+    browserGoesTo('#/');
+    expect(navigation.piece.value).toBeNull();
   });
 });
 

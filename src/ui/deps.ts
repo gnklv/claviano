@@ -3,6 +3,7 @@ import type { Instrument } from '../application/ports/Instrument';
 import type { RollView } from '../application/ports/RollView';
 import type { StaffView } from '../application/ports/StaffView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
+import type { Library } from '../application/use-cases/Library';
 import type { DemoPiece, OpenScore } from '../application/use-cases/OpenScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Volume } from '../application/use-cases/Volume';
@@ -22,6 +23,8 @@ export interface AppDeps {
   /** The piano's sound: whether it has loaded. */
   readonly instrument: Instrument;
   readonly openScore: OpenScore;
+  /** The shelf of pieces opened before, and opening a piece from it. */
+  readonly library: Library;
   readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
   readonly createStaff: (container: HTMLElement) => StaffView;
   readonly demos: readonly Demo[];

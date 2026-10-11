@@ -1,4 +1,5 @@
 import type { AudioOutput, NoteToPlay, SoundPart } from '../src/application/ports/AudioOutput';
+import type { PieceShelf, ShelvedPiece } from '../src/application/ports/PieceShelf';
 import type { Ticker } from '../src/application/ports/Ticker';
 
 /* Stand-ins for the ports, shared by the tests. */
@@ -39,5 +40,27 @@ export class FakeTicker implements Ticker {
   }
   tick(): void {
     this.callback?.();
+  }
+}
+
+/** A shelf kept in memory; `broken` makes everything it is asked for fail, as storage does in a private window. */
+export class FakePieceShelf implements PieceShelf {
+  readonly pieces = new Map<string, ShelvedPiece>();
+  readonly files = new Map<string, ArrayBuffer>();
+  broken = false;
+  list(): Promise<ShelvedPiece[]> {
+    return this.answer(() => [...this.pieces.values()]);
+  }
+  file(id: string): Promise<ArrayBuffer | null> {
+    return this.answer(() => this.files.get(id) ?? null);
+  }
+  save(piece: ShelvedPiece, data?: ArrayBuffer): Promise<void> {
+    return this.answer(() => {
+      this.pieces.set(piece.id, piece);
+      if (data) this.files.set(piece.id, data);
+    });
+  }
+  private answer<T>(work: () => T): Promise<T> {
+    return this.broken ? Promise.reject(new Error('no storage')) : Promise.resolve().then(work);
   }
 }

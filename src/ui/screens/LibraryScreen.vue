@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import SettingsPanel from '../components/SettingsPanel.vue';
+import { useLibrary } from '../composables/useLibrary';
 import { usePieceText } from '../composables/usePieceText';
 import { useDeps, type Demo } from '../deps';
+import { relativeDay } from '../i18n/relativeDay';
 import { useI18n } from '../i18n/useI18n';
 
 /*
- * Where the app starts: a file of one's own to open, and the demos. (The pieces opened before
- * will stand here too, once the library remembers them.)
+ * Where the app starts: a file of one's own to open, the pieces opened before (the latest first),
+ * and the demos.
  */
 
-const emit = defineEmits<{ file: [file: File]; demo: [demo: Demo] }>();
+const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo] }>();
 
-const { playback, openScore, demos } = useDeps();
-const { t } = useI18n();
+const { playback, openScore, library, demos } = useDeps();
+const { t, locale } = useI18n();
+const shelf = useLibrary(library);
+/** (The day is told as of when the library was come to: it is not a clock.) */
+const now = Date.now();
 const { error } = usePieceText(playback, openScore, demos);
 
 function onFileChosen(event: Event): void {
@@ -42,6 +47,10 @@ function onFileChosen(event: Event): void {
           <span class="note">{{ t('openFormats') }}</span>
           <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
         </label>
+        <button v-for="piece in shelf.pieces" :key="piece.id" class="card" @click="emit('piece', piece.id)">
+          <span class="name">{{ piece.title }}</span>
+          <span class="note">{{ relativeDay(piece.openedAt, now, locale) }}</span>
+        </button>
         <button v-for="demo in demos" :key="demo.id" class="card" @click="emit('demo', demo)">
           <span class="name">{{ t(demo.title) }}</span>
           <span class="note">{{ t('demo') }}</span>
@@ -128,6 +137,13 @@ function onFileChosen(event: Event): void {
 
 .name {
   font-size: 16px;
+  /* A long title takes two lines, and no more. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .note {
