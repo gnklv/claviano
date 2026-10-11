@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingRow from './SettingRow.vue';
 import AppButton from './AppButton.vue';
 import { computed, useTemplateRef } from 'vue';
 import { useFingerHints } from '../composables/useFingerHints';
@@ -34,34 +35,22 @@ const onOrOff = computed(() => [
   <AppButton class="gear" icon="settings" :label="t('settings')" @click="sheet?.open()" />
   <SheetDialog ref="sheet" :title="t('settings')">
     <!-- Wide screens have the view in the piece's header already. -->
-    <div v-if="piece" class="row view">
-      <span class="label">{{ t('viewMode') }}</span>
-      <ViewModeSwitch />
-    </div>
-    <div v-if="piece" class="row">
-      <span class="label">{{ t('fingerHints') }}</span>
+    <SettingRow v-if="piece" class="view" :label="t('viewMode')"><ViewModeSwitch /></SettingRow>
+    <SettingRow v-if="piece" :label="t('fingerHints')">
       <SegmentedControl v-model="hints" :options="onOrOff" :label="t('fingerHints')" />
-    </div>
+    </SettingRow>
     <SoundSettings />
     <VolumeSettings />
-    <div class="row">
-      <span class="label">{{ t('theme') }}</span>
-      <ThemeSwitch />
-    </div>
-    <div class="row">
-      <span class="label">{{ t('language') }}</span>
-      <LanguageSwitch />
-    </div>
+    <SettingRow :label="t('theme')"><ThemeSwitch /></SettingRow>
+    <SettingRow :label="t('language')"><LanguageSwitch /></SettingRow>
 
     <!-- Installing the app: a button where the browser lets the page ask, a word on how where it is done by hand. -->
-    <div v-if="way === 'prompt'" class="row">
-      <span class="label">{{ t('app') }}</span>
+    <SettingRow v-if="way === 'prompt'" :label="t('app')">
       <AppButton @click="install">{{ t('install') }}</AppButton>
-    </div>
-    <div v-else-if="way === 'ios'" class="row install-by-hand">
-      <span class="label">{{ t('app') }}</span>
+    </SettingRow>
+    <SettingRow v-else-if="way === 'ios'" :label="t('app')">
       <span class="how">{{ t('installOnIphone') }}</span>
-    </div>
+    </SettingRow>
 
     <!-- The samples' licence (CC BY) asks for the author, the licence and what was changed. -->
     <p class="credit">
@@ -77,18 +66,6 @@ const onOrOff = computed(() => [
 <style scoped>
 .gear {
   flex: none;
-  padding: 4px 9px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.label {
-  color: var(--muted);
 }
 
 .how {
@@ -97,16 +74,19 @@ const onOrOff = computed(() => [
   text-wrap: balance;
 }
 
-/* The view switch is in the header on a wide screen: here only where the header has no room for it. */
+/*
+ * The view is chosen in the piece's header where that has room for it (see the same width in
+ * screens/PieceScreen.vue), and here where it has not.
+ */
 @media (min-width: 901px) {
-  .row.view {
+  .view {
     display: none;
   }
 }
 
 .credit {
   margin: 0;
-  padding-top: 12px;
+  padding-top: var(--space-3);
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: var(--text-xs);
@@ -116,5 +96,4 @@ const onOrOff = computed(() => [
 .credit a {
   color: inherit;
 }
-
 </style>

@@ -67,7 +67,7 @@ are in [design.md](design.md); these are the ones most easily broken:
 - **Under a finger, everything pressable is 44 px at the least.**
 - **The interface is built of the components** (`AppButton`, `ToggleChip`, `SegmentedControl`,
   `TextField`, `PieceTile`, `ActionTile`, `ScreenHeader`, `SectionHeading`, `AppNotice`,
-  `SheetDialog`, `PopOver`, `MenuList`, `AppIcon`): a screen does not write a button or a field of
+  `SettingRow`, `SheetDialog`, `PopOver`, `MenuList`, `AppIcon`): a screen does not write a button or a field of
   its own.
 - **What moves takes its time from the tokens**: three durations and one curve, said in
   `ui/styles.css`. Less motion, where a person asks for it, is honoured there, once.

@@ -75,7 +75,7 @@ watch(phone, () => (open.value = false));
 }
 
 /* Where the bar is tight, the percent alone: what it makes is in the panel. */
-@media (max-width: 699px) {
+@media (max-width: 599px) {
   .mark {
     display: none;
   }

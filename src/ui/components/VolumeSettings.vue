@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingRow from './SettingRow.vue';
 import type { SoundPart } from '../../application/ports/AudioOutput';
 import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
@@ -23,25 +24,14 @@ function set(part: SoundPart, event: Event): void {
 </script>
 
 <template>
-  <label v-for="{ part, label } in PARTS" :key="part" class="row">
-    <span class="label">{{ t(label) }}</span>
+  <SettingRow v-for="{ part, label } in PARTS" :key="part" tag="label" :label="t(label)">
     <input class="slider" type="range" min="0" max="100" step="5" :value="levels[part]" :style="{ '--fill': `${levels[part]}%` }" @input="set(part, $event)" />
     <output class="value">{{ levels[part] }}%</output>
-  </label>
+  </SettingRow>
 </template>
 
 <style scoped>
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.label {
-  color: var(--muted);
-}
-
+/* (No shorter than can be aimed at.) */
 .slider {
   flex: 1;
   min-width: 80px;

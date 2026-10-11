@@ -10,6 +10,7 @@ import PopOver from '../components/PopOver.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
 import SectionHeading from '../components/SectionHeading.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
+import SettingRow from '../components/SettingRow.vue';
 import SheetDialog from '../components/SheetDialog.vue';
 import TextField from '../components/TextField.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
@@ -174,12 +175,24 @@ const chosen = ref('');
         <span class="caption">{{ chosen && `chosen: ${chosen}` }}</span>
       </div>
 
+      <SectionHeading>A row of settings</SectionHeading>
+      <p class="about">What is set, and the control that sets it. Sheets are made of these.</p>
+      <div class="rows">
+        <SettingRow label="A choice"><SegmentedControl v-model="view" :options="VIEWS" label="A choice" /></SettingRow>
+        <SettingRow tag="label" label="A level">
+          <input v-model.number="level" class="slider" type="range" min="0" max="100" :style="{ '--fill': `${level}%` }" />
+        </SettingRow>
+      </div>
+
       <SectionHeading>Sheet</SectionHeading>
       <p class="about">What is set once in a while: from the side on a wide screen, from below on a phone.</p>
       <div class="row start">
         <AppButton @click="sheet?.open()">Open a sheet</AppButton>
         <SheetDialog ref="sheet" title="A sheet">
-          <p class="about">Rows of settings stand here.</p>
+          <SettingRow label="A choice"><SegmentedControl v-model="view" :options="VIEWS" label="A choice" /></SettingRow>
+          <SettingRow tag="label" label="A level">
+            <input v-model.number="level" class="slider" type="range" min="0" max="100" :style="{ '--fill': `${level}%` }" />
+          </SettingRow>
         </SheetDialog>
       </div>
 
@@ -293,6 +306,12 @@ const chosen = ref('');
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   max-width: 640px;
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 340px;
 }
 
 .notices {

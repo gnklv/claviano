@@ -38,7 +38,8 @@ defineProps<TempoReading>();
 .note {
   font-family: 'Bravura';
   font-size: 1.15em;
-  line-height: 1;
+  /* (It takes no height of its own: the line is as tall as its words, whatever the note's stem.) */
+  line-height: 0;
   /* (Its own width ends at the head: a little air before the sign after it.) */
   margin-right: 0.15em;
 }

@@ -103,8 +103,9 @@
   --slow: 0.5s;
   --glide: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* What stands over the page (a pop-up) casts this. */
-  --shadow-raised: 0 10px 32px rgb(0 0 0 / 0.25);
+  /* What stands over the page casts a shadow of this shade: a pop-up under itself, a sheet towards the page. */
+  --shade: rgb(0 0 0 / 0.25);
+  --shadow-raised: 0 10px 32px var(--shade);
 
   /* Under a finger nothing pressable is smaller. */
   --touch: 44px;

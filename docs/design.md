@@ -111,6 +111,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `ScreenHeader` | the strip on top of a screen | the way back, what the screen is, and what is set there |
 | `SectionHeading` | the name of a section | over a group of tiles or rows |
 | `AppNotice` | word of how things stand, or (`alert`) of something gone wrong | said in the page, where it concerns |
+| `SettingRow` | what is set, and the control that sets it | the rows of a sheet |
 | `SheetDialog` | a panel from the side (from below on a phone) | what is set once in a while, and what a phone's bar has no room for |
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
 | `MenuList` | the choices of a menu | inside a `PopOver` |

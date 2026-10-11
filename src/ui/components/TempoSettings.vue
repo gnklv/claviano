@@ -63,20 +63,20 @@ const percent = computed({
 <style scoped>
 .tempo-settings {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .now {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .step {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: var(--touch);
+  height: var(--touch);
   padding: 0;
   border-radius: 50%;
 }

@@ -36,7 +36,7 @@ const { immersed, wake } = useImmersion(
     <div class="strip">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
-        <ScreenHeader back :alert="!!error" @back="emit('back')">
+        <ScreenHeader class="bar" back :alert="!!error" @back="emit('back')">
           <template #title>
             <template v-if="error">{{ error }}</template>
             <!-- (How long the piece is: said where there is room for it.) -->
@@ -112,7 +112,7 @@ const { immersed, wake } = useImmersion(
 /* A phone on its side: a thin header. */
 @media (max-height: 500px) {
   .bar {
-    padding-block: max(4px, env(safe-area-inset-top)) 4px;
+    padding-block: max(var(--space-1), env(safe-area-inset-top)) var(--space-1);
   }
 }
 
@@ -127,7 +127,7 @@ const { immersed, wake } = useImmersion(
   flex: none;
 }
 
-/* Below this width the view switch no longer fits next to the title. */
+/* Under this width the view switch no longer fits beside the title: the settings panel has it then (see components/SettingsPanel.vue). */
 @media (max-width: 900px) {
   .view-switch {
     display: none;
@@ -146,6 +146,7 @@ const { immersed, wake } = useImmersion(
 }
 
 .stage.view-both {
+  /* (The staff: a little over a third of the height, and never too low to hold both its staves.) */
   grid-template-rows: minmax(160px, 38%) 1fr;
 }
 

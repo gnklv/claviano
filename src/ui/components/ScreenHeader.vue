@@ -35,15 +35,13 @@ const { t } = useI18n();
   align-items: center;
   gap: var(--space-2) var(--space-4);
   /* Keep clear of the notch and rounded corners (viewport-fit=cover in index.html). */
-  padding: max(10px, env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) 10px max(var(--space-4), env(safe-area-inset-left));
+  padding: max(var(--space-2), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
 
 .back {
   flex: none;
-  min-width: 40px;
-  padding-inline: 10px;
 }
 
 .title {

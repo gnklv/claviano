@@ -73,7 +73,7 @@ useAnimationFrame(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -85,7 +85,7 @@ useAnimationFrame(() => {
 .tiled .toggle {
   grid-column: span 2;
   justify-content: center;
-  padding-inline: 4px;
+  padding-inline: var(--space-1);
 }
 
 .tiled .toggle[class*='hand-'] {

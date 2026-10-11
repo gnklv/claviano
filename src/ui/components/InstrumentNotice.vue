@@ -19,9 +19,9 @@ const status = useMirror(instrument, () => (instrument.enabled && instrument.sta
 <style scoped>
 .notice {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 4px 10px;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface);

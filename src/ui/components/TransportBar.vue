@@ -136,10 +136,9 @@ function togglePlay(): void {
   grid-template-areas:
     'playback playback'
     'tempo loop';
-  gap: 10px 24px;
+  gap: var(--space-2) var(--space-5);
   /* Keep clear of the home indicator and, in landscape, the notch. */
-  padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
-    max(16px, env(safe-area-inset-left));
+  padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
   background: var(--panel);
   border-top: 1px solid var(--border);
 }
@@ -154,13 +153,13 @@ function togglePlay(): void {
   }
 }
 
-/* Wide screens: everything in one row. */
+/* Everything in one row, from the width at which all of it fits in one (a tablet on its side, and wider). */
 @media (min-width: 1150px) {
   .transport {
     grid-template-columns: 1fr auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
     /* (A tablet on its side is just this wide: closer together, and the place in the piece keeps its length.) */
-    column-gap: 16px;
+    column-gap: var(--space-4);
   }
 }
 
@@ -169,8 +168,8 @@ function togglePlay(): void {
   .transport {
     grid-template-columns: 1fr auto auto;
     grid-template-areas: 'playback tempo loop';
-    column-gap: 12px;
-    padding-block: 6px max(6px, env(safe-area-inset-bottom));
+    column-gap: var(--space-3);
+    padding-block: var(--space-1) max(var(--space-1), env(safe-area-inset-bottom));
   }
 }
 
@@ -178,7 +177,7 @@ function togglePlay(): void {
 .loop {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -202,9 +201,9 @@ function togglePlay(): void {
 /* At the far end of the loop's row. */
 .more {
   margin-left: auto;
-  line-height: 1;
 }
 
+/* (No shorter than can be aimed at.) */
 .seek {
   flex: 1;
   min-width: 80px;
@@ -227,7 +226,7 @@ function togglePlay(): void {
   }
 
   .transport {
-    column-gap: 8px;
+    column-gap: var(--space-2);
   }
 }
 </style>

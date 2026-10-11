@@ -66,7 +66,7 @@ function onCancel(event: Event): void {
     <div ref="sheet" class="sheet">
       <header class="head">
         <strong>{{ title }}</strong>
-        <AppButton class="close" icon="close" :label="t('close')" @click="close" />
+        <AppButton icon="close" :label="t('close')" @click="close" />
       </header>
       <slot />
     </div>
@@ -120,13 +120,13 @@ function onCancel(event: Event): void {
   box-sizing: border-box;
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: var(--space-4);
   width: min(340px, 100%);
-  padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 16px;
+  padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) var(--space-4);
   overflow-y: auto;
   border-left: 1px solid var(--border);
   background: var(--panel);
-  box-shadow: -12px 0 32px rgb(0 0 0 / 0.25);
+  box-shadow: -12px 0 32px var(--shade);
   /* Closed (and closing): away. */
   translate: var(--away);
   transition: translate var(--leave) var(--glide);
@@ -157,12 +157,8 @@ function onCancel(event: Event): void {
   font-size: var(--text-l);
 }
 
-.close {
-  padding: 4px 9px;
-}
-
 /* A phone: the panel comes up from the bottom, as tall as it needs, no taller than most of the screen. */
-@media (max-width: 600px) {
+@media (max-width: 599px) {
   .panel {
     --away: 0 100%;
   }
@@ -171,11 +167,11 @@ function onCancel(event: Event): void {
     inset: auto 0 0 0;
     width: 100%;
     max-height: 85%;
-    padding: 14px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
     border-left: 0;
     border-top: 1px solid var(--border);
     border-radius: var(--radius-m) var(--radius-m) 0 0;
-    box-shadow: 0 -12px 32px rgb(0 0 0 / 0.25);
+    box-shadow: 0 -12px 32px var(--shade);
   }
 }
 

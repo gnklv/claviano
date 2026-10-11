@@ -53,8 +53,8 @@ const model = defineModel<T>({ required: true });
 @media (pointer: coarse), (max-width: 599px) {
   .option {
     min-width: var(--touch);
-    min-height: 40px;
-    padding-inline: 12px;
+    min-height: var(--touch);
+    padding-inline: var(--space-3);
     font-size: var(--text-m);
   }
 }

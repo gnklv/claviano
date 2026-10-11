@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingRow from './SettingRow.vue';
 import { computed } from 'vue';
 import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
@@ -23,21 +24,7 @@ const sounds = computed((): { value: Sound; label: string }[] => [
 </script>
 
 <template>
-  <div class="row">
-    <span class="label">{{ t('sound') }}</span>
+  <SettingRow :label="t('sound')">
     <SegmentedControl v-model="sound" :options="sounds" :label="t('sound')" />
-  </div>
+  </SettingRow>
 </template>
-
-<style scoped>
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.label {
-  color: var(--muted);
-}
-</style>
