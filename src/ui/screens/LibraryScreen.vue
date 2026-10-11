@@ -119,7 +119,7 @@ function onFileChosen(event: Event): void {
 }
 
 .logo {
-  font-size: 16px;
+  font-size: var(--text-l);
   letter-spacing: 0.02em;
 }
 
@@ -149,7 +149,7 @@ function onFileChosen(event: Event): void {
 .heading {
   margin-bottom: 12px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-s);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -158,7 +158,7 @@ function onFileChosen(event: Event): void {
 .unkept {
   margin-top: 12px;
   margin-bottom: 0;
-  font-size: 13px;
+  font-size: var(--text-s);
 }
 
 /* Each section stands apart from what is over it. */
@@ -181,7 +181,7 @@ function onFileChosen(event: Event): void {
   min-width: 0;
   padding: 14px 16px;
   border: 1px dashed var(--accent);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -203,7 +203,7 @@ function onFileChosen(event: Event): void {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 18px;
+  font-size: var(--text-l);
   line-height: 1;
 }
 
@@ -243,7 +243,7 @@ function onFileChosen(event: Event): void {
   min-height: 120px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: var(--panel);
   color: var(--text);
   font: inherit;
@@ -257,7 +257,7 @@ function onFileChosen(event: Event): void {
 }
 
 .name {
-  font-size: 16px;
+  font-size: var(--text-l);
   /* A long title takes two lines, and no more. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -275,7 +275,7 @@ function onFileChosen(event: Event): void {
   margin-top: 12px;
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-s);
 }
 
 .error {
@@ -283,7 +283,7 @@ function onFileChosen(event: Event): void {
   margin-bottom: 16px;
   padding: 10px 14px;
   border: 1px solid var(--left);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
 }
 
 /* A phone: one column, lower cards. */

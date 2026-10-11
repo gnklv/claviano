@@ -25,7 +25,7 @@ function set(part: SoundPart, event: Event): void {
 <template>
   <label v-for="{ part, label } in PARTS" :key="part" class="row">
     <span class="label">{{ t(label) }}</span>
-    <input class="slider" type="range" min="0" max="100" step="5" :value="levels[part]" @input="set(part, $event)" />
+    <input class="slider" type="range" min="0" max="100" step="5" :value="levels[part]" :style="{ '--fill': `${levels[part]}%` }" @input="set(part, $event)" />
     <output class="value">{{ levels[part] }}%</output>
   </label>
 </template>

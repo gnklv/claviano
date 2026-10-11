@@ -106,10 +106,11 @@ Before the next steps, in this order (agreed after a review of the code and of t
     the view, the theme, the language, the hints), read afresh for each test.
 - [ ] A design system, each step looked at before the next:
   - the character: a pianist's notebook. Paper and ink; titles in a serif, as words in sheet music
-    are; one accent, the red of a piano's felt, for the one main action of a screen. Blue and
-    orange are the hands', and nothing else's;
-  - tokens: colours by role, five sizes of type, a scale of spacing, three radii, two durations,
-    three named widths of screen;
+    are; one accent, the red of a piano's felt, for the one main action of a screen. Steel and
+    sepia, two quiet inks, are the hands', and nothing else's;
+  - [x] tokens (`ui/styles.css`): colours by role in two themes (paper and ink; a piano's
+    lacquer), five sizes of type, a scale of spacing, three radii, three durations and one
+    curve. (The widths of screen wait for the screens: a media query cannot read a variable.)
   - icons of our own, one set in one style, in place of characters of a font;
   - the components (button, chip, segments, slider, field, card, sheet, menu, bar), and a page that
     shows them all in both themes (in development only), as the showcase does for notation;

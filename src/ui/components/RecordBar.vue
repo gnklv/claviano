@@ -126,7 +126,7 @@ const status = computed(() => {
   flex: none;
   width: 10px;
   height: 10px;
-  background: var(--record, #d9352b);
+  background: var(--record);
 }
 
 .dot {
@@ -134,7 +134,7 @@ const status = computed(() => {
 }
 
 .square {
-  border-radius: 2px;
+  border-radius: calc(var(--radius-s) / 3);
 }
 
 .status {
@@ -146,7 +146,7 @@ const status = computed(() => {
 }
 
 .status.live {
-  color: var(--record, #d9352b);
+  color: var(--record);
 }
 
 .step {

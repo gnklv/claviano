@@ -14,7 +14,7 @@ import { deflateSync } from 'node:zlib';
 
 /** The favicon's own size: the shapes are in these units. */
 const UNITS = 32;
-const SURFACE = '#14161c';
+const SURFACE = '#121110';
 /** A rectangle with rounded corners, as in the SVG. */
 interface Shape {
   x: number;
@@ -25,9 +25,9 @@ interface Shape {
   fill: string;
 }
 const KEYS: Shape[] = [
-  { x: 5, y: 7, width: 6.6, height: 18, radius: 1.2, fill: '#ff9f43' },
+  { x: 5, y: 7, width: 6.6, height: 18, radius: 1.2, fill: '#8f7a5c' },
   { x: 12.7, y: 7, width: 6.6, height: 18, radius: 1.2, fill: '#f4f1ea' },
-  { x: 20.4, y: 7, width: 6.6, height: 18, radius: 1.2, fill: '#4f9dff' },
+  { x: 20.4, y: 7, width: 6.6, height: 18, radius: 1.2, fill: '#8fa9c0' },
   { x: 9.6, y: 6, width: 5.1, height: 11, radius: 1, fill: SURFACE },
   { x: 17.3, y: 6, width: 5.1, height: 11, radius: 1, fill: SURFACE },
 ];

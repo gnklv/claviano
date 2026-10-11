@@ -128,9 +128,9 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   border: 2px dashed var(--accent);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: var(--drop-overlay);
-  font-size: 18px;
+  font-size: var(--text-l);
   pointer-events: none;
 }
 </style>

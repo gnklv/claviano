@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!-- The colour of the system's bar over the page: the header's (set to the theme below, and by useTheme.ts). -->
-    <meta name="theme-color" content="#1a1d25" />
+    <meta name="theme-color" content="#1c1a18" />
     <script>
       // Set the theme before the first paint, so a light system never flashes a dark page.
       // Mirrors src/ui/theme/useTheme.ts, which takes over once the app has loaded.
@@ -27,7 +27,7 @@
           (setting !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
         // (The header's colour in each theme: --panel in src/ui/styles.css.)
-        document.querySelector('meta[name=theme-color]').content = dark ? '#1a1d25' : '#fbfaf7';
+        document.querySelector('meta[name=theme-color]').content = dark ? '#1c1a18' : '#fbf8f2';
       })();
     </script>
     <link rel="preload" href="/fonts/Bravura.woff2" as="font" type="font/woff2" crossorigin />

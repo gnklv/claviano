@@ -26,7 +26,7 @@ const DEFAULT_COLORS: RollColors = {
   keyLabel: '#8a877f',
   pedal: 'rgba(180, 140, 255, 0.85)',
   cursor: 'rgba(79, 157, 255, 0.9)',
-  hand: { right: '#4f9dff', left: '#ff9f43' },
+  hand: { right: '#8fa9c0', left: '#8f7a5c' },
 };
 
 const MUTED_ALPHA = 0.25;

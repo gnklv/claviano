@@ -200,7 +200,7 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   border-right: 1px solid var(--key-border);
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
   background: var(--key-white);
   color: var(--key-label);
 }
@@ -209,19 +209,19 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   height: 62%;
-  border-radius: 0 0 3px 3px;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
   background: var(--key-black);
   color: var(--key-label);
 }
 
 .white.down {
   background: var(--right);
-  color: #fff;
+  color: var(--on-hand);
 }
 
 .black.down {
-  background: color-mix(in srgb, var(--right) 70%, #000);
-  color: #fff;
+  background: color-mix(in srgb, var(--right) 70%, var(--key-black));
+  color: var(--on-hand);
 }
 
 /*
@@ -239,15 +239,15 @@ onUnmounted(() => {
   min-width: 18px;
   padding: 3px 4px;
   border: 1px solid currentColor;
-  border-radius: 4px;
-  font-size: 11px;
+  border-radius: var(--radius-s);
+  font-size: var(--text-key);
   font-weight: 600;
   text-align: center;
   opacity: 0.75;
 }
 
 .name {
-  font-size: 10px;
+  font-size: var(--text-key);
   letter-spacing: 0.02em;
 }
 

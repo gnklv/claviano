@@ -132,7 +132,7 @@ const { immersed, wake } = useImmersion(
   flex: none;
   min-width: 40px;
   padding-inline: 10px;
-  font-size: 16px;
+  font-size: var(--text-glyph);
   line-height: 1;
 }
 

@@ -7,44 +7,96 @@
 }
 
 /*
- * Every color of the app lives here, one set per theme. The theme is chosen by the data-theme
- * attribute on <html> (see ui/theme/useTheme.ts). The staff (SVG) uses these variables directly;
- * the falling notes (canvas) read them whenever the theme changes.
+ * The design tokens: every colour, size of type, radius, spacing and duration of the interface is
+ * named here, and a component uses the names, never a value of its own (docs/rules.md).
+ *
+ * The character is a pianist's notebook: paper and ink by day, a piano's lacquer by night; one
+ * accent, the red of the felt inside a piano, for the one main action of a screen. Steel and
+ * sepia are the right hand and the left, and are used for nothing else.
+ *
+ * Colours come in two sets, one a theme, chosen by the data-theme attribute on <html> (see
+ * ui/theme/useTheme.ts). The staff (SVG) uses the variables directly; the canvases read them
+ * whenever the theme changes.
  */
+:root {
+  /* Type: five sizes, and two for special places. */
+  --text-xs: 12px;
+  --text-s: 13px;
+  --text-m: 14px;
+  --text-l: 18px;
+  --text-xl: 26px;
+  /* (A field's text is never smaller than this: Safari on iOS zooms into a field that is.) */
+  --text-field: 16px;
+  /* (The captions on the keys of a keyboard: a key is narrow.) */
+  --text-key: 11px;
+  /* (A glyph that stands for an icon, until the icons are our own.) */
+  --text-glyph: 18px;
+
+  /* Corners: fields and small things; buttons, cards and panels; pills. */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-pill: 999px;
+
+  /* Space: gaps and paddings are steps of this scale. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Motion: a quick answer to a touch; a panel that goes; a panel that comes. One curve: fast at first, settling slowly. */
+  --quick: 0.15s;
+  --medium: 0.3s;
+  --slow: 0.5s;
+  --glide: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Under a finger nothing pressable is smaller. */
+  --touch: 44px;
+}
+
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Interface */
-  --bg: #0f1116;
-  --panel: #1a1d25;
-  --text: #e8e6e1;
-  --muted: #8b8f99;
-  --border: #2a2e38;
-  --control: #252933;
-  --control-hover: #2e3340;
-  --accent: #4f9dff;
-  --on-accent: #0b1220;
-  --drop-overlay: rgb(79 157 255 / 0.08);
+  /* Interface: a piano's lacquer, warm black */
+  --bg: #121110;
+  --panel: #1c1a18;
+  --text: #ece7de;
+  --muted: #9a948a;
+  --border: #2e2b27;
+  --control: #272421;
+  --control-hover: #322e2a;
+  --accent: #c94a3e;
+  --on-accent: #ffffff;
+  --drop-overlay: rgb(201 74 62 / 0.1);
+  /* What cannot be undone, and recording: the accent's red says both. */
+  --danger: var(--accent);
+  --record: var(--accent);
+  /* Text on a hand's colour (a lit key). */
+  --on-hand: #22201c;
 
-  /* Hands: falling notes, keys, checkboxes */
-  --right: #4f9dff;
-  --left: #ff9f43;
+  /*
+   * Hands: falling notes, keys, their switches. Quiet, like two inks on a page: steel for the right,
+   * sepia for the left. (Neither is the white or the black of a key: a lit key must not pass for one.)
+   */
+  --right: #8fa9c0;
+  --left: #8f7a5c;
 
   /* Music views */
-  --surface: #14161c;
-  --ink: rgb(255 255 255 / 0.75);
-  --staff-line: rgb(255 255 255 / 0.28);
-  --bar-line: rgb(255 255 255 / 0.45);
-  --bar-number: rgb(255 255 255 / 0.4);
-  --grid-line: rgb(255 255 255 / 0.08);
-  --now-line: rgb(255 255 255 / 0.5);
+  --surface: #161412;
+  --ink: rgb(255 250 240 / 0.78);
+  --staff-line: rgb(255 250 240 / 0.28);
+  --bar-line: rgb(255 250 240 / 0.45);
+  --bar-number: rgb(255 250 240 / 0.4);
+  --grid-line: rgb(255 250 240 / 0.08);
+  --now-line: rgb(255 250 240 / 0.5);
   --loop: rgb(120 200 140 / 0.1);
-  --cursor: rgb(79 157 255 / 0.9);
+  --cursor: rgb(201 74 62 / 0.95);
   --pedal: rgb(180 140 255 / 0.85);
 
   /* Keyboard */
   --key-white: #f4f1ea;
-  --key-black: #1d1f24;
+  --key-black: #1d1b19;
   --key-border: #9a978f;
   --key-label: #8a877f;
 }
@@ -52,38 +104,41 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  /* Interface: warm paper tones instead of pure white */
-  --bg: #f3f1ec;
-  --panel: #fbfaf7;
-  --text: #1d1f24;
-  --muted: #6b6f78;
-  --border: #dcd8cf;
-  --control: #ebe8e1;
-  --control-hover: #e2ded5;
-  --accent: #2f7de1;
+  /* Interface: paper and ink */
+  --bg: #f4f0e8;
+  --panel: #fbf8f2;
+  --text: #22201c;
+  --muted: #6f6a60;
+  --border: #e2dccf;
+  --control: #ebe5d8;
+  --control-hover: #e2dccf;
+  --accent: #b3392f;
   --on-accent: #ffffff;
-  --drop-overlay: rgb(47 125 225 / 0.08);
+  --drop-overlay: rgb(179 57 47 / 0.07);
+  --danger: var(--accent);
+  --record: var(--accent);
+  --on-hand: #ffffff;
 
-  /* Hands: a bit deeper than in the dark theme to keep contrast on a light background */
-  --right: #2f7de1;
-  --left: #e07b12;
+  /* Hands: graphite and sepia, deeper than on lacquer to keep contrast on paper. */
+  --right: #4a6079;
+  --left: #a08a6c;
 
   /* Music views */
-  --surface: #faf8f4;
-  --ink: rgb(29 31 36 / 0.85);
-  --staff-line: rgb(29 31 36 / 0.45);
-  --bar-line: rgb(29 31 36 / 0.6);
-  --bar-number: rgb(29 31 36 / 0.5);
-  --grid-line: rgb(29 31 36 / 0.08);
-  --now-line: rgb(29 31 36 / 0.35);
+  --surface: #faf7f1;
+  --ink: rgb(34 32 28 / 0.88);
+  --staff-line: rgb(34 32 28 / 0.45);
+  --bar-line: rgb(34 32 28 / 0.6);
+  --bar-number: rgb(34 32 28 / 0.5);
+  --grid-line: rgb(34 32 28 / 0.08);
+  --now-line: rgb(34 32 28 / 0.35);
   --loop: rgb(60 160 90 / 0.12);
-  --cursor: rgb(47 125 225 / 0.9);
+  --cursor: rgb(179 57 47 / 0.9);
   --pedal: rgb(130 90 220 / 0.8);
 
   /* Keyboard */
   --key-white: #ffffff;
-  --key-black: #26282e;
-  --key-border: #c9c5bc;
+  --key-black: #26241f;
+  --key-border: #cfc8ba;
   --key-label: #9a968d;
 }
 
@@ -130,7 +185,7 @@ body {
    */
   background: var(--panel);
   color: var(--text);
-  font: 14px/1.4 system-ui, -apple-system, sans-serif;
+  font: var(--text-m) / 1.4 system-ui, -apple-system, sans-serif;
   /*
    * An app's face, not a page of text: a long press (which on the staff marks bars to loop) does
    * not start selecting the words around, nor call up the phone's menu for them.
@@ -169,7 +224,7 @@ input,
   border: 1px solid var(--border);
   background: var(--control);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   padding: 6px 12px;
   font: inherit;
   cursor: pointer;
@@ -201,7 +256,7 @@ input,
   border: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 12px;
   font: inherit;
   cursor: pointer;
@@ -224,10 +279,87 @@ input,
 @media (pointer: coarse), (max-width: 599px) {
   .button,
   .toggle {
-    min-height: 44px;
+    min-height: var(--touch);
   }
 
   .button {
-    min-width: 44px;
+    min-width: var(--touch);
+  }
+}
+
+/*
+ * A slider: a thin track, inked as far as its value, and a round thumb. Drawn here rather than left
+ * to the system, which paints it in its own blue (and each system in its own way).
+ *
+ * How far it is inked is told by --fill (a percentage): the browser gives a track no way to know
+ * its own value, so whoever sets the value sets that beside it.
+ */
+input[type='range'] {
+  --fill: 0%;
+  appearance: none;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--text) var(--fill), var(--border) var(--fill));
+}
+
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--text) var(--fill), var(--border) var(--fill));
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  /* (Centred on the track: half the thumb less half the track.) */
+  margin-top: -6px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--text);
+}
+
+input[type='range']::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--text);
+}
+
+input[type='range']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-pill);
+}
+
+input[type='range']:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Under a finger: a thumb to take hold of, in a row a fingertip tall. */
+@media (pointer: coarse) {
+  input[type='range'] {
+    height: var(--touch);
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
   }
 }

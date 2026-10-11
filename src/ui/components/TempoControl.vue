@@ -117,7 +117,7 @@ onUnmounted(() => listen(false));
   width: 300px;
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-m);
   background: var(--panel);
   box-shadow: 0 10px 32px rgb(0 0 0 / 0.25);
   translate: -50% 0;
@@ -127,8 +127,8 @@ onUnmounted(() => listen(false));
 .pop-enter-active,
 .pop-leave-active {
   transition:
-    opacity 0.15s ease-out,
-    scale 0.15s ease-out;
+    opacity var(--quick) ease-out,
+    scale var(--quick) ease-out;
 }
 
 .pop-enter-from,

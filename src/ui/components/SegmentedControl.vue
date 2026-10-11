@@ -30,7 +30,7 @@ const model = defineModel<T>({ required: true });
 .segmented {
   display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   overflow: hidden;
 }
 
@@ -40,7 +40,7 @@ const model = defineModel<T>({ required: true });
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   padding: 5px 10px;
   cursor: pointer;
 }
@@ -48,10 +48,10 @@ const model = defineModel<T>({ required: true });
 /* Under a finger: taller, and the words a size up. */
 @media (pointer: coarse), (max-width: 599px) {
   .option {
-    min-width: 44px;
+    min-width: var(--touch);
     min-height: 40px;
     padding-inline: 12px;
-    font-size: 14px;
+    font-size: var(--text-m);
   }
 }
 

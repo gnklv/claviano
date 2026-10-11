@@ -23,10 +23,10 @@ const status = useMirror(instrument, () => (instrument.enabled && instrument.sta
   bottom: 12px;
   padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   pointer-events: none;
 }
 

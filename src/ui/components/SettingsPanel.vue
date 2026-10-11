@@ -77,7 +77,7 @@ const onOrOff = computed(() => [
 .gear {
   flex: none;
   /* (The glyph is small for its size.) */
-  font-size: 20px;
+  font-size: var(--text-glyph);
   line-height: 1;
   padding: 4px 9px;
 }
@@ -94,7 +94,7 @@ const onOrOff = computed(() => [
 }
 
 .how {
-  font-size: 13px;
+  font-size: var(--text-s);
   text-align: right;
   text-wrap: balance;
 }
@@ -111,7 +111,7 @@ const onOrOff = computed(() => [
   padding-top: 12px;
   border-top: 1px solid var(--border);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.4;
 }
 

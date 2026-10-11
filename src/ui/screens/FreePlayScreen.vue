@@ -101,7 +101,7 @@ onUnmounted(() => {
   flex: none;
   min-width: 40px;
   padding-inline: 10px;
-  font-size: 16px;
+  font-size: var(--text-glyph);
   line-height: 1;
 }
 
@@ -123,7 +123,7 @@ onUnmounted(() => {
 .octaves .button {
   min-width: 36px;
   padding-inline: 8px;
-  font-size: 16px;
+  font-size: var(--text-glyph);
   line-height: 1;
 }
 
@@ -161,7 +161,7 @@ onUnmounted(() => {
   bottom: 6px;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   pointer-events: none;
 }
 

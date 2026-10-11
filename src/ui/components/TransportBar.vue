@@ -44,6 +44,11 @@ useAnimationFrame(() => {
   if (!seeking && seekInput.value && score.duration > 0) {
     seekInput.value.value = String(Math.round((position / score.duration) * SEEK_STEPS));
   }
+  // (The slider is inked as far as the music has got: see the slider's styles.)
+  if (seekInput.value && score.duration > 0) {
+    const inked = `${Math.round((position / score.duration) * 1000) / 10}%`;
+    if (inked !== seekInput.value.style.getPropertyValue('--fill')) seekInput.value.style.setProperty('--fill', inked);
+  }
 });
 
 function onSeek(event: Event): void {
@@ -216,7 +221,7 @@ function togglePlay(): void {
   background: var(--control);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   padding: 3px 4px;
   font: inherit;
 }
@@ -224,9 +229,9 @@ function togglePlay(): void {
 /* Under a finger: as tall as the buttons beside them. */
 @media (pointer: coarse), (max-width: 599px) {
   .number {
-    min-height: 44px;
+    min-height: var(--touch);
     /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
-    font-size: 16px;
+    font-size: var(--text-field);
   }
 }
 

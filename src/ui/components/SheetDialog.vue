@@ -97,9 +97,8 @@ function onCancel(event: Event): void {
   color: var(--text);
 
   /* A sheet comes in the way one does on a phone: fast at first, settling slowly; and leaves quicker. */
-  --enter: 0.5s;
-  --leave: 0.3s;
-  --glide: cubic-bezier(0.32, 0.72, 0, 1);
+  --enter: var(--slow);
+  --leave: var(--medium);
   /* Where the sheet is while out of sight: off the right edge (off the bottom on a phone). */
   --away: 100% 0;
 }
@@ -152,7 +151,7 @@ function onCancel(event: Event): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 16px;
+  font-size: var(--text-l);
 }
 
 .close {
@@ -173,7 +172,7 @@ function onCancel(event: Event): void {
     padding: 14px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     border-left: 0;
     border-top: 1px solid var(--border);
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
     box-shadow: 0 -12px 32px rgb(0 0 0 / 0.25);
   }
 }
@@ -181,8 +180,8 @@ function onCancel(event: Event): void {
 /* No sliding for those who asked for less motion: the panel and the dimming fade quickly instead. */
 @media (prefers-reduced-motion: reduce) {
   .panel {
-    --enter: 0.15s;
-    --leave: 0.15s;
+    --enter: var(--quick);
+    --leave: var(--quick);
     --away: 0 0;
   }
 

@@ -106,7 +106,7 @@ function finishRenaming(keep: boolean): void {
   display: grid;
   min-height: 120px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: var(--panel);
 }
 
@@ -139,7 +139,7 @@ function finishRenaming(keep: boolean): void {
 }
 
 .name {
-  font-size: 16px;
+  font-size: var(--text-l);
   /* A long title takes two lines, and no more. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -158,12 +158,12 @@ function finishRenaming(keep: boolean): void {
   width: 100%;
   padding: 4px 6px;
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   background: var(--bg);
   color: var(--text);
   /* (16px: Safari on iOS zooms into a field with smaller text.) */
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-field);
 }
 
 .more {
@@ -193,7 +193,7 @@ function finishRenaming(keep: boolean): void {
   min-width: 180px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-m);
   background: var(--panel);
   box-shadow: 0 10px 32px rgb(0 0 0 / 0.25);
 }
@@ -202,7 +202,7 @@ function finishRenaming(keep: boolean): void {
   appearance: none;
   padding: 8px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -223,7 +223,7 @@ function finishRenaming(keep: boolean): void {
 /* Under a finger: rows a fingertip tall, and the menu clear of the taller "⋯". */
 @media (pointer: coarse), (max-width: 599px) {
   .item {
-    min-height: 44px;
+    min-height: var(--touch);
   }
 
   .menu {

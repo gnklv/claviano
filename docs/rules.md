@@ -59,7 +59,7 @@ are in [design.md](design.md) (written with the design system); these hold from 
 
 - **Tokens, not values.** A component has no colour, radius, size of type, spacing or width of
   screen written by hand: each comes from a token. A new value means a new token, with a reason.
-- **Colour means something.** The accent marks the one main action of a screen. Blue and orange are
+- **Colour means something.** The accent marks the one main action of a screen. Steel and sepia are
   the right hand and the left, and are used for nothing else.
 - **Icons come from the set**, never from the characters of a font (they differ between systems,
   and an iPhone draws some as emoji).

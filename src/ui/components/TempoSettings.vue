@@ -38,7 +38,16 @@ const percent = computed({
       </output>
       <button class="button step" :disabled="percent >= RANGE.max" :title="t('tempoFaster')" :aria-label="t('tempoFaster')" @click="stepTempo(playback, 1)">+</button>
     </div>
-    <input v-model.number="percent" class="slider" type="range" :min="RANGE.min" :max="RANGE.max" :step="RANGE.step" :aria-label="t('tempo')" />
+    <input
+      v-model.number="percent"
+      class="slider"
+      type="range"
+      :min="RANGE.min"
+      :max="RANGE.max"
+      :step="RANGE.step"
+      :aria-label="t('tempo')"
+      :style="{ '--fill': `${((percent - RANGE.min) / (RANGE.max - RANGE.min)) * 100}%` }"
+    />
     <div class="presets">
       <button v-for="preset in PRESETS" :key="preset" class="toggle preset" :aria-pressed="percent === preset" @click="percent = preset">
         {{ preset }}
@@ -66,7 +75,7 @@ const percent = computed({
   height: 44px;
   padding: 0;
   border-radius: 50%;
-  font-size: 20px;
+  font-size: var(--text-glyph);
   line-height: 1;
 }
 
@@ -77,7 +86,7 @@ const percent = computed({
 }
 
 .percent {
-  font-size: 26px;
+  font-size: var(--text-xl);
   line-height: 1.2;
 }
 
