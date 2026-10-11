@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onScopeDispose, ref } from 'vue';
+import { computed } from 'vue';
+import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import SegmentedControl from './SegmentedControl.vue';
@@ -10,8 +11,7 @@ type Sound = 'piano' | 'synth';
 const { t } = useI18n();
 const { instrument } = useDeps();
 
-const pianoOn = ref(instrument.enabled);
-onScopeDispose(instrument.onChange(() => (pianoOn.value = instrument.enabled)));
+const pianoOn = useMirror(instrument, () => instrument.enabled);
 const sound = computed<Sound>({
   get: () => (pianoOn.value ? 'piano' : 'synth'),
   set: (value) => instrument.setEnabled(value === 'piano'),

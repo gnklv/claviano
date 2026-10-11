@@ -4,7 +4,6 @@ import { fingerHints, withFingerHints } from '../src/domain/fingering/hints';
 import { transcribed } from '../src/domain/notation/transcription';
 import { fingerLine, fingerPassage } from '../src/domain/fingering/passage';
 import { scaleFingers } from '../src/domain/fingering/scales';
-import { fingerScore } from '../src/domain/fingering/score';
 import type { Hand, Note } from '../src/domain/note';
 import { createScore } from '../src/domain/score';
 
@@ -282,35 +281,6 @@ describe('fingers for chords', () => {
   it('comes to what follows a rest freely: nothing is counted for the leap', () => {
     const fingers = fingerPassage([[60], [62], [64], [84], [86], [88]], 'right', { free: [false, false, false, true, false, false] });
     expect(fingers.flat().join(' ')).toBe('1 2 3 1 2 3');
-  });
-});
-
-describe('fingers for a piece', () => {
-  const note = (pitch: number, beat: number, beats: number, hand: Hand): Note => ({ pitch, start: beat, duration: beats, beat, beats, velocity: 0.7, hand });
-
-  it('fingers each hand by itself: what is struck together as a chord, the rest as a line', () => {
-    const score = createScore(
-      'Two hands',
-      [note(60, 0, 1, 'right'), note(62, 1, 1, 'right'), note(64, 2, 1, 'right'), note(36, 0, 2, 'left'), note(48, 2, 1, 'left'), note(52, 2, 1, 'left'), note(55, 2, 1, 'left')],
-      [0],
-    );
-    const fingers = fingerScore(score);
-    const of = (hand: Hand) => score.notes.map((played, i) => (played.hand === hand ? fingers[i] : null)).filter((finger) => finger !== null);
-    expect(of('right')).toEqual([1, 2, 3]);
-    expect(of('left')).toEqual([5, 5, 3, 1]);
-  });
-
-  it('starts afresh after a rest', () => {
-    const score = createScore('With a rest', [note(60, 0, 1, 'right'), note(62, 1, 1, 'right'), note(84, 4, 1, 'right'), note(86, 5, 1, 'right')], [0, 4]);
-    expect(fingerScore(score)).toEqual([1, 2, 1, 2]);
-  });
-
-  it('has a finger for every note of a piece, or none for one no hand takes', () => {
-    const score = createScore('Wide', [note(36, 0, 1, 'right'), note(84, 0, 1, 'right'), note(60, 1, 1, 'right')], [0]);
-    const fingers = fingerScore(score);
-    expect(fingers).toHaveLength(3);
-    expect(fingers.slice(0, 2)).toEqual([null, null]);
-    expect(fingers[2]).not.toBeNull();
   });
 });
 

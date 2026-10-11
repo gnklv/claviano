@@ -1,5 +1,6 @@
-import { onScopeDispose, shallowRef, type ShallowRef } from 'vue';
+import type { ShallowRef } from 'vue';
 import type { Meter, Recorder, RecorderState } from '../../application/use-cases/Recorder';
+import { useMirror } from './useMirror';
 
 export interface RecorderSnapshot {
   readonly state: RecorderState;
@@ -24,7 +25,5 @@ export function useRecorder(recorder: Recorder): Readonly<ShallowRef<RecorderSna
     notes: recorder.take?.notes.length ?? 0,
     ends: recorder.take?.notes.filter((note) => note.end !== null).length ?? 0,
   });
-  const state = shallowRef(snapshot());
-  onScopeDispose(recorder.onChange(() => (state.value = snapshot())));
-  return state;
+  return useMirror(recorder, snapshot);
 }

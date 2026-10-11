@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onScopeDispose, ref } from 'vue';
 import type { SoundPart } from '../../application/ports/AudioOutput';
+import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
@@ -15,8 +15,7 @@ const PARTS: readonly { part: SoundPart; label: MessageKey }[] = [
 const { t } = useI18n();
 const { volume } = useDeps();
 const percent = (part: SoundPart) => Math.round(volume.of(part) * 100);
-const levels = ref({ instrument: percent('instrument'), metronome: percent('metronome') });
-onScopeDispose(volume.onChange(() => (levels.value = { instrument: percent('instrument'), metronome: percent('metronome') })));
+const levels = useMirror(volume, () => ({ instrument: percent('instrument'), metronome: percent('metronome') }));
 
 function set(part: SoundPart, event: Event): void {
   volume.set(part, Number((event.target as HTMLInputElement).value) / 100);

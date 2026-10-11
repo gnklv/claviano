@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onScopeDispose, ref } from 'vue';
+import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
@@ -7,9 +7,7 @@ import { useI18n } from '../i18n/useI18n';
 const { instrument } = useDeps();
 const { t } = useI18n();
 // Nothing to say while the piano is turned off: the synth is what was asked for.
-const shown = () => (instrument.enabled && instrument.status !== 'ready' ? instrument.status : null);
-const status = ref(shown());
-onScopeDispose(instrument.onChange(() => (status.value = shown())));
+const status = useMirror(instrument, () => (instrument.enabled && instrument.status !== 'ready' ? instrument.status : null));
 </script>
 
 <template>

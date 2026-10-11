@@ -1,6 +1,7 @@
-import { onScopeDispose, shallowRef, type ShallowRef } from 'vue';
+import type { ShallowRef } from 'vue';
 import type { PieceMemory, ShelvedPiece } from '../../application/ports/PieceShelf';
 import type { Library } from '../../application/use-cases/Library';
+import { useMirror } from './useMirror';
 
 export interface LibrarySnapshot {
   readonly pieces: readonly ShelvedPiece[];
@@ -14,7 +15,5 @@ export interface LibrarySnapshot {
 /** Reactive mirror of the library: the pieces on the shelf, how each was left, and the one that is open. */
 export function useLibrary(library: Library): Readonly<ShallowRef<LibrarySnapshot>> {
   const snapshot = (): LibrarySnapshot => ({ pieces: library.pieces, current: library.current, keeps: library.keeps, memory: (id) => library.memory(id) });
-  const state = shallowRef(snapshot());
-  onScopeDispose(library.onChange(() => (state.value = snapshot())));
-  return state;
+  return useMirror(library, snapshot);
 }

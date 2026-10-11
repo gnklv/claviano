@@ -93,9 +93,10 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
 Before the next steps, in this order (agreed after a review of the code and of the look):
 
 - [ ] Tidying, each a small commit:
-  - what nothing uses goes (`domain/fingering/score.ts`: the hints are worked out from the
+  - [x] what nothing uses goes (`domain/fingering/score.ts`: the hints are worked out from the
     written notes now);
-  - one helper for mirroring a use case into the interface, in place of five copies;
+  - [x] one helper for mirroring a use case into the interface (`useMirror`), in place of nine
+    copies;
   - the staff is given the piece with its fingering hints written in; it does not decide whether
     to show them;
   - the tiles of free play are drawn in `infrastructure/render`, behind a port, as the falling

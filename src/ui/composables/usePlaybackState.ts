@@ -1,7 +1,8 @@
-import { onScopeDispose, shallowRef } from 'vue';
+import type { ShallowRef } from 'vue';
 import type { Playback } from '../../application/use-cases/Playback';
 import type { Hand } from '../../domain/note';
 import type { Score, TimeRange } from '../../domain/score';
+import { useMirror } from './useMirror';
 
 export interface PlaybackSnapshot {
   readonly score: Score | null;
@@ -27,12 +28,8 @@ const snapshot = (playback: Playback): PlaybackSnapshot => ({
 
 /**
  * Reactive mirror of Playback's discrete state (play/pause, tempo, loop, hands, pedal, metronome, score).
- * A shallowRef keeps Vue from deep-proxying the score's notes.
  * The continuously changing position is deliberately not here: read it per frame instead.
  */
-export function usePlaybackState(playback: Playback) {
-  const state = shallowRef(snapshot(playback));
-  const unsubscribe = playback.onChange(() => (state.value = snapshot(playback)));
-  onScopeDispose(unsubscribe);
-  return state;
+export function usePlaybackState(playback: Playback): Readonly<ShallowRef<PlaybackSnapshot>> {
+  return useMirror(playback, () => snapshot(playback));
 }

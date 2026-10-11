@@ -1,5 +1,6 @@
-import { onScopeDispose, shallowRef, type ShallowRef } from 'vue';
+import type { ShallowRef } from 'vue';
 import type { FreePlay } from '../../application/use-cases/FreePlay';
+import { useMirror } from './useMirror';
 
 export interface FreePlaySnapshot {
   readonly lowest: number;
@@ -18,7 +19,5 @@ export function useFreePlay(freePlay: FreePlay): Readonly<ShallowRef<FreePlaySna
     canGoLower: freePlay.canGoLower,
     canGoHigher: freePlay.canGoHigher,
   });
-  const state = shallowRef(snapshot());
-  onScopeDispose(freePlay.onChange(() => (state.value = snapshot())));
-  return state;
+  return useMirror(freePlay, snapshot);
 }
