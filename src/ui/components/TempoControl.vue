@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue';
-import type { NoteValue } from '../../domain/notation/noteValue';
 import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
@@ -8,22 +7,14 @@ import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import SheetDialog from './SheetDialog.vue';
+import type { TempoReading } from '../tempoReading';
+import TempoMark from './TempoMark.vue';
 import TempoSettings from './TempoSettings.vue';
 
 /*
- * The tempo in the transport bar: a button that says what it is ("80% · ♩ = 96"), and behind it
+ * The tempo in the transport bar: a button that says what it is (80%, and a quarter = 96), and behind it
  * the means of setting it: in a small panel over the button, or in a sheet on a phone.
  */
-
-/** Notes for the tempo readout ("♩ = 90"), in the interface's own font. */
-const NOTE_SIGNS: Record<NoteValue, string> = {
-  whole: '𝅝',
-  half: '𝅗𝅥',
-  quarter: '♩',
-  eighth: '♪',
-  sixteenth: '𝅘𝅥𝅯',
-  thirtySecond: '𝅘𝅥𝅰',
-};
 
 const { playback } = useDeps();
 const { t } = useI18n();
@@ -31,14 +22,15 @@ const state = usePlaybackState(playback);
 const percent = computed(() => Math.round(state.value.tempo * 100));
 const phone = useMediaQuery(SMALL_SCREEN);
 
-/** The tempo the music is played at now, the setting applied: "♩ = 45" at 50% of ♩ = 90. Empty without a tempo mark. */
-const mark = ref('');
+/** The tempo the music is played at now, the setting applied: 45 at 50% of a written 90. None without a tempo mark. */
+const mark = ref<TempoReading | null>(null);
 
 useAnimationFrame(() => {
   const score = playback.score;
   const written = score && tempoMarkAt(score, writtenBeatAt(score, playback.position));
-  const now = written ? `${NOTE_SIGNS[written.unit.value]}${written.unit.dots ? '.' : ''} = ${Math.round(written.perMinute * playback.tempo)}` : '';
-  if (now !== mark.value) mark.value = now;
+  const now = written ? { unit: written.unit.value, dotted: written.unit.dots > 0, perMinute: Math.round(written.perMinute * playback.tempo) } : null;
+  const shown = mark.value;
+  if (now?.unit !== shown?.unit || now?.dotted !== shown?.dotted || now?.perMinute !== shown?.perMinute) mark.value = now;
 });
 
 // --- The small panel: open until Esc or a press anywhere outside it. ---
@@ -74,7 +66,7 @@ onUnmounted(() => listen(false));
 <template>
   <div ref="root" class="tempo">
     <button class="button current" :aria-label="`${t('tempo')}: ${percent}%`" :title="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
-      {{ percent }}%<span v-if="mark" class="mark"> · {{ mark }}</span>
+      {{ percent }}%<span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
     </button>
     <SheetDialog v-if="phone" ref="sheet" :title="t('tempo')">
       <TempoSettings :mark="mark" />

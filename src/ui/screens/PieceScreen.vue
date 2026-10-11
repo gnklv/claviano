@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '../components/AppIcon.vue';
 import CountInOverlay from '../components/CountInOverlay.vue';
 import InstrumentNotice from '../components/InstrumentNotice.vue';
 import PianoRoll from '../components/PianoRoll.vue';
@@ -37,7 +38,7 @@ const { immersed, wake } = useImmersion(
     <div class="strip">
       <div class="fold">
         <header class="bar">
-          <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')">←</button>
+          <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')"><AppIcon name="back" /></button>
           <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
           <span v-if="error" class="title failed" role="alert">{{ error }}</span>
           <!-- (How long the piece is: said where there is room for it.) -->
@@ -132,8 +133,6 @@ const { immersed, wake } = useImmersion(
   flex: none;
   min-width: 40px;
   padding-inline: 10px;
-  font-size: var(--text-glyph);
-  line-height: 1;
 }
 
 .title {

@@ -75,8 +75,6 @@
   --text-field: 16px;
   /* (The captions on the keys of a keyboard: a key is narrow.) */
   --text-key: 11px;
-  /* (A glyph that stands for an icon, until the icons are our own.) */
-  --text-glyph: 18px;
 
   /* Corners: fields and small things; buttons, cards and panels; pills. */
   --radius-s: 6px;
@@ -99,6 +97,10 @@
 
   /* Under a finger nothing pressable is smaller. */
   --touch: 44px;
+
+  /* An icon beside words, and a smaller one inside a line of them. */
+  --icon: 20px;
+  --icon-s: 16px;
 }
 
 :root[data-theme='dark'] {
@@ -274,6 +276,11 @@ input,
   padding: 6px 12px;
   font: inherit;
   cursor: pointer;
+  /* (An icon alone sits in the middle; an icon and a word stand in a row.) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .button:hover:not(:disabled) {

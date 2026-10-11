@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '../components/AppIcon.vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 import PianoKeys from '../components/PianoKeys.vue';
 import PlayedRoll from '../components/PlayedRoll.vue';
@@ -45,11 +46,11 @@ onUnmounted(() => {
 <template>
   <div class="free-play">
     <header class="bar">
-      <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')">←</button>
+      <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')"><AppIcon name="back" /></button>
       <span class="title">{{ t('freePlay') }}</span>
       <div class="octaves" role="group" :aria-label="t('octave')">
-        <button class="button" :disabled="!state.canGoLower" :title="`${t('octaveLower')} (Z)`" :aria-label="t('octaveLower')" @click="freePlay.shift(-1)">‹</button>
-        <button class="button" :disabled="!state.canGoHigher" :title="`${t('octaveHigher')} (X)`" :aria-label="t('octaveHigher')" @click="freePlay.shift(1)">›</button>
+        <button class="button" :disabled="!state.canGoLower" :title="`${t('octaveLower')} (Z)`" :aria-label="t('octaveLower')" @click="freePlay.shift(-1)"><AppIcon name="lower" /></button>
+        <button class="button" :disabled="!state.canGoHigher" :title="`${t('octaveHigher')} (X)`" :aria-label="t('octaveHigher')" @click="freePlay.shift(1)"><AppIcon name="higher" /></button>
       </div>
       <SettingsPanel />
     </header>
@@ -101,8 +102,6 @@ onUnmounted(() => {
   flex: none;
   min-width: 40px;
   padding-inline: 10px;
-  font-size: var(--text-glyph);
-  line-height: 1;
 }
 
 .title {
@@ -125,8 +124,6 @@ onUnmounted(() => {
 .octaves .button {
   min-width: 36px;
   padding-inline: 8px;
-  font-size: var(--text-glyph);
-  line-height: 1;
 }
 
 .stage {

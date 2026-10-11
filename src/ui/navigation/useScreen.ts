@@ -8,13 +8,18 @@ import { readonly, ref, type Ref } from 'vue';
  * A piece's address names the piece ("#/piece/<id>"), so a page reloaded there can open it again.
  */
 
-export type Screen = 'library' | 'piece' | 'play';
+/** ('design' is the page of the design system, shown in development only.) */
+export type Screen = 'library' | 'piece' | 'play' | 'design';
 
-const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece', play: '#/play' };
+const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece', play: '#/play', design: '#/design' };
 const PIECE_ADDRESS = /^#\/piece(?:\/([^/]+))?\/*$/;
 
 /** The screen an address stands for; anything unknown is the library. */
-export const screenAt = (hash: string): Screen => (PIECE_ADDRESS.test(hash) ? 'piece' : hash.replace(/\/+$/, '') === ADDRESSES.play ? 'play' : 'library');
+export function screenAt(hash: string): Screen {
+  if (PIECE_ADDRESS.test(hash)) return 'piece';
+  const address = hash.replace(/\/+$/, '');
+  return address === ADDRESSES.play ? 'play' : address === ADDRESSES.design ? 'design' : 'library';
+}
 
 /** The piece an address names; null for the library's, or a piece's address without a name. */
 export function pieceAt(hash: string): string | null {
@@ -44,8 +49,9 @@ export interface Navigation {
 }
 
 /**
- * `canShow`: whether a screen has what it needs (a piece to show). An address that cannot be
- * shown, such as a piece's after the page is reloaded and the piece is gone, leads to the library.
+ * `canShow`: whether a screen has what it needs (a piece to show) and is there at all (the design
+ * page is not, outside development). An address that cannot be shown, such as a piece's after the
+ * page is reloaded and the piece is gone, leads to the library.
  * `openPiece`: the id of the piece that is open, for its address. `askFor`: told the piece an
  * address names when it is not the one that is open (the page was loaded there, an address was
  * typed in, the browser went Forward to it), so that it can be opened.
@@ -64,7 +70,7 @@ export function createNavigation(
     const asked = screenAt(location.hash);
     const named = pieceAt(location.hash);
     if (named !== null && named !== openPiece()) askFor(named);
-    if (asked === 'piece' && !canShow('piece')) {
+    if (!canShow(asked)) {
       // Not a step in the history: Back from here must not come to this address again.
       history.replaceState(null, '', ADDRESSES.library);
       libraryBehind = false;
@@ -99,9 +105,9 @@ export function createNavigation(
         libraryBehind = true;
         location.hash = pieceAddress(openPiece());
         piece.value = openPiece();
-      } else if (next === 'play') {
+      } else if (next !== 'library') {
         libraryBehind = true;
-        location.hash = ADDRESSES.play;
+        location.hash = ADDRESSES[next];
         piece.value = null;
       } else if (libraryBehind) {
         history.back();

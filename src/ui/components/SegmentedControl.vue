@@ -1,7 +1,10 @@
 <script setup lang="ts" generic="T extends string">
+import type { IconName } from '../icons/icons';
+import AppIcon from './AppIcon.vue';
+
 defineProps<{
-  /** `title` is shown on hover and read by screen readers; use it when `label` is an icon. */
-  options: readonly { value: T; label: string; title?: string }[];
+  /** With an `icon`, that is shown in place of the label, and the label is what is read out and shown on hover. */
+  options: readonly { value: T; label: string; icon?: IconName }[];
   /** Accessible name of the whole group. */
   label: string;
 }>();
@@ -17,11 +20,12 @@ const model = defineModel<T>({ required: true });
       class="option"
       :class="{ active: option.value === model }"
       :aria-pressed="option.value === model"
-      :title="option.title"
-      :aria-label="option.title"
+      :title="option.icon && option.label"
+      :aria-label="option.icon && option.label"
       @click="model = option.value"
     >
-      {{ option.label }}
+      <AppIcon v-if="option.icon" :name="option.icon" small />
+      <template v-else>{{ option.label }}</template>
     </button>
   </div>
 </template>

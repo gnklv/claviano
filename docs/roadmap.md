@@ -114,7 +114,9 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - [x] the serif (Playfair Display, its files kept here): the titles, and the words in the music,
     which were in whatever serif a system had. The hands, the sliders and the pedal in the
     palette's own quiet colours, no blue of a system's left;
-  - icons of our own, one set in one style, in place of characters of a font;
+  - [x] icons of our own (`ui/icons`), one set drawn in one manner, in place of characters of a
+    font; the note of a tempo ("a quarter = 90") in the music font, as on the staff. A page of the
+    design system (`#/design`, in development only) shows the set, and will show the components;
   - the components (button, chip, segments, slider, field, card, sheet, menu, bar), and a page that
     shows them all in both themes (in development only), as the showcase does for notation;
   - the rules written down (`docs/design.md`);

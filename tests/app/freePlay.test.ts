@@ -2,6 +2,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { audio, button, onPiece, playback, root, settled, shelf, staffScores, tilesShown, useApp } from './harness';
 
+/** A quarter note of the music font (SMuFL), as the tempo is written with. */
+const QUARTER_NOTE = '\ue1d5';
+
 /* Free play: the keyboard, what is played, and recording it. */
 
 useApp();
@@ -229,7 +232,7 @@ describe('free play', () => {
     it('holds the tempo, the time signature and the metronome through a take', async () => {
       button(/^Faster$/).click();
       await settled();
-      expect(root.querySelector('.record-bar output')?.textContent).toBe('♩ = 84');
+      expect(root.querySelector('.record-bar output')?.textContent).toBe(`${QUARTER_NOTE} = 84`);
       button(/^3\/4$/).click();
       await settled();
       expect(button(/^3\/4$/).getAttribute('aria-pressed')).toBe('true');

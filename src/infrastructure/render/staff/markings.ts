@@ -394,8 +394,10 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
       for (let moved = true; moved; ) {
         moved = false;
         for (const other of standing) {
-          if (left < other.right + WORDS_GAP * space && left + width > other.left - WORDS_GAP * space && Math.abs(other.y - y) < WORDS_LINE * space) {
-            y = other.y - WORDS_LINE * space;
+          const over = other.y - WORDS_LINE * space;
+          // (Only ever upwards: by the arithmetic of fractions, words set a line over others can still measure as nearer than a line.)
+          if (left < other.right + WORDS_GAP * space && left + width > other.left - WORDS_GAP * space && Math.abs(other.y - y) < WORDS_LINE * space && over < y) {
+            y = over;
             moved = true;
           }
         }

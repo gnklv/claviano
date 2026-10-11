@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
 import { computed, ref, useTemplateRef } from 'vue';
 import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -90,7 +91,7 @@ function togglePlay(): void {
         :aria-label="t(state.playing ? 'pause' : 'play')"
         @click="togglePlay"
       >
-        {{ state.playing ? '❚❚' : '▶' }}
+        <AppIcon :name="state.playing ? 'pause' : 'play'" />
       </button>
       <input
         ref="seek"
@@ -111,13 +112,14 @@ function togglePlay(): void {
 
     <div class="loop">
       <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
-        ↻ {{ t('loop') }}
+        <AppIcon name="loop" small />
+        {{ t('loop') }}
       </button>
       <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
       –
       <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
       <template v-if="phone">
-        <button class="button more" :title="t('practice')" :aria-label="t('practice')" @click="practiceSheet?.open()">⋯</button>
+        <button class="button more" :title="t('practice')" :aria-label="t('practice')" @click="practiceSheet?.open()"><AppIcon name="more" /></button>
         <SheetDialog ref="practiceSheet" :title="t('practice')">
           <PracticeToggles tiled />
         </SheetDialog>

@@ -61,8 +61,9 @@ are in [design.md](design.md) (written with the design system); these hold from 
   screen written by hand: each comes from a token. A new value means a new token, with a reason.
 - **Colour means something.** The accent marks the one main action of a screen. Steel and sepia are
   the right hand and the left, and are used for nothing else.
-- **Icons come from the set**, never from the characters of a font (they differ between systems,
-  and an iPhone draws some as emoji).
+- **Icons come from the set** (`ui/icons`, drawn by `AppIcon`), never from the characters of a font
+  (they differ between systems, and an iPhone draws some as emoji). The linter holds this. A new
+  icon is drawn in the manner of the others and shows itself on the design page.
 - **Under a finger, everything pressable is 44 px at the least.**
 - **A new component is added to the components' page** in the commit that adds it.
 

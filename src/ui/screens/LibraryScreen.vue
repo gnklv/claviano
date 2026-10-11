@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '../components/AppIcon.vue';
 import PieceCard from '../components/PieceCard.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
 import { useLibrary } from '../composables/useLibrary';
@@ -61,7 +62,7 @@ function onFileChosen(event: Event): void {
       <!-- What can be begun here: two actions, apart from the pieces under them. -->
       <div class="actions">
         <label class="action">
-          <span class="sign" aria-hidden="true">＋</span>
+          <span class="sign"><AppIcon name="plus" /></span>
           <span class="words">
             <span class="name">{{ t('openMidi') }}</span>
             <span class="note">{{ t('openFormats') }}</span>
@@ -69,7 +70,7 @@ function onFileChosen(event: Event): void {
           <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
         </label>
         <button class="action" @click="emit('play')">
-          <span class="sign" aria-hidden="true">♪</span>
+          <span class="sign"><AppIcon name="note" /></span>
           <span class="words">
             <span class="name">{{ t('freePlay') }}</span>
             <span class="note">{{ t('freePlayNote') }}</span>
@@ -204,8 +205,6 @@ function onFileChosen(event: Event): void {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  font-size: var(--text-l);
-  line-height: 1;
 }
 
 .words {

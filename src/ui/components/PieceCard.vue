@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
 import { nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from '../i18n/useI18n';
 
@@ -91,7 +92,7 @@ function finishRenaming(keep: boolean): void {
       <span class="note">{{ note }}</span>
     </button>
 
-    <button class="button more" :title="t('pieceActions')" :aria-label="`${t('pieceActions')}: ${title}`" :aria-expanded="menu" @click="menu = !menu">⋯</button>
+    <button class="button more" :title="t('pieceActions')" :aria-label="`${t('pieceActions')}: ${title}`" :aria-expanded="menu" @click="menu = !menu"><AppIcon name="more" /></button>
     <div v-if="menu" class="menu" role="menu">
       <button class="item" role="menuitem" @click="startRenaming">{{ t('rename') }}</button>
       <button class="item" role="menuitem" @click="choose('save')">{{ t('saveAsFile') }}</button>

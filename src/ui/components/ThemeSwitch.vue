@@ -2,18 +2,18 @@
 import { computed } from 'vue';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
+import type { IconName } from '../icons/icons';
 import { THEME_SETTINGS, type ThemeSetting } from '../theme/resolveTheme';
 import { useTheme } from '../theme/useTheme';
 import SegmentedControl from './SegmentedControl.vue';
 
-/** U+FE0E asks for the plain text glyph instead of a colored emoji. */
-const ICONS: Record<ThemeSetting, string> = { auto: '◐', light: '☀︎', dark: '☾' };
+const ICONS: Record<ThemeSetting, IconName> = { auto: 'auto', light: 'sun', dark: 'moon' };
 const TITLES: Record<ThemeSetting, MessageKey> = { auto: 'themeAuto', light: 'themeLight', dark: 'themeDark' };
 
 const { t } = useI18n();
 const { setting } = useTheme();
 const options = computed(() =>
-  THEME_SETTINGS.map((value) => ({ value, label: ICONS[value], title: t(TITLES[value]) })),
+  THEME_SETTINGS.map((value) => ({ value, label: t(TITLES[value]), icon: ICONS[value] })),
 );
 </script>
 

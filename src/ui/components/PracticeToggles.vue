@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
 import { computed, ref } from 'vue';
 import type { Hand } from '../../domain/note';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -16,7 +17,7 @@ import { useI18n } from '../i18n/useI18n';
 /** `tiled`: in a sheet, where they fill the width: the hands in one row, the rest in the next. */
 defineProps<{ tiled?: boolean }>();
 
-/** How long the metronome's dot stays lit after a click, in seconds. */
+/** How long the metronome's icon stays lit after a click, in seconds. */
 const PULSE_SECONDS = 0.1;
 
 const { playback } = useDeps();
@@ -33,7 +34,7 @@ const switches = computed((): { label: MessageKey; on: boolean; set: (on: boolea
   { label: 'pedal', on: state.value.pedal, set: (on) => playback.setPedalEnabled(on) },
 ]);
 
-/** The metronome's dot flashes with each click it plays (or the count-in plays). */
+/** The metronome's icon flashes with each click it plays (or the count-in plays). */
 const pulse = ref<'none' | 'beat' | 'accent'>('none');
 
 useAnimationFrame(() => {
@@ -64,7 +65,7 @@ useAnimationFrame(() => {
       :title="t('metronomeHint')"
       @click="playback.setMetronomeEnabled(!state.metronome)"
     >
-      <span class="dot" aria-hidden="true" />
+      <AppIcon name="metronome" small />
       {{ t('metronome') }}
     </button>
 
@@ -118,15 +119,13 @@ useAnimationFrame(() => {
   background: currentColor;
 }
 
-.metronome .dot {
+.metronome .icon {
   color: var(--muted);
-  transition: scale 0.08s ease-out;
 }
 
-.metronome.pulse-beat .dot,
-.metronome.pulse-accent .dot {
+.metronome.pulse-beat .icon,
+.metronome.pulse-accent .icon {
   color: var(--accent);
-  background: currentColor;
 }
 
 .metronome.pulse-accent .dot {

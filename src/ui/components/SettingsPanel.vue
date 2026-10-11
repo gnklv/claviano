@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
 import { computed, useTemplateRef } from 'vue';
 import { useFingerHints } from '../composables/useFingerHints';
 import { useI18n } from '../i18n/useI18n';
@@ -30,7 +31,7 @@ const onOrOff = computed(() => [
 </script>
 
 <template>
-  <button class="button gear" :title="t('settings')" :aria-label="t('settings')" @click="sheet?.open()">⚙&#xFE0E;</button>
+  <button class="button gear" :title="t('settings')" :aria-label="t('settings')" @click="sheet?.open()"><AppIcon name="settings" /></button>
   <SheetDialog ref="sheet" :title="t('settings')">
     <!-- Wide screens have the view in the piece's header already. -->
     <div v-if="piece" class="row view">
@@ -76,9 +77,6 @@ const onOrOff = computed(() => [
 <style scoped>
 .gear {
   flex: none;
-  /* (The glyph is small for its size.) */
-  font-size: var(--text-glyph);
-  line-height: 1;
   padding: 4px 9px;
 }
 

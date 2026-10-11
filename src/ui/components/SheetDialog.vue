@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
 import { ref, useTemplateRef } from 'vue';
 import { useI18n } from '../i18n/useI18n';
 
@@ -65,7 +66,7 @@ function onCancel(event: Event): void {
     <div ref="sheet" class="sheet">
       <header class="head">
         <strong>{{ title }}</strong>
-        <button class="button close" :title="t('close')" :aria-label="t('close')" @click="close">✕</button>
+        <button class="button close" :title="t('close')" :aria-label="t('close')" @click="close"><AppIcon name="close" /></button>
       </header>
       <slot />
     </div>
@@ -158,7 +159,6 @@ function onCancel(event: Event): void {
 
 .close {
   padding: 4px 9px;
-  line-height: 1;
 }
 
 /* A phone: the panel comes up from the bottom, as tall as it needs, no taller than most of the screen. */

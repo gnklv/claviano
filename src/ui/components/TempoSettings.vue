@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue';
+import type { TempoReading } from '../tempoReading';
+import TempoMark from './TempoMark.vue';
 import { computed } from 'vue';
 import { PRACTICE_TEMPO, stepTempo } from '../../application/use-cases/stepTempo';
 import { usePlaybackState } from '../composables/usePlaybackState';
@@ -11,8 +14,8 @@ import { useI18n } from '../i18n/useI18n';
  * going far, and the tempos pieces are most often learned at, a touch away.
  */
 
-/** `mark`: the tempo this makes, as the page would write it ("♩ = 96"); empty where the piece has no tempo mark. */
-defineProps<{ mark: string }>();
+/** `mark`: the tempo this makes, as the page would write it (a quarter = 96); none where the piece has no tempo mark. */
+defineProps<{ mark: TempoReading | null }>();
 
 /** The tempos a piece is learned at, in percent: nobody practises faster than written. */
 const PRESETS = [50, 60, 70, 80, 90, 100];
@@ -31,12 +34,12 @@ const percent = computed({
 <template>
   <div class="tempo-settings">
     <div class="now">
-      <button class="button step" :disabled="percent <= RANGE.min" :title="t('tempoSlower')" :aria-label="t('tempoSlower')" @click="stepTempo(playback, -1)">−</button>
+      <button class="button step" :disabled="percent <= RANGE.min" :title="t('tempoSlower')" :aria-label="t('tempoSlower')" @click="stepTempo(playback, -1)"><AppIcon name="minus" /></button>
       <output class="readout">
         <strong class="percent">{{ percent }}%</strong>
-        <span class="mark">{{ mark || '\u00a0' }}</span>
+        <span class="mark"><TempoMark v-if="mark" v-bind="mark" /><template v-else>&nbsp;</template></span>
       </output>
-      <button class="button step" :disabled="percent >= RANGE.max" :title="t('tempoFaster')" :aria-label="t('tempoFaster')" @click="stepTempo(playback, 1)">+</button>
+      <button class="button step" :disabled="percent >= RANGE.max" :title="t('tempoFaster')" :aria-label="t('tempoFaster')" @click="stepTempo(playback, 1)"><AppIcon name="plus" /></button>
     </div>
     <input
       v-model.number="percent"
@@ -75,8 +78,6 @@ const percent = computed({
   height: 44px;
   padding: 0;
   border-radius: 50%;
-  font-size: var(--text-glyph);
-  line-height: 1;
 }
 
 .readout {

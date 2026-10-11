@@ -204,3 +204,19 @@ describe('navigation between screens', () => {
     expect(navigation.screen.value).toBe('library');
   });
 });
+
+describe('the page of the design system', () => {
+  it('has an address of its own where it is there to show', () => {
+    expect(screenAt('#/design')).toBe('design');
+    open('#/design');
+    expect(navigation.screen.value).toBe('design');
+  });
+
+  it('is the library where it is not (outside development)', () => {
+    location.hash = '#/design';
+    navigation = createNavigation((screen) => screen !== 'design');
+    opened = true;
+    expect(navigation.screen.value).toBe('library');
+    expect(location.hash).toBe('#/');
+  });
+});

@@ -17,6 +17,13 @@ const noImportsFrom = (layer, folders) => ({
   ],
 });
 
+/**
+ * Characters of a font that stand for an icon. An icon comes from the set (ui/icons): a character is
+ * drawn by whichever font a system has, and an iPhone draws some as emoji (docs/rules.md).
+ */
+const ICON_CHARACTERS = '/[←→‹›✕×⚙▶■❚⏸⋯↻＋−♪♩☀☾◐●○]/u';
+const ICONS_FROM_THE_SET = 'An icon comes from the set (AppIcon), not from the characters of a font.';
+
 export default ts.config(
   { ignores: ['dist', 'public/piano', 'public/demos', 'samples'] },
   js.configs.recommended,
@@ -47,7 +54,15 @@ export default ts.config(
     rules: {
       ...noImportsFrom('The UI', ['infrastructure']),
       // Drawing is infrastructure's, behind a port (docs/rules.md): a component owns the element, not the pixels.
-      'no-restricted-syntax': ['error', { selector: "CallExpression[callee.property.name='getContext']", message: 'Canvas is drawn in infrastructure/render, behind a port.' }],
+      'no-restricted-syntax': [
+        'error',
+        { selector: "CallExpression[callee.property.name='getContext']", message: 'Canvas is drawn in infrastructure/render, behind a port.' },
+        { selector: `Literal[value=${ICON_CHARACTERS}]`, message: ICONS_FROM_THE_SET },
+        { selector: `TemplateElement[value.raw=${ICON_CHARACTERS}]`, message: ICONS_FROM_THE_SET },
+      ],
+      'vue/no-restricted-syntax': ['error', { selector: `VElement[name='template'] VText[value=${ICON_CHARACTERS}]`, message: ICONS_FROM_THE_SET }, { selector: `Literal[value=${ICON_CHARACTERS}]`, message: ICONS_FROM_THE_SET }],
     },
   },
+  // (The words drawn over the falling notes say which way a pedal moves with an arrow: words, not icons.)
+  { files: ['src/ui/i18n/**'], rules: { 'no-restricted-syntax': 'off' } },
 );

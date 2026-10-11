@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import { demoPieceId } from '../application/use-cases/Library';
 import { stepBar } from '../application/use-cases/stepBar';
 import { stepTempo } from '../application/use-cases/stepTempo';
@@ -17,14 +17,17 @@ import PieceScreen from './screens/PieceScreen.vue';
  * window, and the keys of the computer's keyboard.
  */
 
+/** The page of the design system: in development only, and not a part of what is built for use. */
+const DesignScreen = import.meta.env.DEV ? defineAsyncComponent(() => import('./screens/DesignScreen.vue')) : null;
+
 const { playback, library } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const dragging = ref(false);
 
 const navigation = createNavigation(
-  // (A piece's screen needs a piece; the others need nothing.)
-  (screen) => screen !== 'piece' || playback.score !== null,
+  // (A piece's screen needs a piece; the design's page is there in development; the others need nothing.)
+  (screen) => (screen === 'piece' ? playback.score !== null : screen !== 'design' || DesignScreen !== null),
   () => library.current,
   // An address that names another piece than the open one (a reload, a bookmark, the browser's Forward): that piece is opened.
   (piece) => void library.open(piece),
@@ -109,6 +112,7 @@ onUnmounted(() => {
   >
     <PieceScreen v-if="screen === 'piece'" @back="navigation.go('library')" />
     <FreePlayScreen v-else-if="screen === 'play'" @back="navigation.go('library')" />
+    <component :is="DesignScreen" v-else-if="screen === 'design' && DesignScreen" @back="navigation.go('library')" />
     <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" @play="navigation.go('play')" />
   </div>
 </template>

@@ -296,6 +296,13 @@ describe('SvgStaff', () => {
       expect(heights.every((height) => height > 0)).toBe(true);
       expect(new Set(heights.map((height) => Math.round(height))).size).toBeGreaterThan(1);
     });
+
+    // (Once, on a staff this tall, words stepping up over other words never stopped: set a line over
+    // the others, they still measured as nearer than a line, by the arithmetic of fractions.)
+    it.each([300, 410, 600, 900])('find their places on a staff %i px tall', (height) => {
+      const { container } = drawStaff(showcase(), { width: 800, height });
+      expect(container.querySelector('svg')).not.toBeNull();
+    });
   });
 
   it('writes the hand marks in the language it is told', () => {

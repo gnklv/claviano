@@ -131,7 +131,7 @@ describe('the transport bar', () => {
 
   it('has what is set once a session beside what is always at hand: the hands, the metronome, the count-in, the pedal', () => {
     const pressable = [...bar().querySelectorAll('button[aria-pressed]')].map((element) => element.textContent?.trim());
-    expect(pressable).toEqual(['↻ Loop', 'Right', 'Left', 'Metronome', 'Count-in', 'Pedal']);
+    expect(pressable).toEqual(['Loop', 'Right', 'Left', 'Metronome', 'Count-in', 'Pedal']);
   });
 
   it('turns the count-in and the pedal on and off', async () => {
@@ -148,7 +148,7 @@ describe('the transport bar', () => {
     await turnIntoPhone();
     const sheet = () => bar().querySelector<HTMLDialogElement>('dialog[aria-label=Practice]')!;
     const inBar = [...bar().querySelectorAll('button[aria-pressed]')].filter((element) => !element.closest('dialog'));
-    expect(inBar.map((element) => element.textContent?.trim())).toEqual(['↻ Loop']);
+    expect(inBar.map((element) => element.textContent?.trim())).toEqual(['Loop']);
     expect(sheet().open).toBe(false);
 
     button(/^Practice$/).click();
