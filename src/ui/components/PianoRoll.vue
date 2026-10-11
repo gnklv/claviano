@@ -108,19 +108,35 @@ function onWheel(event: WheelEvent): void {
 </script>
 
 <template>
-  <canvas
-    ref="canvas"
-    class="roll"
-    @pointerdown="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerCancel"
-    @wheel="onWheel"
-  />
+  <!-- A box that takes the room given; the canvas fills it (see .roll below). -->
+  <div class="roll-box">
+    <canvas
+      ref="canvas"
+      class="roll"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerCancel"
+      @wheel="onWheel"
+    />
+  </div>
 </template>
 
 <style scoped>
+/*
+ * The canvas is laid over its box, not in it: its size is the room the box is given, never what
+ * was last drawn into it. (In Safari a canvas in the flow keeps the height it had with the whole
+ * stage to itself, and the roll does not shrink when the staff comes to share the stage.)
+ */
+.roll-box {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .roll {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;

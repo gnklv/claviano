@@ -224,6 +224,38 @@ describe('the app', () => {
     expect(playback.playing).toBe(true);
   });
 
+  describe('the view', () => {
+    const views = () => [...root.querySelector('.piece header [role=group][aria-label=View]')!.querySelectorAll('button')];
+    const stage = () => root.querySelector('.stage')!;
+
+    beforeEach(async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+    });
+
+    it('is the staff, the keys or both', async () => {
+      expect(views().map((view) => view.textContent?.trim())).toEqual(['Notes', 'Keys', 'Both']);
+      views()[2].click();
+      await settled();
+      expect(stage().classList.contains('view-both')).toBe(true);
+    });
+
+    it('is not both on a phone held upright: the keys are shown, and the choice comes back with the room', async () => {
+      views()[2].click();
+      await settled();
+      await turnIntoPhone();
+      expect(views().map((view) => view.textContent?.trim())).toEqual(['Notes', 'Keys']);
+      expect(stage().classList.contains('view-keys')).toBe(true);
+
+      screen.phone = false;
+      screen.listeners.forEach((listener) => listener());
+      await nextTick();
+      expect(stage().classList.contains('view-both')).toBe(true);
+      views()[1].click();
+      await settled();
+    });
+  });
+
   it('makes the tempo a step slower or faster by − and +, and the piece’s own again by 0', async () => {
     const press = (code: string, more = {}) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...more }));
     button(/Ode to Joy/).click();

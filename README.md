@@ -244,6 +244,8 @@ Small things noticed, to fix between the steps:
       metronome recorded in a room (rattling, blurred next to the piano), but a little synthetic.
       To come back to: a studio recording of a woodblock or of a mechanical metronome, cut to
       the sample (scripts/metronome.ts)
+- [ ] Words over the staff run into each other where two stand at one place ("Values" over the
+      tempo mark at the start of the showcase)
 - [ ] The top of the staff is cut off when the stage is low (a phone on its side, a wide and
       short window): an 8va bracket, words and tempo marks over high notes run past the edge.
       With step 3

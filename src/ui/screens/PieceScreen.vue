@@ -7,7 +7,7 @@ import StaffView from '../components/StaffView.vue';
 import TransportBar from '../components/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { usePieceText } from '../composables/usePieceText';
-import { useViewMode } from '../composables/useViewMode';
+import { useShownViewMode } from '../composables/useViewMode';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
@@ -17,7 +17,7 @@ const emit = defineEmits<{ back: [] }>();
 
 const { playback, openScore, demos } = useDeps();
 const { t } = useI18n();
-const viewMode = useViewMode();
+const viewMode = useShownViewMode();
 const { summary, error } = usePieceText(playback, openScore, demos);
 </script>
 
@@ -93,6 +93,8 @@ const { summary, error } = usePieceText(playback, openScore, demos);
 .stage {
   position: relative;
   min-height: 0;
+  /* Whatever a view draws, it never lies over the header or the transport. */
+  overflow: hidden;
   /* In landscape the notch is on a side; keep the keyboard edges out from under it. */
   padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   display: grid;

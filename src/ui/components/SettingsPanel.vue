@@ -18,7 +18,7 @@ const sheet = useTemplateRef('sheet');
 </script>
 
 <template>
-  <button class="button gear" :title="t('settings')" :aria-label="t('settings')" @click="sheet?.open()">⚙</button>
+  <button class="button gear" :title="t('settings')" :aria-label="t('settings')" @click="sheet?.open()">⚙&#xFE0E;</button>
   <SheetDialog ref="sheet" :title="t('settings')">
     <!-- Wide screens have the view in the piece's header already. -->
     <div v-if="piece" class="row view">

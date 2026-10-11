@@ -100,12 +100,24 @@ export class StaffGeometry {
     this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i]! + lead + this.tail[i]!));
     this.barIndices = score ? tapeBars(score).starts.map((_, i) => i) : [];
     this.gutterSpaces = fitGutter(score);
+    this.fit();
   }
 
   resize(width: number, height: number): void {
     this.width = width;
     this.height = height;
-    this.space = Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, height / CONTENT_HEIGHT));
+    this.fit();
+  }
+
+  /**
+   * The staff is as large as the height allows, but no larger than leaves BARS_VISIBLE of the
+   * narrowest bars on the tape: on a tall and narrow view (a phone held upright) a staff sized by
+   * the height alone would show hardly more than a bar.
+   */
+  private fit(): void {
+    const byHeight = this.height / CONTENT_HEIGHT;
+    const byWidth = this.width / (this.gutterSpaces + BARS_VISIBLE * MIN_BAR_WIDTH);
+    this.space = Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
   }
 
   gutterWidth(): number {
