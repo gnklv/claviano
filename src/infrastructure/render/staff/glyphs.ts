@@ -10,8 +10,11 @@ import type { StaffMark } from '../../../domain/notation/engraving';
  * makes glyphs the right size for the staff, and each glyph's baseline is its reference line.
  */
 export const MUSIC_FONT = 'Bravura';
-/** Words in the music (tempo, dynamics, jumps, hand marks), as engravers set them. */
-export const TEXT_FONT = "'Times New Roman', Georgia, serif";
+/**
+ * Words in the music (tempo, dynamics, jumps, hand marks), as engravers set them: in the serif of the
+ * app's titles (ui/styles.css declares it), so that they look the same on every system.
+ */
+export const TEXT_FONT = "'Playfair Display', 'Times New Roman', Georgia, serif";
 /** Bar numbers and volta labels. */
 export const LABEL_FONT = 'system-ui, sans-serif';
 

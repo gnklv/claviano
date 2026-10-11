@@ -146,10 +146,10 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="end" x="12086.12" y="237.5" U+E041
           polyline points="11658.28,23.75 11658.28,3.75 12082.37,3.75 12082.37,23.75" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="11664.53" y="21.25" 1.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12483.96" y="20" To Coda
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12483.96" y="20" To Coda
           polyline points="12089.87,17.5 12089.87,-2.5 12486.46,-2.5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           text font-family="system-ui, sans-serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="12096.12" y="15" 2.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12888.05" y="20" D.S. al Coda
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" font-weight="bold" style="fill: var(--ink);" text-anchor="end" x="12888.05" y="20" D.S. al Coda
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="start" x="12906.8" y="30" U+E048
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="5158.86" y="26.25" U+E511
           polyline points="5207.61,16.25 5551.7,16.25 5551.7,28.75" stroke-dasharray="7.5 5" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
@@ -164,49 +164,49 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="6753.98" y="285" U+E655
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="12905.55" y="326.25" U+E650
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" x="7179.32" y="295" U+E659
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="4646.02" y="135" una corda
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5175.11" y="135" tre corde
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="4646.02" y="135" una corda
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5175.11" y="135" tre corde
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="4636.02" y="162.5" U+E520
           text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="5165.11" y="162.5" U+E522
           polyline points="1285.8,258.75 902.95,266.25 1285.8,273.75" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
           polyline points="1711.14,146.25 2093.98,153.75 1711.14,161.25" stroke-width="1.5" style="fill: none; stroke: var(--ink);"
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="-6.25" y="20" Pickup
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="-6.25" y="20" Pickup
           text font-family="Bravura" font-size="32.5" style="fill: var(--ink);" x="64.2" y="20" U+E1D5
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="80.45" y="20" = 90
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="80.45" y="20" = 90
           text font-family="Bravura" font-size="32.5" style="fill: var(--ink);" x="3821.59" y="20" U+E1D5U+E1E7
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="3841.59" y="20" = 60
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="4629.77" y="20" Slower, piano
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="3841.59" y="20" = 60
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="4629.77" y="20" Slower, piano
           text font-family="Bravura" font-size="32.5" style="fill: var(--ink);" x="4770.75" y="20" U+E1D5
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="4787" y="20" = 60
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="5158.86" y="-13.75" Range, forte
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="4787" y="20" = 60
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="5158.86" y="-13.75" Range, forte
           text font-family="Bravura" font-size="32.5" style="fill: var(--ink);" x="5289.76" y="-13.75" U+E1D5
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="5306.01" y="-13.75" = 90
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="94.77" y="-2.5" Values
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="902.95" y="20" Beams
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="1307.05" y="20" Accidentals
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="1734.89" y="18.75" Tuplets
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2138.98" y="-18.75" Voices
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2519.32" y="20" Rests
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2923.41" y="20" Ties
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="3894.09" y="20" Key and time
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="4249.43" y="6.25" Clef change
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5586.7" y="20" Articulation
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5967.05" y="20" Legato, fermata
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="6371.14" y="20" Pedal
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="6775.23" y="20" Pedal change
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="7179.32" y="20" Sostenuto
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="7607.16" y="18.75" Seconds
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8008.96" y="1.25" Grace notes
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8436.8" y="-3.75" Ornaments
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8817.14" y="20" Tremolo, arpeggio
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9244.99" y="18.75" Shared notes
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9625.33" y="20" Clefs with an 8
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10053.17" y="-6.25" Small notes
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10433.51" y="20" Fingering
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10837.6" y="20" Slowing down
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10949" y="20" rit.
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11290.44" y="20" Repeats
-          text font-family="'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11261.69" y="-2.5" a tempo
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-weight="bold" style="fill: var(--ink);" x="5306.01" y="-13.75" = 90
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="94.77" y="-2.5" Values
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="902.95" y="20" Beams
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="1307.05" y="20" Accidentals
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="1734.89" y="18.75" Tuplets
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2138.98" y="-18.75" Voices
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2519.32" y="20" Rests
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="2923.41" y="20" Ties
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="3894.09" y="20" Key and time
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="4249.43" y="6.25" Clef change
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5586.7" y="20" Articulation
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="5967.05" y="20" Legato, fermata
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="6371.14" y="20" Pedal
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="6775.23" y="20" Pedal change
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="7179.32" y="20" Sostenuto
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="7607.16" y="18.75" Seconds
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8008.96" y="1.25" Grace notes
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8436.8" y="-3.75" Ornaments
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="8817.14" y="20" Tremolo, arpeggio
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9244.99" y="18.75" Shared notes
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="9625.33" y="20" Clefs with an 8
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10053.17" y="-6.25" Small notes
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10433.51" y="20" Fingering
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10837.6" y="20" Slowing down
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="10949" y="20" rit.
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11290.44" y="20" Repeats
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="16.25" font-style="italic" style="fill: var(--ink);" x="11261.69" y="-2.5" a tempo
         g style="color: var(--right);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-7.37" y="100" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="6.63" x2="6.63" y1="97.88" y2="56.25"
@@ -918,7 +918,7 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" text-anchor="end" x="10734.45" y="43.75" U+E0F5
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10751.2" y="43.75" U+E0F6
           line stroke-width="1.5" style="stroke: currentColor;" x1="10736.2" x2="10736.2" y1="45.88" y2="87.5"
-          text font-family="'Times New Roman', Georgia, serif" font-size="18.75" style="fill: currentColor;" text-anchor="middle" x="10742.83" y="31.25" 2-1
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="18.75" style="fill: currentColor;" text-anchor="middle" x="10742.83" y="31.25" 2-1
         g style="color: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="10836.47" y="75" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="10837.22" x2="10837.22" y1="77.13" y2="118.75"

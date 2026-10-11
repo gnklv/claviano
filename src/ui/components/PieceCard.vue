@@ -139,6 +139,8 @@ function finishRenaming(keep: boolean): void {
 }
 
 .name {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
   font-size: var(--text-l);
   /* A long title takes two lines, and no more. */
   display: -webkit-box;

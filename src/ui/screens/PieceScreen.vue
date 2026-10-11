@@ -137,6 +137,8 @@ const { immersed, wake } = useImmersion(
 }
 
 .title {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -188,5 +190,11 @@ const { immersed, wake } = useImmersion(
 
 .view-both .staff {
   border-bottom: 1px solid var(--border);
+}
+
+/* (How long the piece is: a note beside the title, not a part of it.) */
+.details {
+  font-family: var(--font-text);
+  font-weight: normal;
 }
 </style>

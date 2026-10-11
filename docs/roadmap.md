@@ -111,6 +111,9 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - [x] tokens (`ui/styles.css`): colours by role in two themes (paper and ink; a piano's
     lacquer), five sizes of type, a scale of spacing, three radii, three durations and one
     curve. (The widths of screen wait for the screens: a media query cannot read a variable.)
+  - [x] the serif (Playfair Display, its files kept here): the titles, and the words in the music,
+    which were in whatever serif a system had. The hands, the sliders and the pedal in the
+    palette's own quiet colours, no blue of a system's left;
   - icons of our own, one set in one style, in place of characters of a font;
   - the components (button, chip, segments, slider, field, card, sheet, menu, bar), and a page that
     shows them all in both themes (in development only), as the showcase does for notation;

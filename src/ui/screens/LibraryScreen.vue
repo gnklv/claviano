@@ -119,8 +119,9 @@ function onFileChosen(event: Event): void {
 }
 
 .logo {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
   font-size: var(--text-l);
-  letter-spacing: 0.02em;
 }
 
 .settings {
@@ -310,5 +311,11 @@ function onFileChosen(event: Event): void {
   .action {
     padding-block: 10px;
   }
+}
+
+/* (A demo is a piece, and its name a title; the names of the actions above are not.) */
+.demos .name {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
 }
 </style>

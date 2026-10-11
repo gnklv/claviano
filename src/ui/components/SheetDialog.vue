@@ -148,6 +148,8 @@ function onCancel(event: Event): void {
 }
 
 .head {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
   display: flex;
   align-items: center;
   justify-content: space-between;

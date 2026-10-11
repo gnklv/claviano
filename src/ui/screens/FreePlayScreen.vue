@@ -106,6 +106,8 @@ onUnmounted(() => {
 }
 
 .title {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
   flex: 1;
   min-width: 0;
   overflow: hidden;

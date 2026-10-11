@@ -24,7 +24,7 @@ const DEFAULT_COLORS: RollColors = {
   blackKey: '#1d1f24',
   keyBorder: '#9a978f',
   keyLabel: '#8a877f',
-  pedal: 'rgba(180, 140, 255, 0.85)',
+  pedal: '#ece7de',
   cursor: 'rgba(79, 157, 255, 0.9)',
   hand: { right: '#8fa9c0', left: '#8f7a5c' },
 };
