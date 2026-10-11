@@ -89,11 +89,22 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Motion: a quick answer to a touch; a panel that goes; a panel that comes. One curve: fast at first, settling slowly. */
+  /*
+   * Motion. Three durations and one curve, and no others:
+   * - quick: the answer to a touch, and what is small (a pop-up comes and goes, a thing fades in);
+   * - medium: what is large, going (a sheet sliding away, a strip folding, the theme changing);
+   * - slow: what is large, coming (a sheet sliding in);
+   * - glide: the curve of what moves across the screen, fast at first and settling slowly. What
+   *   only fades or grows in place eases out plainly.
+   * Whoever asks for less motion gets none: see the end of this file.
+   */
   --quick: 0.15s;
   --medium: 0.3s;
   --slow: 0.5s;
   --glide: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* What stands over the page (a pop-up) casts this. */
+  --shadow-raised: 0 10px 32px rgb(0 0 0 / 0.25);
 
   /* Under a finger nothing pressable is smaller. */
   --touch: 44px;
@@ -197,7 +208,7 @@
 /* Theme switch cross-fade (see ui/theme/useTheme.ts). */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.3s;
+  animation-duration: var(--medium);
 }
 
 html,
@@ -414,5 +425,20 @@ input[type='range']:disabled {
   input[type='range']::-moz-range-thumb {
     width: 24px;
     height: 24px;
+  }
+}
+
+/*
+ * Less motion, where a person has asked their system for it: nothing slides, grows or fades; things
+ * are simply there. Said once, here, for every transition and animation of the interface.
+ * (Not quite nothing: a transition that ends still tells its end, which the sheets wait for.)
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
   }
 }

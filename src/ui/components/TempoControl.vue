@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
+import PopOver from './PopOver.vue';
 import SheetDialog from './SheetDialog.vue';
 import type { TempoReading } from '../tempoReading';
 import TempoMark from './TempoMark.vue';
@@ -33,9 +34,8 @@ useAnimationFrame(() => {
   if (now?.unit !== shown?.unit || now?.dotted !== shown?.dotted || now?.perMinute !== shown?.perMinute) mark.value = now;
 });
 
-// --- The small panel: open until Esc or a press anywhere outside it. ---
+// --- The means of setting it: a small panel over the button; on a phone, a sheet. ---
 
-const root = useTemplateRef<HTMLElement>('root');
 const sheet = useTemplateRef<InstanceType<typeof SheetDialog>>('sheet');
 const open = ref(false);
 
@@ -44,46 +44,26 @@ function toggle(): void {
   else open.value = !open.value;
 }
 
-function onPressOutside(event: Event): void {
-  if (event.target instanceof Node && !root.value?.contains(event.target)) open.value = false;
-}
-
-function onKeyDown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') open.value = false;
-}
-
-function listen(on: boolean): void {
-  const change = on ? 'addEventListener' : 'removeEventListener';
-  document[change]('pointerdown', onPressOutside);
-  document[change]('keydown', onKeyDown as EventListener);
-}
-
-watch(open, listen);
 watch(phone, () => (open.value = false));
-onUnmounted(() => listen(false));
 </script>
 
 <template>
-  <div ref="root" class="tempo">
-    <button class="button current" :aria-label="`${t('tempo')}: ${percent}%`" :title="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
-      {{ percent }}%<span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
-    </button>
+  <div class="tempo">
+    <PopOver v-model:open="open" place="above" :label="t('tempo')">
+      <button class="button current" :aria-label="`${t('tempo')}: ${percent}%`" :title="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
+        {{ percent }}%<span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
+      </button>
+      <template #panel>
+        <div class="settings"><TempoSettings :mark="mark" /></div>
+      </template>
+    </PopOver>
     <SheetDialog v-if="phone" ref="sheet" :title="t('tempo')">
       <TempoSettings :mark="mark" />
     </SheetDialog>
-    <Transition v-else name="pop">
-      <div v-if="open" class="popover" role="group" :aria-label="t('tempo')">
-        <TempoSettings :mark="mark" />
-      </div>
-    </Transition>
   </div>
 </template>
 
 <style scoped>
-.tempo {
-  position: relative;
-}
-
 .current {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -100,39 +80,9 @@ onUnmounted(() => listen(false));
   }
 }
 
-.popover {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  z-index: 10;
+.settings {
   box-sizing: border-box;
   width: 300px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-m);
-  background: var(--panel);
-  box-shadow: 0 10px 32px rgb(0 0 0 / 0.25);
-  translate: -50% 0;
-  transform-origin: bottom center;
-}
-
-.pop-enter-active,
-.pop-leave-active {
-  transition:
-    opacity var(--quick) ease-out,
-    scale var(--quick) ease-out;
-}
-
-.pop-enter-from,
-.pop-leave-to {
-  opacity: 0;
-  scale: 0.96;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pop-enter-active,
-  .pop-leave-active {
-    transition: none;
-  }
+  padding: var(--space-4);
 }
 </style>

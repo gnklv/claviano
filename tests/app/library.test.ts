@@ -150,8 +150,8 @@ describe('the shelf', () => {
       expect([...root.querySelectorAll('[role=menuitem]')].map((item) => item.textContent)).toEqual(['Rename', 'Save as a file', 'Remove from the shelf']);
 
       window.document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      await settled();
-      expect(root.querySelectorAll('[role=menu]')).toHaveLength(0);
+      // (It fades out first.)
+      await vi.waitFor(() => expect(root.querySelectorAll('[role=menu]')).toHaveLength(0));
     });
 
     it('gives the piece another name, there and in the piece’s header, kept when the page is loaded again', async () => {

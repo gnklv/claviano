@@ -84,7 +84,7 @@ const { immersed, wake } = useImmersion(
   display: grid;
   grid-template-rows: 1fr;
   min-height: 0;
-  transition: grid-template-rows 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: grid-template-rows var(--medium) var(--glide);
 }
 
 .fold {
@@ -108,12 +108,6 @@ const { immersed, wake } = useImmersion(
 .waker {
   position: absolute;
   inset: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .strip {
-    transition: none;
-  }
 }
 
 /* A phone on its side: a thin header. */

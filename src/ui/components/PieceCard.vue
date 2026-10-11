@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue';
-import { nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from '../i18n/useI18n';
+import MenuList from './MenuList.vue';
+import PopOver from './PopOver.vue';
 
 /*
  * A piece on the shelf: a press opens it; behind "⋯" is what else can be done with it: giving it
@@ -11,35 +13,23 @@ const props = defineProps<{ title: string; note: string }>();
 const emit = defineEmits<{ open: []; rename: [title: string]; save: []; remove: [] }>();
 
 const { t } = useI18n();
-const root = useTemplateRef<HTMLElement>('root');
 
-// --- The menu: open until Esc, a press anywhere outside it, or a choice. ---
+// --- The menu: what else can be done with the piece. ---
 
 const menu = ref(false);
 /** "Remove" was pressed once: the next press removes. */
 const sure = ref(false);
+watch(menu, () => (sure.value = false));
 
-function onPressOutside(event: Event): void {
-  if (event.target instanceof Node && !root.value?.contains(event.target)) menu.value = false;
-}
+type Action = 'rename' | 'save' | 'remove';
+const actions = computed((): { id: Action; label: string; danger?: boolean }[] => [
+  { id: 'rename', label: t('rename') },
+  { id: 'save', label: t('saveAsFile') },
+  { id: 'remove', label: t(sure.value ? 'removeConfirm' : 'removeFromShelf'), danger: true },
+]);
 
-function onKeyDown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') menu.value = false;
-}
-
-function listen(on: boolean): void {
-  const change = on ? 'addEventListener' : 'removeEventListener';
-  document[change]('pointerdown', onPressOutside);
-  document[change]('keydown', onKeyDown as EventListener);
-}
-
-watch(menu, (open) => {
-  listen(open);
-  sure.value = false;
-});
-onUnmounted(() => listen(false));
-
-function choose(action: 'save' | 'remove'): void {
+function choose(action: string): void {
+  if (action === 'rename') return void startRenaming();
   if (action === 'remove' && !sure.value) {
     sure.value = true;
     return;
@@ -73,7 +63,7 @@ function finishRenaming(keep: boolean): void {
 </script>
 
 <template>
-  <div ref="root" class="piece-card" :class="{ renaming }">
+  <div class="piece-card" :class="{ renaming }">
     <form v-if="renaming" class="face" @submit.prevent="finishRenaming(true)">
       <input
         ref="field"
@@ -92,12 +82,10 @@ function finishRenaming(keep: boolean): void {
       <span class="note">{{ note }}</span>
     </button>
 
-    <button class="button more" :title="t('pieceActions')" :aria-label="`${t('pieceActions')}: ${title}`" :aria-expanded="menu" @click="menu = !menu"><AppIcon name="more" /></button>
-    <div v-if="menu" class="menu" role="menu">
-      <button class="item" role="menuitem" @click="startRenaming">{{ t('rename') }}</button>
-      <button class="item" role="menuitem" @click="choose('save')">{{ t('saveAsFile') }}</button>
-      <button class="item danger" role="menuitem" @click="choose('remove')">{{ t(sure ? 'removeConfirm' : 'removeFromShelf') }}</button>
-    </div>
+    <PopOver v-model:open="menu" class="actions" place="below" role="menu" :label="t('pieceActions')">
+      <button class="button more" :title="t('pieceActions')" :aria-label="`${t('pieceActions')}: ${title}`" :aria-expanded="menu" @click="menu = !menu"><AppIcon name="more" /></button>
+      <template #panel><MenuList :items="actions" @choose="choose" /></template>
+    </PopOver>
   </div>
 </template>
 
@@ -169,15 +157,18 @@ function finishRenaming(keep: boolean): void {
   font-size: var(--text-field);
 }
 
-.more {
+/* (Over the card's corner.) */
+.actions {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+.more {
+  padding: 2px var(--space-2);
   border-color: transparent;
   background: transparent;
   color: var(--muted);
-  line-height: 1;
 }
 
 .more:hover,
@@ -185,53 +176,6 @@ function finishRenaming(keep: boolean): void {
   border-color: var(--border);
   background: var(--control);
   color: var(--text);
-}
-
-.menu {
-  position: absolute;
-  top: 44px;
-  right: 8px;
-  z-index: 10;
-  display: grid;
-  min-width: 180px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-m);
-  background: var(--panel);
-  box-shadow: 0 10px 32px rgb(0 0 0 / 0.25);
-}
-
-.item {
-  appearance: none;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.item:hover,
-.item:focus-visible {
-  background: var(--control-hover);
-}
-
-.item.danger {
-  color: var(--left);
-}
-
-/* Under a finger: rows a fingertip tall, and the menu clear of the taller "⋯". */
-@media (pointer: coarse), (max-width: 599px) {
-  .item {
-    min-height: var(--touch);
-  }
-
-  .menu {
-    top: 56px;
-  }
 }
 
 /* A phone: lower cards (as the library's others). */

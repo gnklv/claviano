@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import AppIcon from '../components/AppIcon.vue';
+import MenuList from '../components/MenuList.vue';
+import PopOver from '../components/PopOver.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
 import { ICON_NAMES } from '../icons/icons';
 
@@ -9,6 +12,15 @@ import { ICON_NAMES } from '../icons/icons';
  * for whoever works on the app, and are not translated.
  */
 defineEmits<{ back: [] }>();
+
+const panelOpen = ref(false);
+const menuOpen = ref(false);
+const MENU = [
+  { id: 'one', label: 'A choice' },
+  { id: 'two', label: 'Another choice' },
+  { id: 'gone', label: 'What cannot be undone', danger: true },
+];
+const chosen = ref('');
 </script>
 
 <template>
@@ -31,6 +43,28 @@ defineEmits<{ back: [] }>();
           <span class="caption">{{ name }}</span>
         </li>
       </ul>
+
+      <h2 class="heading">Pop-up</h2>
+      <p class="about">One pop-up for all: it grows out of its button, and goes on Esc, on a press elsewhere, or when a choice is made.</p>
+      <div class="row">
+        <PopOver v-model:open="panelOpen" place="above" label="A panel">
+          <button class="button" :aria-expanded="panelOpen" @click="panelOpen = !panelOpen">A panel, above</button>
+          <template #panel><p class="panel-words">Anything can stand here: the tempo's controls do.</p></template>
+        </PopOver>
+        <PopOver v-model:open="menuOpen" place="below" role="menu" label="A menu">
+          <button class="button" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen"><AppIcon name="more" />A menu, below</button>
+          <template #panel>
+            <MenuList
+              :items="MENU"
+              @choose="
+                chosen = $event;
+                menuOpen = false;
+              "
+            />
+          </template>
+        </PopOver>
+        <span class="caption">{{ chosen && `chosen: ${chosen}` }}</span>
+      </div>
     </main>
   </div>
 </template>
@@ -78,6 +112,32 @@ defineEmits<{ back: [] }>();
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.heading:not(:first-child) {
+  margin-top: var(--space-6);
+}
+
+.about {
+  max-width: 60ch;
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+}
+
+/* (In the middle: a panel opens over its button or to the left of it, and wants the room.) */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-block: var(--space-6);
+}
+
+.panel-words {
+  width: 220px;
+  margin: 0;
+  padding: var(--space-4);
 }
 
 .icons {

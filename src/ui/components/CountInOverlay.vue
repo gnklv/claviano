@@ -29,19 +29,13 @@ useAnimationFrame(() => {
   color: var(--accent);
   pointer-events: none;
   /* Each beat pops in (the :key makes it a new element). */
-  animation: pop 0.25s ease-out;
+  animation: pop var(--quick) ease-out;
 }
 
 @keyframes pop {
   from {
     opacity: 0;
     scale: 1.3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .count-in {
-    animation: none;
   }
 }
 </style>

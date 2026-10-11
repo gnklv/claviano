@@ -32,7 +32,7 @@ const status = useMirror(instrument, () => (instrument.enabled && instrument.sta
 
 /* Samples usually arrive at once: the note shows only if they take a while. */
 .notice {
-  animation: appear 0.3s 0.4s backwards;
+  animation: appear var(--quick) 0.4s backwards;
 }
 
 @keyframes appear {
