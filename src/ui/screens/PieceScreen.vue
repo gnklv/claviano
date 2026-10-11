@@ -82,6 +82,8 @@ const { immersed, wake } = useImmersion(
 .strip {
   display: grid;
   grid-template-rows: 1fr;
+  /* (One column no wider than the screen: a long title is cut short, and does not widen its strip.) */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   transition: grid-template-rows var(--medium) var(--glide);
 }
