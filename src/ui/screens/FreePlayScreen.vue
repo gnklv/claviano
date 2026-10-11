@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import PianoKeys from '../components/PianoKeys.vue';
 import PlayedRoll from '../components/PlayedRoll.vue';
 import RecordBar from '../components/RecordBar.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
+import TakeStaff from '../components/TakeStaff.vue';
 import { useFreePlay } from '../composables/useFreePlay';
+import { useRecorder } from '../composables/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
 /*
  * Free play: the keyboard leads. What is played rises from the keys as it sounds, and can be
- * recorded. (It will be written down here as notes, and kept as a piece.)
+ * recorded: a take is written down as notes while it is played. (It will be kept as a piece.)
  */
 
 const emit = defineEmits<{ back: [] }>();
@@ -18,6 +20,9 @@ const emit = defineEmits<{ back: [] }>();
 const { freePlay, recorder } = useDeps();
 const { t } = useI18n();
 const state = useFreePlay(freePlay);
+const recording = useRecorder(recorder);
+/** There is a take, being recorded or recorded: it is shown as notes. */
+const taken = computed(() => recording.value.state === 'recording' || recording.value.state === 'recorded');
 
 /** Black keys and all: twelve to every seven white ones, ending on a white one. */
 const keysFor = (whiteKeys: number): number => {
@@ -49,9 +54,14 @@ onUnmounted(() => {
       <SettingsPanel />
     </header>
 
-    <main class="stage">
+    <main class="stage" :class="{ taken }">
+      <div v-if="taken" class="written">
+        <TakeStaff />
+        <!-- Without the metronome nobody knows where the beats were: the bars are a guess. -->
+        <p v-if="!recording.metronome" class="caveat">{{ t('recordedOffTheBeat') }}</p>
+      </div>
       <PlayedRoll class="played" :lowest="state.lowest" :keys="state.keys" />
-      <p class="hint">
+      <p v-if="!taken" class="hint">
         {{ t('freePlayHint') }}
         <!-- (The computer's keyboard: nothing to say where there is only a finger.) -->
         <span class="by-letters">{{ t('freePlayHintLetters') }}</span>
@@ -127,6 +137,32 @@ onUnmounted(() => {
 /* The hint stands over the tiles, at the top: out of their way as they rise. */
 .stage > * {
   grid-area: 1 / 1;
+}
+
+/* With a take, its notes have the upper part of the stage, the tiles the rest. */
+.stage.taken {
+  grid-template-rows: minmax(150px, 45%) 1fr;
+}
+
+.written {
+  position: relative;
+  min-height: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.stage.taken .played {
+  grid-area: 2 / 1;
+}
+
+.caveat {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
 }
 
 @media (pointer: coarse) {

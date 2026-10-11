@@ -19,6 +19,12 @@ export interface StaffView {
   setHover(bar: number | null): void;
   /** Shades printed bars `from..to` while they are being dragged over (null: none). */
   setSelection(selection: { from: number; to: number } | null): void;
+  /**
+   * Where the cursor stands across the tape, from 0 (its left end) to 1. A piece being learned is
+   * read ahead of the cursor (the default, near the left); music being written down is looked
+   * back at, behind a cursor near the right.
+   */
+  setCursorPlace(share: number): void;
   /** Call when the container's size changes. */
   resize(): void;
   /** Called every frame, with the music's position in seconds. Chords of muted hands are not highlighted. */

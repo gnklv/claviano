@@ -57,6 +57,7 @@ export const ru: Dictionary = {
   recordingBar: 'Идёт запись · такт {bar}',
   recordedNotes: { one: 'Записана {count} нота', few: 'Записано {count} ноты', many: 'Записано {count} нот', other: 'Записано {count} ноты' },
   timeSignature: 'Размер',
+  recordedOffTheBeat: 'Сыграно без метронома: такты приблизительные',
   octave: 'Октава',
   octaveLower: 'На октаву ниже',
   octaveHigher: 'На октаву выше',

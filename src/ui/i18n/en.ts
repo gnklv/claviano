@@ -63,6 +63,7 @@ export const en = {
   recordingBar: 'Recording · bar {bar}',
   recordedNotes: { one: 'Recorded: {count} note', other: 'Recorded: {count} notes' },
   timeSignature: 'Time signature',
+  recordedOffTheBeat: 'Played without the metronome: the bars are a guess',
   octave: 'Octave',
   octaveLower: 'An octave lower',
   octaveHigher: 'An octave higher',

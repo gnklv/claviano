@@ -1,26 +1,21 @@
+import { scoreFromTake, type PlayedNote } from '../../domain/notation/recording';
+import type { Score } from '../../domain/score';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
 import type { FreePlay } from './FreePlay';
 
 /** The time signatures to record in: how many beats to the bar, and what a beat is, in quarter notes. */
 export const METERS = {
-  '2/4': { beats: 2, beat: 1 },
-  '3/4': { beats: 3, beat: 1 },
-  '4/4': { beats: 4, beat: 1 },
+  '2/4': { numerator: 2, denominator: 4, beats: 2, beat: 1 },
+  '3/4': { numerator: 3, denominator: 4, beats: 3, beat: 1 },
+  '4/4': { numerator: 4, denominator: 4, beats: 4, beat: 1 },
   // (Two beats of three eighths each: the metronome counts the beats, not the eighths.)
-  '6/8': { beats: 2, beat: 1.5 },
+  '6/8': { numerator: 6, denominator: 8, beats: 2, beat: 1.5 },
 } as const;
 export type Meter = keyof typeof METERS;
 
 /** The metronome's tempo, in beats a minute. */
 export const RECORDING_TEMPO = { min: 40, max: 200, step: 4, start: 80 } as const;
-
-/** A note as it was played: when the key went down and came up, in seconds from the start of the take (null: still down). */
-export interface PlayedNote {
-  readonly pitch: number;
-  readonly start: number;
-  readonly end: number | null;
-}
 
 /** What was recorded: the notes, how long it ran, and the beat it was played to (if it was). */
 export interface Take {
@@ -93,6 +88,13 @@ export class Recorder {
   get take(): Take | null {
     if (this.current !== 'recording' && this.current !== 'recorded') return null;
     return { notes: this.notes, seconds: this.current === 'recording' ? this.audio.now() - this.origin : this.length, tempo: this.bpm, meter: this.signature, onTheBeat: this.clicking };
+  }
+
+  /** The take written down as a piece (as far as it has got, while recording); null when there is none. */
+  score(title: string): Score | null {
+    const take = this.take;
+    const { numerator, denominator, beat } = METERS[this.signature];
+    return take && scoreFromTake(title, take.notes, { tempo: this.bpm, numerator, denominator, beat }, take.seconds);
   }
 
   /** The bar the take is in now, from 1; null when not recording to the metronome. */

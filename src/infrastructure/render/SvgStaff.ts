@@ -334,6 +334,10 @@ export class SvgStaff implements StaffView {
     this.manual = { offset: Math.min(geometry.cursorX(), Math.max(lowest, current + dx)), idle: 0 };
   }
 
+  setCursorPlace(share: number): void {
+    this.geometry.cursorAt = Math.min(1, Math.max(0, share));
+  }
+
   /** Back to following the music (after a jump): the tape glides to it. */
   followMusic(): void {
     this.manual = null;

@@ -35,7 +35,7 @@ const GUTTER_END_GAP = 1.2;
  */
 export const BAR_LINE_GAP = 1.4;
 /** The cursor stands at this share of the tape's width, leaving room to read ahead. */
-const CURSOR_AT = 0.3;
+const READING_AHEAD = 0.3;
 
 /**
  * Room for repeat signs, in staff spaces: the ‖: and :‖ glyphs are REPEAT_GLYPH_WIDTH wide and
@@ -64,6 +64,8 @@ const NO_GRACES = { lead: new Map<number, number>(), tail: new Map<number, numbe
 export class StaffGeometry {
   /** One staff space in pixels. */
   space = 10;
+  /** Where the cursor stands, as a share of the tape's width. */
+  cursorAt = READING_AHEAD;
   width = 0;
   height = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
@@ -190,7 +192,7 @@ export class StaffGeometry {
 
   /** Cursor position inside the tape. */
   cursorX(): number {
-    return (this.width - this.gutterWidth()) * CURSOR_AT;
+    return (this.width - this.gutterWidth()) * this.cursorAt;
   }
 
   trebleTop(): number {

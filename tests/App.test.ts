@@ -14,6 +14,7 @@ import { Recorder } from '../src/application/use-cases/Recorder';
 import { rememberPieces } from '../src/application/use-cases/rememberPieces';
 import { Volume } from '../src/application/use-cases/Volume';
 import { odeToJoy } from '../src/demo/odeToJoy';
+import type { Score } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import App from '../src/ui/App.vue';
 import { depsKey } from '../src/ui/deps';
@@ -33,6 +34,8 @@ let app: VueApp;
 let shelf: FakePieceShelf;
 /** What sounds: the piece's notes, and the keys struck by hand. */
 let audio: FakeAudio;
+/** What the staff was told to show, each time it was told. */
+let staffScores: (Score | null)[];
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
 let start: () => void;
 let root: HTMLElement;
@@ -83,6 +86,7 @@ beforeEach(() => {
   shelf = new FakePieceShelf();
   start = () => {
     audio = new FakeAudio();
+    staffScores = [];
     playback = new Playback(audio, new FakeTicker());
     volume = new Volume(new FakeAudio());
     root = document.createElement('div');
@@ -107,7 +111,7 @@ beforeEach(() => {
       freePlay,
       recorder: new Recorder(freePlay, audio, new FakeTicker()),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
-      createStaff: () => view<StaffView>({}),
+      createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
       demos,
     });
     app.mount(root);
@@ -711,6 +715,42 @@ describe('the app', () => {
         await settled();
         expect(status()).toBe('');
         expect(button(/^Record$/)).toBeDefined();
+      });
+
+      it('writes the take down as notes while it is played, on the beat of the metronome', async () => {
+        expect(root.querySelector('.take-staff')).toBeNull();
+        button(/^Record$/).click();
+        // (The first bar begins with the metronome's first click, at 0.1.)
+        audio.time = 0.12;
+        press('KeyA');
+        audio.time = 0.8;
+        press('KeyA', 'keyup');
+        audio.time = 0.86;
+        press('KeyK');
+        await settled();
+        expect(root.querySelector('.take-staff')).not.toBeNull();
+        expect(root.querySelector('.caveat')).toBeNull();
+        const written = staffScores.at(-1)!;
+        expect(written.notes.map((note) => [note.pitch, note.beat])).toEqual([
+          [48, 0],
+          [60, 1],
+        ]);
+        expect(written.notation.tempoMarks[0]?.perMinute).toBe(80);
+
+        button(/^Stop$/).click();
+        await settled();
+        expect(root.querySelector('.take-staff')).not.toBeNull();
+        button(/^Discard$/).click();
+        await settled();
+        expect(root.querySelector('.take-staff')).toBeNull();
+      });
+
+      it('says the bars are a guess for a take played without the metronome', async () => {
+        button(/^Metronome$/).click();
+        button(/^Record$/).click();
+        press('KeyA');
+        await settled();
+        expect(root.querySelector('.caveat')?.textContent).toMatch(/bars are a guess/);
       });
 
       it('holds the tempo, the time signature and the metronome through a take', async () => {
