@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Claviano</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Installing the app (a phone's home screen, a computer's dock): what it is called and looks like. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- An iPhone takes its icon and name from here, and opens the app without the browser's bars. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Claviano" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- The colour of the system's bar over the page: the header's (set to the theme below, and by useTheme.ts). -->
+    <meta name="theme-color" content="#1a1d25" />
     <script>
       // Set the theme before the first paint, so a light system never flashes a dark page.
       // Mirrors src/ui/theme/useTheme.ts, which takes over once the app has loaded.
@@ -17,6 +26,8 @@
           setting === 'dark' ||
           (setting !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        // (The header's colour in each theme: --panel in src/ui/styles.css.)
+        document.querySelector('meta[name=theme-color]').content = dark ? '#1a1d25' : '#fbfaf7';
       })();
     </script>
     <link rel="preload" href="/fonts/Bravura.woff2" as="font" type="font/woff2" crossorigin />

@@ -35,6 +35,9 @@ function applyTheme(theme: Theme, animate: boolean): void {
   const apply = () => {
     document.documentElement.dataset.theme = theme;
     appliedTheme.value = theme;
+    // The system's bar over the page (a phone's status bar, an installed app's title bar) takes the header's colour.
+    const header = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+    if (header) document.querySelector('meta[name=theme-color]')?.setAttribute('content', header);
   };
   // A cross-fade of the whole page, canvas included. Browsers without the API,
   // and people who asked the system for less motion, get an instant switch.
