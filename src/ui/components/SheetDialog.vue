@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTemplateRef } from 'vue';
+import { ref, useTemplateRef } from 'vue';
 import { useI18n } from '../i18n/useI18n';
 
 /*
@@ -8,26 +8,64 @@ import { useI18n } from '../i18n/useI18n';
  *
  * A <dialog> does the behaviour: it keeps the focus inside, closes on Esc, and dims the page
  * behind (a click there closes it too).
+ *
+ * It slides in by CSS alone (@starting-style). Sliding out is helped from here: the dialog is
+ * closed only once the sheet has slid away. (CSS can hold a closing dialog on screen too, by
+ * transitioning `overlay`; Safari has no `overlay`, and a dialog that left the top layer at once
+ * slid away under the page, or at the wrong place.)
  */
 defineProps<{ title: string }>();
 
 const { t } = useI18n();
 const panel = useTemplateRef<HTMLDialogElement>('panel');
 
+const sheet = useTemplateRef<HTMLElement>('sheet');
+/** Sliding away: still open, and no longer to be touched. */
+const closing = ref(false);
+
 defineExpose({ open: () => panel.value?.showModal() });
+
+function close(): void {
+  const dialog = panel.value;
+  const moving = sheet.value;
+  if (!dialog?.open || !moving || closing.value) return;
+  // How long the sheet takes to leave, as the styles say (nothing where there is no motion to wait for).
+  const seconds = Number.parseFloat(getComputedStyle(moving).transitionDuration) || 0;
+  if (seconds === 0) {
+    dialog.close();
+    return;
+  }
+  closing.value = true;
+  const done = (event?: Event) => {
+    if (event && event.target !== moving) return;
+    clearTimeout(timer);
+    moving.removeEventListener('transitionend', done);
+    closing.value = false;
+    dialog.close();
+  };
+  // (Should the end of the slide never be told: a hidden tab, a style changed half way.)
+  const timer = setTimeout(done, seconds * 1000 + 100);
+  moving.addEventListener('transitionend', done);
+}
 
 /** A click on the dimmed page lands on the dialog itself, not on anything inside it. */
 function onClick(event: MouseEvent): void {
-  if (event.target === panel.value) panel.value?.close();
+  if (event.target === panel.value) close();
+}
+
+/** Esc: closed the same way, not at once. */
+function onCancel(event: Event): void {
+  event.preventDefault();
+  close();
 }
 </script>
 
 <template>
-  <dialog ref="panel" class="panel" :aria-label="title" @click="onClick">
-    <div class="sheet">
+  <dialog ref="panel" class="panel" :class="{ closing }" :aria-label="title" @click="onClick" @cancel="onCancel">
+    <div ref="sheet" class="sheet">
       <header class="head">
         <strong>{{ title }}</strong>
-        <button class="button close" :title="t('close')" :aria-label="t('close')" @click="panel?.close()">✕</button>
+        <button class="button close" :title="t('close')" :aria-label="t('close')" @click="close">✕</button>
       </header>
       <slot />
     </div>
@@ -38,10 +76,8 @@ function onClick(event: MouseEvent): void {
 /*
  * The dialog itself is the dimmed page; the sheet inside it is the panel.
  *
- * Opening and closing are both animated, in CSS alone: `display` and `overlay` are transitioned
- * with allow-discrete, so a closing dialog stays shown (and on top) until its sheet has slid
- * away; @starting-style is the first frame of opening. A browser without these shows and hides
- * the panel at once.
+ * Opening: @starting-style is the first frame, and the sheet glides from there. Closing: the
+ * `closing` class sends it back, and the dialog closes when it has arrived (see close above).
  */
 .panel {
   width: 100%;
@@ -59,9 +95,6 @@ function onClick(event: MouseEvent): void {
   overflow: clip;
   background: transparent;
   color: var(--text);
-  transition:
-    display var(--leave) allow-discrete,
-    overlay var(--leave) allow-discrete;
 
   /* A sheet comes in the way one does on a phone: fast at first, settling slowly; and leaves quicker. */
   --enter: 0.5s;
@@ -73,13 +106,10 @@ function onClick(event: MouseEvent): void {
 
 .panel::backdrop {
   background: rgb(0 0 0 / 0);
-  transition:
-    background var(--leave) ease-out,
-    display var(--leave) allow-discrete,
-    overlay var(--leave) allow-discrete;
+  transition: background var(--leave) ease-out;
 }
 
-.panel[open]::backdrop {
+.panel[open]:not(.closing)::backdrop {
   background: rgb(0 0 0 / 0.4);
   transition-duration: var(--enter);
 }
@@ -102,7 +132,7 @@ function onClick(event: MouseEvent): void {
   transition: translate var(--leave) var(--glide);
 }
 
-.panel[open] .sheet {
+.panel[open]:not(.closing) .sheet {
   translate: 0 0;
   transition-duration: var(--enter);
 }
@@ -160,7 +190,7 @@ function onClick(event: MouseEvent): void {
     transition: opacity var(--leave) ease-out;
   }
 
-  .panel[open] .sheet {
+  .panel[open]:not(.closing) .sheet {
     opacity: 1;
   }
 

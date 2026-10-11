@@ -8,6 +8,7 @@ import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrumen
 import { Volume } from './application/use-cases/Volume';
 import { rememberPracticeSettings } from './application/use-cases/rememberPracticeSettings';
 import { odeToJoy } from './demo/odeToJoy';
+import { playAsMusic } from './infrastructure/audio/audioSession';
 import { SamplerPiano } from './infrastructure/audio/SamplerPiano';
 import { WebAudioSynth } from './infrastructure/audio/WebAudioSynth';
 import { startOfflineCache } from './infrastructure/offline/offlineCache';
@@ -23,6 +24,8 @@ import { depsKey } from './ui/deps';
 import './ui/styles.css';
 
 // The piano's samples load in the background; until they are in (or if they never are), the synth plays.
+// (Before the first sound: an iPhone with its ringer off plays on.)
+playAsMusic();
 const audioContext = new AudioContext();
 const piano = new SamplerPiano(audioContext, new WebAudioSynth(audioContext));
 // In the built app a service worker keeps the samples on disk; they are fetched once it is in place.
