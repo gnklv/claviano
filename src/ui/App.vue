@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { stepBar } from '../application/use-cases/stepBar';
+import { stepTempo } from '../application/use-cases/stepTempo';
 import { usePlaybackState } from './composables/usePlaybackState';
 import { useDeps } from './deps';
 import { useI18n } from './i18n/useI18n';
@@ -43,6 +44,9 @@ function onDrop(event: DragEvent): void {
   if (file) void openFile(file);
 }
 
+/** Keys for the tempo: a step slower, a step faster, and back to the piece's own. */
+const TEMPO_KEYS: Partial<Record<string, -1 | 0 | 1>> = { Minus: -1, NumpadSubtract: -1, Equal: 1, NumpadAdd: 1, Digit0: 0, Numpad0: 0 };
+
 function onKeyDown(event: KeyboardEvent): void {
   // The keys play the piece: in the library there is nothing for them to do.
   if (screen.value !== 'piece') return;
@@ -58,6 +62,11 @@ function onKeyDown(event: KeyboardEvent): void {
   } else if (arrow) {
     event.preventDefault();
     stepBar(playback, event.code === 'ArrowLeft' ? -1 : 1);
+  } else if (TEMPO_KEYS[event.code] !== undefined && !event.metaKey && !event.ctrlKey) {
+    // (Not with Cmd or Ctrl: those zoom the page.)
+    event.preventDefault();
+    if (TEMPO_KEYS[event.code] === 0) playback.setTempo(1);
+    else stepTempo(playback, TEMPO_KEYS[event.code]!);
   } else if (event.code === 'Home') {
     // To the start (of the loop, when one is on); what plays goes on playing from there.
     event.preventDefault();

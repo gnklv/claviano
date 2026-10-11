@@ -51,7 +51,8 @@ metronome is a synth's blip.)
 | Space | play / pause |
 | ← → | previous / next bar |
 | Home | back to the start (of the loop, when one is on) |
-| Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45) |
+| − + 0 | tempo: a step (5%) slower / faster / back to the piece's own |
+| Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45). The button opens a panel: − and + by a step, a slider, and 50–100% a touch away |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
 | Click on the staff or the notes | jump there (a click outside the loop turns the loop off) |

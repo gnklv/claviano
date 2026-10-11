@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue';
-import type { NoteValue } from '../../domain/notation/noteValue';
-import { barAt, barNumber, tempoMarkAt, writtenBeatAt } from '../../domain/score';
+import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
 import { useMediaQuery } from '../composables/useMediaQuery';
@@ -10,6 +9,7 @@ import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import PracticeToggles from './PracticeToggles.vue';
 import SheetDialog from './SheetDialog.vue';
+import TempoControl from './TempoControl.vue';
 
 const SEEK_STEPS = 1000;
 const { playback, barLoop } = useDeps();
@@ -23,11 +23,6 @@ const practiceSheet = useTemplateRef('practiceSheet');
 const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
 const lastBar = computed(() => (state.value.score ? barNumber(state.value.score, state.value.score.bars.length - 1) : 1));
 
-const tempoPercent = computed({
-  get: () => Math.round(state.value.tempo * 100),
-  set: (percent: number) => playback.setTempo(percent / 100),
-});
-
 // --- Position readouts: updated from the animation frame, only when they actually change. ---
 
 /** Current bar, zero-based; null until a score is loaded. */
@@ -40,26 +35,10 @@ const barLabel = computed(() =>
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
 
-/** Notes for the tempo readout ("♩ = 90"), in the interface's own font. */
-const NOTE_SIGNS: Record<NoteValue, string> = {
-  whole: '𝅝',
-  half: '𝅗𝅥',
-  quarter: '♩',
-  eighth: '♪',
-  sixteenth: '𝅘𝅥𝅯',
-  thirtySecond: '𝅘𝅥𝅰',
-};
-
-/** The tempo the music is played at now, the slider applied: "♩ = 45" at 50% of ♩ = 90. Empty without a tempo mark. */
-const actualTempo = ref('');
-
 useAnimationFrame(() => {
   const score = playback.score;
   if (!score) return;
   const position = playback.position;
-  const mark = tempoMarkAt(score, writtenBeatAt(score, position));
-  const tempo = mark ? `${NOTE_SIGNS[mark.unit.value]}${mark.unit.dots ? '.' : ''} = ${Math.round(mark.perMinute * playback.tempo)}` : '';
-  if (tempo !== actualTempo.value) actualTempo.value = tempo;
   const bar = barAt(score, position);
   if (bar !== currentBar.value) currentBar.value = bar;
   if (!seeking && seekInput.value && score.duration > 0) {
@@ -123,11 +102,7 @@ function togglePlay(): void {
       <span class="readout">{{ barLabel }}</span>
     </div>
 
-    <label class="tempo">
-      {{ t('tempo') }}
-      <input v-model.number="tempoPercent" class="tempo-slider" type="range" min="25" max="150" step="5" />
-      <output class="readout">{{ tempoPercent }}%<template v-if="actualTempo"> · {{ actualTempo }}</template></output>
-    </label>
+    <TempoControl class="tempo" />
 
     <div class="loop">
       <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
@@ -149,14 +124,13 @@ function togglePlay(): void {
 </template>
 
 <style scoped>
-/* Phones: one group per row, each full width; practice is not in the bar. */
+/* Phones: playing and the place on top; the tempo, the loop and "⋯" under it. Practice is not in the bar. */
 .transport {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto 1fr;
   grid-template-areas:
-    'playback'
-    'tempo'
-    'loop';
+    'playback playback'
+    'tempo loop';
   gap: 10px 24px;
   /* Keep clear of the home indicator and, in landscape, the notch. */
   padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
@@ -165,19 +139,8 @@ function togglePlay(): void {
   border-top: 1px solid var(--border);
 }
 
-/* Tablets and narrow windows: playback on top, tempo and the loop share the second row, practice has the third. */
+/* Wider: what is always at hand in one row, what is set once a session in a row under it. */
 @media (min-width: 600px) {
-  .transport {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'playback playback'
-      'tempo loop'
-      'practice practice';
-  }
-}
-
-/* A computer: what is always at hand in one row, what is set once a session in a row under it. */
-@media (min-width: 900px) {
   .transport {
     grid-template-columns: 1fr auto auto;
     grid-template-areas:
@@ -187,7 +150,7 @@ function togglePlay(): void {
 }
 
 /* Wide screens: everything in one row. */
-@media (min-width: 1400px) {
+@media (min-width: 1200px) {
   .transport {
     grid-template-columns: 1fr auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
@@ -195,7 +158,6 @@ function togglePlay(): void {
 }
 
 .playback,
-.tempo,
 .loop {
   display: flex;
   align-items: center;
@@ -226,16 +188,9 @@ function togglePlay(): void {
   line-height: 1;
 }
 
-.seek,
-.tempo-slider {
+.seek {
   flex: 1;
   min-width: 80px;
-}
-
-@media (min-width: 900px) {
-  .tempo-slider {
-    flex: 0 1 140px;
-  }
 }
 
 .readout {
@@ -267,7 +222,12 @@ function togglePlay(): void {
 
   /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
   .number {
+    width: 3em;
     font-size: 16px;
+  }
+
+  .transport {
+    column-gap: 8px;
   }
 }
 </style>

@@ -63,6 +63,8 @@ export const en = {
   barPosition: 'Bar {current} / {total}',
   barPositionEmpty: 'Bar –',
   tempo: 'Tempo',
+  tempoSlower: 'Slower',
+  tempoFaster: 'Faster',
   rightHand: 'Right',
   leftHand: 'Left',
   handMarkRight: 'R.H.',

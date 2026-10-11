@@ -224,6 +224,22 @@ describe('the app', () => {
     expect(playback.playing).toBe(true);
   });
 
+  it('makes the tempo a step slower or faster by − and +, and the piece’s own again by 0', async () => {
+    const press = (code: string, more = {}) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...more }));
+    button(/Ode to Joy/).click();
+    await settled();
+    press('Minus');
+    press('Minus');
+    expect(playback.tempo).toBe(0.9);
+    press('Equal');
+    expect(playback.tempo).toBe(0.95);
+    press('Digit0');
+    expect(playback.tempo).toBe(1);
+    // Cmd and − is the browser's own: zooming out.
+    press('Minus', { metaKey: true });
+    expect(playback.tempo).toBe(1);
+  });
+
   it('goes back to the start by Home, and goes on playing', async () => {
     const press = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     button(/Ode to Joy/).click();
@@ -263,8 +279,8 @@ describe('the app', () => {
 
     it('keeps on a phone what is set once a session in a sheet behind "⋯"', async () => {
       await turnIntoPhone();
-      const sheet = () => bar().querySelector<HTMLDialogElement>('dialog')!;
-      const inBar = [...bar().querySelectorAll('button[aria-pressed]')].filter((element) => !sheet().contains(element));
+      const sheet = () => bar().querySelector<HTMLDialogElement>('dialog[aria-label=Practice]')!;
+      const inBar = [...bar().querySelectorAll('button[aria-pressed]')].filter((element) => !element.closest('dialog'));
       expect(inBar.map((element) => element.textContent?.trim())).toEqual(['↻ Loop']);
       expect(sheet().open).toBe(false);
 
@@ -279,7 +295,63 @@ describe('the app', () => {
     });
 
     it('has no button for going back to the start: Home does that', () => {
-      expect([...bar().querySelectorAll('button')].filter((element) => !element.hasAttribute('aria-pressed'))).toHaveLength(1);
+      const plain = [...bar().querySelectorAll('button')].filter((element) => !element.hasAttribute('aria-pressed'));
+      expect(plain.map((element) => element.getAttribute('aria-label'))).toEqual(['Play', 'Tempo: 100%']);
+    });
+
+    describe('the tempo', () => {
+      const tempoPanel = () => bar().querySelector<HTMLElement>('[role=group][aria-label=Tempo]');
+
+      it('is a button that says what it is, and opens a panel for setting it; Esc or a press elsewhere closes it', async () => {
+        expect(tempoPanel()).toBeNull();
+        button(/^Tempo: 100%$/).click();
+        await settled();
+        expect(tempoPanel()).not.toBeNull();
+
+        window.document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        // (It fades out first.)
+        await vi.waitFor(() => expect(tempoPanel()).toBeNull());
+
+        button(/^Tempo: 100%$/).click();
+        await settled();
+        tempoPanel()!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        await settled();
+        expect(tempoPanel()).not.toBeNull();
+        root.querySelector('.stage')!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        // (It fades out first.)
+        await vi.waitFor(() => expect(tempoPanel()).toBeNull());
+      });
+
+      it('is set by a step slower or faster, or straight to one of the tempos pieces are learned at', async () => {
+        button(/^Tempo: 100%$/).click();
+        await settled();
+        const presets = () => [...tempoPanel()!.querySelectorAll('button[aria-pressed]')];
+        expect(presets().map((element) => element.textContent?.trim())).toEqual(['50', '60', '70', '80', '90', '100']);
+
+        button(/^Slower$/).click();
+        await settled();
+        expect(playback.tempo).toBe(0.95);
+        expect(tempoPanel()!.querySelector('output')?.textContent).toContain('95%');
+        expect(presets().filter((element) => element.getAttribute('aria-pressed') === 'true')).toHaveLength(0);
+
+        chip(/^\s*70\s*$/).click();
+        await settled();
+        expect(playback.tempo).toBe(0.7);
+        expect(button(/^Tempo: 70%$/)).toBeDefined();
+
+        button(/^Faster$/).click();
+        expect(playback.tempo).toBe(0.75);
+      });
+
+      it('is in a sheet on a phone', async () => {
+        await turnIntoPhone();
+        const sheet = bar().querySelector<HTMLDialogElement>('dialog[aria-label=Tempo]')!;
+        expect(sheet.open).toBe(false);
+        button(/^Tempo: 100%$/).click();
+        await settled();
+        expect(sheet.open).toBe(true);
+        expect(sheet.querySelectorAll('button[aria-pressed]')).toHaveLength(6);
+      });
     });
   });
 });

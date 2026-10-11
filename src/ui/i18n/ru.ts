@@ -57,6 +57,8 @@ export const ru: Dictionary = {
   barPosition: 'Такт {current} / {total}',
   barPositionEmpty: 'Такт –',
   tempo: 'Темп',
+  tempoSlower: 'Медленнее',
+  tempoFaster: 'Быстрее',
   rightHand: 'Правая',
   leftHand: 'Левая',
   handMarkRight: 'п. р.',
