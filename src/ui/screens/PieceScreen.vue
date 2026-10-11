@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import CountInOverlay from '../components/CountInOverlay.vue';
 import InstrumentNotice from '../components/InstrumentNotice.vue';
-import LanguageSwitch from '../components/LanguageSwitch.vue';
 import PianoRoll from '../components/PianoRoll.vue';
-import PracticeSettings from '../components/PracticeSettings.vue';
-import SettingsMenu from '../components/SettingsMenu.vue';
+import SettingsPanel from '../components/SettingsPanel.vue';
 import StaffView from '../components/StaffView.vue';
-import ThemeSwitch from '../components/ThemeSwitch.vue';
 import TransportBar from '../components/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { usePieceText } from '../composables/usePieceText';
@@ -30,15 +27,9 @@ const { summary, error } = usePieceText(playback, openScore, demos);
       <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')">←</button>
       <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
       <span class="title" :class="{ failed: error }" :role="error ? 'alert' : undefined">{{ error ?? summary }}</span>
-      <!-- Wide screens show the settings inline; narrow ones tuck them behind ⚙ (see styles below). -->
-      <div class="settings-inline">
-        <ViewModeSwitch />
-        <ThemeSwitch />
-        <LanguageSwitch />
-        <!-- Only where the ⚙ menu cannot open (no Popover API): see styles below. -->
-        <div class="practice-inline"><PracticeSettings /></div>
-      </div>
-      <SettingsMenu class="settings-menu" />
+      <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
+      <ViewModeSwitch class="view-switch" />
+      <SettingsPanel piece />
     </header>
 
     <main class="stage" :class="`view-${viewMode}`">
@@ -88,47 +79,13 @@ const { summary, error } = usePieceText(playback, openScore, demos);
   color: var(--text);
 }
 
-.settings-inline {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 8px 16px;
-}
-
-.practice-inline {
-  display: none;
-}
-
-.settings-menu {
+.view-switch {
   flex: none;
 }
 
-/* Below this width the inline settings no longer fit next to the title; the ⚙ menu has them all. */
+/* Below this width the view switch no longer fits next to the title. */
 @media (max-width: 900px) {
-  .settings-inline {
-    display: none;
-  }
-}
-
-/*
- * Browsers without the Popover API (e.g. iPhones stuck on iOS 16) would show the menu card
- * permanently. There we skip the menu and keep the settings inline, wrapping under the title.
- */
-@supports not selector(:popover-open) {
-  .bar:first-child {
-    flex-wrap: wrap;
-  }
-
-  .settings-inline {
-    display: inline-flex;
-    flex-wrap: wrap;
-  }
-
-  .practice-inline {
-    display: contents;
-  }
-
-  .settings-menu {
+  .view-switch {
     display: none;
   }
 }

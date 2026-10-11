@@ -237,6 +237,10 @@ the research for steps 8 and 9; checks on real devices and on GitHub Pages.
 
 Small things noticed, to fix between the steps:
 
+- [ ] The metronome's click is not there yet: better than the synth's blip and than a mechanical
+      metronome recorded in a room (rattling, blurred next to the piano), but a little synthetic.
+      To come back to: a studio recording of a woodblock or of a mechanical metronome, cut to
+      the sample (scripts/metronome.ts)
 - [ ] The top of the staff is cut off when the stage is low (a phone on its side, a wide and
       short window): an 8va bracket, words and tempo marks over high notes run past the edge.
       With step 3

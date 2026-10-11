@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import LanguageSwitch from '../components/LanguageSwitch.vue';
-import ThemeSwitch from '../components/ThemeSwitch.vue';
+import SettingsPanel from '../components/SettingsPanel.vue';
 import { usePieceText } from '../composables/usePieceText';
 import { useDeps, type Demo } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -30,8 +29,7 @@ function onFileChosen(event: Event): void {
     <header class="bar">
       <strong class="logo">{{ t('appTitle') }}</strong>
       <div class="settings">
-        <ThemeSwitch />
-        <LanguageSwitch />
+        <SettingsPanel />
       </div>
     </header>
 

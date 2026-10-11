@@ -9,6 +9,7 @@ export interface PluralMessage extends Partial<Record<Intl.LDMLPluralRule, strin
 export const en = {
   appTitle: 'Claviano',
   settings: 'Settings',
+  close: 'Close',
   viewMode: 'View',
   viewStaff: 'Notes',
   viewKeys: 'Keys',

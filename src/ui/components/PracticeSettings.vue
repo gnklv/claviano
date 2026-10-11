@@ -13,6 +13,9 @@ import SegmentedControl from './SegmentedControl.vue';
  */
 type Sound = 'piano' | 'synth';
 
+/** `piece`: on the piece's screen; elsewhere only the sound is offered. */
+defineProps<{ piece?: boolean }>();
+
 const { t } = useI18n();
 const { playback, instrument } = useDeps();
 const state = usePlaybackState(playback);
@@ -32,14 +35,16 @@ const sounds = computed((): { value: Sound; label: string }[] => [
 </script>
 
 <template>
-  <div class="row">
-    <span class="label">{{ t('pedal') }}</span>
-    <OnOffSwitch v-model="pedal" :label="t('pedal')" />
-  </div>
-  <div class="row">
-    <span class="label">{{ t('countIn') }}</span>
-    <OnOffSwitch v-model="countIn" :label="t('countIn')" />
-  </div>
+  <template v-if="piece">
+    <div class="row">
+      <span class="label">{{ t('pedal') }}</span>
+      <OnOffSwitch v-model="pedal" :label="t('pedal')" />
+    </div>
+    <div class="row">
+      <span class="label">{{ t('countIn') }}</span>
+      <OnOffSwitch v-model="countIn" :label="t('countIn')" />
+    </div>
+  </template>
   <div class="row">
     <span class="label">{{ t('sound') }}</span>
     <SegmentedControl v-model="sound" :options="sounds" :label="t('sound')" />

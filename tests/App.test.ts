@@ -24,6 +24,7 @@ const view = <T>(methods: Partial<T>): T => new Proxy(methods, { get: (target, n
 const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare() {} };
 
 let playback: Playback;
+let volume: Volume;
 let app: VueApp;
 let root: HTMLElement;
 
@@ -51,12 +52,13 @@ beforeEach(() => {
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
   playback = new Playback(new FakeAudio(), new FakeTicker());
+  volume = new Volume(new FakeAudio());
   root = document.createElement('div');
   document.body.append(root);
   app = createApp(App).provide(depsKey, {
     playback,
     barLoop: new BarLoop(playback),
-    volume: new Volume(new FakeAudio()),
+    volume,
     instrument,
     openScore: new OpenScore(playback, new LoadScore([new MusicXmlParser()])),
     createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
@@ -152,6 +154,40 @@ describe('the app', () => {
     expect(onPiece()).toBe(true);
     expect(root.querySelector('.title[role=alert]')?.textContent).toMatch(/photo\.jpg/);
     expect(playback.score?.title).toBe('Second');
+  });
+
+  describe('the settings panel', () => {
+    const panel = () => root.querySelector<HTMLDialogElement>('dialog')!;
+    const labels = () => [...panel().querySelectorAll('.label')].map((label) => label.textContent);
+
+    it('opens from the gear on either screen, and closes by its cross', async () => {
+      expect(panel().open).toBe(false);
+      button(/^Settings$/).click();
+      await settled();
+      expect(panel().open).toBe(true);
+      button(/^Close$/).click();
+      await settled();
+      expect(panel().open).toBe(false);
+    });
+
+    it('has in the library what goes for any piece: the sound, how loud it is, the theme, the language', () => {
+      expect(labels()).toEqual(['Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
+    });
+
+    it('has on the piece screen the view and the practice settings as well', async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+      expect(labels()).toEqual(['View', 'Pedal', 'Count-in', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
+    });
+
+    it('turns the notes down from its slider', async () => {
+      const slider = panel().querySelector<HTMLInputElement>('input[type=range]')!;
+      slider.value = '40';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      await settled();
+      expect(volume.of('instrument')).toBe(0.4);
+      expect(panel().querySelector('output')?.textContent).toBe('40%');
+    });
   });
 
   it('plays and steps by bars from the keyboard on the piece screen only', async () => {
