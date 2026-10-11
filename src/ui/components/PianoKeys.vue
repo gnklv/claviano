@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { isBlackKey } from '../../domain/pitch';
+import { BLACK_KEY_WIDTH, keyPlace } from './keyPlaces';
 import { useI18n } from '../i18n/useI18n';
 
 /*
@@ -21,15 +22,13 @@ const emit = defineEmits<{ press: [pitch: number]; release: [pitch: number]; roo
 
 const { noteLabel } = useI18n();
 
-/** A black key is this wide, in white keys. */
-const BLACK_WIDTH = 0.62;
 /** A white key is no narrower than this, in pixels: a fingertip finds it. */
 const MIN_WHITE_PX = 34;
 
 const pitches = computed(() => Array.from({ length: props.keys }, (_, key) => props.lowest + key));
 const whites = computed(() => pitches.value.filter((pitch) => !isBlackKey(pitch)));
-/** Each black key with the place it stands over: after this many white keys. */
-const blacks = computed(() => pitches.value.filter(isBlackKey).map((pitch) => ({ pitch, after: whites.value.filter((white) => white < pitch).length })));
+/** Each black key with where it stands, in white keys from the left. */
+const blacks = computed(() => pitches.value.filter(isBlackKey).map((pitch) => ({ pitch, left: keyPlace(pitch, props.lowest).left })));
 
 // --- The computer's keyboard: from the lowest Do, an octave and a third. ---
 
@@ -163,12 +162,12 @@ onUnmounted(() => {
       <span v-if="pitch % 12 === 0" class="name">{{ noteLabel(pitch) }}</span>
     </div>
     <div
-      v-for="{ pitch, after } in blacks"
+      v-for="{ pitch, left } in blacks"
       :key="pitch"
       class="key black"
       :class="{ down: pressed.has(pitch) }"
       :data-pitch="pitch"
-      :style="{ left: `calc(${after} * 100% / var(--whites) - ${BLACK_WIDTH / 2} * 100% / var(--whites))`, width: `calc(${BLACK_WIDTH} * 100% / var(--whites))` }"
+      :style="{ left: `calc(${left} * 100% / var(--whites))`, width: `calc(${BLACK_KEY_WIDTH} * 100% / var(--whites))` }"
     >
       <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
     </div>
@@ -200,10 +199,10 @@ onUnmounted(() => {
 .white {
   flex: 1;
   min-width: 0;
-  border-right: 1px solid var(--key-gap, #c9c5bc);
+  border-right: 1px solid var(--key-border);
   border-radius: 0 0 4px 4px;
-  background: #fff;
-  color: #8a8a8a;
+  background: var(--key-white);
+  color: var(--key-label);
 }
 
 .black {
@@ -211,8 +210,8 @@ onUnmounted(() => {
   top: 0;
   height: 62%;
   border-radius: 0 0 3px 3px;
-  background: #23252b;
-  color: #9a9a9a;
+  background: var(--key-black);
+  color: var(--key-label);
 }
 
 .white.down {

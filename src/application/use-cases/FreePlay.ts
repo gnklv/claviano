@@ -26,6 +26,7 @@ export class FreePlay {
   private width = 25;
   private on = false;
   private readonly listeners = new Set<() => void>();
+  private readonly keyListeners = new Set<(pitch: number, down: boolean, at: number) => void>();
 
   constructor(
     private readonly audio: AudioOutput,
@@ -60,6 +61,17 @@ export class FreePlay {
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Called as each key goes down and comes up, with when on the output's clock: for whoever writes the playing down. */
+  onKey(listener: (pitch: number, down: boolean, at: number) => void): () => void {
+    this.keyListeners.add(listener);
+    return () => this.keyListeners.delete(listener);
+  }
+
+  /** The output's clock, in seconds: what the times of keys are told by. */
+  now(): number {
+    return this.audio.now();
   }
 
   /** Coming to play: the instrument is made ready for the keys shown. */
@@ -98,6 +110,7 @@ export class FreePlay {
     // (The first sound of a visit has to come from a press: browsers keep a page silent until then.)
     void this.audio.resume();
     this.held.set(pitch, this.audio.strike(pitch, STRIKE));
+    this.tell(pitch, true);
     this.emit();
   }
 
@@ -106,13 +119,16 @@ export class FreePlay {
     if (!letGo) return;
     this.held.delete(pitch);
     letGo();
+    this.tell(pitch, false);
     this.emit();
   }
 
   releaseAll(): void {
     if (this.held.size === 0) return;
+    const pitches = [...this.held.keys()];
     for (const letGo of this.held.values()) letGo();
     this.held.clear();
+    for (const pitch of pitches) this.tell(pitch, false);
     this.emit();
   }
 
@@ -128,6 +144,11 @@ export class FreePlay {
 
   private prepare(): void {
     this.instrument.prepare(Array.from({ length: this.width }, (_, key) => ({ pitch: this.first + key, velocity: STRIKE, seconds: HELD_SECONDS })));
+  }
+
+  private tell(pitch: number, down: boolean): void {
+    const at = this.audio.now();
+    for (const listener of this.keyListeners) listener(pitch, down, at);
   }
 
   private emit(): void {

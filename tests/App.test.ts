@@ -10,6 +10,7 @@ import { Library } from '../src/application/use-cases/Library';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
+import { Recorder } from '../src/application/use-cases/Recorder';
 import { rememberPieces } from '../src/application/use-cases/rememberPieces';
 import { Volume } from '../src/application/use-cases/Volume';
 import { odeToJoy } from '../src/demo/odeToJoy';
@@ -95,6 +96,7 @@ beforeEach(() => {
     void library.load();
     const barLoop = new BarLoop(playback);
     rememberPieces(library, playback, barLoop);
+    const freePlay = new FreePlay(audio, instrument, playback);
     app = createApp(App).provide(depsKey, {
       playback,
       barLoop,
@@ -102,7 +104,8 @@ beforeEach(() => {
       instrument,
       openScore,
       library,
-      freePlay: new FreePlay(audio, instrument, playback),
+      freePlay,
+      recorder: new Recorder(freePlay, audio, new FakeTicker()),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
       createStaff: () => view<StaffView>({}),
       demos,
@@ -673,6 +676,66 @@ describe('the app', () => {
       // And the letters play nothing elsewhere.
       press('KeyG');
       expect(audio.struck).toHaveLength(2);
+    });
+
+    describe('recording', () => {
+      const status = () => root.querySelector('.record-bar [role=status]')?.textContent ?? '';
+
+      it('begins with the first note played, not with the button, and counts the bars to the metronome', async () => {
+        button(/^Record$/).click();
+        await settled();
+        expect(status()).toMatch(/first note starts/);
+        // The metronome is on from the button: something to come in on.
+        expect(audio.clicks.length).toBeGreaterThan(0);
+
+        audio.time = 3.2;
+        press('KeyA');
+        await settled();
+        expect(status()).toMatch(/^Recording/);
+        expect(button(/^Stop$/)).toBeDefined();
+      });
+
+      it('ends at "Stop": the take is there, to record over or to discard', async () => {
+        button(/^Record$/).click();
+        press('KeyA');
+        audio.time = 1;
+        press('KeyA', 'keyup');
+        press('KeyS');
+        audio.time = 2;
+        await settled();
+        button(/^Stop$/).click();
+        await settled();
+        expect(status()).toBe('Recorded: 2 notes');
+
+        button(/^Discard$/).click();
+        await settled();
+        expect(status()).toBe('');
+        expect(button(/^Record$/)).toBeDefined();
+      });
+
+      it('holds the tempo, the time signature and the metronome through a take', async () => {
+        button(/^Faster$/).click();
+        await settled();
+        expect(root.querySelector('.record-bar output')?.textContent).toBe('♩ = 84');
+        button(/^3\/4$/).click();
+        await settled();
+        expect(button(/^3\/4$/).getAttribute('aria-pressed')).toBe('true');
+
+        button(/^Record$/).click();
+        await settled();
+        expect((button(/^Faster$/) as HTMLButtonElement).disabled).toBe(true);
+        expect((button(/^Metronome$/) as HTMLButtonElement).disabled).toBe(true);
+      });
+
+      it('ends the take when the screen is left', async () => {
+        button(/^Record$/).click();
+        press('KeyA');
+        button(/Back to the library/).click();
+        await settled();
+        button(/Free play/).click();
+        await settled();
+        expect(status()).toBe('Recorded: 1 note');
+      });
     });
 
     it('stops the piece that was playing', async () => {

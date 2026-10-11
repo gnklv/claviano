@@ -6,6 +6,7 @@ import { Library } from './application/use-cases/Library';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
+import { Recorder } from './application/use-cases/Recorder';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
 import { Volume } from './application/use-cases/Volume';
 import { rememberPieces } from './application/use-cases/rememberPieces';
@@ -58,6 +59,8 @@ document.addEventListener('visibilitychange', () => {
 });
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
+const freePlay = new FreePlay(piano, piano, playback);
+
 createApp(App)
   .provide(depsKey, {
     playback,
@@ -66,7 +69,8 @@ createApp(App)
     instrument: piano,
     openScore,
     library,
-    freePlay: new FreePlay(piano, piano, playback),
+    freePlay,
+    recorder: new Recorder(freePlay, piano, new IntervalTicker()),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
     demos,

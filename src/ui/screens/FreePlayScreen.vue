@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import PianoKeys from '../components/PianoKeys.vue';
+import PlayedRoll from '../components/PlayedRoll.vue';
+import RecordBar from '../components/RecordBar.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
 import { useFreePlay } from '../composables/useFreePlay';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
-/* Free play: the keyboard leads. (What is played will be written down here, as notes, and kept as a piece.) */
+/*
+ * Free play: the keyboard leads. What is played rises from the keys as it sounds, and can be
+ * recorded. (It will be written down here as notes, and kept as a piece.)
+ */
 
 const emit = defineEmits<{ back: [] }>();
 
-const { freePlay } = useDeps();
+const { freePlay, recorder } = useDeps();
 const { t } = useI18n();
 const state = useFreePlay(freePlay);
 
@@ -25,7 +30,11 @@ const keysFor = (whiteKeys: number): number => {
 const fit = (whiteKeys: number) => freePlay.setKeys(keysFor(Math.min(22, Math.max(10, whiteKeys))));
 
 onMounted(() => freePlay.enter());
-onUnmounted(() => freePlay.leave());
+onUnmounted(() => {
+  // (A take being recorded ends with the visit; what is recorded stays for coming back to.)
+  recorder.stop();
+  freePlay.leave();
+});
 </script>
 
 <template>
@@ -41,12 +50,15 @@ onUnmounted(() => freePlay.leave());
     </header>
 
     <main class="stage">
+      <PlayedRoll class="played" :lowest="state.lowest" :keys="state.keys" />
       <p class="hint">
         {{ t('freePlayHint') }}
         <!-- (The computer's keyboard: nothing to say where there is only a finger.) -->
         <span class="by-letters">{{ t('freePlayHintLetters') }}</span>
       </p>
     </main>
+
+    <RecordBar />
 
     <footer class="keyboard">
       <PianoKeys
@@ -65,7 +77,7 @@ onUnmounted(() => freePlay.leave());
 <style scoped>
 .free-play {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
@@ -106,10 +118,15 @@ onUnmounted(() => freePlay.leave());
 }
 
 .stage {
+  position: relative;
   display: grid;
-  place-items: center;
   min-height: 0;
-  padding: 16px;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+
+/* The hint stands over the tiles, at the top: out of their way as they rise. */
+.stage > * {
+  grid-area: 1 / 1;
 }
 
 @media (pointer: coarse) {
@@ -119,8 +136,12 @@ onUnmounted(() => freePlay.leave());
 }
 
 .hint {
+  align-self: start;
+  justify-self: center;
   max-width: 36em;
   margin: 0;
+  padding: 16px;
+  pointer-events: none;
   color: var(--muted);
   text-align: center;
   text-wrap: balance;
@@ -130,7 +151,7 @@ onUnmounted(() => freePlay.leave());
 .keyboard {
   height: clamp(140px, 38vh, 260px);
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
   background: var(--panel);
 }
 

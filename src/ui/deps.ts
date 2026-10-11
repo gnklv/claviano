@@ -7,6 +7,7 @@ import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
 import type { DemoPiece, OpenScore } from '../application/use-cases/OpenScore';
 import type { Playback } from '../application/use-cases/Playback';
+import type { Recorder } from '../application/use-cases/Recorder';
 import type { Volume } from '../application/use-cases/Volume';
 import type { MessageKey } from './i18n/en';
 
@@ -28,6 +29,8 @@ export interface AppDeps {
   readonly library: Library;
   /** Playing by hand, from the keys on the screen. */
   readonly freePlay: FreePlay;
+  /** Recording what is played there. */
+  readonly recorder: Recorder;
   readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
   readonly createStaff: (container: HTMLElement) => StaffView;
   readonly demos: readonly Demo[];

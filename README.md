@@ -230,8 +230,9 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        where the browser lets the page ask, and a word on how on an iPhone. An installed app's
        library is not wiped by iOS Safari
 6. [ ] Free play from the keys on the screen. Done: the screen, with a keyboard that sounds
-       under fingers, the mouse and the computer's keys. To do: what is played is written down
-       as it is played, saved as a piece, saved out as MIDI
+       under fingers, the mouse and the computer's keys; what is played rises from the keys as
+       tiles; recording, from the first note, to a metronome (tempo, time signature). To do:
+       the take written down as notes, saved as a piece, saved out as MIDI
 7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
        hand (how far each pair of fingers reaches, the thumb passing under, the thumb on black
        keys, the weak fingers), shown sparingly, as good editions do: where the hand moves or a
