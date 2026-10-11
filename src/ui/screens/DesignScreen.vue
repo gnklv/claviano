@@ -114,6 +114,7 @@ const chosen = ref('');
       <div class="row start">
         <SegmentedControl v-model="view" :options="VIEWS" label="An example" />
         <ThemeSwitch />
+        <SegmentedControl v-model="view" :options="VIEWS" label="Held as it is" disabled />
       </div>
 
       <SectionHeading>Slider</SectionHeading>

@@ -287,8 +287,17 @@ input,
   gap: 6px;
 }
 
-.button:hover:not(:disabled) {
-  background: var(--control-hover);
+/* (Only where there is a pointer to hover with: a touch leaves "hover" on whatever stands where the finger was.) */
+@media (hover: hover) {
+  .button:hover:not(:disabled) {
+    background: var(--control-hover);
+  }
+
+  /* The main action stays in the accent under the pointer, a little lighter. */
+  .button.primary:hover:not(:disabled) {
+    background: var(--accent);
+    filter: brightness(1.1);
+  }
 }
 
 .button:disabled {
@@ -310,11 +319,18 @@ input,
   color: var(--muted);
 }
 
-.button.quiet:hover:not(:disabled),
 .button.quiet[aria-expanded='true'] {
   border-color: var(--border);
   background: var(--control);
   color: var(--text);
+}
+
+@media (hover: hover) {
+  .button.quiet:hover:not(:disabled) {
+    border-color: var(--border);
+    background: var(--control);
+    color: var(--text);
+  }
 }
 
 /* A pressable chip: on when aria-pressed is true, faded when off. */

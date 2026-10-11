@@ -36,7 +36,8 @@ component names the token; it never writes a colour.
   of danger and of recording, which are rare and never beside the main action.
 - **Steel and sepia are the hands, and nothing else.** Falling notes, lit keys, the hands' chips, a
   note under the cursor. A lit key must not pass for a white or a black one, which is why neither
-  hand is ink or ivory.
+  hand is ink or ivory. (In free play nobody says which hand plays: under middle Do it is taken
+  for the left, as for any playing that does not say; keys, tiles and the notes of a take agree.)
 - **No blue of a system.** A slider, a field's edge, a selection: each is drawn here, in the
   palette. What a browser would paint in its own colour is restyled.
 - The music's own colours (the staff's ink, the cursor, the pedal, the keys) are tokens too, lower in

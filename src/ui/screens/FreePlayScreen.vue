@@ -46,7 +46,7 @@ onUnmounted(() => {
 
 <template>
   <div class="free-play">
-    <ScreenHeader back @back="emit('back')">
+    <ScreenHeader class="bar" back @back="emit('back')">
       <template #title>{{ t('freePlay') }}</template>
       <div class="octaves" role="group" :aria-label="t('octave')">
         <AppButton icon="lower" :disabled="!state.canGoLower" :label="t('octaveLower')" :hint="`${t('octaveLower')} (Z)`" @click="freePlay.shift(-1)" />
@@ -96,18 +96,15 @@ onUnmounted(() => {
 .octaves {
   display: inline-flex;
   flex: none;
-  gap: 4px;
-}
-
-.octaves .button {
-  min-width: 36px;
-  padding-inline: 8px;
+  gap: var(--space-1);
 }
 
 .stage {
   position: relative;
   display: grid;
   min-height: 0;
+  /* Whatever is drawn here, it never lies over the header or the record bar. */
+  overflow: hidden;
   padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
 }
 
@@ -116,7 +113,7 @@ onUnmounted(() => {
   grid-area: 1 / 1;
 }
 
-/* With a take, its notes have the upper part of the stage, the tiles the rest. */
+/* With a take, its notes have the upper part of the stage (never too low to hold both staves), the tiles the rest. */
 .stage.taken {
   grid-template-rows: minmax(150px, 45%) 1fr;
 }
@@ -134,8 +131,8 @@ onUnmounted(() => {
 
 .caveat {
   position: absolute;
-  right: 12px;
-  bottom: 6px;
+  right: var(--space-3);
+  bottom: var(--space-1);
   margin: 0;
   color: var(--muted);
   font-size: var(--text-xs);
@@ -153,29 +150,63 @@ onUnmounted(() => {
   justify-self: center;
   max-width: 36em;
   margin: 0;
-  padding: 16px;
+  padding: var(--space-4);
   pointer-events: none;
   color: var(--muted);
   text-align: center;
   text-wrap: balance;
 }
 
-/* The keyboard: a good part of the screen, as tall as keys are comfortable, clear of the home indicator and the notch. */
+/*
+ * The keyboard, clear of the home indicator and the notch. Its height is an instrument's, not the
+ * interface's: tall enough for a finger to land on a black key and on the white under it, and no
+ * taller, for what is played is seen over it. (Tuned by eye on a phone held upright, and on its side.)
+ */
 .keyboard {
-  height: clamp(140px, 38vh, 260px);
+  /* (Of the height there is now, with the browser's bars out: dvh, not vh.) */
+  height: clamp(120px, 22dvh, 200px);
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   border-top: 1px solid var(--border);
   background: var(--panel);
 }
 
-/* A phone on its side: the keys are what the screen is for. */
+/* A phone on its side: a thin header, and the keys a little under half of what height there is. */
 @media (max-height: 500px) {
   .bar {
-    padding-block: max(4px, env(safe-area-inset-top)) 4px;
+    padding-block: max(var(--space-1), env(safe-area-inset-top)) var(--space-1);
   }
 
   .keyboard {
-    height: 62vh;
+    height: 45dvh;
+  }
+
+  .hint {
+    padding-block: var(--space-2);
+  }
+
+  /* No room for a take's notes and the tiles both: the notes have it all (they say what was played, and more). */
+  .stage.taken {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .stage.taken .played {
+    display: none;
+  }
+}
+
+/*
+ * Lower still (a phone on its side inside a browser, whose bars take a third of the height): the
+ * stage cannot hold two staves. The tiles have it, which can be read at any height; the notes are
+ * there again where there is room (upright, or with the app installed).
+ */
+@media (max-height: 339px) {
+  .stage.taken .written {
+    display: none;
+  }
+
+  .stage.taken .played {
+    display: block;
+    grid-area: 1 / 1;
   }
 }
 </style>

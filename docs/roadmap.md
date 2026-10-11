@@ -104,7 +104,7 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - [x] the app's tests by screen (`tests/app`), on one harness, with nothing left over from one
     test to the next; and with it one way of keeping the interface's choices (`ui/preferences.ts`:
     the view, the theme, the language, the hints), read afresh for each test.
-- [ ] A design system, each step looked at before the next:
+- [x] A design system, each step looked at before the next:
   - the character: a pianist's notebook. Paper and ink; titles in a serif, as words in sheet music
     are; one accent, the red of a piano's felt, for the one main action of a screen. Steel and
     sepia, two quiet inks, are the hands', and nothing else's;
@@ -129,7 +129,8 @@ Before the next steps, in this order (agreed after a review of the code and of t
     - [x] the piece: one row of settings in place of three copies; its widths of screen named or
       made the common ones; spacing from the scale; the loop a wash of ink with a line at each
       end, the last colour that was not of the palette;
-    - [ ] free play.
+    - [x] free play: its spacing from the scale, segments that can be held as they are (the time
+      signature through a take), the thin header of a phone on its side.
   With it: one pop-up in place of two, no colour written by hand in a component.
 
 Then, when the places are next touched: free play does not ready the instrument for the piece

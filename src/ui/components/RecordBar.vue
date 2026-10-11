@@ -5,6 +5,7 @@ import TempoMark from './TempoMark.vue';
 import { computed, ref } from 'vue';
 import { METERS, RECORDING_TEMPO, type Meter } from '../../application/use-cases/Recorder';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { useRecorder } from '../composables/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -16,6 +17,8 @@ import SegmentedControl from './SegmentedControl.vue';
  */
 const { recorder, keepTake } = useDeps();
 const { t, locale } = useI18n();
+/** A phone on its side: the bar has one row, and no room for every word. */
+const low = useMediaQuery(SHORT_SCREEN);
 const state = useRecorder(recorder);
 
 const busy = computed(() => state.value.state === 'armed' || state.value.state === 'recording');
@@ -59,7 +62,9 @@ const status = computed(() => {
       <AppButton v-else-if="state.state === 'idle'" class="record" icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
       <!-- A take is there: to hear, to keep, to mend at its end, or to play again. -->
       <template v-else>
-        <AppButton :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
+        <!-- (On a phone on its side the bar is one row: what an icon says by itself goes without its word.) -->
+        <AppButton v-if="low" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
+        <AppButton v-else :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
         <AppButton class="keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
       </template>
       <span class="status" :class="{ live: state.state === 'recording' }" role="status">{{ status }}</span>
@@ -68,7 +73,8 @@ const status = computed(() => {
     <div v-if="state.state === 'recorded'" class="mend">
       <AppButton @click="recorder.eraseLastBar()">{{ t('takeEraseBar') }}</AppButton>
       <AppButton class="record" icon="record" @click="recorder.arm()">{{ t('recordAgain') }}</AppButton>
-      <AppButton @click="recorder.discard()">{{ t('recordDiscard') }}</AppButton>
+      <AppButton v-if="low" icon="close" :label="t('recordDiscard')" @click="recorder.discard()" />
+      <AppButton v-else @click="recorder.discard()">{{ t('recordDiscard') }}</AppButton>
     </div>
     <!-- (The beat is set before a take; with one there, it is that take's.) -->
     <div v-else class="beat">
@@ -78,7 +84,7 @@ const status = computed(() => {
         <output class="bpm"><TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /></output>
         <AppButton class="step" icon="plus" :disabled="busy || state.tempo >= RECORDING_TEMPO.max" :label="t('tempoFaster')" @click="recorder.setTempo(state.tempo + RECORDING_TEMPO.step)" />
       </div>
-      <SegmentedControl v-model="meter" class="meter" :class="{ held: busy }" :options="meters" :label="t('timeSignature')" />
+      <SegmentedControl v-model="meter" class="meter" wide :disabled="busy" :options="meters" :label="t('timeSignature')" />
     </div>
   </div>
 </template>
@@ -89,8 +95,8 @@ const status = computed(() => {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 24px;
-  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
   border-top: 1px solid var(--border);
   background: var(--panel);
 }
@@ -101,7 +107,7 @@ const status = computed(() => {
 .tempo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -112,15 +118,6 @@ const status = computed(() => {
 
 .keep {
   min-width: 0;
-  white-space: nowrap;
-}
-
-.record,
-.stop {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
 }
 
 /* (Recording is red, and so is what stops it.) */
@@ -129,7 +126,15 @@ const status = computed(() => {
   color: var(--record);
 }
 
+/* What is done with a take has what room the beat leaves it; the word on what is going on gives way first, and never pushes the beat to a row of its own. */
+.take {
+  flex: 1 1 auto;
+}
+
 .status {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
   overflow: hidden;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -139,12 +144,6 @@ const status = computed(() => {
 
 .status.live {
   color: var(--record);
-}
-
-.step {
-  min-width: 32px;
-  padding-inline: 8px;
-  line-height: 1;
 }
 
 .bpm {
@@ -159,24 +158,69 @@ const status = computed(() => {
   white-space: nowrap;
 }
 
-/* A phone: the buttons in rows of their own, what is going on said under them. */
+/*
+ * A phone: rows as wide as the screen, each filled from edge to edge. What is done with a take on
+ * top, its buttons sharing the width; what is going on said under them; then the beat: the metronome
+ * and the tempo at the two ends of a row, the time signature across the next.
+ */
 @media (max-width: 599px) {
-  .take {
+  .record-bar {
+    display: grid;
+    /* (One column as wide as the screen, whatever is in it.) */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .take,
+  .mend {
     flex-wrap: wrap;
+  }
+
+  .take .button,
+  .mend .button {
+    flex: 1 1 auto;
   }
 
   .status {
     flex: 1 1 100%;
+    width: auto;
+    text-align: center;
   }
 
-  .mend .button {
-    padding-inline: 10px;
+  .status:empty {
+    display: none;
+  }
+
+  .beat {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+
+  .tempo {
+    justify-self: end;
+  }
+
+  .meter {
+    grid-column: 1 / -1;
   }
 }
 
-/* (Held through a take: not to be changed under it.) */
-.meter.held {
-  opacity: 0.4;
-  pointer-events: none;
+/*
+ * A phone on its side: one row, always. A take's five buttons fit it closer together, and without
+ * the count of its notes (which the notes over the bar show).
+ */
+@media (max-height: 500px) {
+  .record-bar {
+    column-gap: var(--space-3);
+  }
+
+  .mend .button,
+  .take .button {
+    padding-inline: var(--space-2);
+  }
+
+  .keep ~ .status {
+    display: none;
+  }
 }
 </style>

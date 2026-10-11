@@ -45,6 +45,9 @@ describe('free play', () => {
     expect(held()).toEqual([48, 49]);
     expect(key(48).classList.contains('down')).toBe(true);
     expect(key(49).classList.contains('down')).toBe(true);
+    // (Lit in the colour of the hand that would play it: under middle Do, the left.)
+    expect(key(48).classList.contains('left')).toBe(true);
+    expect(key(60)?.classList.contains('right') ?? true).toBe(true);
     // (A held key repeats itself: one strike all the same.)
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', repeat: true }));
     expect(audio.struck).toHaveLength(2);

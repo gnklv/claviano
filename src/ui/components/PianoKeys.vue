@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
+import { handBySplitPoint } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
 import { BLACK_KEY_WIDTH, keyPlace } from '../../domain/keyboard';
 import { useI18n } from '../i18n/useI18n';
@@ -156,7 +157,7 @@ onUnmounted(() => {
     @pointercancel="onPointerUp"
     @contextmenu.prevent
   >
-    <div v-for="pitch in whites" :key="pitch" class="key white" :class="{ down: pressed.has(pitch) }" :data-pitch="pitch">
+    <div v-for="pitch in whites" :key="pitch" class="key white" :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]" :data-pitch="pitch">
       <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
       <!-- Each Do is named, with its octave: where on the piano this is. -->
       <span v-if="pitch % 12 === 0" class="name">{{ noteLabel(pitch) }}</span>
@@ -165,7 +166,7 @@ onUnmounted(() => {
       v-for="{ pitch, left } in blacks"
       :key="pitch"
       class="key black"
-      :class="{ down: pressed.has(pitch) }"
+      :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]"
       :data-pitch="pitch"
       :style="{ left: `calc(${left} * 100% / var(--whites))`, width: `calc(${BLACK_KEY_WIDTH} * 100% / var(--whites))` }"
     >
@@ -186,13 +187,14 @@ onUnmounted(() => {
 }
 
 .key {
+  --hand: var(--right);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
-  padding-bottom: 8px;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
   cursor: pointer;
 }
 
@@ -214,17 +216,25 @@ onUnmounted(() => {
   color: var(--key-label);
 }
 
+.key.left {
+  --hand: var(--left);
+}
+
 .white.down {
-  background: var(--right);
+  background: var(--hand);
   color: var(--on-hand);
 }
 
 .black.down {
-  background: color-mix(in srgb, var(--right) 70%, var(--key-black));
+  background: color-mix(in srgb, var(--hand) 70%, var(--key-black));
   color: var(--on-hand);
 }
 
 /*
+ * A key that is down is in the colour of the hand that would play it: nobody says here which hand
+ * does, so it is taken as for any playing that does not say (under middle Do, the left), the same
+ * way as the tiles that rise from the keys and the notes of a take.
+ *
  * Two kinds of words on a key, told apart at a glance: the letter of the computer's keyboard is a
  * keycap (a small outlined square, bold), the note's name plain small print at the key's foot.
  */
@@ -236,8 +246,9 @@ onUnmounted(() => {
 
 .letter {
   box-sizing: border-box;
+  /* (A keycap: as small as a letter in it can be read.) */
   min-width: 18px;
-  padding: 3px 4px;
+  padding: 3px var(--space-1);
   border: 1px solid currentColor;
   border-radius: var(--radius-s);
   font-size: var(--text-key);
@@ -251,9 +262,9 @@ onUnmounted(() => {
   letter-spacing: 0.02em;
 }
 
-/* (A white key with a letter and no name keeps the letter where the others have it.) */
+/* (A white key with a letter and no name keeps the letter where the others have it: a name's height, and the gap, lower.) */
 .white .letter:last-child {
-  margin-bottom: 14px;
+  margin-bottom: calc(var(--text-key) + var(--space-1));
 }
 
 .black .letter {
