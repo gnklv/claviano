@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppIcon from '../components/AppIcon.vue';
+import ScreenHeader from '../components/ScreenHeader.vue';
 import CountInOverlay from '../components/CountInOverlay.vue';
 import InstrumentNotice from '../components/InstrumentNotice.vue';
 import PianoRoll from '../components/PianoRoll.vue';
@@ -14,14 +14,12 @@ import { usePlaybackState } from '../composables/usePlaybackState';
 import { useShownViewMode } from '../composables/useViewMode';
 import { computed } from 'vue';
 import { useDeps } from '../deps';
-import { useI18n } from '../i18n/useI18n';
 
 /* Learning a piece: the stage (the staff, the falling notes, or both) with the transport under it. */
 
 const emit = defineEmits<{ back: [] }>();
 
 const { playback, openScore, library, demos } = useDeps();
-const { t } = useI18n();
 const viewMode = useShownViewMode();
 const { title, details, error } = usePieceText(playback, openScore, library, demos);
 
@@ -37,16 +35,17 @@ const { immersed, wake } = useImmersion(
   <div class="piece" :class="{ immersed }" @pointerdown.capture="wake">
     <div class="strip">
       <div class="fold">
-        <header class="bar">
-          <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')"><AppIcon name="back" /></button>
-          <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
-          <span v-if="error" class="title failed" role="alert">{{ error }}</span>
-          <!-- (How long the piece is: said where there is room for it.) -->
-          <span v-else class="title">{{ title }}<span v-if="details" class="details"> · {{ details }}</span></span>
+        <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
+        <ScreenHeader back :alert="!!error" @back="emit('back')">
+          <template #title>
+            <template v-if="error">{{ error }}</template>
+            <!-- (How long the piece is: said where there is room for it.) -->
+            <template v-else>{{ title }}<span v-if="details" class="details"> · {{ details }}</span></template>
+          </template>
           <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
           <ViewModeSwitch class="view-switch" />
           <SettingsPanel piece />
-        </header>
+        </ScreenHeader>
       </div>
     </div>
 
@@ -117,38 +116,11 @@ const { immersed, wake } = useImmersion(
   }
 }
 
-.bar {
-  /* The title never wraps under the buttons: one row, whatever the width. */
-  flex-wrap: nowrap;
-  border-bottom: 1px solid var(--border);
-}
-
-.back {
-  flex: none;
-  min-width: 40px;
-  padding-inline: 10px;
-}
-
-.title {
-  font-family: var(--font-title);
-  font-weight: var(--title-weight);
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex: 1;
-}
-
 /* A phone: the name alone. */
 @media (max-width: 599px) {
   .details {
     display: none;
   }
-}
-
-.title.failed {
-  color: var(--text);
 }
 
 .view-switch {

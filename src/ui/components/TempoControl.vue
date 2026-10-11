@@ -6,6 +6,7 @@ import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
+import AppButton from './AppButton.vue';
 import PopOver from './PopOver.vue';
 import SheetDialog from './SheetDialog.vue';
 import type { TempoReading } from '../tempoReading';
@@ -50,9 +51,9 @@ watch(phone, () => (open.value = false));
 <template>
   <div class="tempo">
     <PopOver v-model:open="open" place="above" :label="t('tempo')">
-      <button class="button current" :aria-label="`${t('tempo')}: ${percent}%`" :title="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
+      <AppButton class="current" :label="`${t('tempo')}: ${percent}%`" :hint="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
         {{ percent }}%<span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
-      </button>
+      </AppButton>
       <template #panel>
         <div class="settings"><TempoSettings :mark="mark" /></div>
       </template>

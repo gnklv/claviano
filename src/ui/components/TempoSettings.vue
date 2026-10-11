@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import AppButton from './AppButton.vue';
+import ToggleChip from './ToggleChip.vue';
 import type { TempoReading } from '../tempoReading';
 import TempoMark from './TempoMark.vue';
 import { computed } from 'vue';
@@ -34,12 +35,12 @@ const percent = computed({
 <template>
   <div class="tempo-settings">
     <div class="now">
-      <button class="button step" :disabled="percent <= RANGE.min" :title="t('tempoSlower')" :aria-label="t('tempoSlower')" @click="stepTempo(playback, -1)"><AppIcon name="minus" /></button>
+      <AppButton class="step" icon="minus" :disabled="percent <= RANGE.min" :label="t('tempoSlower')" @click="stepTempo(playback, -1)" />
       <output class="readout">
         <strong class="percent">{{ percent }}%</strong>
         <span class="mark"><TempoMark v-if="mark" v-bind="mark" /><template v-else>&nbsp;</template></span>
       </output>
-      <button class="button step" :disabled="percent >= RANGE.max" :title="t('tempoFaster')" :aria-label="t('tempoFaster')" @click="stepTempo(playback, 1)"><AppIcon name="plus" /></button>
+      <AppButton class="step" icon="plus" :disabled="percent >= RANGE.max" :label="t('tempoFaster')" @click="stepTempo(playback, 1)" />
     </div>
     <input
       v-model.number="percent"
@@ -52,9 +53,9 @@ const percent = computed({
       :style="{ '--fill': `${((percent - RANGE.min) / (RANGE.max - RANGE.min)) * 100}%` }"
     />
     <div class="presets">
-      <button v-for="preset in PRESETS" :key="preset" class="toggle preset" :aria-pressed="percent === preset" @click="percent = preset">
+      <ToggleChip v-for="preset in PRESETS" :key="preset" class="preset" :pressed="percent === preset" @update:pressed="percent = preset">
         {{ preset }}
-      </button>
+      </ToggleChip>
     </div>
   </div>
 </template>

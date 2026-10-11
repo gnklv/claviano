@@ -117,8 +117,10 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - [x] icons of our own (`ui/icons`), one set drawn in one manner, in place of characters of a
     font; the note of a tempo ("a quarter = 90") in the music font, as on the staff. A page of the
     design system (`#/design`, in development only) shows the set, and will show the components;
-  - the components (button, chip, segments, slider, field, card, sheet, menu, bar), and a page that
-    shows them all in both themes (in development only), as the showcase does for notation;
+  - [x] the components: a button, a chip, segments, a slider, a field, a tile for a piece, a
+    screen's header, a sheet, one pop-up (the tempo's panel and a piece's menu were two) and a menu
+    in it; three durations and one curve for all that moves. The design page shows them all, to be
+    looked at in both themes, as the showcase does for notation;
   - the rules written down (`docs/design.md`);
   - the screens repainted, one at a time.
   With it: one pop-up in place of two, no colour written by hand in a component.

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PieceTile from '../components/PieceTile.vue';
+import ScreenHeader from '../components/ScreenHeader.vue';
 import AppIcon from '../components/AppIcon.vue';
 import PieceCard from '../components/PieceCard.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
@@ -49,12 +51,10 @@ function onFileChosen(event: Event): void {
 
 <template>
   <div class="library">
-    <header class="bar">
-      <strong class="logo">{{ t('appTitle') }}</strong>
-      <div class="settings">
-        <SettingsPanel />
-      </div>
-    </header>
+    <ScreenHeader home>
+      <template #title>{{ t('appTitle') }}</template>
+      <SettingsPanel />
+    </ScreenHeader>
 
     <main class="shelf">
       <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -99,10 +99,7 @@ function onFileChosen(event: Event): void {
 
       <h2 class="heading">{{ t('demos') }}</h2>
       <div class="cards demos">
-        <button v-for="demo in demos" :key="demo.id" class="card" @click="emit('demo', demo)">
-          <span class="name">{{ t(demo.title) }}</span>
-          <span v-if="leftAt(demoPieceId(demo))" class="note">{{ leftAt(demoPieceId(demo)) }}</span>
-        </button>
+        <PieceTile v-for="demo in demos" :key="demo.id" :title="t(demo.title)" :note="leftAt(demoPieceId(demo))" @open="emit('demo', demo)" />
       </div>
     </main>
   </div>
@@ -113,23 +110,6 @@ function onFileChosen(event: Event): void {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100%;
-}
-
-.bar {
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-family: var(--font-title);
-  font-weight: var(--title-weight);
-  font-size: var(--text-l);
-}
-
-.settings {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px 16px;
-  margin-left: auto;
 }
 
 .shelf {
@@ -234,28 +214,6 @@ function onFileChosen(event: Event): void {
   padding-block: 12px;
 }
 
-.card {
-  appearance: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 4px;
-  min-height: 120px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-m);
-  background: var(--panel);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.card:hover,
-.card:focus-within {
-  background: var(--control-hover);
-}
-
 .name {
   font-size: var(--text-l);
   /* A long title takes two lines, and no more. */
@@ -297,10 +255,6 @@ function onFileChosen(event: Event): void {
     gap: 10px;
   }
 
-  .card {
-    min-height: 72px;
-  }
-
   /* The actions: one under the other, their words in full. */
   .actions {
     grid-template-columns: 1fr;
@@ -310,11 +264,5 @@ function onFileChosen(event: Event): void {
   .action {
     padding-block: 10px;
   }
-}
-
-/* (A demo is a piece, and its name a title; the names of the actions above are not.) */
-.demos .name {
-  font-family: var(--font-title);
-  font-weight: var(--title-weight);
 }
 </style>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import AppButton from './AppButton.vue';
+import TextField from './TextField.vue';
+import ToggleChip from './ToggleChip.vue';
 import { computed, ref, useTemplateRef } from 'vue';
 import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -84,15 +86,14 @@ function togglePlay(): void {
   -->
   <footer class="transport">
     <div class="playback">
-      <button
-        class="button primary"
+      <AppButton
+        variant="primary"
+        :icon="state.playing ? 'pause' : 'play'"
         :disabled="!loaded"
-        :title="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
-        :aria-label="t(state.playing ? 'pause' : 'play')"
+        :label="t(state.playing ? 'pause' : 'play')"
+        :hint="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
         @click="togglePlay"
-      >
-        <AppIcon :name="state.playing ? 'pause' : 'play'" />
-      </button>
+      />
       <input
         ref="seek"
         class="seek"
@@ -111,15 +112,12 @@ function togglePlay(): void {
     <TempoControl class="tempo" />
 
     <div class="loop">
-      <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
-        <AppIcon name="loop" small />
-        {{ t('loop') }}
-      </button>
-      <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
+      <ToggleChip v-model:pressed="loopEnabled" icon="loop" :disabled="!loaded" :title="t('loopBars')">{{ t('loop') }}</ToggleChip>
+      <TextField v-model="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopFrom')" />
       –
-      <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
+      <TextField v-model="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopTo')" />
       <template v-if="phone">
-        <button class="button more" :title="t('practice')" :aria-label="t('practice')" @click="practiceSheet?.open()"><AppIcon name="more" /></button>
+        <AppButton class="more" icon="more" :label="t('practice')" @click="practiceSheet?.open()" />
         <SheetDialog ref="practiceSheet" :title="t('practice')">
           <PracticeToggles tiled />
         </SheetDialog>
@@ -220,21 +218,6 @@ function togglePlay(): void {
 
 .number {
   width: 3.5em;
-  background: var(--control);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-s);
-  padding: 3px 4px;
-  font: inherit;
-}
-
-/* Under a finger: as tall as the buttons beside them. */
-@media (pointer: coarse), (max-width: 599px) {
-  .number {
-    min-height: var(--touch);
-    /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
-    font-size: var(--text-field);
-  }
 }
 
 /* Phones: the tempo, the loop and "⋯" have one row between them. */

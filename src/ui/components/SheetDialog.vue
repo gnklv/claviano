@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import AppButton from './AppButton.vue';
 import { ref, useTemplateRef } from 'vue';
 import { useI18n } from '../i18n/useI18n';
 
@@ -66,7 +66,7 @@ function onCancel(event: Event): void {
     <div ref="sheet" class="sheet">
       <header class="head">
         <strong>{{ title }}</strong>
-        <button class="button close" :title="t('close')" :aria-label="t('close')" @click="close"><AppIcon name="close" /></button>
+        <AppButton class="close" icon="close" :label="t('close')" @click="close" />
       </header>
       <slot />
     </div>

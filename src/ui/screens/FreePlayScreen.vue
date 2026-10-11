@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import AppIcon from '../components/AppIcon.vue';
+import AppButton from '../components/AppButton.vue';
+import ScreenHeader from '../components/ScreenHeader.vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 import PianoKeys from '../components/PianoKeys.vue';
 import PlayedRoll from '../components/PlayedRoll.vue';
@@ -45,15 +46,14 @@ onUnmounted(() => {
 
 <template>
   <div class="free-play">
-    <header class="bar">
-      <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')"><AppIcon name="back" /></button>
-      <span class="title">{{ t('freePlay') }}</span>
+    <ScreenHeader back @back="emit('back')">
+      <template #title>{{ t('freePlay') }}</template>
       <div class="octaves" role="group" :aria-label="t('octave')">
-        <button class="button" :disabled="!state.canGoLower" :title="`${t('octaveLower')} (Z)`" :aria-label="t('octaveLower')" @click="freePlay.shift(-1)"><AppIcon name="lower" /></button>
-        <button class="button" :disabled="!state.canGoHigher" :title="`${t('octaveHigher')} (X)`" :aria-label="t('octaveHigher')" @click="freePlay.shift(1)"><AppIcon name="higher" /></button>
+        <AppButton icon="lower" :disabled="!state.canGoLower" :label="t('octaveLower')" :hint="`${t('octaveLower')} (Z)`" @click="freePlay.shift(-1)" />
+        <AppButton icon="higher" :disabled="!state.canGoHigher" :label="t('octaveHigher')" :hint="`${t('octaveHigher')} (X)`" @click="freePlay.shift(1)" />
       </div>
       <SettingsPanel />
-    </header>
+    </ScreenHeader>
 
     <main class="stage" :class="{ taken }">
       <div v-if="taken" class="written">
@@ -91,28 +91,6 @@ onUnmounted(() => {
   grid-template-rows: auto 1fr auto auto;
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
-}
-
-.bar {
-  flex-wrap: nowrap;
-  border-bottom: 1px solid var(--border);
-}
-
-.back {
-  flex: none;
-  min-width: 40px;
-  padding-inline: 10px;
-}
-
-.title {
-  font-family: var(--font-title);
-  font-weight: var(--title-weight);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .octaves {

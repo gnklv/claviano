@@ -261,17 +261,6 @@ input,
   user-select: text;
 }
 
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  /* Keep clear of the notch and rounded corners (viewport-fit=cover in index.html). */
-  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px
-    max(16px, env(safe-area-inset-left));
-  background: var(--panel);
-}
-
 .group {
   display: inline-flex;
   align-items: center;
@@ -308,6 +297,20 @@ input,
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
+}
+
+/* No face until it is reached for (or what it opens is open). */
+.button.quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.button.quiet:hover:not(:disabled),
+.button.quiet[aria-expanded='true'] {
+  border-color: var(--border);
+  background: var(--control);
+  color: var(--text);
 }
 
 /* A pressable chip: on when aria-pressed is true, faded when off. */

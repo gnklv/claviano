@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import AppButton from './AppButton.vue';
 import { computed, useTemplateRef } from 'vue';
 import { useFingerHints } from '../composables/useFingerHints';
 import { useI18n } from '../i18n/useI18n';
@@ -31,7 +31,7 @@ const onOrOff = computed(() => [
 </script>
 
 <template>
-  <button class="button gear" :title="t('settings')" :aria-label="t('settings')" @click="sheet?.open()"><AppIcon name="settings" /></button>
+  <AppButton class="gear" icon="settings" :label="t('settings')" @click="sheet?.open()" />
   <SheetDialog ref="sheet" :title="t('settings')">
     <!-- Wide screens have the view in the piece's header already. -->
     <div v-if="piece" class="row view">
@@ -56,7 +56,7 @@ const onOrOff = computed(() => [
     <!-- Installing the app: a button where the browser lets the page ask, a word on how where it is done by hand. -->
     <div v-if="way === 'prompt'" class="row">
       <span class="label">{{ t('app') }}</span>
-      <button class="button" @click="install">{{ t('install') }}</button>
+      <AppButton @click="install">{{ t('install') }}</AppButton>
     </div>
     <div v-else-if="way === 'ios'" class="row install-by-hand">
       <span class="label">{{ t('app') }}</span>

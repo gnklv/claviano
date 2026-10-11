@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import ToggleChip from './ToggleChip.vue';
 import { computed, ref } from 'vue';
 import type { Hand } from '../../domain/note';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -46,32 +46,25 @@ useAnimationFrame(() => {
 
 <template>
   <div class="practice" :class="{ tiled }">
-    <button
-      v-for="{ hand, label } in hands"
-      :key="hand"
-      class="toggle"
-      :class="`hand-${hand}`"
-      :aria-pressed="state.hands[hand]"
-      @click="playback.setHandEnabled(hand, !state.hands[hand])"
-    >
+    <ToggleChip v-for="{ hand, label } in hands" :key="hand" :class="`hand-${hand}`" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
       <span class="dot" aria-hidden="true" />
       {{ t(label) }}
-    </button>
+    </ToggleChip>
 
-    <button
-      class="toggle metronome"
+    <ToggleChip
+      class="metronome"
       :class="`pulse-${pulse}`"
-      :aria-pressed="state.metronome"
+      icon="metronome"
+      :pressed="state.metronome"
       :title="t('metronomeHint')"
-      @click="playback.setMetronomeEnabled(!state.metronome)"
+      @update:pressed="playback.setMetronomeEnabled($event)"
     >
-      <AppIcon name="metronome" small />
       {{ t('metronome') }}
-    </button>
+    </ToggleChip>
 
-    <button v-for="item in switches" :key="item.label" class="toggle" :aria-pressed="item.on" @click="item.set(!item.on)">
+    <ToggleChip v-for="item in switches" :key="item.label" :pressed="item.on" @update:pressed="item.set($event)">
       {{ t(item.label) }}
-    </button>
+    </ToggleChip>
   </div>
 </template>
 
@@ -119,12 +112,12 @@ useAnimationFrame(() => {
   background: currentColor;
 }
 
-.metronome .icon {
+.metronome :deep(.icon) {
   color: var(--muted);
 }
 
-.metronome.pulse-beat .icon,
-.metronome.pulse-accent .icon {
+.metronome.pulse-beat :deep(.icon),
+.metronome.pulse-accent :deep(.icon) {
   color: var(--accent);
 }
 
