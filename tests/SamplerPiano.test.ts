@@ -151,6 +151,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // A piano goes on fetching the rest of its set after a test has seen what it came for: left on,
+  // it would ask the next test's network, and be counted among that test's requests.
+  piano.setEnabled(false);
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
