@@ -223,10 +223,10 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        back with its place, tempo, loop and hands; a piece can be renamed, saved out as its
        file, taken off the shelf. The browser is asked to keep the storage; where it gives
        none, the library says so
-5. [ ] Install as an app on the phone. Done: the web app manifest, the icons (`npm run icons`
-       draws them), an iPhone's tags, the system bar in the header's colour. To do: a pass on
-       the installed app (the notch, the home indicator), a word in the settings on how to
-       install. An installed app's library is not wiped by iOS Safari
+5. [x] Install as an app: the web app manifest, the icons (`npm run icons` draws them), an
+       iPhone's tags, the system bar in the header's colour; in the settings, a button to install
+       where the browser lets the page ask, and a word on how on an iPhone. An installed app's
+       library is not wiped by iOS Safari
 6. [ ] Free play from the keys on the screen: what is played is written down as it is played,
        saved as a piece, saved out as MIDI
 7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the

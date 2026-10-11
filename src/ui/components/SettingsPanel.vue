@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue';
 import { useI18n } from '../i18n/useI18n';
+import { useInstall } from '../install/useInstall';
 import LanguageSwitch from './LanguageSwitch.vue';
 import SheetDialog from './SheetDialog.vue';
 import SoundSettings from './SoundSettings.vue';
@@ -15,6 +16,7 @@ defineProps<{ piece?: boolean }>();
 
 const { t } = useI18n();
 const sheet = useTemplateRef('sheet');
+const { way, install } = useInstall();
 </script>
 
 <template>
@@ -34,6 +36,16 @@ const sheet = useTemplateRef('sheet');
     <div class="row">
       <span class="label">{{ t('language') }}</span>
       <LanguageSwitch />
+    </div>
+
+    <!-- Installing the app: a button where the browser lets the page ask, a word on how where it is done by hand. -->
+    <div v-if="way === 'prompt'" class="row">
+      <span class="label">{{ t('app') }}</span>
+      <button class="button" @click="install">{{ t('install') }}</button>
+    </div>
+    <div v-else-if="way === 'ios'" class="row install-by-hand">
+      <span class="label">{{ t('app') }}</span>
+      <span class="how">{{ t('installOnIphone') }}</span>
     </div>
 
     <!-- The samples' licence (CC BY) asks for the author, the licence and what was changed. -->
@@ -65,6 +77,12 @@ const sheet = useTemplateRef('sheet');
 
 .label {
   color: var(--muted);
+}
+
+.how {
+  font-size: 13px;
+  text-align: right;
+  text-wrap: balance;
 }
 
 /* The view switch is in the header on a wide screen: here only where the header has no room for it. */
