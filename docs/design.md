@@ -119,6 +119,9 @@ A screen is built of these, and does not write a button or a field of its own.
 | `AppIcon` | an icon of the set | |
 | `TempoMark` | a tempo as the page writes it | |
 
+- **Nothing sticks out of its box.** Where things do not fit a row, the row wraps: a chip goes to
+  the next row, a setting's control goes under its words. Where nothing can wrap (a bar of one
+  row), the words of a button or a chip are cut short with an ellipsis. A sheet scrolls one way.
 - **A pop-up or a sheet?** A pop-up where there is room and the thing is small; a sheet on a phone,
   and for what is long. The tempo is both: the same controls, in whichever fits.
 - **A chip or segments?** Segments when the choices exclude one another and are few; chips when

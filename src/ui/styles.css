@@ -300,6 +300,25 @@ input,
   }
 }
 
+/*
+ * A button or a chip is never wider than the room it is given: its words are cut short with an
+ * ellipsis before anything sticks out of it. (Cut sideways only: a note of the music font stands
+ * taller than the line it is in.)
+ */
+.button,
+.toggle {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.button .words,
+.toggle .words {
+  min-width: 0;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .button:disabled {
   opacity: 0.4;
   cursor: default;

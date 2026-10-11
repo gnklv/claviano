@@ -47,7 +47,7 @@ useAnimationFrame(() => {
 <template>
   <div class="practice" :class="{ tiled }">
     <ToggleChip v-for="{ hand, label } in hands" :key="hand" :class="`hand-${hand}`" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
-      <span class="dot" aria-hidden="true" />
+      <template #sign><span class="dot" aria-hidden="true" /></template>
       {{ t(label) }}
     </ToggleChip>
 
@@ -77,19 +77,17 @@ useAnimationFrame(() => {
   min-width: 0;
 }
 
-.tiled {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-}
-
+/*
+ * In a sheet: rows filled from edge to edge, the hands sharing the first. A chip is never narrower
+ * than its words: where three do not fit a row (a narrow sheet, a long language), one goes to the next.
+ */
 .tiled .toggle {
-  grid-column: span 2;
+  flex: 1 1 auto;
   justify-content: center;
-  padding-inline: var(--space-1);
 }
 
 .tiled .toggle[class*='hand-'] {
-  grid-column: span 3;
+  flex-basis: 40%;
 }
 
 .dot {

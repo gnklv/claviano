@@ -18,7 +18,9 @@ defineProps<{ label: string; tag?: 'div' | 'label' }>();
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  /* (Where the words and the control do not fit a row, the control goes under the words.) */
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
 }
 
 .label {

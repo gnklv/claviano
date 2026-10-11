@@ -22,6 +22,6 @@ defineProps<{
 <template>
   <button class="button" :class="variant" type="button" :title="hint ?? label" :aria-label="label">
     <AppIcon v-if="icon" :name="icon" :small="!!$slots.default" />
-    <slot />
+    <span v-if="$slots.default" class="words"><slot /></span>
   </button>
 </template>
