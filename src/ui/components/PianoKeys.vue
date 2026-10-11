@@ -155,6 +155,9 @@ onUnmounted(() => {
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
+    @touchstart.prevent
+    @touchmove.prevent
+    @touchend.prevent
     @contextmenu.prevent
   >
     <div v-for="pitch in whites" :key="pitch" class="key white" :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]" :data-pitch="pitch">
@@ -180,7 +183,11 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   height: 100%;
-  /* Every touch here is a key pressed: no scrolling, no zooming, no selecting. */
+  /*
+   * Every touch here is a key pressed: no scrolling, no zooming, no selecting. (Said twice: here,
+   * and by refusing the touches their default in the template. An iPhone still zooms on two quick
+   * taps, or on two fingers landing together, where it is only asked not to by `touch-action`.)
+   */
   touch-action: none;
   user-select: none;
   background: var(--border);

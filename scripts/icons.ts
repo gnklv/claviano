@@ -6,6 +6,9 @@
  * Nothing is needed to run it: the icon is a handful of rounded rectangles, drawn here and written
  * as PNG with what Node has (zlib). The shapes below repeat the favicon's: change both together.
  *
+ * A browser and a phone keep an icon for as long as its address is the same: when the drawing
+ * changes, the number after "?v=" in index.html and the manifest goes up with it.
+ *
  * Run: npm run icons
  */
 import { mkdirSync, writeFileSync } from 'node:fs';

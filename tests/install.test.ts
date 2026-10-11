@@ -28,7 +28,8 @@ describe('installing the app', () => {
   it('has the icons the manifest names, of the sizes it says: 192 and 512, and one for cutting to shape', () => {
     for (const icon of manifest.icons) {
       const [width, height] = icon.sizes.split('x').map(Number);
-      expect(sizeOf(read(`public/${icon.src}`))).toEqual({ signature: 'PNG', width, height });
+      // (The address carries the drawing's number after "?": the file is what is before it.)
+      expect(sizeOf(read(`public/${icon.src.split('?')[0]}`))).toEqual({ signature: 'PNG', width, height });
     }
     expect(manifest.icons.map((icon) => icon.sizes).sort()).toEqual(['192x192', '512x512', '512x512']);
     expect(manifest.icons.filter((icon) => icon.purpose === 'maskable')).toHaveLength(1);
@@ -37,7 +38,7 @@ describe('installing the app', () => {
   it('names the manifest and an iPhone’s icon in the page', () => {
     const page = read('index.html').toString();
     expect(page).toContain('<link rel="manifest" href="/manifest.webmanifest" />');
-    expect(page).toContain('<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />');
+    expect(page).toMatch(/<link rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png\?v=\d+" \/>/);
     expect(sizeOf(read('public/icons/apple-touch-icon.png'))).toEqual({ signature: 'PNG', width: 180, height: 180 });
     expect(page).toContain('<meta name="theme-color"');
   });

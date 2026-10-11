@@ -45,7 +45,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="free-play">
+  <!-- (Safari's own pinch, which begins with a finger on the keys and another beside them: this screen is played on, not zoomed.) -->
+  <div class="free-play" @gesturestart.prevent>
     <ScreenHeader class="bar" back @back="emit('back')">
       <template #title>{{ t('freePlay') }}</template>
       <div class="octaves" role="group" :aria-label="t('octave')">
