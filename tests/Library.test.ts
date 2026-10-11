@@ -207,9 +207,30 @@ describe('the library', () => {
     });
   });
 
+  it('asks once that the shelf be kept for good, when the first piece of one’s own is on it', async () => {
+    expect(shelf.protections).toBe(0);
+    await library.open(demoPieceId(demo));
+    expect(shelf.protections).toBe(0);
+    await library.openFile('one.tune', bytes('one'));
+    await library.openFile('two.tune', bytes('two'));
+    await Promise.resolve();
+    expect(shelf.protections).toBe(1);
+  });
+
+  it('knows whether the shelf keeps: yes while it reads and writes, no once it fails, yes again when it works', async () => {
+    expect(library.keeps).toBe(true);
+    shelf.broken = true;
+    await library.openFile('one.tune', bytes('one'));
+    expect(library.keeps).toBe(false);
+    shelf.broken = false;
+    await library.openFile('two.tune', bytes('two'));
+    expect(library.keeps).toBe(true);
+  });
+
   it('goes on without a shelf: pieces open, nothing is kept, nothing fails', async () => {
     shelf.broken = true;
     await start();
+    expect(library.keeps).toBe(false);
     await library.openFile('one.tune', bytes('one'));
     expect(playback.score?.title).toBe('one');
     expect(library.current).toBe(contentId(bytes('one')));

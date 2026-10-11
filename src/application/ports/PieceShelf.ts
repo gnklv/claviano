@@ -33,6 +33,11 @@ export interface PieceShelf {
   file(id: string): Promise<ArrayBuffer | null>;
   /** Puts a piece on the shelf, or writes anew what is known of one; `data` is its file, given when it is new. */
   save(piece: ShelvedPiece, data?: ArrayBuffer): Promise<void>;
+  /**
+   * Asks that the shelf be kept for good: a browser short of room clears what sites have stored,
+   * unless it was asked not to (and agreed). Nothing comes of it either way: it is only asked.
+   */
+  protect(): Promise<void>;
   /** Takes a piece off the shelf, with its file and what was remembered of it. */
   remove(id: string): Promise<void>;
   /** How each piece was left, by its id (a demo's too, which is not on the shelf). What is read is whatever was stored: to be checked. */

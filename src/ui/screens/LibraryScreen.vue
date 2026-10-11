@@ -77,6 +77,8 @@ function onFileChosen(event: Event): void {
         />
       </div>
       <p class="hint">{{ t('libraryHint') }}</p>
+      <!-- A private window, or no room: said once, here, so that pieces gone after a reload are no surprise. -->
+      <p v-if="!shelf.keeps" class="unkept" role="status">{{ t('shelfUnavailable') }}</p>
 
       <h2 class="heading">{{ t('demos') }}</h2>
       <div class="cards demos">
@@ -137,8 +139,14 @@ function onFileChosen(event: Event): void {
   text-transform: uppercase;
 }
 
-/* (After one's own pieces and the hint under them: a section apart.) */
-.hint + .heading {
+.unkept {
+  margin-top: 12px;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+/* (After one's own pieces and what is said under them: a section apart.) */
+.hint ~ .heading {
   margin-top: 40px;
 }
 

@@ -60,6 +60,11 @@ export class FakePieceShelf implements PieceShelf {
       if (data) this.files.set(piece.id, data);
     });
   }
+  /** How many times it was asked to be kept for good. */
+  protections = 0;
+  protect(): Promise<void> {
+    return this.answer(() => void this.protections++);
+  }
   remove(id: string): Promise<void> {
     return this.answer(() => {
       this.pieces.delete(id);

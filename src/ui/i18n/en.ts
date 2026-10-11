@@ -47,6 +47,7 @@ export const en = {
 
   openMidi: 'Open file',
   myPieces: 'My pieces',
+  shelfUnavailable: 'Pieces are not kept here: the browser gives no storage (as in a private window). They open as usual, and are gone when the page is closed.',
   demos: 'Demos',
   leftAtBar: 'bar {bar} of {bars}',
   pieceActions: 'Actions',

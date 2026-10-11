@@ -218,10 +218,11 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
 3. [x] Phones and tablets: a phone upright (practice behind "⋯", the staff or the keys) and on its
        side (the header and the transport leave the screen to the music); a tablet; finger-sized
        controls; a pass on an iPhone and an iPad in the iOS Simulator and on a real iPhone
-4. [ ] The library remembers. Done: opened pieces are kept in the browser and stand in the
-       library, each under an address of its own; each (a demo too) comes back with its place,
-       tempo, loop and hands; a piece can be renamed, saved out as its file, taken off the shelf.
-       To do: asking the browser to keep the storage, and saying so where there is none
+4. [x] The library remembers: opened pieces are kept in the browser (IndexedDB) and stand in the
+       library, apart from the demos, each under an address of its own; each (a demo too) comes
+       back with its place, tempo, loop and hands; a piece can be renamed, saved out as its
+       file, taken off the shelf. The browser is asked to keep the storage; where it gives
+       none, the library says so
 5. [ ] Install as an app on the phone (web app manifest, icons; the service worker is there):
        an installed app's library is not wiped by iOS Safari
 6. [ ] Free play from the keys on the screen: what is played is written down as it is played,

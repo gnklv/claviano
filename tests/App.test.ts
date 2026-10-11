@@ -399,6 +399,15 @@ describe('the app', () => {
       button(/Back to the library/).click();
       await settled();
       expect(cards()).toEqual(['Open file', 'Ode to Joy', 'Showcase: everything the player can do']);
+      // And says so, once, in the library.
+      expect(root.querySelector('[role=status]')?.textContent).toMatch(/not kept here/);
+    });
+
+    it('says nothing about storage where there is some', async () => {
+      await drop('first.musicxml', xml('First'));
+      button(/Back to the library/).click();
+      await settled();
+      expect(root.querySelector('[role=status]')).toBeNull();
     });
   });
 

@@ -26,6 +26,9 @@ export class Library {
   /** Counts the openings asked for: a file that arrives from the shelf after something else was asked for is dropped. */
   private asked = 0;
   private loaded: Promise<void> = Promise.resolve();
+  /** Whether the shelf keeps what it is given; found out as it is read and written. */
+  private keeping = true;
+  private protectionAsked = false;
   private readonly listeners = new Set<() => void>();
 
   constructor(
@@ -51,6 +54,11 @@ export class Library {
   /** The piece that is open now (a demo's id for a demo); null when nothing is. */
   get current(): string | null {
     return this.opened && this.opened.score === this.playback.score ? this.opened.id : null;
+  }
+
+  /** False where nothing can be kept (a private window, no room): pieces open, and are gone with the page. */
+  get keeps(): boolean {
+    return this.keeping;
   }
 
   /** How a piece was left; null for one never opened (or never remembered). */
@@ -81,10 +89,11 @@ export class Library {
           const memory = asMemory(stored);
           if (memory) this.remembered.set(id, memory);
         }
-        this.emit();
+        this.kept(true);
       },
       () => {
         // No shelf: nothing is on it.
+        this.kept(false);
       },
     );
     return this.loaded;
@@ -157,9 +166,21 @@ export class Library {
       await this.shelf.save(piece, data);
     } catch {
       // Not kept: the piece is open all the same.
+      this.kept(false);
       return;
     }
+    // With something of one's own on the shelf, it is worth asking that the shelf be kept for good.
+    if (!this.protectionAsked) {
+      this.protectionAsked = true;
+      this.shelf.protect().catch(() => {});
+    }
+    this.keeping = true;
     this.shelved = sorted([piece, ...this.shelved.filter((other) => other.id !== piece.id)]);
+    this.emit();
+  }
+
+  private kept(keeping: boolean): void {
+    this.keeping = keeping;
     this.emit();
   }
 
