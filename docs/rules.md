@@ -48,8 +48,9 @@ copy of something written a month before.
 - **No state at the top of a module that a test cannot reset.** A listener or a ref made when a
   file is imported lives through every test after it. State is made where it is used, or the
   module gives a way to start it afresh.
-- **The browser is touched in few places.** `localStorage`, `matchMedia` and listeners on `window`
-  go through the helpers that are there, not straight from a component.
+- **The browser is touched in few places.** A choice of the interface kept between visits is a
+  `preference` (`ui/preferences.ts`); the width of the screen is asked through `useMediaQuery`.
+  `localStorage`, `matchMedia` and listeners on `window` are not used straight from a component.
 
 ## The look
 
@@ -80,8 +81,8 @@ are in [design.md](design.md) (written with the design system); these hold from 
 ## Tests
 
 - **By behaviour, in the words of the user**: what the thing does, not how it is built.
-- **One file a screen** for the app's tests, on a shared harness; a test file past a few hundred
-  lines is split.
+- **One file a screen** for the app's tests (`tests/app`), on a shared harness
+  (`tests/app/harness.ts`); a test file past a few hundred lines is split.
 - **Stand-ins for the ports live in `tests/fakes.ts`**, one of each.
 - **Nothing is left over from one test to the next**: storage, the address, module state.
 - A test that waits on time uses a clock set by hand, not a real delay.

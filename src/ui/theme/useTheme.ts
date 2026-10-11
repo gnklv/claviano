@@ -1,20 +1,11 @@
 import { computed, readonly, ref, watch } from 'vue';
+import { preference } from '../preferences';
 import { DEFAULT_THEME_SETTING, THEME_SETTINGS, resolveTheme, type Theme, type ThemeSetting } from './resolveTheme';
 
 /** Also read by the inline script in index.html, which sets the theme before the first paint. */
 const STORAGE_KEY = 'claviano.theme';
 
-function initialSetting(): ThemeSetting {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && (THEME_SETTINGS as readonly string[]).includes(saved)) return saved as ThemeSetting;
-  } catch {
-    // Storage can be unavailable; the default is fine.
-  }
-  return DEFAULT_THEME_SETTING;
-}
-
-const setting = ref<ThemeSetting>(initialSetting());
+const setting = preference<ThemeSetting>(STORAGE_KEY, THEME_SETTINGS, DEFAULT_THEME_SETTING);
 
 // Follow the system theme live, e.g. when macOS switches to dark in the evening.
 const systemQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -49,14 +40,6 @@ function applyTheme(theme: Theme, animate: boolean): void {
 }
 
 watch(resolvedTheme, (theme, previous) => applyTheme(theme, previous !== undefined), { immediate: true });
-
-watch(setting, (value) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, value);
-  } catch {
-    // Not remembering the choice is fine.
-  }
-});
 
 export function useTheme() {
   return { setting, theme: readonly(appliedTheme) };

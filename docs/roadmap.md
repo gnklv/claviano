@@ -92,7 +92,7 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        two pieces, and no two pianists finger alike
 Before the next steps, in this order (agreed after a review of the code and of the look):
 
-- [ ] Tidying, each a small commit:
+- [x] Tidying, each a small commit:
   - [x] what nothing uses goes (`domain/fingering/score.ts`: the hints are worked out from the
     written notes now);
   - [x] one helper for mirroring a use case into the interface (`useMirror`), in place of nine
@@ -101,7 +101,9 @@ Before the next steps, in this order (agreed after a review of the code and of t
     whether to show them;
   - [x] the tiles of free play are drawn in `infrastructure/render`, behind a port, as the
     falling notes are (and the linter holds it: no canvas is drawn in `ui`);
-  - the app's tests by screen, on one harness, with nothing left over from one test to the next.
+  - [x] the app's tests by screen (`tests/app`), on one harness, with nothing left over from one
+    test to the next; and with it one way of keeping the interface's choices (`ui/preferences.ts`:
+    the view, the theme, the language, the hints), read afresh for each test.
 - [ ] A design system, each step looked at before the next:
   - the character: a pianist's notebook. Paper and ink; titles in a serif, as words in sheet music
     are; one accent, the red of a piano's felt, for the one main action of a screen. Blue and
@@ -113,8 +115,7 @@ Before the next steps, in this order (agreed after a review of the code and of t
     shows them all in both themes (in development only), as the showcase does for notation;
   - the rules written down (`docs/design.md`);
   - the screens repainted, one at a time.
-  With it: one pop-up in place of two, one way of keeping the interface's choices in place of
-  three, no colour written by hand in a component.
+  With it: one pop-up in place of two, no colour written by hand in a component.
 
 Then, when the places are next touched: free play does not ready the instrument for the piece
 (that is PrepareInstrument's), one scheduler of metronome clicks for playback and recording, what

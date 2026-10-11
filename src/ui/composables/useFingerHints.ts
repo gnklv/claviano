@@ -1,27 +1,10 @@
-import { ref, watch } from 'vue';
+import { computed, type WritableComputedRef } from 'vue';
+import { preference } from '../preferences';
 
-const STORAGE_KEY = 'claviano.fingerHints';
-
-function initial(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'on';
-  } catch {
-    // Storage can be unavailable; off is the default anyway.
-    return false;
-  }
-}
-
+const kept = preference<'on' | 'off'>('claviano.fingerHints', ['on', 'off'], 'off');
 /** Whether fingers are offered where the notes give none. Off unless asked for; remembered between visits. */
-const fingerHints = ref(initial());
+const fingerHints = computed({ get: () => kept.value === 'on', set: (on: boolean) => (kept.value = on ? 'on' : 'off') });
 
-watch(fingerHints, (on) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, on ? 'on' : 'off');
-  } catch {
-    // Not remembering the choice is fine.
-  }
-});
-
-export function useFingerHints() {
+export function useFingerHints(): WritableComputedRef<boolean> {
   return fingerHints;
 }

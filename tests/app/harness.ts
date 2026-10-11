@@ -1,0 +1,156 @@
+import { afterEach, beforeEach, vi } from 'vitest';
+import { createApp, nextTick, type App as VueApp } from 'vue';
+import type { Instrument } from '../../src/application/ports/Instrument';
+import type { RollView } from '../../src/application/ports/RollView';
+import type { StaffView } from '../../src/application/ports/StaffView';
+import type { PlayedTile, TilesView } from '../../src/application/ports/TilesView';
+import { BarLoop } from '../../src/application/use-cases/BarLoop';
+import { keepTake } from '../../src/application/use-cases/keepTake';
+import { FreePlay } from '../../src/application/use-cases/FreePlay';
+import { Library } from '../../src/application/use-cases/Library';
+import { LoadScore } from '../../src/application/use-cases/LoadScore';
+import { OpenScore } from '../../src/application/use-cases/OpenScore';
+import { Playback } from '../../src/application/use-cases/Playback';
+import { Recorder } from '../../src/application/use-cases/Recorder';
+import { rememberPieces } from '../../src/application/use-cases/rememberPieces';
+import { Volume } from '../../src/application/use-cases/Volume';
+import { odeToJoy } from '../../src/demo/odeToJoy';
+import type { Score } from '../../src/domain/score';
+import { MidiFileParser } from '../../src/infrastructure/parsers/MidiFileParser';
+import { MusicXmlParser } from '../../src/infrastructure/parsers/MusicXmlParser';
+import { MidiFileWriter } from '../../src/infrastructure/writers/MidiFileWriter';
+import App from '../../src/ui/App.vue';
+import { depsKey } from '../../src/ui/deps';
+import { rereadPreferences } from '../../src/ui/preferences';
+import { FakeAudio, FakePieceShelf, FakeTicker } from '../fakes';
+
+/*
+ * The app as a whole, for its tests: mounted with stand-ins for sound, drawing and storage, started
+ * afresh for each test. A test file calls `useApp()` once, and reads what it needs from here: the
+ * use cases, what the stand-ins were given, and helpers that act as a person would (press a
+ * button, drop a file).
+ */
+
+const view = <T>(methods: Partial<T>): T => new Proxy(methods, { get: (target, name) => (name in target ? target[name as keyof T] : () => null) }) as T;
+const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare() {} };
+
+export let playback: Playback;
+export let volume: Volume;
+export let app: VueApp;
+export let shelf: FakePieceShelf;
+/** What sounds: the piece's notes, and the keys struck by hand. */
+export let audio: FakeAudio;
+/** What the staff was told to show, each time it was told. */
+export let staffScores: (Score | null)[];
+/** The tiles of free play, as last handed to their view. */
+export let tilesShown: readonly PlayedTile[];
+/** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
+export let start: () => void;
+export let root: HTMLElement;
+/** The window's width, as the app asks about it: a phone or not. */
+export const screen = { phone: false, short: false, listeners: new Set<() => void>() };
+export const turnIntoPhone = async () => {
+  screen.phone = true;
+  screen.listeners.forEach((listener) => listener());
+  await nextTick();
+};
+
+export const text = () => root.textContent ?? '';
+export const onPiece = () => root.querySelector('.piece') !== null;
+export const button = (label: RegExp) => [...root.querySelectorAll<HTMLElement>('button, label')].find((element) => label.test(element.textContent ?? '') || label.test(element.getAttribute('aria-label') ?? ''))!;
+export const settled = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await nextTick();
+};
+export const drop = async (name: string, content: string) => {
+  const event = new Event('drop', { bubbles: true, cancelable: true });
+  Object.assign(event, { dataTransfer: { files: [new File([content], name)] } });
+  root.querySelector('.app')!.dispatchEvent(event);
+  await settled();
+};
+
+/** A piece of one bar as MusicXML, under a title: a file to open. */
+export const xml = (title: string) =>
+  `<?xml version="1.0"?><score-partwise><work><work-title>${title}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note></measure></part></score-partwise>`;
+
+/** The page is loaded again, at the address that stands, with the shelf as it was left. */
+export const restart = async () => {
+  app.unmount();
+  root.remove();
+  start();
+  await settled();
+};
+
+/** Sets the app up before each test of the file, and takes it down after. */
+export function useApp(): void {
+  beforeEach(() => {
+  localStorage.clear();
+  localStorage.setItem('claviano.locale', 'en');
+  // (The interface's choices are read once and kept: read again, as a page just loaded would.)
+  rereadPreferences();
+  location.hash = '';
+  vi.spyOn(history, 'back').mockImplementation(() => {
+    location.hash = '#/';
+    window.dispatchEvent(new Event('hashchange'));
+  });
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  screen.phone = false;
+  screen.short = false;
+  screen.listeners.clear();
+  vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
+    const media = {
+      get matches() {
+        return (screen.phone && query.includes('max-width: 599px')) || (screen.short && query.includes('max-height: 500px'));
+      },
+      addEventListener: (_: string, listener: () => void) => screen.listeners.add(listener),
+      removeEventListener: (_: string, listener: () => void) => screen.listeners.delete(listener),
+    };
+    return media as unknown as MediaQueryList;
+  });
+  shelf = new FakePieceShelf();
+  start = () => {
+    audio = new FakeAudio();
+    staffScores = [];
+    tilesShown = [];
+    playback = new Playback(audio, new FakeTicker());
+    volume = new Volume(new FakeAudio());
+    root = document.createElement('div');
+    document.body.append(root);
+    const demos = [
+      { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
+      { id: 'lost', title: 'demoShowcase', load: () => Promise.reject(new Error('HTTP 404')) },
+    ] as const;
+    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser(), new MidiFileParser()]));
+    const library = new Library(shelf, openScore, playback, demos);
+    void library.load();
+    const barLoop = new BarLoop(playback);
+    rememberPieces(library, playback, barLoop);
+    const freePlay = new FreePlay(audio, instrument, playback);
+    const recorder = new Recorder(freePlay, audio, new FakeTicker());
+    app = createApp(App).provide(depsKey, {
+      playback,
+      barLoop,
+      volume,
+      instrument,
+      openScore,
+      library,
+      freePlay,
+      recorder,
+      keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
+      createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
+      createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
+      createTiles: () => view<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
+      demos,
+    });
+    app.mount(root);
+  };
+  start();
+});
+
+afterEach(() => {
+  app.unmount();
+  root.remove();
+  vi.restoreAllMocks();
+  location.hash = '';
+});
+}
