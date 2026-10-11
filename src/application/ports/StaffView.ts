@@ -29,8 +29,11 @@ export interface StaffView {
   resize(): void;
   /** Called every frame, with the music's position in seconds. Chords of muted hands are not highlighted. */
   render(position: number, isHandEnabled?: (hand: Hand) => boolean, playing?: boolean): void;
-  /** Moves the music by `dx` pixels by hand (to the right: back in the music); the music plays on. */
-  dragBy(dx: number): void;
+  /**
+   * Moves the music by `dx` pixels by hand (to the right: back in the music); the music plays on.
+   * Says by how many pixels it could (fewer, at an end of the piece).
+   */
+  dragBy(dx: number): number;
   /** Back to following the music (after a jump). */
   followMusic(): void;
 }

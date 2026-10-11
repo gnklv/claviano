@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGlide } from '../composables/useGlide';
 import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { RollView } from '../../application/ports/RollView';
@@ -64,13 +65,31 @@ function draw(): void {
 /** A pointer moves this many pixels before it counts as dragging rather than tapping. */
 const DRAG_PX = 6;
 
-/** The finger or mouse currently pressed, where it was last, and which way it drags once it does. */
-let press: { pointerId: number; x: number; y: number; startX: number; startY: number; drag: 'none' | 'time' | 'keys' } | null = null;
+/**
+ * Let go on the move, the view goes on the way it was drawn and slows to rest (see
+ * ui/motion/glide.ts): through the music, or along the keyboard. In pixels of the pointer's way.
+ */
+const glides = {
+  time: useGlide((by) => {
+    const secondsPerPixel = roll?.secondsPerPixel;
+    return roll && secondsPerPixel ? roll.browseBy(by * secondsPerPixel) / secondsPerPixel : 0;
+  }),
+  // (The keyboard is scrolled against the pointer: drawn to the left, it shows what is to the right.)
+  keys: useGlide((by) => -(roll?.scrollBy(-by) ?? 0)),
+};
+
+/**
+ * The finger or mouse currently pressed, where it was last, and which way it drags once it does.
+ * `caught`: it came down on a view that was gliding, and stops it: not a tap on what was under it.
+ */
+let press: { pointerId: number; x: number; y: number; startX: number; startY: number; drag: 'none' | 'time' | 'keys'; caught: boolean } | null = null;
 
 function onPointerDown(event: PointerEvent): void {
   if (press || event.button !== 0) return;
   const { clientX: x, clientY: y } = event;
-  press = { pointerId: event.pointerId, x, y, startX: x, startY: y, drag: 'none' };
+  press = { pointerId: event.pointerId, x, y, startX: x, startY: y, drag: 'none', caught: glides.time.moving || glides.keys.moving };
+  glides.time.hold(y);
+  glides.keys.hold(x);
   canvas.value?.setPointerCapture(event.pointerId);
 }
 
@@ -83,11 +102,15 @@ function onPointerMove(event: PointerEvent): void {
     // The first clear movement decides the direction for the whole drag.
     if (Math.max(dx, dy) > DRAG_PX) press.drag = dy >= dx ? 'time' : 'keys';
   }
-  if (press.drag === 'keys') roll?.scrollBy(press.x - x);
+  if (press.drag === 'keys') {
+    roll?.scrollBy(press.x - x);
+    glides.keys.follow(x);
+  }
   if (press.drag === 'time') {
     // Pulling the notes down brings later music into view.
     const secondsPerPixel = roll?.secondsPerPixel;
     if (secondsPerPixel) roll?.browseBy((y - press.y) * secondsPerPixel);
+    glides.time.follow(y);
   }
   press.x = x;
   press.y = y;
@@ -95,9 +118,13 @@ function onPointerMove(event: PointerEvent): void {
 
 function onPointerUp(event: PointerEvent): void {
   if (!press || event.pointerId !== press.pointerId) return;
-  const tapped = press.drag === 'none';
+  const { drag, caught } = press;
   press = null;
-  if (!tapped) return;
+  if (drag !== 'none') {
+    glides[drag].letGo();
+    return;
+  }
+  if (caught) return;
   const time = roll?.timeAt(event.clientY);
   if (time === null || time === undefined) return;
   loop.jumpTo(time);

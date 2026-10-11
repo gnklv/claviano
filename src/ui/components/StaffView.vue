@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGlide } from '../composables/useGlide';
 import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { withFingerHints } from '../../domain/fingering/hints';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
@@ -47,6 +48,9 @@ useAnimationFrame(() => staff?.render(playback.position, (hand) => playback.isHa
 
 // --- Click to jump there; drag to look through the tape; Shift+drag (or a long press) to loop bars ---
 
+/** Let go on the move, the tape goes on and slows to rest (see ui/motion/glide.ts). */
+const glide = useGlide((by) => staff?.dragBy(by) ?? 0);
+
 /** A pointer moves this many pixels before it counts as dragging rather than clicking. */
 const DRAG_PX = 6;
 /** On a touch screen, holding this long before moving selects bars to loop instead of dragging the tape. */
@@ -61,6 +65,8 @@ let press: {
   place: { bar: number; beat: number };
   toBar: number;
   mode: 'pending' | 'drag' | 'select';
+  /** The press caught the tape gliding: it stops it, and is not a click on what happened to be under it. */
+  caught: boolean;
   /** Shift was held, or the long press fired: moving selects bars. */
   selecting: boolean;
   timer: number;
@@ -84,6 +90,7 @@ function onPointerDown(event: PointerEvent): void {
     place,
     toBar: place.bar,
     mode: 'pending' as const,
+    caught: glide.moving,
     selecting: event.shiftKey,
     timer: 0,
   };
@@ -97,6 +104,7 @@ function onPointerDown(event: PointerEvent): void {
     }, LONG_PRESS_MS);
   }
   press = current;
+  glide.hold(event.clientX);
   container.value?.setPointerCapture(event.pointerId);
 }
 
@@ -114,6 +122,7 @@ function onPointerMove(event: PointerEvent): void {
   }
   if (press.mode === 'drag') {
     staff?.dragBy(event.clientX - press.x);
+    glide.follow(event.clientX);
   } else if (press.mode === 'select') {
     press.toBar = staff?.pageAt(event.clientX)?.bar ?? press.toBar;
     staff?.setSelection({ from: press.place.bar, to: press.toBar });
@@ -123,10 +132,11 @@ function onPointerMove(event: PointerEvent): void {
 
 function onPointerUp(event: PointerEvent): void {
   if (!press || event.pointerId !== press.pointerId) return;
-  const { place, toBar, mode } = press;
+  const { place, toBar, mode, caught } = press;
   endPress();
+  if (mode === 'drag') glide.letGo();
   const score = playback.score;
-  if (!score || mode === 'drag') return;
+  if (!score || mode === 'drag' || (caught && mode === 'pending')) return;
   // Repeated bars: the pass nearest to where playback is now.
   const time = timeAtPage(score, place.bar, place.beat, playback.position);
   if (mode === 'select') {

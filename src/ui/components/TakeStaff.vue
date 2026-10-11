@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGlide } from '../composables/useGlide';
 import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -41,20 +42,26 @@ useAnimationFrame(() => staff?.render(recorder.position, undefined, state.value.
 // --- Drawn along by hand, to read what was written. ---
 
 let dragged: { pointer: number; x: number } | null = null;
+/** Let go on the move, the staff goes on and slows to rest (see ui/motion/glide.ts). */
+const glide = useGlide((by) => staff?.dragBy(by) ?? 0);
 
 function onPointerDown(event: PointerEvent): void {
   dragged = { pointer: event.pointerId, x: event.clientX };
+  glide.hold(event.clientX);
   container.value?.setPointerCapture?.(event.pointerId);
 }
 
 function onPointerMove(event: PointerEvent): void {
   if (dragged?.pointer !== event.pointerId) return;
   staff?.dragBy(event.clientX - dragged.x);
+  glide.follow(event.clientX);
   dragged.x = event.clientX;
 }
 
 function onPointerUp(event: PointerEvent): void {
-  if (dragged?.pointer === event.pointerId) dragged = null;
+  if (dragged?.pointer !== event.pointerId) return;
+  dragged = null;
+  glide.letGo();
 }
 </script>
 

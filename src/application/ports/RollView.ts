@@ -56,13 +56,16 @@ export interface RollView {
   readonly secondsPerPixel: number | null;
   /** True when the keyboard is wider than the screen and can be scrolled. */
   readonly scrollable: boolean;
-  /** Scrolls the keyboard sideways by hand. */
-  scrollBy(dx: number): void;
+  /** Scrolls the keyboard sideways by hand; says by how much it could (less, at an end of the keyboard). */
+  scrollBy(dx: number): number;
   /** Call when the view's size on screen changes. */
   resize(): void;
   render(frame: RollFrame): void;
-  /** Drags the notes up or down by `seconds` of music (down: later music comes into view); the music plays on. */
-  browseBy(seconds: number): void;
+  /**
+   * Drags the notes up or down by `seconds` of music (down: later music comes into view); the music
+   * plays on. Says by how many seconds it could (fewer, at an end of the piece).
+   */
+  browseBy(seconds: number): number;
   /** Back to following the music at once (after a jump). */
   followMusic(): void;
 }

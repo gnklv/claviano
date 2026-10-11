@@ -93,6 +93,10 @@ Three durations and one curve, and no others:
 - A thing comes from where it was asked for and goes back there: a pop-up grows out of its button, a
   sheet slides from its edge. Nothing overshoots and comes back.
 - What only fades or grows in place eases out plainly.
+- **What is drawn along by hand glides on when it is let go** (the staff, the falling notes, a
+  keyboard wider than the screen), and slows to rest as a list on an iPhone does, by the same
+  number (`ui/motion/glide.ts`). A hand that takes hold stops it; a throw the same way adds to it.
+  At an end of the piece it stops as against a wall: no rubber band, nothing springs back.
 - **Less motion, where a person has asked their system for it, is none**: said once, at the end of
   `ui/styles.css`, for everything.
 

@@ -170,11 +170,13 @@ export class CanvasPianoRoll implements RollView {
   }
 
   /** Manual scrolling (swipe, trackpad). Pauses the camera until the music plays on for a while. */
-  scrollBy(dx: number): void {
-    if (!this.scrollable) return;
+  scrollBy(dx: number): number {
+    if (!this.scrollable) return 0;
+    const before = this.scrollX;
     this.scrollX = clampOffset(this.scrollX + dx, this.cameraView());
     this.manualHold = true;
     this.manualIdleSeconds = 0;
+    return this.scrollX - before;
   }
 
   /** Call when the canvas's CSS size changes. */
@@ -240,11 +242,14 @@ export class CanvasPianoRoll implements RollView {
    * Drags the notes up or down by `seconds` of music (down: later music comes into view). The
    * music plays on; after a while of playing the view goes back to it, like a keyboard scrolled by hand.
    */
-  browseBy(seconds: number): void {
+  browseBy(seconds: number): number {
     const frame = this.lastFrame;
-    if (!frame) return;
-    const time = Math.min(frame.score.duration, Math.max(0, frame.position + seconds));
+    if (!frame) return 0;
+    // (From where they were dragged to last, drawn yet or not: several moves between two frames add up.)
+    const before = this.view?.time ?? frame.position;
+    const time = Math.min(frame.score.duration, Math.max(0, before + seconds));
     this.view = { time, idle: 0, returning: false };
+    return time - before;
   }
 
   /** Back to following the music at once (after a jump). */

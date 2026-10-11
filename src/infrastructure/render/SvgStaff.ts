@@ -324,14 +324,16 @@ export class SvgStaff implements StaffView {
    * Moves the tape by `dx` pixels by hand (to the right: back in the music). The music plays on;
    * after a while of playing the tape goes back to it, like a keyboard scrolled by hand.
    */
-  dragBy(dx: number): void {
+  dragBy(dx: number): number {
     const score = this.score;
-    if (!score || score.notes.length === 0) return;
+    if (!score || score.notes.length === 0) return 0;
     const { geometry } = this;
     const current = this.manual?.offset ?? this.shownOffset;
     // Keep some of the music in sight: the cursor's place stays between the first and the last bar.
     const lowest = geometry.cursorX() - geometry.px(tapeBars(score).end);
-    this.manual = { offset: Math.min(geometry.cursorX(), Math.max(lowest, current + dx)), idle: 0 };
+    const offset = Math.min(geometry.cursorX(), Math.max(lowest, current + dx));
+    this.manual = { offset, idle: 0 };
+    return offset - current;
   }
 
   setCursorPlace(share: number): void {
