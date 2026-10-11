@@ -1,4 +1,3 @@
-import { withFingerHints } from '../../domain/fingering/hints';
 import type { StaffView } from '../../application/ports/StaffView';
 import {
   barAtBeat,
@@ -123,7 +122,6 @@ export class SvgStaff implements StaffView {
   private tremolos: StaffTremolo[] = [];
   private arpeggios: StaffArpeggio[] = [];
   private fingerings: StaffFingering[] = [];
-  private fingerHints = false;
   private chordElements: SVGGElement[] = [];
   private graceElements: SVGGElement[] = [];
   /** Grace notes currently highlighted. */
@@ -171,19 +169,10 @@ export class SvgStaff implements StaffView {
     this.redraw();
   }
 
-  setFingerHints(on: boolean): void {
-    if (on === this.fingerHints) return;
-    this.fingerHints = on;
-    // The page is set anew, where the music is.
-    const beat = this.currentBeat;
-    this.setScore(this.score);
-    this.currentBeat = beat;
-  }
-
   setScore(score: Score | null): void {
     this.score = score;
     const layout = score
-      ? engrave(this.fingerHints ? withFingerHints(score) : score)
+      ? engrave(score)
       : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
     this.ink.setChords([...layout.chords], layout.marks);
     this.beams = [...layout.beams];

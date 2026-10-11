@@ -19,8 +19,6 @@ export interface StaffView {
   setHover(bar: number | null): void;
   /** Shades printed bars `from..to` while they are being dragged over (null: none). */
   setSelection(selection: { from: number; to: number } | null): void;
-  /** Whether fingers are offered where the notes give none (see domain/fingering): printed paler than the notes' own. */
-  setFingerHints(on: boolean): void;
   /**
    * Where the cursor stands across the tape, from 0 (its left end) to 1. A piece being learned is
    * read ahead of the cursor (the default, near the left); music being written down is looked

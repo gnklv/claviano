@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { withFingerHints } from '../../domain/fingering/hints';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -12,6 +13,11 @@ const { playback, barLoop: loop, createStaff } = useDeps();
 const state = usePlaybackState(playback);
 const { t, locale } = useI18n();
 const fingerHints = useFingerHints();
+/**
+ * What the staff is given to draw: the piece, with fingering hints written in where they are asked
+ * for. (The staff draws what it is given; whether hints are shown is decided here.)
+ */
+const page = computed(() => (state.value.score && fingerHints.value ? withFingerHints(state.value.score) : state.value.score));
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
@@ -21,25 +27,20 @@ const resizeObserver = new ResizeObserver(() => staff?.resize());
 onMounted(() => {
   staff = createStaff(container.value!);
   staff.setHandLabels(handLabels());
-  staff.setFingerHints(fingerHints.value);
-  staff.setScore(state.value.score);
+  staff.setScore(page.value);
   staff.setLoop(state.value.loop);
   resizeObserver.observe(container.value!);
 });
 onUnmounted(() => resizeObserver.disconnect());
 
 // The tape is rebuilt only when the score or the loop changes…
-watch(
-  () => state.value.score,
-  (score) => staff?.setScore(score),
-);
+watch(page, (score) => staff?.setScore(score));
 watch(
   () => state.value.loop,
   (loop) => staff?.setLoop(loop),
 );
 
 watch(locale, () => staff?.setHandLabels(handLabels()));
-watch(fingerHints, (on) => staff?.setFingerHints(on));
 
 // …and only slides during playback, outside Vue's reactivity.
 useAnimationFrame(() => staff?.render(playback.position, (hand) => playback.isHandEnabled(hand), playback.playing));

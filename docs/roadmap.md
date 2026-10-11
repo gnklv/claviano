@@ -97,8 +97,8 @@ Before the next steps, in this order (agreed after a review of the code and of t
     written notes now);
   - [x] one helper for mirroring a use case into the interface (`useMirror`), in place of nine
     copies;
-  - the staff is given the piece with its fingering hints written in; it does not decide whether
-    to show them;
+  - [x] the staff is given the piece with its fingering hints written in; it does not decide
+    whether to show them;
   - the tiles of free play are drawn in `infrastructure/render`, behind a port, as the falling
     notes are;
   - the app's tests by screen, on one harness, with nothing left over from one test to the next.
