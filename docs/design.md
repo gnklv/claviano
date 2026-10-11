@@ -107,7 +107,10 @@ A screen is built of these, and does not write a button or a field of its own.
 | slider (`input[type=range]`) | a level, or a place | volume, tempo, the place in the piece. Whoever sets its value sets `--fill` beside it |
 | `TextField` | a name, a number | |
 | `PieceTile` | a piece on a shelf | one's own pieces and the demos |
+| `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main` |
 | `ScreenHeader` | the strip on top of a screen | the way back, what the screen is, and what is set there |
+| `SectionHeading` | the name of a section | over a group of tiles or rows |
+| `AppNotice` | word of how things stand, or (`alert`) of something gone wrong | said in the page, where it concerns |
 | `SheetDialog` | a panel from the side (from below on a phone) | what is set once in a while, and what a phone's bar has no room for |
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
 | `MenuList` | the choices of a menu | inside a `PopOver` |

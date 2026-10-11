@@ -84,7 +84,6 @@ export const en = {
   demoOde: 'Ode to Joy',
   demoShowcase: 'Showcase: everything the player can do',
   openFormats: 'MIDI, MusicXML, MXL',
-  libraryHint: 'Or drop a file onto the window',
   backToLibrary: 'Back to the library',
   dropHint: 'Release to open',
   scoreDetails: '{bars} · {notes}',

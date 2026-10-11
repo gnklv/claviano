@@ -78,7 +78,6 @@ export const ru: Dictionary = {
   demoOde: 'Ода к радости',
   demoShowcase: 'Витрина: всё, что умеет плеер',
   openFormats: 'MIDI, MusicXML, MXL',
-  libraryHint: 'Или перетащите файл в окно',
   backToLibrary: 'К библиотеке',
   dropHint: 'Отпустите, чтобы открыть',
   scoreDetails: '{bars} · {notes}',

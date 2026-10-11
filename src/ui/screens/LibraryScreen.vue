@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import ActionTile from '../components/ActionTile.vue';
+import AppNotice from '../components/AppNotice.vue';
+import SectionHeading from '../components/SectionHeading.vue';
 import PieceTile from '../components/PieceTile.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
-import AppIcon from '../components/AppIcon.vue';
 import PieceCard from '../components/PieceCard.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
 import { useLibrary } from '../composables/useLibrary';
@@ -57,32 +59,21 @@ function onFileChosen(event: Event): void {
     </ScreenHeader>
 
     <main class="shelf">
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
+      <AppNotice v-if="error" class="error" alert>{{ error }}</AppNotice>
 
       <!-- What can be begun here: two actions, apart from the pieces under them. -->
       <div class="actions">
-        <label class="action">
-          <span class="sign"><AppIcon name="plus" /></span>
-          <span class="words">
-            <span class="name">{{ t('openMidi') }}</span>
-            <span class="note">{{ t('openFormats') }}</span>
-          </span>
+        <!-- (The screen is for opening a piece: that is its main action. A file can be dropped onto the window as well, which the window says when one is held over it.) -->
+        <ActionTile tag="label" main icon="plus" :title="t('openMidi')" :note="t('openFormats')">
           <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
-        </label>
-        <button class="action" @click="emit('play')">
-          <span class="sign"><AppIcon name="note" /></span>
-          <span class="words">
-            <span class="name">{{ t('freePlay') }}</span>
-            <span class="note">{{ t('freePlayNote') }}</span>
-          </span>
-        </button>
+        </ActionTile>
+        <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
       </div>
-      <p class="hint">{{ t('libraryHint') }}</p>
       <!-- A private window, or no room: said once, here, so that pieces gone after a reload are no surprise. -->
-      <p v-if="!shelf.keeps" class="unkept" role="status">{{ t('shelfUnavailable') }}</p>
+      <AppNotice v-if="!shelf.keeps" class="unkept">{{ t('shelfUnavailable') }}</AppNotice>
 
       <template v-if="shelf.pieces.length > 0">
-        <h2 class="heading">{{ t('myPieces') }}</h2>
+        <SectionHeading>{{ t('myPieces') }}</SectionHeading>
         <div class="cards">
           <PieceCard
             v-for="piece in shelf.pieces"
@@ -97,9 +88,9 @@ function onFileChosen(event: Event): void {
         </div>
       </template>
 
-      <h2 class="heading">{{ t('demos') }}</h2>
+      <SectionHeading>{{ t('demos') }}</SectionHeading>
       <div class="cards demos">
-        <PieceTile v-for="demo in demos" :key="demo.id" :title="t(demo.title)" :note="leftAt(demoPieceId(demo))" @open="emit('demo', demo)" />
+        <PieceTile v-for="demo in demos" :key="demo.id" low :title="t(demo.title)" :note="leftAt(demoPieceId(demo))" @open="emit('demo', demo)" />
       </div>
     </main>
   </div>
@@ -114,155 +105,46 @@ function onFileChosen(event: Event): void {
 
 .shelf {
   overflow-y: auto;
-  padding: 32px max(16px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-6), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
 }
 
+/* (A column of this width at the most: three tiles across, and a line of words that can be read.) */
 .shelf > * {
   max-width: 880px;
   margin-inline: auto;
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.heading {
-  margin-bottom: 12px;
-  color: var(--muted);
-  font-size: var(--text-s);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.unkept {
-  margin-top: 12px;
-  margin-bottom: 0;
-  font-size: var(--text-s);
-}
-
-/* Each section stands apart from what is over it. */
-.heading {
-  margin-top: 36px;
-}
-
-/* The actions: side by side, a row of two, each a sign and what it does. Not cards: nothing here is a piece. */
+/* The actions: side by side, apart from the pieces under them. */
 .actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
-.action {
-  appearance: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 14px 16px;
-  border: 1px dashed var(--accent);
-  border-radius: var(--radius-m);
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.action:hover,
-.action:focus-within {
-  background: var(--drop-overlay);
-}
-
-.sign {
-  flex: none;
+.cards {
   display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.words {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.action .name,
-.action .note {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Under a finger there is nothing to drag a file with: the hint keeps its room, and says nothing. */
-@media (pointer: coarse) {
-  .hint {
-    visibility: hidden;
-    height: 0;
-  }
-}
-
-/* The demos: lower, the name beside what is remembered of it. */
-.demos .card {
-  min-height: 0;
-  padding-block: 12px;
-}
-
-.name {
-  font-size: var(--text-l);
-  /* A long title takes two lines, and no more. */
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.note {
-  color: var(--muted);
-}
-
-.hint {
-  margin-top: 12px;
-  margin-bottom: 0;
-  color: var(--muted);
-  font-size: var(--text-s);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
 }
 
 .error {
-  margin-top: 0;
-  margin-bottom: 16px;
-  padding: 10px 14px;
-  border: 1px solid var(--left);
-  border-radius: var(--radius-m);
+  margin-bottom: var(--space-4);
 }
 
-/* A phone: one column, lower cards. */
-@media (max-width: 520px) {
+.unkept {
+  margin-top: var(--space-3);
+}
+
+/* A phone: one column of everything. */
+@media (max-width: 599px) {
   .shelf {
-    padding-top: 16px;
+    padding-top: var(--space-4);
   }
 
+  .actions,
   .cards {
     grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  /* The actions: one under the other, their words in full. */
-  .actions {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .action {
-    padding-block: 10px;
+    gap: var(--space-3);
   }
 }
 </style>

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import ActionTile from '../components/ActionTile.vue';
 import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
+import AppNotice from '../components/AppNotice.vue';
 import MenuList from '../components/MenuList.vue';
 import PieceTile from '../components/PieceTile.vue';
 import PopOver from '../components/PopOver.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
+import SectionHeading from '../components/SectionHeading.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import SheetDialog from '../components/SheetDialog.vue';
 import TextField from '../components/TextField.vue';
@@ -64,7 +67,7 @@ const chosen = ref('');
       <ThemeSwitch />
     </ScreenHeader>
     <main class="content">
-      <h2 class="heading">Colours</h2>
+      <SectionHeading>Colours</SectionHeading>
       <ul class="swatches">
         <li v-for="colour in COLOURS" :key="colour.token" class="swatch">
           <span class="chip" :style="{ background: `var(${colour.token})` }" />
@@ -75,7 +78,7 @@ const chosen = ref('');
         </li>
       </ul>
 
-      <h2 class="heading">Type</h2>
+      <SectionHeading>Type</SectionHeading>
       <p class="about">Titles in the serif, as the words in sheet music are; everything else in the system's own face. Five sizes.</p>
       <p class="title-sample">La Valse d’Amélie · Ода к радости</p>
       <ul class="sizes-list">
@@ -84,7 +87,7 @@ const chosen = ref('');
         </li>
       </ul>
 
-      <h2 class="heading">Buttons</h2>
+      <SectionHeading>Buttons</SectionHeading>
       <p class="about">One primary button on a screen: its main action. A quiet one stands over something else. An icon alone carries a name for a screen reader.</p>
       <div class="row start">
         <AppButton>Words</AppButton>
@@ -96,7 +99,7 @@ const chosen = ref('');
         <AppButton disabled>Disabled</AppButton>
       </div>
 
-      <h2 class="heading">Chips</h2>
+      <SectionHeading>Chips</SectionHeading>
       <p class="about">On or off: what is switched while playing, or one of a few values.</p>
       <div class="row start">
         <ToggleChip v-model:pressed="chipOn">On</ToggleChip>
@@ -105,27 +108,40 @@ const chosen = ref('');
         <ToggleChip :pressed="false" disabled>Disabled</ToggleChip>
       </div>
 
-      <h2 class="heading">Segments</h2>
+      <SectionHeading>Segments</SectionHeading>
       <p class="about">One of a few, all in sight: a view, a theme, a time signature.</p>
       <div class="row start">
         <SegmentedControl v-model="view" :options="VIEWS" label="An example" />
         <ThemeSwitch />
       </div>
 
-      <h2 class="heading">Slider</h2>
+      <SectionHeading>Slider</SectionHeading>
       <div class="row start">
         <input v-model.number="level" class="slider" type="range" min="0" max="100" aria-label="An example" :style="{ '--fill': `${level}%` }" />
         <input class="slider" type="range" min="0" max="100" value="30" disabled aria-label="Disabled" style="--fill: 30%" />
         <span class="caption">{{ level }}%</span>
       </div>
 
-      <h2 class="heading">Field</h2>
+      <SectionHeading>Field</SectionHeading>
       <div class="row start">
         <TextField v-model="name" class="name-field" label="A name" />
         <TextField v-model="bar" class="number-field" type="number" label="A number" />
       </div>
 
-      <h2 class="heading">Tile</h2>
+      <SectionHeading>Action</SectionHeading>
+      <p class="about">What a screen starts from: a few, larger than buttons. One of them is the main one.</p>
+      <div class="actions">
+        <ActionTile main icon="plus" title="The main action" note="A word about it" />
+        <ActionTile icon="note" title="Another" note="A word about it too" />
+      </div>
+
+      <SectionHeading>Notice</SectionHeading>
+      <div class="notices">
+        <AppNotice>How things stand, said quietly.</AppNotice>
+        <AppNotice alert>Something went wrong: the file "photo.jpg" is not supported.</AppNotice>
+      </div>
+
+      <SectionHeading>Tile</SectionHeading>
       <p class="about">A piece on a shelf. What else can be done with it stands over its corner.</p>
       <div class="tiles">
         <PieceTile title="Ода к радости" note="такт 3 из 8" />
@@ -133,9 +149,10 @@ const chosen = ref('');
           <AppButton class="corner" variant="quiet" icon="more" label="More" />
         </PieceTile>
         <PieceTile title="Without a note" />
+        <PieceTile low title="A low one" note="for what is nobody's" />
       </div>
 
-      <h2 class="heading">Pop-up</h2>
+      <SectionHeading>Pop-up</SectionHeading>
       <p class="about">One pop-up for all: it grows out of its button, and goes on Esc, on a press elsewhere, or when a choice is made.</p>
       <div class="row">
         <PopOver v-model:open="panelOpen" place="above" label="A panel">
@@ -157,7 +174,7 @@ const chosen = ref('');
         <span class="caption">{{ chosen && `chosen: ${chosen}` }}</span>
       </div>
 
-      <h2 class="heading">Sheet</h2>
+      <SectionHeading>Sheet</SectionHeading>
       <p class="about">What is set once in a while: from the side on a wide screen, from below on a phone.</p>
       <div class="row start">
         <AppButton @click="sheet?.open()">Open a sheet</AppButton>
@@ -166,7 +183,7 @@ const chosen = ref('');
         </SheetDialog>
       </div>
 
-      <h2 class="heading">Icons</h2>
+      <SectionHeading>Icons</SectionHeading>
       <ul class="icons">
         <li v-for="icon in ICON_NAMES" :key="icon" class="sample">
           <span class="sizes">
@@ -193,19 +210,6 @@ const chosen = ref('');
   flex: 1;
   overflow-y: auto;
   padding: var(--space-5) var(--space-4);
-}
-
-.heading {
-  margin-bottom: var(--space-3);
-  color: var(--muted);
-  font-size: var(--text-s);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.heading:not(:first-child) {
-  margin-top: var(--space-6);
 }
 
 .about {
@@ -284,10 +288,25 @@ const chosen = ref('');
   width: 4em;
 }
 
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
+.notices {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
 .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--space-4);
+  /* (Each at its own height: the low one is to be seen as low.) */
+  align-items: start;
 }
 
 .corner {

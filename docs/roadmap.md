@@ -123,7 +123,11 @@ Before the next steps, in this order (agreed after a review of the code and of t
     looked at in both themes, as the showcase does for notation;
   - [x] the rules written down (`docs/design.md`): the character, colour, type, space, icons,
     motion, which component when, and the three kinds of screen;
-  - the screens repainted, one at a time.
+  - the screens repainted, one at a time:
+    - [x] the library: opening a file is its one main action (free play beside it, quietly); its
+      tiles, headings and notices are components; a phone is the same narrow screen as elsewhere;
+    - [ ] the piece;
+    - [ ] free play.
   With it: one pop-up in place of two, no colour written by hand in a component.
 
 Then, when the places are next touched: free play does not ready the instrument for the piece

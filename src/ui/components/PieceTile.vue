@@ -6,12 +6,17 @@
  * The default slot is what stands over the tile (a piece's "more"); `face` takes the place of the
  * name and the note (a field, while the piece is being renamed).
  */
-defineProps<{ title: string; note?: string | null }>();
+defineProps<{
+  title: string;
+  note?: string | null;
+  /** A lower tile: for what is on the shelf but is nobody's (the demos). */
+  low?: boolean;
+}>();
 defineEmits<{ open: [] }>();
 </script>
 
 <template>
-  <div class="piece-tile" :class="{ still: $slots.face }">
+  <div class="piece-tile" :class="{ still: $slots.face, low }">
     <div v-if="$slots.face" class="face"><slot name="face" /></div>
     <button v-else class="face" type="button" @click="$emit('open')">
       <span class="name">{{ title }}</span>
@@ -80,10 +85,22 @@ button.face {
   color: var(--muted);
 }
 
+.low {
+  min-height: 0;
+}
+
+.low .face {
+  padding-block: var(--space-3);
+}
+
 /* A phone: lower tiles, one to a row. */
-@media (max-width: 520px) {
+@media (max-width: 599px) {
   .piece-tile {
     min-height: 72px;
+  }
+
+  .low {
+    min-height: 0;
   }
 }
 </style>

@@ -6,12 +6,14 @@ import { button, drop, onPiece, playback, restart, root, settled, shelf, text, u
 
 useApp();
 
-it('starts in the library: a file to open, the demos, and a word about dropping a file', () => {
+it('starts in the library: a file to open, free play, and the demos', () => {
   expect(onPiece()).toBe(false);
   expect(text()).toContain('Open file');
+  expect(text()).toContain('Free play');
   expect(text()).toContain('Ode to Joy');
-  expect(text()).toContain('drop a file');
   expect(root.querySelector('input[type=file]')).not.toBeNull();
+  // (That a file can be dropped is said by the window itself, when one is held over it.)
+  expect(root.querySelector('[data-drop-hint]')?.getAttribute('data-drop-hint')).toBeTruthy();
 });
 
 it('says in the library what did not open, and stays there', async () => {
