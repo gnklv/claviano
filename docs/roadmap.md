@@ -137,6 +137,17 @@ Then, when the places are next touched: free play does not ready the instrument 
 (that is PrepareInstrument's), one scheduler of metronome clicks for playback and recording, what
 is remembered of pieces out of `Library` into a class of its own.
 
+Before the trainer, the engraving of crowded music (found on four pieces: a csárdás, Golden Brown,
+the Pink Panther, Golden Hour), a step looked at before the next:
+
+- [x] a bar as wide as what stands in it: by its time, and let out between notes closer in time
+      than they are wide (`domain/notation/spacing.ts`);
+- [ ] inside a chord and between voices: accidentals in columns, voices of one moment side by
+      side, dots and rests clear of another voice's notes;
+- [ ] the staff sized to the piece's own range, so that nothing high or low is cut off;
+- [ ] what stands around the notes clear of one another: bar numbers, the tempo, dynamics, the
+      sign of a rolled chord; slurs clear of the notes they pass.
+
 8. [ ] A tempo trainer: a loop that quickens by itself, a little each time round, from the tempo it
        is begun at to the piece's own
 9. [ ] One's own fingering over the hints: a finger set by hand at a note stands as the notes'

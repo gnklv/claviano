@@ -1,6 +1,7 @@
 import { barAtBeat, type KeySignature, type Score, type TimeSignature } from '../../../domain/score';
 import { lastAtOrBefore } from '../../../domain/search';
 import { cancelledSteps, signatureChanges, type SignatureChange } from '../../../domain/notation/signatures';
+import { momentIn, placeIn, spaceBar, type BarSpacing, type Column } from '../../../domain/notation/spacing';
 import { beatAtPosition, beatPosition, tapeBars, type Clef } from '../staffLayout';
 
 /*
@@ -30,8 +31,9 @@ const TIME_DIGIT_WIDTH = 1.8;
 export const SIGNATURE_GAP = 0.6;
 const GUTTER_END_GAP = 1.2;
 /*
- * Notes sit on the tape exactly where their beat is, so the cursor crosses a notehead when it
- * sounds. Bar lines are drawn a little before the bar's first beat to leave room for its note.
+ * Notes sit on the tape where their moment is, so the cursor crosses a notehead when it sounds;
+ * a bar is as wide as its time, or wider where its notes are crowded (domain/notation/spacing.ts).
+ * Bar lines are drawn a little before the bar's first beat to leave room for its note.
  */
 export const BAR_LINE_GAP = 1.4;
 /** The cursor stands at this share of the tape's width, leaving room to read ahead. */
@@ -82,10 +84,22 @@ export class StaffGeometry {
   private roomBefore: number[] = [0];
   private score: Score | null = null;
   private barIndices: number[] = [];
+  /** What stands in each printed bar, and the bars set out by it for the view's size: each one's marks, and where its first beat is along the tape (without the room at bar lines). */
+  private columns: readonly (readonly Column[])[] = [];
+  private bars: BarSpacing[] = [];
+  private barStarts: number[] = [0];
 
-  /** `graceRoom`: what the grace notes at the start and at the end of each printed bar need (see setScore's callers). */
-  setScore(score: Score | null, graceRoom: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> } = NO_GRACES): void {
+  /**
+   * `graceRoom`: what the grace notes at the start and at the end of each printed bar need (see
+   * setScore's callers). `columns`: what stands in each printed bar (see staff/columns.ts).
+   */
+  setScore(
+    score: Score | null,
+    graceRoom: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> } = NO_GRACES,
+    columns: readonly (readonly Column[])[] = [],
+  ): void {
     this.score = score;
+    this.columns = columns;
     this.changes = score ? signatureChanges(score) : [];
     const bars = score?.notation.bars ?? [];
     this.lead = bars.map((bar) => (bar.navigation.repeatStart ? REPEAT_LEAD : 0));
@@ -118,6 +132,12 @@ export class StaffGeometry {
    */
   private fit(): void {
     this.space = this.spaceFor(this.width, this.height);
+    // The bars set out anew: how wide an uncrowded bar is depends on the view's width.
+    const tape = this.score ? tapeBars(this.score) : null;
+    const natural = this.barWidth() / this.space;
+    this.bars = (tape?.widths ?? []).map((share, bar) => spaceBar(this.columns[bar] ?? [], share * natural));
+    this.barStarts = [0];
+    for (const bar of this.bars) this.barStarts.push(this.barStarts.at(-1)! + bar.width);
   }
 
   /** The staff space a view of this size would be drawn with (see `fit`). */
@@ -131,7 +151,7 @@ export class StaffGeometry {
     return this.gutterSpaces * this.space;
   }
 
-  /** Bar width in pixels: about two bars on the tape, so phones see what comes next too. */
+  /** The width of a bar that is not crowded, in pixels: about two such bars on the tape, so phones see what comes next too. */
   barWidth(): number {
     const tapeWidth = this.width - this.gutterWidth();
     const spaces = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, tapeWidth / BARS_VISIBLE / this.space));
@@ -145,8 +165,12 @@ export class StaffGeometry {
   px(x: number): number {
     const score = this.score;
     if (!score) return x * this.barWidth();
-    const bar = tapeBarAt(tapeBars(score).starts, x);
-    return x * this.barWidth() + this.roomAt(bar) * this.space;
+    const tape = tapeBars(score);
+    const bar = tapeBarAt(tape.starts, x);
+    const spacing = this.bars[bar];
+    if (!spacing) return x * this.barWidth();
+    const at = (x - tape.starts[bar]!) / (tape.widths[bar] || 1);
+    return (this.barStarts[bar]! + this.roomAt(bar) + placeIn(spacing, at)) * this.space;
   }
 
   /**
@@ -173,17 +197,19 @@ export class StaffGeometry {
     if (!score || this.barIndices.length === 0) return null;
     const bar = lastAtOrBefore(this.barIndices, px, (i) => this.barLineX(i));
     if (bar < 0) return null;
-    const x = (px - this.roomAt(bar) * this.space) / this.barWidth();
-    return { bar, beat: beatAtPosition(score, bar, x) };
+    const tape = tapeBars(score);
+    const spacing = this.bars[bar];
+    if (!spacing) return null;
+    const at = momentIn(spacing, px / this.space - this.barStarts[bar]! - this.roomAt(bar));
+    return { bar, beat: beatAtPosition(score, bar, tape.starts[bar]! + at * tape.widths[bar]!) };
   }
 
   /** Where bar `index`'s bar line is drawn (index = the number of bars: the final bar line). */
   barLineX(index: number): number {
     const score = this.score;
     if (!score) return 0;
-    const tape = tapeBars(score);
-    const x = tape.starts[index] ?? tape.end;
-    return x * this.barWidth() + (this.roomBefore[index] ?? this.roomBefore.at(-1) ?? 0) * this.space - BAR_LINE_GAP * this.space;
+    const start = this.barStarts[Math.min(index, this.barStarts.length - 1)] ?? 0;
+    return (start + (this.roomBefore[index] ?? this.roomBefore.at(-1) ?? 0) - BAR_LINE_GAP) * this.space;
   }
 
   /** An edge of a stretch of music (a loop, a bracket) at `x` in bar units: at a bar start, that bar's line. */

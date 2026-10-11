@@ -32,6 +32,7 @@ import {
 import type { ClefSign } from '../../domain/notation/written';
 import { barPosition, tapeBars } from './staffLayout';
 import { drawBeam, drawChord, drawFingering, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
+import { columnsOf } from './staff/columns';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
 import { StaffGeometry } from './staff/geometry';
@@ -202,7 +203,7 @@ export class SvgStaff implements StaffView {
     this.arpeggios = [...layout.arpeggios];
     this.fingerings = [...layout.fingerings];
     this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
-    this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords));
+    this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords), score ? columnsOf(score, layout) : []);
     this.currentBeat = 0;
     this.drawBackground();
     this.drawStrip();
