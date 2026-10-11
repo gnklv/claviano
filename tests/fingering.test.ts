@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { reachBetween, type Finger } from '../src/domain/fingering/hand';
-import { fingerLine } from '../src/domain/fingering/melody';
+import { fingerLine, fingerPassage } from '../src/domain/fingering/passage';
 import { scaleFingers } from '../src/domain/fingering/scales';
+import { fingerScore } from '../src/domain/fingering/score';
+import type { Hand, Note } from '../src/domain/note';
+import { createScore } from '../src/domain/score';
 
 /* Fingers for a line of single notes. Scales are the check everyone knows: the textbook has them. */
 
@@ -195,5 +198,106 @@ describe('fingers for a line', () => {
     const leap = fingerLine([36, 96, 98], 'right');
     expect(leap).toHaveLength(3);
     expect(leap.every((finger: Finger) => finger >= 1 && finger <= 5)).toBe(true);
+  });
+});
+
+describe('fingers for chords', () => {
+  const taken = (moments: number[][], hand: Hand = 'right') => fingerPassage(moments, hand).map((fingers) => fingers.join('')).join(' ');
+
+  it('takes a triad as it lies under the hand: 1-3-5 in root position, 1-2-5 where the gap is on top', () => {
+    expect(taken([[60, 64, 67]])).toBe('135');
+    expect(taken([[64, 67, 72]])).toBe('125');
+    expect(taken([[67, 72, 76]])).toBe('135');
+  });
+
+  it('gives the left hand the same shapes from the other side', () => {
+    expect(taken([[48, 52, 55]], 'left')).toBe('531');
+    expect(taken([[36, 48]], 'left')).toBe('51');
+  });
+
+  it('takes an octave and a sixth with the thumb and the little finger, four keys with 1-2-3-5, five with all five', () => {
+    expect(taken([[60, 72]])).toBe('15');
+    expect(taken([[62, 71]])).toBe('15');
+    expect(taken([[60, 64, 67, 72]])).toBe('1235');
+    expect(taken([[60, 62, 64, 65, 67]])).toBe('12345');
+  });
+
+  it('has its fingers in the order of the keys, and no two further apart than a hand reaches', () => {
+    for (const keys of [[60, 64, 67], [60, 65, 69], [59, 62, 67], [60, 63, 67, 70], [55, 67]]) {
+      const [fingers] = fingerPassage([keys], 'right');
+      expect(fingers).toHaveLength(keys.length);
+      for (let i = 1; i < keys.length; i++) {
+        expect(fingers[i]).toBeGreaterThan(fingers[i - 1]);
+        const reach = reachBetween(fingers[i - 1], fingers[i]);
+        expect(keys[i] - keys[i - 1]).toBeLessThanOrEqual(reach.maxPractical);
+      }
+    }
+  });
+
+  it('keeps the hand where it is from chord to chord, and a held key under its finger', () => {
+    // Do major, Fa major over the same Do, Sol major, Do again: the hand hardly moves.
+    expect(taken([[60, 64, 67], [60, 65, 69], [59, 62, 67], [60, 64, 67]])).toBe('135 135 125 135');
+    // A bass note, then a chord over it, as a waltz has them: the little finger, then the upper fingers.
+    expect(taken([[36], [48, 52, 55], [48, 52, 55], [43], [47, 50, 55], [47, 50, 55]], 'left')).toBe('5 421 421 5 421 421');
+  });
+
+  it('fingers the same figure the same way each time it comes', () => {
+    const figure = [[52, 64], [59], [55, 64], [59]];
+    const fingers = fingerPassage([...figure, ...figure, ...figure], 'left').map((moment) => moment.join(''));
+    expect(fingers.slice(4, 8)).toEqual(fingers.slice(0, 4));
+    expect(fingers.slice(8)).toEqual(fingers.slice(0, 4));
+  });
+
+  it('leads a line into a chord and out of it', () => {
+    const fingers = fingerPassage([[64], [65], [67], [60, 64, 67], [72]], 'right');
+    expect(fingers.map((moment) => moment.length)).toEqual([1, 1, 1, 3, 1]);
+    expect(fingers[3][0]).toBe(1);
+    expect(fingers[4]).toEqual([5]);
+  });
+
+  it('takes fingers that are given in a chord, and fits the others to them', () => {
+    const [fingers] = fingerPassage([[60, 64, 67]], 'right', { given: [[null, 2, null]] });
+    expect(fingers).toEqual([1, 2, 4]);
+  });
+
+  it('gives no fingers to what one hand cannot take: more keys than fingers, keys too far apart', () => {
+    expect(fingerPassage([[60, 62, 64, 65, 67, 69]], 'right')).toEqual([[]]);
+    expect(fingerPassage([[36, 84]], 'right')).toEqual([[]]);
+    // …and goes on with what comes after.
+    expect(fingerPassage([[36, 84], [60, 64, 67]], 'right')[1]).toEqual([1, 3, 5]);
+  });
+
+  it('comes to what follows a rest freely: nothing is counted for the leap', () => {
+    const fingers = fingerPassage([[60], [62], [64], [84], [86], [88]], 'right', { free: [false, false, false, true, false, false] });
+    expect(fingers.flat().join(' ')).toBe('1 2 3 1 2 3');
+  });
+});
+
+describe('fingers for a piece', () => {
+  const note = (pitch: number, beat: number, beats: number, hand: Hand): Note => ({ pitch, start: beat, duration: beats, beat, beats, velocity: 0.7, hand });
+
+  it('fingers each hand by itself: what is struck together as a chord, the rest as a line', () => {
+    const score = createScore(
+      'Two hands',
+      [note(60, 0, 1, 'right'), note(62, 1, 1, 'right'), note(64, 2, 1, 'right'), note(36, 0, 2, 'left'), note(48, 2, 1, 'left'), note(52, 2, 1, 'left'), note(55, 2, 1, 'left')],
+      [0],
+    );
+    const fingers = fingerScore(score);
+    const of = (hand: Hand) => score.notes.map((played, i) => (played.hand === hand ? fingers[i] : null)).filter((finger) => finger !== null);
+    expect(of('right')).toEqual([1, 2, 3]);
+    expect(of('left')).toEqual([5, 4, 2, 1]);
+  });
+
+  it('starts afresh after a rest', () => {
+    const score = createScore('With a rest', [note(60, 0, 1, 'right'), note(62, 1, 1, 'right'), note(84, 4, 1, 'right'), note(86, 5, 1, 'right')], [0, 4]);
+    expect(fingerScore(score)).toEqual([1, 2, 1, 2]);
+  });
+
+  it('has a finger for every note of a piece, or none for one no hand takes', () => {
+    const score = createScore('Wide', [note(36, 0, 1, 'right'), note(84, 0, 1, 'right'), note(60, 1, 1, 'right')], [0]);
+    const fingers = fingerScore(score);
+    expect(fingers).toHaveLength(3);
+    expect(fingers.slice(0, 2)).toEqual([null, null]);
+    expect(fingers[2]).not.toBeNull();
   });
 });
