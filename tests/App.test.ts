@@ -4,6 +4,7 @@ import { createApp, nextTick, type App as VueApp } from 'vue';
 import type { Instrument } from '../src/application/ports/Instrument';
 import type { RollView } from '../src/application/ports/RollView';
 import type { StaffView } from '../src/application/ports/StaffView';
+import type { PlayedTile, TilesView } from '../src/application/ports/TilesView';
 import { BarLoop } from '../src/application/use-cases/BarLoop';
 import { keepTake } from '../src/application/use-cases/keepTake';
 import { FreePlay } from '../src/application/use-cases/FreePlay';
@@ -39,6 +40,8 @@ let shelf: FakePieceShelf;
 let audio: FakeAudio;
 /** What the staff was told to show, each time it was told. */
 let staffScores: (Score | null)[];
+/** The tiles of free play, as last handed to their view. */
+let tilesShown: readonly PlayedTile[];
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
 let start: () => void;
 let root: HTMLElement;
@@ -90,6 +93,7 @@ beforeEach(() => {
   start = () => {
     audio = new FakeAudio();
     staffScores = [];
+    tilesShown = [];
     playback = new Playback(audio, new FakeTicker());
     volume = new Volume(new FakeAudio());
     root = document.createElement('div');
@@ -117,6 +121,7 @@ beforeEach(() => {
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
       createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
+      createTiles: () => view<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
       demos,
     });
     app.mount(root);
@@ -687,6 +692,22 @@ describe('the app', () => {
       await settled();
       expect(held()).toEqual([49]);
       expect(key(48).classList.contains('down')).toBe(false);
+    });
+
+    it('hands what is played to the tiles over the keyboard: each key from when it went down to when it came up', async () => {
+      const frame = () => new Promise((resolve) => setTimeout(resolve, 50));
+      audio.time = 1;
+      press('KeyA');
+      await frame();
+      expect(tilesShown).toEqual([{ pitch: 48, start: 1, end: null }]);
+      audio.time = 1.5;
+      press('KeyA', 'keyup');
+      await frame();
+      expect(tilesShown).toEqual([{ pitch: 48, start: 1, end: 1.5 }]);
+      // Once it has floated out of sight (five seconds, says the view), it is forgotten.
+      audio.time = 7;
+      await frame();
+      expect(tilesShown).toEqual([]);
     });
 
     it('moves the keyboard by octaves, from the buttons and by Z and X', async () => {

@@ -23,7 +23,7 @@ copy of something written a month before.
 - **Drawing is infrastructure.** Canvas and SVG are drawn in `infrastructure/render`, behind a port
   in `application/ports`; a component owns the element and the frame, not the pixels. (The tiles of
   free play were drawn inside a component while the falling notes had a port: two ways to do one
-  thing.)
+  thing.) The linter holds this: no `getContext` in `ui`.
 
 ## Use cases
 

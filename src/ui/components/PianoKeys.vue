@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { isBlackKey } from '../../domain/pitch';
-import { BLACK_KEY_WIDTH, keyPlace } from './keyPlaces';
+import { BLACK_KEY_WIDTH, keyPlace } from '../../domain/keyboard';
 import { useI18n } from '../i18n/useI18n';
 
 /*

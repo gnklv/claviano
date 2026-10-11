@@ -1,4 +1,9 @@
-import { isBlackKey } from '../../domain/pitch';
+import { isBlackKey } from './pitch';
+
+/*
+ * A keyboard as it lies: where each key stands across it. Measured in white keys, the unit a
+ * keyboard is made of: whoever draws it (keys to press, tiles over them) scales that to its room.
+ */
 
 /** A black key is this wide, in white keys. */
 export const BLACK_KEY_WIDTH = 0.62;

@@ -99,8 +99,8 @@ Before the next steps, in this order (agreed after a review of the code and of t
     copies;
   - [x] the staff is given the piece with its fingering hints written in; it does not decide
     whether to show them;
-  - the tiles of free play are drawn in `infrastructure/render`, behind a port, as the falling
-    notes are;
+  - [x] the tiles of free play are drawn in `infrastructure/render`, behind a port, as the
+    falling notes are (and the linter holds it: no canvas is drawn in `ui`);
   - the app's tests by screen, on one harness, with nothing left over from one test to the next.
 - [ ] A design system, each step looked at before the next:
   - the character: a pianist's notebook. Paper and ink; titles in a serif, as words in sheet music

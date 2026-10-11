@@ -2,6 +2,7 @@ import { inject, type InjectionKey } from 'vue';
 import type { Instrument } from '../application/ports/Instrument';
 import type { RollView } from '../application/ports/RollView';
 import type { StaffView } from '../application/ports/StaffView';
+import type { TilesView } from '../application/ports/TilesView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
@@ -35,6 +36,7 @@ export interface AppDeps {
   readonly keepTake: (title: string, fileName: string) => Promise<void>;
   readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
   readonly createStaff: (container: HTMLElement) => StaffView;
+  readonly createTiles: (canvas: HTMLCanvasElement) => TilesView;
   readonly demos: readonly Demo[];
 }
 

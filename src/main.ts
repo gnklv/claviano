@@ -21,6 +21,7 @@ import { fetchScore } from './infrastructure/parsers/fetchScore';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
+import { CanvasPlayedTiles } from './infrastructure/render/CanvasPlayedTiles';
 import { SvgStaff } from './infrastructure/render/SvgStaff';
 import { IndexedDbPieceShelf } from './infrastructure/storage/IndexedDbPieceShelf';
 import { LocalSettingsStore } from './infrastructure/storage/LocalSettingsStore';
@@ -78,6 +79,7 @@ createApp(App)
     keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
+    createTiles: (canvas) => new CanvasPlayedTiles(canvas),
     demos,
   })
   .mount('#app');

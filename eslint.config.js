@@ -42,5 +42,12 @@ export default ts.config(
   { files: ['src/domain/**'], rules: noImportsFrom('The domain', ['application', 'infrastructure', 'ui', 'demo']) },
   { files: ['src/application/**'], rules: noImportsFrom('The application', ['infrastructure', 'ui', 'demo']) },
   { files: ['src/infrastructure/**'], rules: noImportsFrom('The infrastructure', ['ui']) },
-  { files: ['src/ui/**'], rules: noImportsFrom('The UI', ['infrastructure']) },
+  {
+    files: ['src/ui/**'],
+    rules: {
+      ...noImportsFrom('The UI', ['infrastructure']),
+      // Drawing is infrastructure's, behind a port (docs/rules.md): a component owns the element, not the pixels.
+      'no-restricted-syntax': ['error', { selector: "CallExpression[callee.property.name='getContext']", message: 'Canvas is drawn in infrastructure/render, behind a port.' }],
+    },
+  },
 );
