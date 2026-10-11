@@ -191,7 +191,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 4px;
   padding-bottom: 8px;
   cursor: pointer;
 }
@@ -224,15 +224,40 @@ onUnmounted(() => {
   color: #fff;
 }
 
+/*
+ * Two kinds of words on a key, told apart at a glance: the letter of the computer's keyboard is a
+ * keycap (a small outlined square, bold), the note's name plain small print at the key's foot.
+ */
 .letter,
 .name {
-  font-size: 11px;
   line-height: 1;
   pointer-events: none;
 }
 
+.letter {
+  box-sizing: border-box;
+  min-width: 18px;
+  padding: 3px 4px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0.75;
+}
+
 .name {
   font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* (A white key with a letter and no name keeps the letter where the others have it.) */
+.white .letter:last-child {
+  margin-bottom: 14px;
+}
+
+.black .letter {
+  margin-bottom: 2px;
 }
 
 /* The letters are the computer keyboard's: nothing to say where there is only a finger. */

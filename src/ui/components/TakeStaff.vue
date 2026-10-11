@@ -33,10 +33,10 @@ onMounted(() => {
   write();
 });
 onUnmounted(() => resizeObserver.disconnect());
-watch(() => [state.value.state, state.value.notes, state.value.ends], write);
+watch(() => [state.value.state, state.value.notes, state.value.ends, state.value.listening], write);
 watch(locale, () => staff?.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') }));
 
-useAnimationFrame(() => staff?.render(recorder.take?.seconds ?? 0, undefined, state.value.state === 'recording'));
+useAnimationFrame(() => staff?.render(recorder.position, undefined, state.value.state === 'recording' || state.value.listening));
 
 // --- Drawn along by hand, to read what was written. ---
 

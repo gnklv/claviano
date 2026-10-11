@@ -58,6 +58,8 @@ export class Recorder {
   private firstClick = 0;
   private clicked = 0;
   private stopClicks: (() => void) | null = null;
+  /** Listening to the take: when it began on the output's clock, how long it runs, and how to stop watching for its end. */
+  private heard: { from: number; seconds: number; stop: () => void } | null = null;
   private readonly listeners = new Set<() => void>();
 
   constructor(
@@ -97,6 +99,18 @@ export class Recorder {
     return take && scoreFromTake(title, take.notes, { tempo: this.bpm, numerator, denominator, beat }, take.seconds);
   }
 
+  /** The take is being played back. */
+  get listening(): boolean {
+    return this.heard !== null;
+  }
+
+  /** The place in the take, in seconds: where the recording has got, where the listening is, else its end. */
+  get position(): number {
+    if (this.current === 'recording') return this.audio.now() - this.origin;
+    if (this.heard) return Math.min(this.audio.now() - this.heard.from, this.heard.seconds);
+    return this.current === 'recorded' ? this.length : 0;
+  }
+
   /** The bar the take is in now, from 1; null when not recording to the metronome. */
   get bar(): number | null {
     if (this.current !== 'recording' || !this.clicking) return null;
@@ -128,9 +142,53 @@ export class Recorder {
     this.emit();
   }
 
+  /** Plays the take back, as it is written down. */
+  listen(): void {
+    const score = this.current === 'recorded' && !this.heard ? this.score('') : null;
+    if (!score || score.notes.length === 0) return;
+    void this.audio.resume();
+    const from = this.audio.now() + 0.1;
+    for (const note of score.notes) this.audio.playNote({ pitch: note.pitch, velocity: note.velocity, at: from + note.start, duration: note.duration, soft: false, held: note.duration });
+    const stop = this.ticker.start(() => {
+      if (this.heard && this.audio.now() - this.heard.from >= this.heard.seconds) this.stopListening();
+    });
+    this.heard = { from, seconds: score.duration, stop };
+    this.emit();
+  }
+
+  stopListening(): void {
+    if (!this.heard) return;
+    this.heard.stop();
+    this.heard = null;
+    this.audio.stopAll();
+    this.emit();
+  }
+
+  /**
+   * Takes the last bar off the take: for a slip at the end, without playing it all again. A take
+   * of one bar is thrown away.
+   */
+  eraseLastBar(): void {
+    const score = this.current === 'recorded' ? this.score('') : null;
+    const from = score?.bars.at(-1);
+    if (!score || from === undefined) return;
+    this.stopListening();
+    if (score.bars.length <= 1) {
+      this.discard();
+      return;
+    }
+    // A note belongs to the bar it is written in: by its start as it is written down, on the grid of sixteenths.
+    const sixteenth = this.beatSeconds() / METERS[this.signature].beat / 4;
+    const writtenAt = (note: PlayedNote) => Math.round(note.start / sixteenth) * sixteenth;
+    this.notes = this.notes.filter((note) => writtenAt(note) < from - 1e-6).map((note) => (note.end !== null && note.end > from ? { ...note, end: from } : note));
+    this.length = from;
+    this.emit();
+  }
+
   /** Ready to record: the next note begins the take. (A take that is there is thrown away.) */
   arm(): void {
     if (this.busy()) return;
+    this.stopListening();
     this.notes = [];
     this.current = 'armed';
     if (this.clicking) this.startClicks();
@@ -155,6 +213,7 @@ export class Recorder {
   /** Throws the take away. */
   discard(): void {
     if (this.current !== 'recorded') return;
+    this.stopListening();
     this.notes = [];
     this.current = 'idle';
     this.emit();

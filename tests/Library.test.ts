@@ -63,6 +63,14 @@ describe('the library', () => {
     expect(shelf.files.has(id)).toBe(true);
   });
 
+  it('puts a file on the shelf under a name given for it, when one is', async () => {
+    await library.openFile('claviano-2026-10-11.tune', bytes('a take'), 'Played on 11 October');
+    expect(library.pieces[0]).toMatchObject({ fileName: 'claviano-2026-10-11.tune', title: 'Played on 11 October' });
+    // Opened again without a name, it keeps the one it has.
+    await library.openFile('copy.tune', bytes('a take'));
+    expect(library.pieces.map((kept) => kept.title)).toEqual(['Played on 11 October']);
+  });
+
   it('keeps nothing of a file that did not open, and leaves open what was', async () => {
     await library.openFile('one.tune', bytes('one'));
     await library.openFile('bad.tune', bytes('broken'));

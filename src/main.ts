@@ -1,6 +1,7 @@
 // Composition root: the only place that knows about concrete implementations.
 import { createApp } from 'vue';
 import { BarLoop } from './application/use-cases/BarLoop';
+import { keepTake } from './application/use-cases/keepTake';
 import { FreePlay } from './application/use-cases/FreePlay';
 import { Library } from './application/use-cases/Library';
 import { LoadScore } from './application/use-cases/LoadScore';
@@ -24,6 +25,7 @@ import { SvgStaff } from './infrastructure/render/SvgStaff';
 import { IndexedDbPieceShelf } from './infrastructure/storage/IndexedDbPieceShelf';
 import { LocalSettingsStore } from './infrastructure/storage/LocalSettingsStore';
 import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
+import { MidiFileWriter } from './infrastructure/writers/MidiFileWriter';
 import App from './ui/App.vue';
 import { depsKey, type Demo } from './ui/deps';
 import './ui/styles.css';
@@ -60,6 +62,8 @@ document.addEventListener('visibilitychange', () => {
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
 const freePlay = new FreePlay(piano, piano, playback);
+const recorder = new Recorder(freePlay, piano, new IntervalTicker());
+const midiWriter = new MidiFileWriter();
 
 createApp(App)
   .provide(depsKey, {
@@ -70,7 +74,8 @@ createApp(App)
     openScore,
     library,
     freePlay,
-    recorder: new Recorder(freePlay, piano, new IntervalTicker()),
+    recorder,
+    keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
     demos,

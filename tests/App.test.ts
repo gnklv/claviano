@@ -5,6 +5,7 @@ import type { Instrument } from '../src/application/ports/Instrument';
 import type { RollView } from '../src/application/ports/RollView';
 import type { StaffView } from '../src/application/ports/StaffView';
 import { BarLoop } from '../src/application/use-cases/BarLoop';
+import { keepTake } from '../src/application/use-cases/keepTake';
 import { FreePlay } from '../src/application/use-cases/FreePlay';
 import { Library } from '../src/application/use-cases/Library';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
@@ -15,7 +16,9 @@ import { rememberPieces } from '../src/application/use-cases/rememberPieces';
 import { Volume } from '../src/application/use-cases/Volume';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import type { Score } from '../src/domain/score';
+import { MidiFileParser } from '../src/infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+import { MidiFileWriter } from '../src/infrastructure/writers/MidiFileWriter';
 import App from '../src/ui/App.vue';
 import { depsKey } from '../src/ui/deps';
 import { FakeAudio, FakePieceShelf, FakeTicker } from './fakes';
@@ -95,12 +98,13 @@ beforeEach(() => {
       { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
       { id: 'lost', title: 'demoShowcase', load: () => Promise.reject(new Error('HTTP 404')) },
     ] as const;
-    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser()]));
+    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser(), new MidiFileParser()]));
     const library = new Library(shelf, openScore, playback, demos);
     void library.load();
     const barLoop = new BarLoop(playback);
     rememberPieces(library, playback, barLoop);
     const freePlay = new FreePlay(audio, instrument, playback);
+    const recorder = new Recorder(freePlay, audio, new FakeTicker());
     app = createApp(App).provide(depsKey, {
       playback,
       barLoop,
@@ -109,7 +113,8 @@ beforeEach(() => {
       openScore,
       library,
       freePlay,
-      recorder: new Recorder(freePlay, audio, new FakeTicker()),
+      recorder,
+      keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
       createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
       demos,
@@ -743,6 +748,70 @@ describe('the app', () => {
         button(/^Discard$/).click();
         await settled();
         expect(root.querySelector('.take-staff')).toBeNull();
+      });
+
+      /** A take of two bars: a note in each (the metronome's first click is at 0.1; a bar at 80 is three seconds). */
+      const recordTwoBars = async () => {
+        button(/^Record$/).click();
+        audio.time = 0.12;
+        press('KeyA');
+        audio.time = 0.8;
+        press('KeyA', 'keyup');
+        audio.time = 3.12;
+        press('KeyK');
+        audio.time = 3.8;
+        press('KeyK', 'keyup');
+        await settled();
+        button(/^Stop$/).click();
+        await settled();
+      };
+
+      it('plays the take back, and stops when asked', async () => {
+        await recordTwoBars();
+        const before = audio.played.length;
+        button(/Listen$/).click();
+        await settled();
+        expect(audio.played.slice(before).map((note) => note.pitch)).toEqual([48, 60]);
+        expect(button(/Stop$/)).toBeDefined();
+        const stops = audio.stops;
+        button(/Stop$/).click();
+        await settled();
+        expect(audio.stops).toBe(stops + 1);
+        expect(button(/Listen$/)).toBeDefined();
+      });
+
+      it('takes the last bar off the take, and the take itself with its only bar', async () => {
+        await recordTwoBars();
+        button(/^Erase the last bar$/).click();
+        await settled();
+        expect(status()).toBe('Recorded: 1 note');
+        expect(staffScores.at(-1)?.bars).toHaveLength(1);
+        button(/^Erase the last bar$/).click();
+        await settled();
+        expect(status()).toBe('');
+        expect(button(/^Record$/)).toBeDefined();
+      });
+
+      it('keeps the take as a piece: on the shelf, named by when it was played, and opened to be learned', async () => {
+        await recordTwoBars();
+        button(/^Save as a piece$/).click();
+        await settled();
+        expect(onPiece()).toBe(true);
+        expect(root.querySelector('.title')?.textContent).toMatch(/^Played on .+ · 2 bars · 2 notes$/);
+        expect(playback.score?.notes.map((note) => [note.pitch, note.beat, note.hand])).toEqual([
+          [48, 0, 'left'],
+          [60, 4, 'right'],
+        ]);
+        expect([...shelf.pieces.values()].map((piece) => piece.fileName)).toEqual([expect.stringMatching(/^claviano-[\d-]+\.mid$/)]);
+
+        // Back from it is the library, not free play again; and the take is done with.
+        button(/Back to the library/).click();
+        await settled();
+        expect(root.querySelector('.library')).not.toBeNull();
+        expect([...root.querySelectorAll('.cards .name')].map((name) => name.textContent)[0]).toMatch(/^Played on /);
+        button(/Free play/).click();
+        await settled();
+        expect(status()).toBe('');
       });
 
       it('says the bars are a guess for a take played without the metronome', async () => {

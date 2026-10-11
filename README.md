@@ -107,6 +107,8 @@ src/
                      Library (the shelf of pieces opened before, behind the PieceShelf port;
                      the same file is the same piece, told by its content).
   infrastructure/    Implementations of the ports:
+    writers/           MidiFileWriter — the reader's other half: what is played in free play is
+                       kept as a Standard MIDI File, a track for each hand.
     parsers/           MidiFileParser — Standard MIDI File reader written from scratch
                        (pedals from controllers 64, 66 and 67): notes, tempo and pedals as
                        played; what to print of them is the domain's (transcription.ts).
@@ -229,11 +231,10 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        iPhone's tags, the system bar in the header's colour; in the settings, a button to install
        where the browser lets the page ask, and a word on how on an iPhone. An installed app's
        library is not wiped by iOS Safari
-6. [ ] Free play from the keys on the screen. Done: the screen, with a keyboard that sounds
-       under fingers, the mouse and the computer's keys; what is played rises from the keys as
-       tiles; recording, from the first note, to a metronome (tempo, time signature); the take
-       written down as notes while it is played, set on sixteenths. To do: listening to the
-       take, saving it as a piece, saving it out as MIDI
+6. [x] Free play from the keys on the screen: a keyboard that sounds under fingers, the mouse
+       and the computer's keys; recording to a metronome, from the first note; the take written
+       down as notes while it is played; listened to, mended at its end, and kept as a piece on
+       the shelf (a MIDI file, written by a writer of our own), to be learned as any other
 7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
        hand (how far each pair of fingers reaches, the thumb passing under, the thumb on black
        keys, the weak fingers), shown sparingly, as good editions do: where the hand moves or a

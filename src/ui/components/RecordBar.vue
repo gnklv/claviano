@@ -11,8 +11,8 @@ import SegmentedControl from './SegmentedControl.vue';
  * Recording what is played: the button that begins and ends it, and the beat it is played to (the
  * metronome, its tempo, the time signature), set before recording and held through it.
  */
-const { recorder } = useDeps();
-const { t } = useI18n();
+const { recorder, keepTake } = useDeps();
+const { t, locale } = useI18n();
 const state = useRecorder(recorder);
 
 const busy = computed(() => state.value.state === 'armed' || state.value.state === 'recording');
@@ -25,6 +25,14 @@ useAnimationFrame(() => {
   const now = recorder.bar;
   if (now !== bar.value) bar.value = now;
 });
+
+/** A take is kept under the day and the hour it was played: a name to tell it by, until it is given one. */
+function keep(): void {
+  const now = new Date();
+  const when = new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(now);
+  const stamp = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()].map((part) => String(part).padStart(2, '0')).join('-');
+  void keepTake(t('takeTitle', { when }), `claviano-${stamp}`);
+}
 
 /** What is going on, in a few words. */
 const status = computed(() => {
@@ -45,14 +53,22 @@ const status = computed(() => {
   <div class="record-bar">
     <div class="take">
       <button v-if="busy" class="button stop" @click="recorder.stop()"><span class="sign square" aria-hidden="true" />{{ t('recordStop') }}</button>
-      <button v-else class="button record" @click="recorder.arm()">
-        <span class="sign dot" aria-hidden="true" />{{ t(state.state === 'recorded' ? 'recordAgain' : 'record') }}
-      </button>
-      <button v-if="state.state === 'recorded'" class="button" @click="recorder.discard()">{{ t('recordDiscard') }}</button>
+      <button v-else-if="state.state === 'idle'" class="button record" @click="recorder.arm()"><span class="sign dot" aria-hidden="true" />{{ t('record') }}</button>
+      <!-- A take is there: to hear, to keep, to mend at its end, or to play again. -->
+      <template v-else>
+        <button class="button" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ state.listening ? `■ ${t('recordStop')}` : `▶ ${t('takeListen')}` }}</button>
+        <button class="button primary keep" @click="keep">{{ t('takeKeep') }}</button>
+      </template>
       <span class="status" :class="{ live: state.state === 'recording' }" role="status">{{ status }}</span>
     </div>
 
-    <div class="beat">
+    <div v-if="state.state === 'recorded'" class="mend">
+      <button class="button" @click="recorder.eraseLastBar()">{{ t('takeEraseBar') }}</button>
+      <button class="button record" @click="recorder.arm()"><span class="sign dot" aria-hidden="true" />{{ t('recordAgain') }}</button>
+      <button class="button" @click="recorder.discard()">{{ t('recordDiscard') }}</button>
+    </div>
+    <!-- (The beat is set before a take; with one there, it is that take's.) -->
+    <div v-else class="beat">
       <button class="toggle" :aria-pressed="state.metronome" :disabled="busy" @click="recorder.setMetronome(!state.metronome)">
         {{ t('metronome') }}
       </button>
@@ -79,6 +95,7 @@ const status = computed(() => {
 }
 
 .take,
+.mend,
 .beat,
 .tempo {
   display: flex;
@@ -87,8 +104,14 @@ const status = computed(() => {
   min-width: 0;
 }
 
-.beat {
+.beat,
+.mend {
   flex-wrap: wrap;
+}
+
+.keep {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .record,
@@ -137,6 +160,26 @@ const status = computed(() => {
   font-variant-numeric: tabular-nums;
   text-align: center;
   white-space: nowrap;
+}
+
+.record-bar .button {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* A phone: the buttons in rows of their own, what is going on said under them. */
+@media (max-width: 599px) {
+  .take {
+    flex-wrap: wrap;
+  }
+
+  .status {
+    flex: 1 1 100%;
+  }
+
+  .mend .button {
+    padding-inline: 10px;
+  }
 }
 
 /* (Held through a take: not to be changed under it.) */

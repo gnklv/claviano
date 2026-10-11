@@ -6,6 +6,8 @@ export interface RecorderSnapshot {
   readonly tempo: number;
   readonly meter: Meter;
   readonly metronome: boolean;
+  /** The take is being played back. */
+  readonly listening: boolean;
   /** How many notes the take has, and how many of them have ended (their keys are up). */
   readonly notes: number;
   readonly ends: number;
@@ -18,6 +20,7 @@ export function useRecorder(recorder: Recorder): Readonly<ShallowRef<RecorderSna
     tempo: recorder.tempo,
     meter: recorder.meter,
     metronome: recorder.metronome,
+    listening: recorder.listening,
     notes: recorder.take?.notes.length ?? 0,
     ends: recorder.take?.notes.filter((note) => note.end !== null).length ?? 0,
   });

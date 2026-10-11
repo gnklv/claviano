@@ -31,6 +31,8 @@ export interface AppDeps {
   readonly freePlay: FreePlay;
   /** Recording what is played there. */
   readonly recorder: Recorder;
+  /** Keeps the take as a piece on the shelf, under `title`, and opens it. */
+  readonly keepTake: (title: string, fileName: string) => Promise<void>;
   readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
   readonly createStaff: (container: HTMLElement) => StaffView;
   readonly demos: readonly Demo[];

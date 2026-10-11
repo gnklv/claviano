@@ -91,7 +91,11 @@ export function createNavigation(
         return;
       }
       if (next === screen.value) return;
-      if (next === 'piece') {
+      if (next === 'piece' && screen.value === 'play') {
+        // What was played has become a piece: it takes free play's place, so Back from it is the library.
+        history.replaceState(null, '', pieceAddress(openPiece()));
+        piece.value = openPiece();
+      } else if (next === 'piece') {
         libraryBehind = true;
         location.hash = pieceAddress(openPiece());
         piece.value = openPiece();

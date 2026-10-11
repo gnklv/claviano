@@ -185,6 +185,73 @@ describe('the recorder', () => {
     expect(taken()).toEqual([[64, 0, 1]]);
   });
 
+  describe('a take that is there', () => {
+    /** Three bars at 80 in 4/4 (three seconds each), without the metronome: a note in each, the last held over from the second. */
+    beforeEach(() => {
+      recorder.setMetronome(false);
+      recorder.arm();
+      note(60, 0, 1);
+      note(62, 3, 4);
+      note(64, 5.3, 7);
+      audio.time = 7.5;
+      recorder.stop();
+    });
+
+    it('is written down as a piece, under the name given', () => {
+      const score = recorder.score('Mine');
+      expect(score?.title).toBe('Mine');
+      expect(score?.notes.map((written) => [written.pitch, written.beat])).toEqual([
+        [60, 0],
+        [62, 4],
+        [64, 7],
+      ]);
+      expect(score?.bars).toHaveLength(3);
+    });
+
+    it('plays back as it is written, from a moment on, and stands at its end again when it has run', () => {
+      expect(recorder.position).toBe(7.5);
+      recorder.listen();
+      expect(recorder.listening).toBe(true);
+      expect(audio.played.map((played) => [played.pitch, rounded(played.at - 7.6)])).toEqual([
+        [60, 0],
+        [62, 3],
+        [64, 5.25],
+      ]);
+      audio.time = 9.6;
+      expect(rounded(recorder.position)).toBe(2);
+      wait(20);
+      expect(recorder.listening).toBe(false);
+      expect(recorder.position).toBe(7.5);
+    });
+
+    it('stops playing back when asked, when another take is begun, and when it is thrown away', () => {
+      for (const end of [() => recorder.stopListening(), () => recorder.arm(), () => recorder.discard()]) {
+        recorder.listen();
+        const stops = audio.stops;
+        end();
+        expect(recorder.listening).toBe(false);
+        expect(audio.stops).toBe(stops + 1);
+        if (recorder.state !== 'recorded') break;
+      }
+    });
+
+    it('loses its last bar when asked: the notes written in it go, a note held into it ends at its line', () => {
+      recorder.eraseLastBar();
+      // (The third note is written at beat 7, in the second bar: it stays, and ends with the bar.)
+      expect(taken()).toEqual([
+        [60, 0, 1],
+        [62, 3, 4],
+        [64, 5.3, 6],
+      ]);
+      expect(recorder.take?.seconds).toBe(6);
+      recorder.eraseLastBar();
+      expect(taken()).toEqual([[60, 0, 1]]);
+      // Its only bar erased, there is no take.
+      recorder.eraseLastBar();
+      expect([recorder.state, recorder.take]).toEqual(['idle', null]);
+    });
+  });
+
   it('tells its listeners of what changes, until they leave', () => {
     let changes = 0;
     const stop = recorder.onChange(() => changes++);

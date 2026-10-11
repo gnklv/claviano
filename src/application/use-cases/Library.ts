@@ -99,16 +99,16 @@ export class Library {
     return this.loaded;
   }
 
-  /** Opens a file, and puts it on the shelf if it opened. */
-  async openFile(name: string, data: ArrayBuffer): Promise<void> {
+  /** Opens a file, and puts it on the shelf if it opened: under `title`, if given, else the piece's own. */
+  async openFile(name: string, data: ArrayBuffer, title?: string): Promise<void> {
     const id = contentId(data);
     this.asked++;
     this.pending = id;
     this.openScore.openFile(name, data);
     if (this.current !== id) return;
     const known = this.shelved.find((piece) => piece.id === id);
-    const title = known?.title ?? this.playback.score?.title ?? name;
-    await this.keep({ id, fileName: known?.fileName ?? name, title, openedAt: this.now() }, known ? undefined : data);
+    const shelved = known?.title ?? title ?? this.playback.score?.title ?? name;
+    await this.keep({ id, fileName: known?.fileName ?? name, title: shelved, openedAt: this.now() }, known ? undefined : data);
   }
 
   /** Opens a piece by its id: a demo, or one from the shelf. An id nobody knows opens nothing. */
