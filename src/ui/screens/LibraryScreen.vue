@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PieceCard from '../components/PieceCard.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
 import { useLibrary } from '../composables/useLibrary';
 import { usePieceText } from '../composables/usePieceText';
@@ -6,10 +7,12 @@ import { demoPieceId } from '../../application/use-cases/Library';
 import { useDeps, type Demo } from '../deps';
 import { relativeDay } from '../i18n/relativeDay';
 import { useI18n } from '../i18n/useI18n';
+import { saveFile } from '../saveFile';
 
 /*
- * Where the app starts: a file of one's own to open, the pieces opened before (the latest first),
- * and the demos.
+ * Where the app starts. One's own pieces first: a file to open, and the pieces opened before (the
+ * latest first). The demos under them, apart and smaller: they show what the player can do, and
+ * are nobody's pieces.
  */
 
 const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo] }>();
@@ -26,7 +29,13 @@ function leftAt(id: string): string | null {
   return memory && memory.position > 0 ? t('leftAtBar', { bar: memory.bar, bars: memory.bars }) : null;
 }
 const noteOf = (...parts: (string | null)[]): string => parts.filter((part) => part !== null).join(' · ');
-const { error } = usePieceText(playback, openScore, demos);
+const { error } = usePieceText(playback, openScore, library, demos);
+
+/** Saves a piece's file out, as it was given. */
+async function saveOut(id: string): Promise<void> {
+  const file = await library.file(id);
+  if (file) saveFile(file.name, file.data);
+}
 
 function onFileChosen(event: Event): void {
   const input = event.target as HTMLInputElement;
@@ -49,23 +58,33 @@ function onFileChosen(event: Event): void {
     <main class="shelf">
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 
+      <h2 class="heading">{{ t('myPieces') }}</h2>
       <div class="cards">
         <label class="card open">
           <span class="name">{{ t('openMidi') }}</span>
           <span class="note">{{ t('openFormats') }}</span>
           <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
         </label>
-        <button v-for="piece in shelf.pieces" :key="piece.id" class="card" @click="emit('piece', piece.id)">
-          <span class="name">{{ piece.title }}</span>
-          <span class="note">{{ noteOf(leftAt(piece.id), relativeDay(piece.openedAt, now, locale)) }}</span>
-        </button>
+        <PieceCard
+          v-for="piece in shelf.pieces"
+          :key="piece.id"
+          :title="piece.title"
+          :note="noteOf(leftAt(piece.id), relativeDay(piece.openedAt, now, locale))"
+          @open="emit('piece', piece.id)"
+          @rename="library.rename(piece.id, $event)"
+          @save="saveOut(piece.id)"
+          @remove="library.remove(piece.id)"
+        />
+      </div>
+      <p class="hint">{{ t('libraryHint') }}</p>
+
+      <h2 class="heading">{{ t('demos') }}</h2>
+      <div class="cards demos">
         <button v-for="demo in demos" :key="demo.id" class="card" @click="emit('demo', demo)">
           <span class="name">{{ t(demo.title) }}</span>
-          <span class="note">{{ noteOf(t('demo'), leftAt(demoPieceId(demo))) }}</span>
+          <span v-if="leftAt(demoPieceId(demo))" class="note">{{ leftAt(demoPieceId(demo)) }}</span>
         </button>
       </div>
-
-      <p class="hint">{{ t('libraryHint') }}</p>
     </main>
   </div>
 </template>
@@ -107,6 +126,34 @@ function onFileChosen(event: Event): void {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.heading {
+  margin-block: 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* (After one's own pieces and the hint under them: a section apart.) */
+.hint + .heading {
+  margin-top: 40px;
+}
+
+/* Under a finger there is nothing to drag a file with: the hint keeps its room, and says nothing. */
+@media (pointer: coarse) {
+  .hint {
+    visibility: hidden;
+    height: 0;
+  }
+}
+
+/* The demos: lower, the name beside what is remembered of it. */
+.demos .card {
+  min-height: 0;
+  padding-block: 12px;
 }
 
 .card {
@@ -159,9 +206,10 @@ function onFileChosen(event: Event): void {
 }
 
 .hint {
-  margin-top: 24px;
+  margin-top: 12px;
+  margin-bottom: 0;
   color: var(--muted);
-  text-align: center;
+  font-size: 13px;
 }
 
 .error {
