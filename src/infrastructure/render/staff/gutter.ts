@@ -27,7 +27,8 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
   for (const top of [geometry.trebleTop(), geometry.bassTop()]) {
     for (let line = 0; line < LINES_PER_STAFF; line++) {
       const y = top + line * space;
-      shapes.push(svg('line', { x1: space * 0.5, x2: geometry.width, y1: y, y2: y, stroke: COLORS.staffLine, 'stroke-width': 1 }));
+      // (Twice the width of the view: stretched smaller for a moment, as a view changing its size is, the lines still reach across it.)
+      shapes.push(svg('line', { x1: space * 0.5, x2: geometry.width * 2, y1: y, y2: y, stroke: COLORS.staffLine, 'stroke-width': 1 }));
     }
   }
 

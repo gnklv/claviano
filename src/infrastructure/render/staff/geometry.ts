@@ -117,9 +117,14 @@ export class StaffGeometry {
    * the height alone would show hardly more than a bar.
    */
   private fit(): void {
-    const byHeight = this.height / CONTENT_HEIGHT;
-    const byWidth = this.width / (this.gutterSpaces + BARS_VISIBLE * MIN_BAR_WIDTH);
-    this.space = Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
+    this.space = this.spaceFor(this.width, this.height);
+  }
+
+  /** The staff space a view of this size would be drawn with (see `fit`). */
+  spaceFor(width: number, height: number): number {
+    const byHeight = height / CONTENT_HEIGHT;
+    const byWidth = width / (this.gutterSpaces + BARS_VISIBLE * MIN_BAR_WIDTH);
+    return Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
   }
 
   gutterWidth(): number {

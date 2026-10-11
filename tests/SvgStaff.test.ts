@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import type { Hand } from '../src/domain/note';
 import { engrave } from '../src/domain/notation/engraving';
@@ -220,13 +220,14 @@ describe('SvgStaff', () => {
     const size = { width: 1024, height: 300 };
     const { staff, container } = drawStaff(ode(), size);
     const staffLine = () => container.querySelector('line')!;
-    expect(staffLine().getAttribute('x2')).toBe('1024');
+    // (A staff line runs to twice the width: across the view even while that is stretched smaller.)
+    expect(staffLine().getAttribute('x2')).toBe('2048');
     const elements = container.querySelectorAll('svg *').length;
 
     size.width = 600;
     size.height = 200;
     staff.resize();
-    expect(staffLine().getAttribute('x2')).toBe('600');
+    expect(staffLine().getAttribute('x2')).toBe('1200');
     expect(container.querySelectorAll('svg *').length).toBe(elements);
   });
 
@@ -321,3 +322,73 @@ describe('SvgStaff', () => {
     expect(texts()).not.toContain('L.H.');
   });
 });
+
+describe('a staff whose size is on the move', () => {
+  /** A clock on which every look takes `step` ms: drawing the piece anew is seen to take that long. */
+  let step: number;
+  let time: number;
+  beforeEach(() => {
+    time = 0;
+    step = 20;
+    // (Only the timers are set by hand: the clock is this test's own.)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.spyOn(performance, 'now').mockImplementation(() => (time += step));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+  const transformOf = (container: HTMLElement) => (container.lastElementChild as HTMLElement).style.transform;
+  /** The tape: its last drawn thing, which is another one when the tape is drawn anew. */
+  const tape = (container: HTMLElement) => container.children[1].querySelector('svg > g')!;
+  const notes = (container: HTMLElement) => tape(container).children.length;
+  const firstNote = (container: HTMLElement) => tape(container).lastElementChild;
+
+  it('is drawn anew at once for a size told by itself', () => {
+    const size = { width: 800, height: 300 };
+    const { staff, container } = drawStaff(ode(), size);
+    const before = firstNote(container);
+    time += 1000;
+    size.height = 200;
+    staff.resize();
+    expect(firstNote(container)).not.toBe(before);
+    expect(transformOf(container)).toBe('');
+  });
+
+  it('is stretched through sizes told one after another, where drawing anew takes longer than a frame, and drawn anew when they stop', () => {
+    const size = { width: 800, height: 300 };
+    const { staff, container } = drawStaff(ode(), size);
+    time += 1000;
+    size.height = 290;
+    staff.resize();
+    const drawn = firstNote(container);
+
+    // A strip of the screen folding away: a new size at every frame.
+    for (const height of [270, 240, 210, 200]) {
+      size.height = height;
+      staff.resize();
+      expect(firstNote(container)).toBe(drawn);
+    }
+    // Smaller, as the staff would be at that height, and in the middle of it.
+    expect(transformOf(container)).toMatch(/^translate\(0px, [\d.-]+px\) scale\(0\.\d+\)$/);
+
+    vi.advanceTimersByTime(200);
+    expect(transformOf(container)).toBe('');
+    expect(firstNote(container)).not.toBe(drawn);
+    expect(notes(container)).toBeGreaterThan(0);
+  });
+
+  it('is drawn anew at every size where that is quick', () => {
+    step = 1;
+    const size = { width: 800, height: 300 };
+    const { staff, container } = drawStaff(ode(), size);
+    for (const height of [290, 270, 240]) {
+      const before = firstNote(container);
+      size.height = height;
+      staff.resize();
+      expect(firstNote(container)).not.toBe(before);
+      expect(transformOf(container)).toBe('');
+    }
+  });
+});
+

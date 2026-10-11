@@ -74,6 +74,15 @@ const TAPE_GLIDE_SECONDS = 0.1;
  */
 const MANUAL_HOLD_SECONDS = 3;
 const SEEK_THRESHOLD_SECONDS = 0.5;
+/** The tape fades out at both its ends. */
+const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
+/**
+ * Drawing the piece anew took longer than this, in milliseconds: longer than a frame lasts on a
+ * screen that shows 120 of them a second. Done at every step of a size on the move, the steps are seen.
+ */
+const FRAME_MS = 8;
+/** Sizes told this soon one after another, in milliseconds, are one size on the move; this long without one, it has come to rest. */
+const RESIZING_MS = 120;
 
 /** A click within this many staff spaces of a notehead's centre means that note. */
 const NOTE_SNAP = 1.2;
@@ -136,6 +145,12 @@ export class SvgStaff implements StaffView {
   /** The loop's shade, behind the music too: redrawn alone when the loop changes. */
   private readonly loopLayer: SVGGElement = svg('g');
   private hoverBar: number | null = null;
+  /** When a size was last told, and whether the last drawing anew took longer than a frame (see resize). */
+  private resizedAt = Number.NEGATIVE_INFINITY;
+  private costly = false;
+  /** What is drawn is stretched to a size on the move, to be drawn anew when that comes to rest. */
+  private stretched = false;
+  private settling: ReturnType<typeof setTimeout> | undefined;
   /** The tape dragged by hand (see dragBy), or null while it follows the music. */
   private manual: { offset: number; idle: number } | null = null;
   private lastPosition = 0;
@@ -151,10 +166,9 @@ export class SvgStaff implements StaffView {
     Object.assign(this.background.style, { position: 'absolute', inset: '0', width: '100%', height: '100%' });
 
     this.tape = document.createElement('div');
-    const fade = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
     Object.assign(this.tape.style, { position: 'absolute', top: '0', bottom: '0', right: '0' });
-    this.tape.style.maskImage = fade;
-    this.tape.style.setProperty('-webkit-mask-image', fade);
+    this.tape.style.maskImage = TAPE_FADE;
+    this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
     this.tapeSvg = svg('svg');
     Object.assign(this.tapeSvg.style, { display: 'block', width: '100%', height: '100%' });
     this.strip = svg('g');
@@ -243,15 +257,72 @@ export class SvgStaff implements StaffView {
   /** Call when the container's size changes. */
   resize(): void {
     const { clientWidth: width, clientHeight: height } = this.container;
+    const now = performance.now();
+    const inARow = now - this.resizedAt < RESIZING_MS;
+    this.resizedAt = now;
+    if (this.stretched || (inARow && this.costly)) {
+      // The size is on the move (a strip of the screen folding away, a window dragged by its edge),
+      // and drawing the whole piece anew takes longer than a frame: what is drawn is stretched to
+      // the new size, which costs nothing, and drawn anew once the size has come to rest.
+      this.stretch(width, height);
+      clearTimeout(this.settling);
+      this.settling = setTimeout(() => this.settle(), RESIZING_MS);
+      return;
+    }
     // Browsers report a size when watching begins, changed or not: nothing to draw anew then.
     if (width === this.geometry.width && height === this.geometry.height) return;
     this.geometry.resize(width, height);
     this.redraw();
   }
 
+  /**
+   * Shows what is drawn as it would stand in a view of another size, near enough: larger or smaller
+   * as the staff would be, and in the middle of the height. (Near enough: the bars would be laid
+   * out a little wider or narrower. Drawn anew, they are.)
+   */
+  private stretch(width: number, height: number): void {
+    const { geometry } = this;
+    const by = geometry.spaceFor(width, height) / geometry.space;
+    const down = height / 2 - (by * geometry.height) / 2;
+    if (!this.stretched) {
+      this.stretched = true;
+      // What is drawn reaches past its box while that is smaller than the view: nothing cuts it there.
+      this.tape.style.maskImage = 'none';
+      this.tape.style.setProperty('-webkit-mask-image', 'none');
+      this.tapeSvg.style.overflow = 'visible';
+      this.background.style.overflow = 'visible';
+    }
+    for (const part of [this.background, this.tape, this.cursor]) {
+      // (Each about the view's own corner, wherever in the view it stands.)
+      const left = part instanceof HTMLElement ? part.offsetLeft : 0;
+      const top = part instanceof HTMLElement ? part.offsetTop : 0;
+      part.style.transformOrigin = `${-left}px ${-top}px`;
+      part.style.transform = `translate(0px, ${down}px) scale(${by})`;
+    }
+  }
+
+  /** The size has come to rest: drawn anew for it, exactly. */
+  private settle(): void {
+    this.stretched = false;
+    for (const part of [this.background, this.tape, this.cursor]) {
+      part.style.transform = '';
+      part.style.transformOrigin = '';
+    }
+    this.tape.style.maskImage = TAPE_FADE;
+    this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
+    this.tapeSvg.style.overflow = '';
+    this.background.style.overflow = '';
+    const { clientWidth: width, clientHeight: height } = this.container;
+    if (width === this.geometry.width && height === this.geometry.height) return;
+    this.geometry.resize(width, height);
+    this.redraw();
+  }
+
   private redraw(): void {
+    const began = performance.now();
     this.drawBackground();
     this.drawStrip();
+    this.costly = performance.now() - began > FRAME_MS;
   }
 
   /**
