@@ -1,23 +1,24 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue';
-import type { Hand } from '../../domain/note';
 import type { NoteValue } from '../../domain/notation/noteValue';
 import { barAt, barNumber, tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
+import { useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
-import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
+import PracticeToggles from './PracticeToggles.vue';
+import SheetDialog from './SheetDialog.vue';
 
 const SEEK_STEPS = 1000;
-/** How long the metronome's dot stays lit after a click, in seconds. */
-const PULSE_SECONDS = 0.1;
-
 const { playback, barLoop } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
+/** A phone: no room in the bar for what is set once a session; it goes into a sheet behind "⋯". */
+const phone = useMediaQuery('(max-width: 599px)');
+const practiceSheet = useTemplateRef('practiceSheet');
 /** Bar numbers as printed: a pickup is bar 0, so the first and last numbers depend on the score. */
 const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
 const lastBar = computed(() => (state.value.score ? barNumber(state.value.score, state.value.score.bars.length - 1) : 1));
@@ -26,17 +27,6 @@ const tempoPercent = computed({
   get: () => Math.round(state.value.tempo * 100),
   set: (percent: number) => playback.setTempo(percent / 100),
 });
-
-const hands: { hand: Hand; label: MessageKey }[] = [
-  { hand: 'right', label: 'rightHand' },
-  { hand: 'left', label: 'leftHand' },
-];
-
-/** Set once for a session of practice: the count-in before playing, and the pedals (off, to hear whether the fingers alone play legato). */
-const switches = computed((): { label: MessageKey; on: boolean; set: (on: boolean) => void }[] => [
-  { label: 'countIn', on: state.value.countIn, set: (on) => playback.setCountInEnabled(on) },
-  { label: 'pedal', on: state.value.pedal, set: (on) => playback.setPedalEnabled(on) },
-]);
 
 // --- Position readouts: updated from the animation frame, only when they actually change. ---
 
@@ -63,14 +53,7 @@ const NOTE_SIGNS: Record<NoteValue, string> = {
 /** The tempo the music is played at now, the slider applied: "♩ = 45" at 50% of ♩ = 90. Empty without a tempo mark. */
 const actualTempo = ref('');
 
-/** The metronome's dot flashes with each click it plays (or the count-in plays). */
-const pulse = ref<'none' | 'beat' | 'accent'>('none');
-
 useAnimationFrame(() => {
-  const click = playback.playing ? playback.lastClick : null;
-  const now = click && click.age < PULSE_SECONDS ? (click.accent ? 'accent' : 'beat') : 'none';
-  if (now !== pulse.value) pulse.value = now;
-
   const score = playback.score;
   if (!score) return;
   const position = playback.position;
@@ -110,8 +93,9 @@ function togglePlay(): void {
 <template>
   <!--
     Always at hand: playing, the place in the piece, the tempo, the loop. Set once a session:
-    the hands, the metronome, the count-in, the pedal. (What is touched seldom is in the settings
-    panel.) How the groups are arranged depends on the width; see the grid areas below.
+    the hands, the metronome, the count-in, the pedal; on a phone these are in a sheet behind "⋯".
+    (What is touched seldom is in the settings panel.) How the groups are arranged depends on the
+    width; see the grid areas below.
   -->
   <footer class="transport">
     <div class="playback">
@@ -152,51 +136,27 @@ function togglePlay(): void {
       <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
       –
       <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
+      <template v-if="phone">
+        <button class="button more" :title="t('practice')" :aria-label="t('practice')" @click="practiceSheet?.open()">⋯</button>
+        <SheetDialog ref="practiceSheet" :title="t('practice')">
+          <PracticeToggles tiled />
+        </SheetDialog>
+      </template>
     </div>
 
-    <div class="practice">
-      <div class="hands">
-        <button
-          v-for="{ hand, label } in hands"
-          :key="hand"
-          class="toggle"
-          :class="`hand-${hand}`"
-          :aria-pressed="state.hands[hand]"
-          @click="playback.setHandEnabled(hand, !state.hands[hand])"
-        >
-          <span class="dot" aria-hidden="true" />
-          {{ t(label) }}
-        </button>
-      </div>
-
-      <button
-        class="toggle metronome"
-        :class="`pulse-${pulse}`"
-        :aria-pressed="state.metronome"
-        :title="t('metronomeHint')"
-        @click="playback.setMetronomeEnabled(!state.metronome)"
-      >
-        <span class="dot" aria-hidden="true" />
-        {{ t('metronome') }}
-      </button>
-
-      <button v-for="item in switches" :key="item.label" class="toggle" :aria-pressed="item.on" @click="item.set(!item.on)">
-        {{ t(item.label) }}
-      </button>
-    </div>
+    <PracticeToggles v-if="!phone" class="in-bar" />
   </footer>
 </template>
 
 <style scoped>
-/* Phones: one group per row, each full width. */
+/* Phones: one group per row, each full width; practice is not in the bar. */
 .transport {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-areas:
     'playback'
     'tempo'
-    'loop'
-    'practice';
+    'loop';
   gap: 10px 24px;
   /* Keep clear of the home indicator and, in landscape, the notch. */
   padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
@@ -236,8 +196,6 @@ function togglePlay(): void {
 
 .playback,
 .tempo,
-.practice,
-.hands,
 .loop {
   display: flex;
   align-items: center;
@@ -257,9 +215,15 @@ function togglePlay(): void {
   grid-area: loop;
 }
 
-.practice {
+/* (Not `.practice`: the toggles in the sheet have that class too, and are no part of this grid.) */
+.in-bar {
   grid-area: practice;
-  flex-wrap: wrap;
+}
+
+/* At the far end of the loop's row. */
+.more {
+  margin-left: auto;
+  line-height: 1;
 }
 
 .seek,
@@ -280,66 +244,6 @@ function togglePlay(): void {
   white-space: nowrap;
 }
 
-/* A pressable chip: on when aria-pressed is true, faded when off. */
-.toggle {
-  appearance: none;
-  display: inline-flex;
-  white-space: nowrap;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.toggle[aria-pressed='true'] {
-  background: var(--control);
-  color: var(--text);
-}
-
-.toggle:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.hand-right .dot {
-  color: var(--right);
-}
-
-.hand-left .dot {
-  color: var(--left);
-}
-
-.toggle[aria-pressed='true'] .dot {
-  background: currentColor;
-}
-
-.metronome .dot {
-  color: var(--muted);
-  transition: scale 0.08s ease-out;
-}
-
-.metronome.pulse-beat .dot,
-.metronome.pulse-accent .dot {
-  color: var(--accent);
-  background: currentColor;
-}
-
-.metronome.pulse-accent .dot {
-  scale: 1.35;
-}
-
 .number {
   width: 3.5em;
   background: var(--control);
@@ -353,7 +257,6 @@ function togglePlay(): void {
 /* Phones: finger-sized targets. */
 @media (max-width: 599px) {
   .button,
-  .toggle,
   .number {
     min-height: 44px;
   }

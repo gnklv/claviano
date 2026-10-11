@@ -4,6 +4,7 @@ export const ru: Dictionary = {
   appTitle: 'Claviano',
   settings: 'Настройки',
   close: 'Закрыть',
+  practice: 'Занятие',
   viewMode: 'Вид',
   viewStaff: 'Ноты',
   viewKeys: 'Клавиши',

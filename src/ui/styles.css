@@ -163,3 +163,36 @@ body {
   border-color: var(--accent);
   color: var(--on-accent);
 }
+
+/* A pressable chip: on when aria-pressed is true, faded when off. */
+.toggle {
+  appearance: none;
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--control);
+  color: var(--text);
+}
+
+.toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Phones: finger-sized. */
+@media (max-width: 599px) {
+  .toggle {
+    min-height: 44px;
+  }
+}

@@ -207,13 +207,14 @@ timer jitter; the view only reads `playback.position` each frame.
 Next, in this order (see [the concept](docs/concept.md): a library to start from, learning a
 piece, free play). Each step stands on the one before, so nothing is laid out twice:
 
-1. [ ] The frame of screens: the library (for now "Open file" and the demos, nothing remembered)
+1. [x] The frame of screens: the library (for now "Open file" and the demos, nothing remembered)
        and the learning screen with its new header; moving between them, an address for each
-2. [ ] The new transport bar (always at hand / once a session / seldom) and the settings panel,
-       with volume sliders for the piano and the metronome in it
-3. [ ] Phones and tablets: the "⋯" sheet on a phone upright, strips that hide on a phone on its
-       side; a pass on an iPhone and an iPad in the iOS Simulator (layout and touch), then on real
-       devices (sound, memory, smoothness, the samples in iOS Safari)
+2. [x] The new transport bar (always at hand / once a session / seldom; on a phone the middle
+       ones are in a sheet behind "⋯") and the settings panel, with volume sliders for the piano
+       and the metronome in it
+3. [ ] Phones and tablets: strips that hide on a phone on its side; a pass on an iPhone and an
+       iPad in the iOS Simulator (layout and touch), then on real devices (sound, memory,
+       smoothness, the samples in iOS Safari)
 4. [ ] The library remembers: opened pieces kept in the browser, each with its place, tempo, loop
        and hands; rename, remove, save out as a file
 5. [ ] Install as an app on the phone (web app manifest, icons; the service worker is there):

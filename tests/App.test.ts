@@ -27,6 +27,13 @@ let playback: Playback;
 let volume: Volume;
 let app: VueApp;
 let root: HTMLElement;
+/** The window's width, as the app asks about it: a phone or not. */
+const screen = { phone: false, listeners: new Set<() => void>() };
+const turnIntoPhone = async () => {
+  screen.phone = true;
+  screen.listeners.forEach((listener) => listener());
+  await nextTick();
+};
 
 const text = () => root.textContent ?? '';
 const onPiece = () => root.querySelector('.piece') !== null;
@@ -51,6 +58,18 @@ beforeEach(() => {
     window.dispatchEvent(new Event('hashchange'));
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
+  screen.phone = false;
+  screen.listeners.clear();
+  vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
+    const media = {
+      get matches() {
+        return screen.phone && query.includes('max-width: 599px');
+      },
+      addEventListener: (_: string, listener: () => void) => screen.listeners.add(listener),
+      removeEventListener: (_: string, listener: () => void) => screen.listeners.delete(listener),
+    };
+    return media as unknown as MediaQueryList;
+  });
   playback = new Playback(new FakeAudio(), new FakeTicker());
   volume = new Volume(new FakeAudio());
   root = document.createElement('div');
@@ -240,6 +259,23 @@ describe('the app', () => {
         expect(read()).toBe(!before);
         expect(chip(label).getAttribute('aria-pressed')).toBe(String(!before));
       }
+    });
+
+    it('keeps on a phone what is set once a session in a sheet behind "⋯"', async () => {
+      await turnIntoPhone();
+      const sheet = () => bar().querySelector<HTMLDialogElement>('dialog')!;
+      const inBar = [...bar().querySelectorAll('button[aria-pressed]')].filter((element) => !sheet().contains(element));
+      expect(inBar.map((element) => element.textContent?.trim())).toEqual(['↻ Loop']);
+      expect(sheet().open).toBe(false);
+
+      button(/^Practice$/).click();
+      await settled();
+      expect(sheet().open).toBe(true);
+      expect([...sheet().querySelectorAll('button[aria-pressed]')].map((element) => element.textContent?.trim())).toEqual(['Right', 'Left', 'Metronome', 'Count-in', 'Pedal']);
+
+      const before = playback.pedalEnabled;
+      chip(/Pedal/).click();
+      expect(playback.pedalEnabled).toBe(!before);
     });
 
     it('has no button for going back to the start: Home does that', () => {

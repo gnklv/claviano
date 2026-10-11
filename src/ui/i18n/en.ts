@@ -10,6 +10,7 @@ export const en = {
   appTitle: 'Claviano',
   settings: 'Settings',
   close: 'Close',
+  practice: 'Practice',
   viewMode: 'View',
   viewStaff: 'Notes',
   viewKeys: 'Keys',
