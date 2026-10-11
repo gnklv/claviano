@@ -137,12 +137,13 @@ function onCancel(event: Event): void {
   transition-duration: var(--enter);
 }
 
+/* (Spelled as the open state is, to the letter: a first frame that weighs less than it loses to it, and nothing moves.) */
 @starting-style {
-  .panel[open] .sheet {
+  .panel[open]:not(.closing) .sheet {
     translate: var(--away);
   }
 
-  .panel[open]::backdrop {
+  .panel[open]:not(.closing)::backdrop {
     background: rgb(0 0 0 / 0);
   }
 }
@@ -195,7 +196,7 @@ function onCancel(event: Event): void {
   }
 
   @starting-style {
-    .panel[open] .sheet {
+    .panel[open]:not(.closing) .sheet {
       opacity: 0;
     }
   }
