@@ -11,6 +11,7 @@ import { Recorder } from './application/use-cases/Recorder';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
 import { Volume } from './application/use-cases/Volume';
 import { rememberPieces } from './application/use-cases/rememberPieces';
+import { restWhenPutAway } from './application/use-cases/restWhenPutAway';
 import { rememberPracticeSettings } from './application/use-cases/rememberPracticeSettings';
 import { odeToJoy } from './demo/odeToJoy';
 import { playAsMusic } from './infrastructure/audio/audioSession';
@@ -58,12 +59,15 @@ const writeDownThePlace = rememberPieces(library, playback, barLoop);
 // The place moves on while the music plays: written down when the page is left (closed, or put away on a phone).
 window.addEventListener('pagehide', writeDownThePlace);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') writeDownThePlace();
+  if (document.visibilityState !== 'hidden') return;
+  rest();
+  writeDownThePlace();
 });
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
 const freePlay = new FreePlay(piano, piano, playback);
 const recorder = new Recorder(freePlay, piano, new IntervalTicker());
+const rest = restWhenPutAway(playback, recorder);
 const midiWriter = new MidiFileWriter();
 
 createApp(App)
