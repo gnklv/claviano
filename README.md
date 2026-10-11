@@ -50,6 +50,7 @@ metronome is a synth's blip.)
 |---|---|
 | Space | play / pause |
 | ← → | previous / next bar |
+| Home | back to the start (of the loop, when one is on) |
 | Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45) |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |

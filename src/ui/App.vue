@@ -47,10 +47,10 @@ function onKeyDown(event: KeyboardEvent): void {
   // The keys play the piece: in the library there is nothing for them to do.
   if (screen.value !== 'piece') return;
   const input = event.target instanceof HTMLInputElement ? event.target : null;
-  // Typing a bar number is left alone; so are the arrows on a slider (tempo, position), which move it.
+  // Typing a bar number is left alone; so are the arrows and Home on a slider (tempo, position), which move it.
   if (input?.type === 'number') return;
   const arrow = event.code === 'ArrowLeft' || event.code === 'ArrowRight';
-  if (arrow && input) return;
+  if ((arrow || event.code === 'Home') && input) return;
   if (event.code === 'Space') {
     event.preventDefault();
     if (playback.playing) playback.pause();
@@ -58,6 +58,10 @@ function onKeyDown(event: KeyboardEvent): void {
   } else if (arrow) {
     event.preventDefault();
     stepBar(playback, event.code === 'ArrowLeft' ? -1 : 1);
+  } else if (event.code === 'Home') {
+    // To the start (of the loop, when one is on); what plays goes on playing from there.
+    event.preventDefault();
+    playback.seek(0);
   }
 }
 

@@ -174,10 +174,10 @@ describe('the app', () => {
       expect(labels()).toEqual(['Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
     });
 
-    it('has on the piece screen the view and the practice settings as well', async () => {
+    it('has on the piece screen the view as well', async () => {
       button(/Ode to Joy/).click();
       await settled();
-      expect(labels()).toEqual(['View', 'Pedal', 'Count-in', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
+      expect(labels()).toEqual(['View', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
     });
 
     it('turns the notes down from its slider', async () => {
@@ -203,5 +203,47 @@ describe('the app', () => {
     press('Space');
     await settled();
     expect(playback.playing).toBe(true);
+  });
+
+  it('goes back to the start by Home, and goes on playing', async () => {
+    const press = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    button(/Ode to Joy/).click();
+    await settled();
+    press('ArrowRight');
+    press('ArrowRight');
+    press('Space');
+    await settled();
+    press('Home');
+    expect(playback.position).toBeCloseTo(0);
+    expect(playback.playing).toBe(true);
+  });
+
+  describe('the transport bar', () => {
+    const bar = () => root.querySelector<HTMLElement>('.transport')!;
+    const chip = (label: RegExp) => [...bar().querySelectorAll<HTMLElement>('button')].find((element) => label.test(element.textContent ?? ''))!;
+
+    beforeEach(async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+    });
+
+    it('has what is set once a session beside what is always at hand: the hands, the metronome, the count-in, the pedal', () => {
+      const pressable = [...bar().querySelectorAll('button[aria-pressed]')].map((element) => element.textContent?.trim());
+      expect(pressable).toEqual(['↻ Loop', 'Right', 'Left', 'Metronome', 'Count-in', 'Pedal']);
+    });
+
+    it('turns the count-in and the pedal on and off', async () => {
+      for (const [label, read] of [[/Count-in/, () => playback.countInEnabled], [/Pedal/, () => playback.pedalEnabled]] as const) {
+        const before = read();
+        chip(label).click();
+        await settled();
+        expect(read()).toBe(!before);
+        expect(chip(label).getAttribute('aria-pressed')).toBe(String(!before));
+      }
+    });
+
+    it('has no button for going back to the start: Home does that', () => {
+      expect([...bar().querySelectorAll('button')].filter((element) => !element.hasAttribute('aria-pressed'))).toHaveLength(1);
+    });
   });
 });

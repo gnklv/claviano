@@ -59,7 +59,6 @@ export const en = {
   play: 'Play',
   pause: 'Pause',
   playHint: 'Space',
-  stop: 'Back to start',
   barPosition: 'Bar {current} / {total}',
   barPositionEmpty: 'Bar –',
   tempo: 'Tempo',

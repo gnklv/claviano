@@ -53,7 +53,6 @@ export const ru: Dictionary = {
   play: 'Играть',
   pause: 'Пауза',
   playHint: 'Пробел',
-  stop: 'В начало',
   barPosition: 'Такт {current} / {total}',
   barPositionEmpty: 'Такт –',
   tempo: 'Темп',

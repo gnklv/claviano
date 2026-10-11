@@ -32,6 +32,12 @@ const hands: { hand: Hand; label: MessageKey }[] = [
   { hand: 'left', label: 'leftHand' },
 ];
 
+/** Set once for a session of practice: the count-in before playing, and the pedals (off, to hear whether the fingers alone play legato). */
+const switches = computed((): { label: MessageKey; on: boolean; set: (on: boolean) => void }[] => [
+  { label: 'countIn', on: state.value.countIn, set: (on) => playback.setCountInEnabled(on) },
+  { label: 'pedal', on: state.value.pedal, set: (on) => playback.setPedalEnabled(on) },
+]);
+
 // --- Position readouts: updated from the animation frame, only when they actually change. ---
 
 /** Current bar, zero-based; null until a score is loaded. */
@@ -103,8 +109,9 @@ function togglePlay(): void {
 
 <template>
   <!--
-    Three groups by meaning: playback, tempo, practice (hands and loop).
-    How they are arranged depends on the width; see the grid areas below.
+    Always at hand: playing, the place in the piece, the tempo, the loop. Set once a session:
+    the hands, the metronome, the count-in, the pedal. (What is touched seldom is in the settings
+    panel.) How the groups are arranged depends on the width; see the grid areas below.
   -->
   <footer class="transport">
     <div class="playback">
@@ -116,9 +123,6 @@ function togglePlay(): void {
         @click="togglePlay"
       >
         {{ state.playing ? '❚❚' : '▶' }}
-      </button>
-      <button class="button" :disabled="!loaded" :title="t('stop')" :aria-label="t('stop')" @click="playback.stop()">
-        ■
       </button>
       <input
         ref="seek"
@@ -140,6 +144,15 @@ function togglePlay(): void {
       <input v-model.number="tempoPercent" class="tempo-slider" type="range" min="25" max="150" step="5" />
       <output class="readout">{{ tempoPercent }}%<template v-if="actualTempo"> · {{ actualTempo }}</template></output>
     </label>
+
+    <div class="loop">
+      <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
+        ↻ {{ t('loop') }}
+      </button>
+      <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
+      –
+      <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
+    </div>
 
     <div class="practice">
       <div class="hands">
@@ -167,14 +180,9 @@ function togglePlay(): void {
         {{ t('metronome') }}
       </button>
 
-      <div class="loop">
-        <button class="toggle" :aria-pressed="loopEnabled" :disabled="!loaded" :title="t('loopBars')" @click="loopEnabled = !loopEnabled">
-          ↻ {{ t('loop') }}
-        </button>
-        <input v-model.number="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopFrom')" />
-        –
-        <input v-model.number="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :aria-label="t('loopTo')" />
-      </div>
+      <button v-for="item in switches" :key="item.label" class="toggle" :aria-pressed="item.on" @click="item.set(!item.on)">
+        {{ t(item.label) }}
+      </button>
     </div>
   </footer>
 </template>
@@ -187,6 +195,7 @@ function togglePlay(): void {
   grid-template-areas:
     'playback'
     'tempo'
+    'loop'
     'practice';
   gap: 10px 24px;
   /* Keep clear of the home indicator and, in landscape, the notch. */
@@ -196,21 +205,32 @@ function togglePlay(): void {
   border-top: 1px solid var(--border);
 }
 
-/* Tablets and narrow windows: playback on top, tempo and practice share the second row. */
+/* Tablets and narrow windows: playback on top, tempo and the loop share the second row, practice has the third. */
 @media (min-width: 600px) {
   .transport {
     grid-template-columns: 1fr auto;
     grid-template-areas:
       'playback playback'
-      'tempo practice';
+      'tempo loop'
+      'practice practice';
+  }
+}
+
+/* A computer: what is always at hand in one row, what is set once a session in a row under it. */
+@media (min-width: 900px) {
+  .transport {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      'playback tempo loop'
+      'practice practice practice';
   }
 }
 
 /* Wide screens: everything in one row. */
-@media (min-width: 1100px) {
+@media (min-width: 1400px) {
   .transport {
-    grid-template-columns: 1fr auto auto;
-    grid-template-areas: 'playback tempo practice';
+    grid-template-columns: 1fr auto auto auto;
+    grid-template-areas: 'playback tempo loop practice';
   }
 }
 
@@ -233,11 +253,13 @@ function togglePlay(): void {
   grid-area: tempo;
 }
 
+.loop {
+  grid-area: loop;
+}
+
 .practice {
   grid-area: practice;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px 16px;
 }
 
 .seek,
@@ -246,7 +268,7 @@ function togglePlay(): void {
   min-width: 80px;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 900px) {
   .tempo-slider {
     flex: 0 1 140px;
   }

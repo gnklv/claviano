@@ -2,7 +2,7 @@
 import { useTemplateRef } from 'vue';
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitch from './LanguageSwitch.vue';
-import PracticeSettings from './PracticeSettings.vue';
+import SoundSettings from './SoundSettings.vue';
 import ThemeSwitch from './ThemeSwitch.vue';
 import ViewModeSwitch from './ViewModeSwitch.vue';
 import VolumeSettings from './VolumeSettings.vue';
@@ -15,7 +15,7 @@ import VolumeSettings from './VolumeSettings.vue';
  * behind (a click there closes it too).
  */
 
-/** `piece`: on the piece's screen, where the view and the practice settings have a meaning. */
+/** `piece`: on the piece's screen, where the view has a meaning. */
 defineProps<{ piece?: boolean }>();
 
 const { t } = useI18n();
@@ -41,7 +41,7 @@ function onClick(event: MouseEvent): void {
         <span class="label">{{ t('viewMode') }}</span>
         <ViewModeSwitch />
       </div>
-      <PracticeSettings :piece="piece" />
+      <SoundSettings />
       <VolumeSettings />
       <div class="row">
         <span class="label">{{ t('theme') }}</span>
