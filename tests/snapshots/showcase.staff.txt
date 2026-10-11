@@ -117,10 +117,10 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="2739" y="73.13" 8
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="3114" y="73.13" 9
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="3489" y="73.13" 10
-          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="3931.5" y="73.13" 11
+          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="3931.5" y="45.94" 11
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="4329" y="73.13" 12
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="4726.5" y="73.13" 13
-          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="5195.25" y="60" 14
+          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="5195.25" y="46.88" 14
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="5570.25" y="73.13" 15
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="5945.25" y="73.13" 16
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="6320.25" y="69.38" 17
@@ -131,14 +131,14 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="8211.35" y="73.13" 22
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="8586.35" y="55.31" 23
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="8961.35" y="73.13" 24
-          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="9358.85" y="73.13" 25
+          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="9358.85" y="36.56" 25
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="9756.35" y="73.13" 26
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="10131.35" y="73.13" 27
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="10506.35" y="73.13" 28
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="10896.35" y="64.69" 29
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="11291.97" y="60" 30
           text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="11666.97" y="73.13" 31
-          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="12041.97" y="64.69" 32
+          text font-family="system-ui, sans-serif" font-size="10.31" style="fill: var(--bar-number);" x="12041.97" y="46.88" 32
           text font-family="Bravura" font-size="37.5" style="fill: var(--ink);" text-anchor="start" x="10502.6" y="121.88" U+E040
           text font-family="Bravura" font-size="37.5" style="fill: var(--ink);" text-anchor="start" x="10502.6" y="215.63" U+E040
           text font-family="Bravura" font-size="37.5" style="fill: var(--ink);" text-anchor="start" x="10511.97" y="60" U+E047
@@ -190,7 +190,7 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="2743.69" y="52.5" Ties
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="3615.56" y="52.5" Key and time
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="3958.69" y="42.19" Clef change
-          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="5217.75" y="52.5" Articulation
+          text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="5217.75" y="43.13" Articulation
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="5574.94" y="52.5" Legato, fermata
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="5949.94" y="52.5" Pedal
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="12.19" font-style="italic" style="fill: var(--ink);" x="6324.94" y="52.5" Pedal change

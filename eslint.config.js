@@ -45,6 +45,8 @@ export default ts.config(
   },
   { files: ['scripts/**', '*.config.*', 'tests/**'], languageOptions: { globals: { ...globals.node } } },
   { files: ['public/sw.js'], languageOptions: { globals: { ...globals.serviceworker } } },
+  // (It drives a browser, and a part of it runs in the page.)
+  { files: ['scripts/engraving.mjs'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
 
   { files: ['src/domain/**'], rules: noImportsFrom('The domain', ['application', 'infrastructure', 'ui', 'demo']) },
   { files: ['src/application/**'], rules: noImportsFrom('The application', ['infrastructure', 'ui', 'demo']) },

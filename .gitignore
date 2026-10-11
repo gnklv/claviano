@@ -6,3 +6,5 @@ dist
 /.claude
 # Local MIDI files for manual testing (not ours to redistribute casually)
 samples/
+# What scripts/engraving.mjs photographs and its browser's leavings
+.engraving/

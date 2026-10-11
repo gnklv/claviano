@@ -14,7 +14,8 @@
     "showcase": "node scripts/showcase.ts",
     "samples": "node scripts/samples.ts",
     "metronome": "node scripts/metronome.ts",
-    "icons": "node scripts/icons.ts"
+    "icons": "node scripts/icons.ts",
+    "engraving": "node scripts/engraving.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -45,6 +45,8 @@ const BAR_NUMBER_INSET = 0.4;
 const BAR_NUMBER_RISE = 1.2;
 const BAR_NUMBER_CLEARANCE = 0.6;
 const BAR_NUMBER_WIDTH = 1.6;
+/** A bar number looks this much further right for what it must clear: the accidental of the note after it stands there. */
+const BAR_NUMBER_LOOKS_AHEAD = 1.3;
 /** A volta bracket's line stays this far above a bar number's baseline (its label hangs below the line). */
 const VOLTA_OVER_NUMBER = 2.6;
 
@@ -179,7 +181,7 @@ export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes
   const y: number[] = [];
   const shapes = score.notation.bars.map((_, index) => {
     const x = geometry.barLineX(index) + BAR_NUMBER_INSET * space;
-    const reach = ink.extent('treble', x, x + BAR_NUMBER_WIDTH * space);
+    const reach = ink.extent('treble', x, x + (BAR_NUMBER_WIDTH + BAR_NUMBER_LOOKS_AHEAD) * space);
     const numberY = Math.min(top - BAR_NUMBER_RISE * space, reach.top - BAR_NUMBER_CLEARANCE * space);
     y.push(numberY);
     const number = svg('text', {
@@ -371,6 +373,8 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
       x += wordsWidth(text, true, space) + WORDS_GAP * space;
     }
     if (mark) {
+      // (A metronome mark at a bar's start stands after the bar's number, not on it.)
+      if (here.length === 0) x = pastNumbers(x, 5 * space, y);
       const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
       note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
       note.style.setProperty('fill', COLORS.note);
@@ -388,7 +392,8 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     let y: number;
     if (beside) {
       left = beside.right + WORDS_GAP * space;
-      y = beside.y;
+      // On its line; higher where a note under these words reaches up to that line.
+      y = Math.min(beside.y, ink.extent('treble', left, left + width).top - WORDS_CLEARANCE * space);
     } else {
       y = Math.min(lineY(left, left + width), ink.extent('treble', left, left + width).top - WORDS_CLEARANCE * space);
       for (let moved = true; moved; ) {

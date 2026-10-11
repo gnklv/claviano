@@ -5,6 +5,10 @@ import type { StaffGeometry } from './geometry';
 import { HEAD_WIDTH } from './glyphs';
 
 export const STEM_LENGTH = 3.5;
+/** A sign set at a chord (an accent, a fermata) reaches this far up and down from its place, in staff spaces. */
+const SIGN_REACH = 0.9;
+/** An accidental reaches this far up and down from its note's place. */
+const ACCIDENTAL_REACH = 1.6;
 /** Longer stems for three flags, so the flags don't run into the notehead. */
 export const STEM_LENGTH_32ND = 4.25;
 const STEM_WIDTH = 0.12;
@@ -118,7 +122,10 @@ export class StaffInk {
     });
   }
 
-  /** How far up and down the notes and stems of one staff reach between two x's (±Infinity: nothing there). */
+  /**
+   * How far up and down the notes of one staff reach between two x's, with their stems and the
+   * signs set at them (an accent, a fermata): ±Infinity where nothing is.
+   */
   extent(staff: Clef, left: number, right: number): { top: number; bottom: number } {
     const { space } = this.staff;
     let top = Infinity;
@@ -128,6 +135,17 @@ export class StaffInk {
       const g = this.of(chord);
       top = Math.min(top, g.highest - space / 2);
       bottom = Math.max(bottom, g.lowest + space / 2);
+      // An accidental stands taller than its head (a flat's stem most of all).
+      for (const note of chord.notes) {
+        if (!note.accidental) continue;
+        top = Math.min(top, g.yOf(note.step) - ACCIDENTAL_REACH * space);
+        bottom = Math.max(bottom, g.yOf(note.step) + ACCIDENTAL_REACH * space);
+      }
+      for (const mark of this.marksOf.get(index) ?? []) {
+        const y = g.yOf(mark.step);
+        top = Math.min(top, y - SIGN_REACH * space);
+        bottom = Math.max(bottom, y + SIGN_REACH * space);
+      }
       if (chord.duration.value === 'whole') continue;
       if (chord.stemUp) top = Math.min(top, this.stemEnd(index));
       else bottom = Math.max(bottom, this.stemEnd(index));
