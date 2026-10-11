@@ -26,6 +26,7 @@ import type { Beam, NotationLayout, StaffChord, StaffNote, StaffOctaveShift, Tup
  */
 
 export type * from './types';
+export { reachOf } from './reach';
 export { accidentalsInColumns, ledgerSteps, shiftVoicesApart, stepSpan, untangleVoices, withDots, withSeconds } from './chords';
 export { restsClearOfNotes };
 

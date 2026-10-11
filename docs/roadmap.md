@@ -145,7 +145,8 @@ the Pink Panther, Golden Hour), a step looked at before the next:
 - [x] inside a chord and between voices: accidentals in columns; two voices on one note side by
       side where their heads are not alike; dots each in a space of its own, and past a head moved
       over; a rest clear of another voice's notes; room for a change of clef;
-- [ ] the staff sized to the piece's own range, so that nothing high or low is cut off;
+- [x] the staff sized to the piece's own range, so that nothing high or low is cut off: its
+      highest note and its lowest, with the signs beyond them and the pedal's under all;
 - [ ] what stands around the notes clear of one another: bar numbers, the tempo, dynamics, the
       sign of a rolled chord; slurs clear of the notes they pass.
 

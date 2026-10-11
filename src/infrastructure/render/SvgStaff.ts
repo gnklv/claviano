@@ -15,6 +15,7 @@ import type { Hand } from '../../domain/note';
 import { approach } from './keyboardCamera';
 import {
   engrave,
+  reachOf,
   type Beam,
   type StaffArpeggio,
   type StaffChord,
@@ -203,7 +204,11 @@ export class SvgStaff implements StaffView {
     this.arpeggios = [...layout.arpeggios];
     this.fingerings = [...layout.fingerings];
     this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
-    this.geometry.setScore(score, graceRoom(score, layout.graces, layout.chords), score ? columnsOf(score, layout) : []);
+    this.geometry.setScore(score, {
+      graceRoom: graceRoom(score, layout.graces, layout.chords),
+      columns: score ? columnsOf(score, layout) : [],
+      reach: score ? reachOf(layout, { pedal: score.pedal.length > 0, words: score.notation.words.length > 0 || score.notation.tempoMarks.length > 0 }) : undefined,
+    });
     this.currentBeat = 0;
     this.drawBackground();
     this.drawStrip();

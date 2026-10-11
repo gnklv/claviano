@@ -45,7 +45,7 @@ describe('the bars along the tape', () => {
     const layout = engrave(score);
     const geometry = new StaffGeometry();
     geometry.resize(width, height);
-    geometry.setScore(score, undefined, columnsOf(score, layout));
+    geometry.setScore(score, { columns: columnsOf(score, layout) });
     return { geometry, layout };
   };
 
@@ -91,6 +91,40 @@ describe('the bars along the tape', () => {
       const lines = score.notation.bars.map((_, bar) => geometry.barLineX(bar));
       expect([...lines].sort((a, b) => a - b)).toEqual(lines);
     }
+  });
+});
+
+describe('the staff of a piece that reaches far', () => {
+  const sized = (reach?: { above: number; below: number }) => {
+    const geometry = new StaffGeometry();
+    geometry.resize(1200, 240);
+    geometry.setScore(null, { reach });
+    return geometry;
+  };
+
+  it('is as large as any when the piece keeps within the usual', () => {
+    expect(sized({ above: 10, below: 6 }).space).toBe(sized().space);
+    expect(sized({ above: 10, below: 6 }).trebleTop()).toBe(sized().trebleTop());
+  });
+
+  it('is smaller, so that the whole height holds what the piece has above and below', () => {
+    const plain = sized();
+    const low = sized({ above: 0, below: 20 });
+    expect(low.space).toBeLessThan(plain.space);
+    // Ten spaces under the lower staff are within the view, five over the upper one.
+    expect(low.systemBottom() + 10 * low.space).toBeLessThanOrEqual(240 + 1e-6);
+    expect(low.trebleTop() - 5 * low.space).toBeGreaterThanOrEqual(-1e-6);
+  });
+
+  it('stands lower in the view when the piece reaches up, higher when it reaches down', () => {
+    const tall = (reach: { above: number; below: number }) => {
+      const geometry = new StaffGeometry();
+      geometry.resize(1200, 600);
+      geometry.setScore(null, { reach });
+      return geometry.trebleTop();
+    };
+    expect(tall({ above: 30, below: 0 })).toBeGreaterThan(tall({ above: 0, below: 0 }));
+    expect(tall({ above: 0, below: 30 })).toBeLessThan(tall({ above: 0, below: 0 }));
   });
 });
 

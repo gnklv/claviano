@@ -11,6 +11,7 @@ import {
   accidentalsInColumns,
   engrave as layout,
   ledgerSteps,
+  reachOf,
   restsClearOfNotes,
   shiftVoicesApart,
   untangleVoices,
@@ -644,6 +645,51 @@ describe('a rest where another voice has notes', () => {
     expect(steps([rest(0)], [chord([6])])).toEqual([0]);
     expect(steps([rest(4)], [chord([4], 1)])).toEqual([4]);
     expect(steps([rest(4, 0, 'bass')], [chord([4])])).toEqual([4]);
+  });
+});
+
+describe('how far a piece reaches beyond its staves', () => {
+  const chord = (steps: number[], staff: 'treble' | 'bass', stemUp: boolean, value: 'quarter' | 'whole' = 'quarter') =>
+    ({
+      staff,
+      hand: 'right',
+      beat: 0,
+      beats: 1,
+      bar: 0,
+      beam: null,
+      handMark: false,
+      notes: steps.map((step) => ({ step, accidental: null })),
+      duration: { value, dots: 0 },
+      stemUp,
+      ledgerSteps: [],
+    }) satisfies StaffChord;
+  const EMPTY = { octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
+  const reach = (chords: StaffChord[], has?: { pedal?: boolean; words?: boolean }) => reachOf({ ...EMPTY, chords }, has);
+
+  it('is no more than the room there always is, for music within the staves and a little beyond', () => {
+    // In steps: ten of them are the five spaces a staff always has over and under it.
+    const { above, below } = reach([chord([0, 4], 'treble', true), chord([-3], 'treble', false), chord([8], 'bass', false)]);
+    expect(above).toBeLessThanOrEqual(10);
+    expect(below).toBeLessThanOrEqual(10);
+  });
+
+  it('grows with the highest note of the upper staff and the lowest of the lower one, room for signs beyond them counted in', () => {
+    expect(reach([chord([-8], 'treble', false)]).above).toBe(15);
+    expect(reach([chord([16], 'bass', true)]).below).toBe(15);
+    // The upper staff's low notes and the lower staff's high ones are between the staves: no matter here.
+    expect(reach([chord([14], 'treble', true), chord([-6], 'bass', false)])).toEqual({ above: 0, below: 0 });
+  });
+
+  it('counts a stem that points outwards', () => {
+    expect(reach([chord([-2], 'treble', true)]).above).toBe(12);
+    expect(reach([chord([-2], 'treble', true, 'whole')]).above).toBe(9);
+  });
+
+  it('is more under a piece with the pedal, and over one with words', () => {
+    const low = [chord([16], 'bass', true)];
+    expect(reach(low, { pedal: true }).below).toBe(reach(low).below + 3);
+    const high = [chord([-8], 'treble', false)];
+    expect(reach(high, { words: true }).above).toBe(reach(high).above + 2);
   });
 });
 

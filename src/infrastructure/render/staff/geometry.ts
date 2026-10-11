@@ -11,8 +11,14 @@ import { beatAtPosition, beatPosition, tapeBars, type Clef } from '../staffLayou
 export const LINES_PER_STAFF = 5;
 /** Between the bottom line of the treble staff and the top line of the bass staff. */
 const STAFF_GAP = 6;
-/** Height the staff needs, including room for ledger lines and bar numbers. */
-const CONTENT_HEIGHT = 24;
+/** The two staves and the gap between them. */
+const SYSTEM_HEIGHT = 2 * (LINES_PER_STAFF - 1) + STAFF_GAP;
+/**
+ * Room over the upper staff and under the lower one, at the least: for a ledger line or two, and
+ * for what stands there (bar numbers and the tempo above; dynamics and the pedal below). A piece
+ * that reaches further has more (see setScore).
+ */
+const ROOM_BEYOND = 5;
 const MIN_SPACE_PX = 6;
 const MAX_SPACE_PX = 14;
 /** About this many bars fit on the tape, within the bar width limits below. */
@@ -86,20 +92,34 @@ export class StaffGeometry {
   private barIndices: number[] = [];
   /** What stands in each printed bar, and the bars set out by it for the view's size: each one's marks, and where its first beat is along the tape (without the room at bar lines). */
   private columns: readonly (readonly Column[])[] = [];
+  /** Room over the upper staff and under the lower one, in staff spaces: as much as the piece reaches (see setScore). */
+  private roomAbove = ROOM_BEYOND;
+  private roomBelow = ROOM_BEYOND;
   private bars: BarSpacing[] = [];
   private barStarts: number[] = [0];
 
   /**
    * `graceRoom`: what the grace notes at the start and at the end of each printed bar need (see
    * setScore's callers). `columns`: what stands in each printed bar (see staff/columns.ts).
+   * `reach`: how far the piece goes beyond its staves, in staff steps (see the engraving's reachOf):
+   * the staff is sized so that its highest and its lowest are in sight.
    */
   setScore(
     score: Score | null,
-    graceRoom: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> } = NO_GRACES,
-    columns: readonly (readonly Column[])[] = [],
+    {
+      graceRoom = NO_GRACES,
+      columns = [],
+      reach = { above: 0, below: 0 },
+    }: {
+      graceRoom?: { lead: ReadonlyMap<number, number>; tail: ReadonlyMap<number, number> };
+      columns?: readonly (readonly Column[])[];
+      reach?: { above: number; below: number };
+    } = {},
   ): void {
     this.score = score;
     this.columns = columns;
+    this.roomAbove = Math.max(ROOM_BEYOND, reach.above / 2);
+    this.roomBelow = Math.max(ROOM_BEYOND, reach.below / 2);
     this.changes = score ? signatureChanges(score) : [];
     const bars = score?.notation.bars ?? [];
     this.lead = bars.map((bar) => (bar.navigation.repeatStart ? REPEAT_LEAD : 0));
@@ -142,7 +162,7 @@ export class StaffGeometry {
 
   /** The staff space a view of this size would be drawn with (see `fit`). */
   spaceFor(width: number, height: number): number {
-    const byHeight = height / CONTENT_HEIGHT;
+    const byHeight = height / (SYSTEM_HEIGHT + this.roomAbove + this.roomBelow);
     const byWidth = width / (this.gutterSpaces + BARS_VISIBLE * MIN_BAR_WIDTH);
     return Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
   }
@@ -226,9 +246,10 @@ export class StaffGeometry {
     return (this.width - this.gutterWidth()) * this.cursorAt;
   }
 
+  /** The top line of the upper staff: what the piece needs is in the middle of the height, the room over the staff above this. */
   trebleTop(): number {
-    const systemHeight = (2 * (LINES_PER_STAFF - 1) + STAFF_GAP) * this.space;
-    return (this.height - systemHeight) / 2;
+    const content = (SYSTEM_HEIGHT + this.roomAbove + this.roomBelow) * this.space;
+    return (this.height - content) / 2 + this.roomAbove * this.space;
   }
 
   bassTop(): number {
