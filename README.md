@@ -242,6 +242,10 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        beyond dispute; then chords; held notes last, if at all. There is no one right fingering
        (two pianists agree on two notes in three): the aim is one that can be played, tried by
        hand at every stage. A hint, paler than printed fingering; the hand's size is a setting
+       Done so far, in `domain/fingering` (not shown yet): the least awkward fingers for a line
+       of single notes, by the rules of Parncutt and others (1997); a run along a scale is
+       fingered as every school teaches it (all 24 keys, from a table); fingers that are given
+       stand, and the rest is fitted to them
 8. [ ] Listening through the microphone (to research first): following a piece as it is played
        from the notes (a "wait mode" without a cable), then free play by ear
 9. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
