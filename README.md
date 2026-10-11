@@ -235,18 +235,15 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        and the computer's keys; recording to a metronome, from the first note; the take written
        down as notes while it is played; listened to, mended at its end, and kept as a piece on
        the shelf (a MIDI file, written by a writer of our own), to be learned as any other
-7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
-       hand (how far each pair of fingers reaches, the thumb passing under, the thumb on black
-       keys, the weak fingers), shown sparingly, as good editions do: where the hand moves or a
-       finger crosses. First single lines, checked on scales and arpeggios, whose fingering is
-       beyond dispute; then chords; held notes last, if at all. There is no one right fingering
-       (two pianists agree on two notes in three): the aim is one that can be played, tried by
-       hand at every stage. A hint, paler than printed fingering; the hand's size is a setting
-       Done so far, in `domain/fingering` (not shown yet): the least awkward fingers for a line
-       of single notes, by the rules of Parncutt and others (1997); a run along a scale is
-       fingered as every school teaches it (all 24 keys, from a table); fingers that are given
-       stand, and the rest is fitted to them; chords, and a whole piece hand by hand (afresh
-       after each rest)
+7. [x] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
+       hand (`domain/fingering`), by the rules of Parncutt and others (1997): what each pair of
+       fingers reaches, the weak fingers, the thumb on black keys, the thumb passing under.
+       Scales are fingered as every school teaches them (a table, all 24 keys); a chord by its
+       shape; a bass note and the chord over it as one position of the hand. Fingers the notes
+       give stand, and the rest is fitted to them. Shown on the staff, paler than the notes' own
+       and sparingly, as an edition does: where the hand begins, moves, or takes a chord, and
+       each thing once. Off unless asked for (the settings). A recommendation: tried by hand on
+       two pieces, and no two pianists finger alike
 8. [ ] Listening through the microphone (to research first): following a piece as it is played
        from the notes (a "wait mode" without a cable), then free play by ear
 9. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
@@ -262,6 +259,8 @@ Small things noticed, to fix between the steps:
       metronome recorded in a room (rattling, blurred next to the piano), but a little synthetic.
       To come back to: a studio recording of a woodblock or of a mechanical metronome, cut to
       the sample (scripts/metronome.ts)
+- [ ] Fingering hints are on the staff only: the falling notes do not show them
+- [ ] A fingering over a bar's first note can run into the bar's number
 - [ ] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)
 - [x] The top of the staff was cut off when the stage is low: a phone on its side shows the

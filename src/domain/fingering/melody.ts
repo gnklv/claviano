@@ -15,12 +15,14 @@ import { handwise, reachBetween, type Finger } from './hand';
  * - three to four: 1 when the third is followed by the fourth;
  * - four on black: 1 for the third on a white key next to the fourth on a black one;
  * - thumb on black: 1, and 2 more for each white key next to it; five on black: 2 for each;
- * - thumb passing: 1 on one level (white to white, black to black), 3 from a finger on a white key
- *   to the thumb on a black one above it.
+ * - thumb passing: 3 on one level (white to white, black to black), 5 with the thumb on a black
+ *   key and the finger on a white one, 1 the other way about (a finger on a black key lies over
+ *   the thumb as it is), and 2 for each semitone a pass goes beyond a whole tone.
  * And over three notes in a row:
  * - change of position: 1 when the first and the third lie outside what their fingers reach in
  *   comfort (2 when the thumb in the middle carries the hand over), and 1 a semitone of it;
- * - three, four, five: 1 when the three weak-side fingers come one after another.
+ * - three, four, five: 1 when the three weak-side fingers come one after another;
+ * - there and back: 2 when a key come back to after one note gets another finger than it had.
  *
  * What cannot be played is not offered: a reach outside the practical, or one finger on two
  * different keys in a row.
@@ -35,6 +37,10 @@ import { handwise, reachBetween, type Finger } from './hand';
 
 /** A thumb passed under (or a finger over it), on one level. */
 const PASS = 3;
+/** A pass between the thumb on a white key and a finger on a black one. */
+const EASY_PASS = 1;
+/** A key come back to after one note, under another finger than it had. */
+const OTHER_FINGER_ON_RETURN = 2;
 /** Each semitone a pass goes beyond a whole tone. */
 const PASS_LEAP = 2;
 /** The thumb on a black key, whatever is beside it. */
@@ -56,7 +62,8 @@ export function step(from: number, to: number, fromFinger: Finger, toFinger: Fin
     // Of the two keys, the one nearer the little finger is the thumb's.
     const thumbOnBlack = toFinger === 1 ? black.to : black.from;
     const fingerOnBlack = toFinger === 1 ? black.from : black.to;
-    points += thumbOnBlack === fingerOnBlack ? PASS : thumbOnBlack ? PASS + 2 : PASS - 1;
+    // (A finger on a black key beside the thumb's white one is half over it already: the easy pass.)
+    points += thumbOnBlack === fingerOnBlack ? PASS : thumbOnBlack ? PASS + 2 : EASY_PASS;
     // Past a whole tone the pass is a leap.
     points += PASS_LEAP * Math.max(0, Math.abs(distance) - 2);
   } else {
@@ -96,5 +103,7 @@ export function turn(first: number, middle: number, third: number, a: Finger, b:
   }
   // Three, four, five.
   if (a !== b && b !== c && a !== c && a >= 3 && b >= 3 && c >= 3) points += 1;
+  // There and back: the key come back to keeps its finger (the hand has not gone anywhere).
+  if (first === third && a !== c) points += OTHER_FINGER_ON_RETURN;
   return points;
 }

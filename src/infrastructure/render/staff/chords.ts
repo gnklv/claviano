@@ -314,6 +314,9 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextEl
   return glyphs;
 }
 
+/** How pale a fingering hint is printed. */
+const HINT_OPACITY = 0.45;
+
 /** A fingering number, centred over (or under) its chord's noteheads. */
 export function drawFingering({ geometry: { space }, ink }: StaffContext, fingering: StaffFingering): SVGTextElement {
   const { yOf, left, headWidth } = ink.of(ink.chord(fingering.chord));
@@ -325,6 +328,8 @@ export function drawFingering({ geometry: { space }, ink }: StaffContext, finger
     : svg('text', { x: left + headWidth / 2, y, fill: 'currentColor', 'font-size': space * FINGERING_SIZE, 'font-family': TEXT_FONT });
   if (!digit) number.textContent = fingering.text;
   number.setAttribute('text-anchor', 'middle');
+  // A hint is paler than a finger the notes themselves give.
+  if (fingering.hint) number.setAttribute('opacity', String(HINT_OPACITY));
   return number;
 }
 

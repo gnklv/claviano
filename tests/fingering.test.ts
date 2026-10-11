@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { reachBetween, type Finger } from '../src/domain/fingering/hand';
+import { fingerHints, withFingerHints } from '../src/domain/fingering/hints';
+import { transcribed } from '../src/domain/notation/transcription';
 import { fingerLine, fingerPassage } from '../src/domain/fingering/passage';
 import { scaleFingers } from '../src/domain/fingering/scales';
 import { fingerScore } from '../src/domain/fingering/score';
@@ -234,11 +236,21 @@ describe('fingers for chords', () => {
     }
   });
 
-  it('keeps the hand where it is from chord to chord, and a held key under its finger', () => {
-    // Do major, Fa major over the same Do, Sol major, Do again: the hand hardly moves.
-    expect(taken([[60, 64, 67], [60, 65, 69], [59, 62, 67], [60, 64, 67]])).toBe('135 135 125 135');
-    // A bass note, then a chord over it, as a waltz has them: the little finger, then the upper fingers.
-    expect(taken([[36], [48, 52, 55], [48, 52, 55], [43], [47, 50, 55], [47, 50, 55]], 'left')).toBe('5 421 421 5 421 421');
+  it('keeps the hand where it is from chord to chord where it can, and a held key under its finger', () => {
+    // Do major, then Fa major over the same Do: both lie under five fingers set from Do (Do Mi Fa Sol La),
+    // so the first is taken 1-2-4 and the second 1-3-5, and the hand does not move.
+    expect(taken([[60, 64, 67], [60, 65, 69]])).toBe('124 135');
+    const fingers = fingerPassage([[60, 64, 67], [60, 65, 69], [59, 62, 67], [60, 64, 67]], 'right');
+    expect(fingers[0][0]).toBe(1);
+    expect(fingers[1][0]).toBe(1);
+  });
+
+  it('takes a bass note with the little finger, and the chord over it as it lies', () => {
+    // Far below its chord, as a waltz has them: the hand moves, and the little finger is the nearest.
+    expect(taken([[36], [48, 52, 55], [48, 52, 55], [43], [47, 50, 55], [47, 50, 55]], 'left')).toBe('5 531 531 5 531 531');
+    // Close under it: bass and chord are one chord broken in two, under one position of the hand.
+    expect(taken([[53], [57, 60]], 'left')).toBe('5 31');
+    expect(taken([[50], [53, 57, 62]], 'left')).toBe('5 421');
   });
 
   it('fingers the same figure the same way each time it comes', () => {
@@ -285,7 +297,7 @@ describe('fingers for a piece', () => {
     const fingers = fingerScore(score);
     const of = (hand: Hand) => score.notes.map((played, i) => (played.hand === hand ? fingers[i] : null)).filter((finger) => finger !== null);
     expect(of('right')).toEqual([1, 2, 3]);
-    expect(of('left')).toEqual([5, 4, 2, 1]);
+    expect(of('left')).toEqual([5, 5, 3, 1]);
   });
 
   it('starts afresh after a rest', () => {
@@ -299,5 +311,67 @@ describe('fingers for a piece', () => {
     expect(fingers).toHaveLength(3);
     expect(fingers.slice(0, 2)).toEqual([null, null]);
     expect(fingers[2]).not.toBeNull();
+  });
+});
+
+describe('fingering hints for a piece as it is written', () => {
+  const note = (pitch: number, beat: number, beats: number, hand: Hand): Note => ({ pitch, start: beat, duration: beats, beat, beats, velocity: 0.7, hand });
+  /** A piece from its played notes, written down. */
+  const piece = (notes: Note[], bars = [0]) => transcribed(createScore('A piece', notes, bars));
+  /** The hints by the pitch of the note, in the order the notes are written. */
+  const hinted = (score: ReturnType<typeof piece>) => fingerHints(score).map((hint, i) => [score.notation.notes[i].sounding, hint?.finger ?? null, hint?.said ?? false]);
+
+  it('has a finger for each written note, and says the first of a line: the rest follow from it', () => {
+    const score = piece([60, 62, 64, 65, 67].map((pitch, i) => note(pitch, i, 1, 'right')), [0, 4]);
+    expect(hinted(score)).toEqual([
+      [60, 1, true],
+      [62, 2, false],
+      [64, 3, false],
+      [65, 4, false],
+      [67, 5, false],
+    ]);
+  });
+
+  it('says where the hand moves: the thumb passed under', () => {
+    const scale = [60, 62, 64, 65, 67, 69, 71, 72].map((pitch, i) => note(pitch, i * 0.5, 0.5, 'right'));
+    const said = hinted(piece(scale)).filter(([, , said]) => said).map(([pitch, finger]) => [pitch, finger]);
+    // The start, and the thumb on Fa.
+    expect(said).toEqual([
+      [60, 1],
+      [65, 1],
+    ]);
+  });
+
+  it('says a chord, and a bass note the hand has moved to; and the same thing only once', () => {
+    const waltz = [0, 4].flatMap((bar) => [note(36, bar, 1, 'left'), note(48, bar + 1, 1, 'left'), note(52, bar + 1, 1, 'left'), note(55, bar + 1, 1, 'left'), note(48, bar + 2, 1, 'left'), note(52, bar + 2, 1, 'left'), note(55, bar + 2, 1, 'left')]);
+    const said = hinted(piece(waltz, [0, 4])).map(([, , said]) => said);
+    // The bass and the first chord are said; the chord again, the bass again, are not.
+    expect(said.slice(0, 4)).toEqual([true, true, true, true]);
+    expect(said.slice(4, 7)).toEqual([false, false, false]);
+    expect(said.slice(8)).toEqual([false, false, false, false, false, false]);
+  });
+
+  it('says the first note after a rest', () => {
+    const played = piece([note(60, 0, 1, 'right'), note(62, 1, 1, 'right'), note(72, 4, 1, 'right'), note(74, 5, 1, 'right')], [0, 4]);
+    // (Written down from playing, a note lasts to the next one: here the second is cut to its own length, a rest after it.)
+    const notes = played.notation.notes.map((written) => (written.sounding === 62 ? { ...written, beats: 1 } : written));
+    const score = { ...played, notation: { ...played.notation, notes } };
+    expect(hinted(score).map(([, , said]) => said)).toEqual([true, false, true, false]);
+  });
+
+  it('leaves a finger the notes give as it is, and fits the others to it', () => {
+    const score = piece([60, 62, 64].map((pitch, i) => note(pitch, i, 1, 'right')));
+    const written = score.notation.notes.map((written, i) => (i === 0 ? { ...written, fingering: { text: '2', below: null } } : written));
+    const hints = fingerHints({ ...score, notation: { ...score.notation, notes: written } });
+    expect(hints[0]).toBeNull();
+    expect(hints.slice(1).map((hint) => hint?.finger)).toEqual([3, 4]);
+  });
+
+  it('writes the hints worth saying into the piece, marked as hints, and leaves the rest of it alone', () => {
+    const score = piece([60, 62, 64, 65, 67].map((pitch, i) => note(pitch, i, 1, 'right')), [0, 4]);
+    const hinted = withFingerHints(score);
+    expect(hinted.notation.notes.map((written) => written.fingering ?? null)).toEqual([{ text: '1', below: null, hint: true }, null, null, null, null]);
+    expect(hinted.notes).toBe(score.notes);
+    expect(score.notation.notes.every((written) => !written.fingering)).toBe(true);
   });
 });

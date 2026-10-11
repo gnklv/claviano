@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { useTemplateRef } from 'vue';
+import { computed, useTemplateRef } from 'vue';
+import { useFingerHints } from '../composables/useFingerHints';
 import { useI18n } from '../i18n/useI18n';
 import { useInstall } from '../install/useInstall';
 import LanguageSwitch from './LanguageSwitch.vue';
+import SegmentedControl from './SegmentedControl.vue';
 import SheetDialog from './SheetDialog.vue';
 import SoundSettings from './SoundSettings.vue';
 import ThemeSwitch from './ThemeSwitch.vue';
@@ -17,6 +19,14 @@ defineProps<{ piece?: boolean }>();
 const { t } = useI18n();
 const sheet = useTemplateRef('sheet');
 const { way, install } = useInstall();
+
+// Fingers offered where the notes give none: off unless asked for.
+const fingerHints = useFingerHints();
+const hints = computed<'off' | 'on'>({ get: () => (fingerHints.value ? 'on' : 'off'), set: (value) => (fingerHints.value = value === 'on') });
+const onOrOff = computed(() => [
+  { value: 'off' as const, label: t('off') },
+  { value: 'on' as const, label: t('on') },
+]);
 </script>
 
 <template>
@@ -26,6 +36,10 @@ const { way, install } = useInstall();
     <div v-if="piece" class="row view">
       <span class="label">{{ t('viewMode') }}</span>
       <ViewModeSwitch />
+    </div>
+    <div v-if="piece" class="row">
+      <span class="label">{{ t('fingerHints') }}</span>
+      <SegmentedControl v-model="hints" :options="onOrOff" :label="t('fingerHints')" />
     </div>
     <SoundSettings />
     <VolumeSettings />

@@ -31,6 +31,7 @@ export const en = {
   volumeNotes: 'Notes volume',
   volumeMetronome: 'Metronome volume',
   pedal: 'Pedal',
+  fingerHints: 'Fingering hints',
   on: 'On',
   off: 'Off',
   countIn: 'Count-in',

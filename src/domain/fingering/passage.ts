@@ -1,7 +1,7 @@
 import type { Hand } from '../note';
 import { isBlackKey } from '../pitch';
 import { FINGERS, handwise, reachBetween, type Finger } from './hand';
-import { alone, step, THUMB_ON_BLACK, turn } from './melody';
+import { step, THUMB_ON_BLACK, turn } from './melody';
 import { scaleFingers, type Key } from './scales';
 
 /*
@@ -13,12 +13,15 @@ import { scaleFingers, type Key } from './scales';
  * - its fingers lie in the order of its keys, and no two of them further apart than a hand reaches;
  * - a stretch between neighbours beyond the comfortable costs 2 a semitone, a span off the relaxed
  *   1 a semitone with the thumb and 2 without (as between two notes in a row);
- * - the fourth finger costs 1, the fifth half of that: in a chord the little finger is where the
- *   hand ends, and the fourth is the clumsy one.
+ * - the fourth finger costs 1 (the clumsy one), the fifth half of that: in a chord the little
+ *   finger is where the hand ends.
  * And going to or from a chord, where the hand is not led from key to key but set down anew:
- * - how far the hand has to move, a point a semitone (see `move`);
- * - a key held or struck again under another finger, 2;
- * - a finger that has a key more than a tone from the one it had two moments ago, 1 a semitone.
+ * - if all the keys of the two moments lie under one position of the hand, it has not moved: only
+ *   the shape is counted (so a bass note and the chord over it are fingered as the one chord they
+ *   make, and a figure that rocks under a held thumb keeps a finger to each of its keys);
+ * - if not, the hand moves: about 2 (a little less to a single note: see MOVED), and a quarter of a
+ *   point for each semitone it travels (where a hand is, is told by the fingers it has on its keys);
+ * - a key held or struck again under another finger, 2.
  *
  * Some fingers are not worked out but given: a run along a scale (scales.ts), a finger written in
  * the notes. And where the music stops (a rest, a new phrase) the hand is free: what comes after
@@ -41,6 +44,16 @@ const GIVEN_ALL_THE_SAME = 50;
 const JUMP = 100;
 /** A key struck again (or held on) under another finger. */
 const CHANGE_ON_A_KEY = 2;
+/**
+ * The hand moves to another position, to or from a chord. A little less to a single note than
+ * from one: a note before a chord goes with that chord (a waltz's bass note is the start of its
+ * figure, not the end of the one before), so of the two places to move, the one before it is taken.
+ */
+const MOVED = { toNote: 1.75, toChord: 2.25 };
+/** …and each semitone the hand travels to get there. */
+const TRAVEL = 0.25;
+/** Where each finger lies from the thumb in a hand at rest, in semitones: by it, where a hand is from the fingers it has on its keys. */
+const AT_REST: Record<Finger, number> = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7 };
 
 /** A way of fingering one moment: a finger for each of its keys, lowest key first. */
 type Way = readonly Finger[];
@@ -73,74 +86,97 @@ function ways(keys: readonly number[], hand: Hand, given: readonly (Finger | nul
   return found;
 }
 
-/** What a way of taking a chord costs by itself. */
-function chord(keys: readonly number[], way: Way, hand: Hand): number {
-  if (keys.length === 1) return alone(keys[0]!, way[0]!);
+/** Where the hand is for a way of taking some keys: where its thumb would lie, were the hand at rest. */
+function place(keys: readonly number[], way: Way, hand: Hand): number {
+  const thumbs = keys.map((key, at) => (hand === 'right' ? key - AT_REST[way[at]!] : key + AT_REST[way[at]!]));
+  return thumbs.reduce((sum, thumb) => sum + thumb, 0) / thumbs.length;
+}
+
+/**
+ * What the shape of a hand over some keys costs: the stretches and the spans between neighbouring
+ * fingers. `ease`: how much a span off the relaxed counts (in full for keys held at once; less for
+ * keys taken one after another in one position, where the hand has a moment to open).
+ */
+function shape(keys: readonly number[], way: Way, hand: Hand, ease = 1): number {
   let points = 0;
-  way.forEach((finger, at) => {
-    points += finger === 4 ? 1 : finger === 5 ? 0.5 : 0;
-    if (finger === 1 && isBlackKey(keys[at]!)) points += THUMB_ON_BLACK;
-    if (at === 0) return;
-    const before = way[at - 1]!;
+  for (let at = 1; at < way.length; at++) {
+    const [before, finger] = [way[at - 1]!, way[at]!];
     const distance = handwise(keys[at - 1]!, keys[at]!, hand);
     const reach = reachBetween(before, finger);
     points += 2 * Math.max(0, distance - reach.maxComfortable, reach.minComfortable - distance);
-    points += (before === 1 || finger === 1 ? 1 : 2) * Math.max(0, reach.minRelaxed - distance, distance - reach.maxRelaxed);
+    points += ease * (before === 1 || finger === 1 ? 1 : 2) * Math.max(0, reach.minRelaxed - distance, distance - reach.maxRelaxed);
+  }
+  return points;
+}
+
+/**
+ * What a way of taking a moment costs by itself: its shape, the fourth finger (and, less, the
+ * fifth: the little finger is where the hand ends, and a note by itself beside a chord, a bass
+ * note, is its to take), the thumb on a black key.
+ */
+function chord(keys: readonly number[], way: Way, hand: Hand): number {
+  let points = shape(keys, way, hand);
+  way.forEach((finger, at) => {
+    points += finger === 4 ? 1 : finger === 5 ? (keys.length === 1 ? 0.25 : 0.5) : 0;
+    if (finger === 1 && isBlackKey(keys[at]!)) points += THUMB_ON_BLACK;
   });
   return points;
+}
+
+/** Whether the keys of two moments, each under the finger it is given, lie under one position of the hand. */
+export function samePosition(from: readonly number[], fromWay: readonly Finger[], to: readonly number[], toWay: readonly Finger[], hand: Hand): boolean {
+  return onePosition(from, fromWay, to, toWay, hand) !== null;
+}
+
+/**
+ * Whether the keys of two moments lie under one position of the hand, each under the finger it is
+ * given: no finger with two keys, the fingers in the order of the keys, and no two neighbours
+ * further apart than they reach in comfort. If so, what the shape costs; else null.
+ */
+function onePosition(from: readonly number[], fromWay: Way, to: readonly number[], toWay: Way, hand: Hand): number | null {
+  const whole = from.map((key, i) => ({ key, finger: fromWay[i]! }));
+  to.forEach((key, j) => {
+    // (A key of both moments is one key.)
+    if (!from.includes(key)) whole.push({ key, finger: toWay[j]! });
+  });
+  whole.sort((a, b) => a.key - b.key);
+  for (let at = 1; at < whole.length; at++) {
+    const [before, now] = [whole[at - 1]!, whole[at]!];
+    // (In the order of the keys, the right hand's fingers rise, the left's fall.)
+    if (hand === 'right' ? now.finger <= before.finger : now.finger >= before.finger) return null;
+    const distance = handwise(before.key, now.key, hand);
+    const reach = reachBetween(before.finger, now.finger);
+    if (distance > reach.maxComfortable || distance < reach.minComfortable) return null;
+  }
+  return shape(
+    whole.map((part) => part.key),
+    whole.map((part) => part.finger),
+    hand,
+    0.5,
+  );
 }
 
 /**
  * What it costs to go from one moment to the next; Infinity when it cannot be played.
  *
  * Between two single notes the fingers lead: the rules of a line. To or from a chord the hand is
- * set down anew, and what counts is how far it has to move to do so: every key of the one moment
- * against every key of the next, as if all were held at once. Within what their two fingers reach
- * in comfort, the hand has not moved; beyond it, a point for each semitone (shared out among the
- * pairs, so that a big chord does not weigh more than a small one).
+ * set down anew, and one of two things is so. Either all the keys of the two moments lie under one
+ * position of the hand (a bass note and the chord over it; a figure that rocks under a held
+ * thumb): the hand has not moved, and only the shape it holds is counted. Or they do not, and the
+ * hand moves: one price, and a little for how far.
  */
 function move(from: readonly number[], fromWay: Way, to: readonly number[], toWay: Way, hand: Hand): number {
   if (from.length === 1 && to.length === 1) return step(from[0]!, to[0]!, fromWay[0]!, toWay[0]!, hand) + (toWay[0] === 1 && isBlackKey(to[0]!) ? THUMB_ON_BLACK : 0);
-  let moved = 0;
   let points = chord(to, toWay, hand);
-  from.forEach((before, i) => {
-    to.forEach((key, j) => {
-      const [was, is] = [fromWay[i]!, toWay[j]!];
-      if (key === before) {
-        // A key held or struck again: best under the finger it has.
-        if (was !== is) points += CHANGE_ON_A_KEY;
-        return;
-      }
-      if (was === is) {
-        // One finger, two keys: it has to let go and travel.
-        moved += Math.abs(key - before);
-        return;
-      }
-      const distance = handwise(before, key, hand);
-      const reach = reachBetween(was, is);
-      moved += Math.max(0, distance - reach.maxComfortable, reach.minComfortable - distance);
-    });
+  // A key held or struck again: best under the finger it has.
+  to.forEach((key, j) => {
+    const before = from.indexOf(key);
+    if (before >= 0 && fromWay[before] !== toWay[j]) points += CHANGE_ON_A_KEY;
   });
-  return points + moved / (from.length * to.length);
-}
-
-/**
- * What the moment before last adds, where chords are about and the hand stays where it is: a finger
- * that had one key then and has a key well away from it now has leapt between them with one moment
- * to do it in. (So a figure that rocks between two bass notes a third apart under a held thumb
- * takes them with two fingers, not one.)
- */
-function leap(before: readonly number[], beforeWay: Way, now: readonly number[], nowWay: Way): number {
-  // Only where the hand has stayed: a key of then is a key of now. (A hand that has moved on, as
-  // from one bass note of a waltz to the next, leaps with whatever finger it likes.)
-  if (!before.some((key) => now.includes(key))) return 0;
-  let points = 0;
-  beforeWay.forEach((finger, i) => {
-    const at = nowWay.indexOf(finger);
-    // (A tone away is under the hand still; further is a leap, a point a semitone.)
-    if (at >= 0) points += Math.max(0, Math.abs(now[at]! - before[i]!) - 2);
-  });
-  return points;
+  const held = onePosition(from, fromWay, to, toWay, hand);
+  if (held !== null) return points + held;
+  // The hand moves: the further, the worse. (So a bass note far below is the little finger's: it is the nearest.)
+  return points + (to.length === 1 ? MOVED.toNote : MOVED.toChord) + TRAVEL * Math.abs(place(to, toWay, hand) - place(from, fromWay, hand));
 }
 
 /**
@@ -198,9 +234,7 @@ export function fingerPassage(moments: readonly (readonly number[])[], hand: Han
           if (so === Infinity) return;
           // Three single notes in a row, led from one to the next: what the three add (see melody.ts).
           const three = i >= 2 && !anew && !hints.free?.[i - 1] && moments[i - 2]!.length === 1 && moments[i - 1]!.length === 1 && moments[i]!.length === 1 && options[i - 2]!.length > 0;
-          const led = i >= 2 && !anew && !hints.free?.[i - 1] && options[i - 2]!.length > 0;
-          const over = three ? turn(moments[i - 2]![0]!, moments[i - 1]![0]!, moments[i]![0]!, way(i - 2, a)[0]!, way(i - 1, b)[0]!, way(i, c)[0]!, hand) : led ? leap(moments[i - 2]!, way(i - 2, a), moments[i]!, way(i, c)) : 0;
-          const points = so + pair + over;
+          const points = so + pair + (three ? turn(moments[i - 2]![0]!, moments[i - 1]![0]!, moments[i]![0]!, way(i - 2, a)[0]!, way(i - 1, b)[0]!, way(i, c)[0]!, hand) : 0);
           const cell = row[b]![c]!;
           if (points < cell.points) {
             cell.points = points;

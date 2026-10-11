@@ -148,6 +148,8 @@ export interface StaffFingering {
   readonly above: boolean;
   /** Where the number stands, in staff steps: its foot when above the chord, its head when below. */
   readonly step: number;
+  /** A hint, not what the notes give: printed paler. */
+  readonly hint?: boolean;
 }
 
 /** Tremolo strokes: on a chord's stem, or between it and the chord `to`. */

@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFingerHints } from '../composables/useFingerHints';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -10,6 +11,7 @@ import { useI18n } from '../i18n/useI18n';
 const { playback, barLoop: loop, createStaff } = useDeps();
 const state = usePlaybackState(playback);
 const { t, locale } = useI18n();
+const fingerHints = useFingerHints();
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
@@ -19,6 +21,7 @@ const resizeObserver = new ResizeObserver(() => staff?.resize());
 onMounted(() => {
   staff = createStaff(container.value!);
   staff.setHandLabels(handLabels());
+  staff.setFingerHints(fingerHints.value);
   staff.setScore(state.value.score);
   staff.setLoop(state.value.loop);
   resizeObserver.observe(container.value!);
@@ -36,6 +39,7 @@ watch(
 );
 
 watch(locale, () => staff?.setHandLabels(handLabels()));
+watch(fingerHints, (on) => staff?.setFingerHints(on));
 
 // …and only slides during playback, outside Vue's reactivity.
 useAnimationFrame(() => staff?.render(playback.position, (hand) => playback.isHandEnabled(hand), playback.playing));

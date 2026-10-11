@@ -39,6 +39,8 @@ let shelf: FakePieceShelf;
 let audio: FakeAudio;
 /** What the staff was told to show, each time it was told. */
 let staffScores: (Score | null)[];
+/** What the staff was told of fingering hints, each time. */
+let fingerHints: boolean[];
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
 let start: () => void;
 let root: HTMLElement;
@@ -90,6 +92,7 @@ beforeEach(() => {
   start = () => {
     audio = new FakeAudio();
     staffScores = [];
+    fingerHints = [];
     playback = new Playback(audio, new FakeTicker());
     volume = new Volume(new FakeAudio());
     root = document.createElement('div');
@@ -116,7 +119,7 @@ beforeEach(() => {
       recorder,
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
-      createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
+      createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score), setFingerHints: (on) => void fingerHints.push(on) }),
       demos,
     });
     app.mount(root);
@@ -492,7 +495,7 @@ describe('the app', () => {
     it('has on the piece screen the view as well', async () => {
       button(/Ode to Joy/).click();
       await settled();
-      expect(labels()).toEqual(['View', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
+      expect(labels()).toEqual(['View', 'Fingering hints', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
     });
 
     it('offers to install the app once the browser says it can be, asks the browser when pressed, and offers no more once installed', async () => {
@@ -514,6 +517,25 @@ describe('the app', () => {
       window.dispatchEvent(new Event('appinstalled'));
       await settled();
       expect(labels()).not.toContain('App');
+    });
+
+    it('offers fingering hints on the piece screen: off unless asked for, and told to the staff', async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+      // (The staff is what shows them.)
+      [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((option) => option.textContent?.trim() === 'Notes')!.click();
+      await settled();
+      const hints = () => root.querySelector('[role=group][aria-label="Fingering hints"]')!;
+      const chosen = () => hints().querySelector('[aria-pressed=true]')?.textContent?.trim();
+      expect(chosen()).toBe('Off');
+
+      [...hints().querySelectorAll('button')].find((option) => option.textContent?.trim() === 'On')!.click();
+      await settled();
+      expect(chosen()).toBe('On');
+      expect(fingerHints.at(-1)).toBe(true);
+      [...hints().querySelectorAll('button')].find((option) => option.textContent?.trim() === 'Off')!.click();
+      await settled();
+      expect(fingerHints.at(-1)).toBe(false);
     });
 
     it('turns the notes down from its slider', async () => {

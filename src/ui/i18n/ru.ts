@@ -25,6 +25,7 @@ export const ru: Dictionary = {
   volumeNotes: 'Громкость нот',
   volumeMetronome: 'Громкость метронома',
   pedal: 'Педаль',
+  fingerHints: 'Подсказки пальцев',
   on: 'Вкл',
   off: 'Выкл',
   countIn: 'Отсчёт',
