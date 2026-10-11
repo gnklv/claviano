@@ -45,6 +45,16 @@ const model = defineModel<T>({ required: true });
   cursor: pointer;
 }
 
+/* Under a finger: taller, and the words a size up. */
+@media (pointer: coarse), (max-width: 599px) {
+  .option {
+    min-width: 44px;
+    min-height: 40px;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+}
+
 .option + .option {
   border-left: 1px solid var(--border);
 }

@@ -53,7 +53,7 @@ export const en = {
   libraryHint: 'Or drop a file onto the window',
   backToLibrary: 'Back to the library',
   dropHint: 'Release to open',
-  scoreSummary: '{title} · {bars} · {notes}',
+  scoreDetails: '{bars} · {notes}',
   barsCount: { one: '{count} bar', other: '{count} bars' },
   notesCount: { one: '{count} note', other: '{count} notes' },
 

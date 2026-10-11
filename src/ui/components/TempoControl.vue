@@ -101,13 +101,6 @@ onUnmounted(() => listen(false));
   color: var(--muted);
 }
 
-/* Phones: finger-sized. */
-@media (max-width: 599px) {
-  .current {
-    min-height: 44px;
-  }
-}
-
 /* Where the bar is tight, the percent alone: what it makes is in the panel. */
 @media (max-width: 699px) {
   .mark {

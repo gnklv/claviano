@@ -190,9 +190,17 @@ body {
   cursor: default;
 }
 
-/* Phones: finger-sized. */
-@media (max-width: 599px) {
+/*
+ * Under a finger (a phone, a tablet), and on a narrow window: everything pressable is at least
+ * 44px, the size a fingertip needs.
+ */
+@media (pointer: coarse), (max-width: 599px) {
+  .button,
   .toggle {
     min-height: 44px;
+  }
+
+  .button {
+    min-width: 44px;
   }
 }

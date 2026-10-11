@@ -47,7 +47,7 @@ export const ru: Dictionary = {
   libraryHint: 'Или перетащите файл в окно',
   backToLibrary: 'К библиотеке',
   dropHint: 'Отпустите, чтобы открыть',
-  scoreSummary: '{title} · {bars} · {notes}',
+  scoreDetails: '{bars} · {notes}',
   barsCount: { one: '{count} такт', few: '{count} такта', many: '{count} тактов', other: '{count} такта' },
   notesCount: { one: '{count} нота', few: '{count} ноты', many: '{count} нот', other: '{count} ноты' },
 

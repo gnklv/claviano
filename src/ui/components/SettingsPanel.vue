@@ -50,9 +50,10 @@ const sheet = useTemplateRef('sheet');
 <style scoped>
 .gear {
   flex: none;
-  font-size: 16px;
+  /* (The glyph is small for its size.) */
+  font-size: 20px;
   line-height: 1;
-  padding: 6px 10px;
+  padding: 4px 9px;
 }
 
 .row {

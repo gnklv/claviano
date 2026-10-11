@@ -209,21 +209,19 @@ function togglePlay(): void {
   font: inherit;
 }
 
-/* Phones: finger-sized targets. */
-@media (max-width: 599px) {
-  .button,
+/* Under a finger: as tall as the buttons beside them. */
+@media (pointer: coarse), (max-width: 599px) {
   .number {
     min-height: 44px;
+    /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
+    font-size: 16px;
   }
+}
 
-  .button {
-    min-width: 44px;
-  }
-
-  /* Safari on iOS zooms into inputs with text smaller than 16px when they get focus. */
+/* Phones: the tempo, the loop and "⋯" have one row between them. */
+@media (max-width: 599px) {
   .number {
     width: 3em;
-    font-size: 16px;
   }
 
   .transport {

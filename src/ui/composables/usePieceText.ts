@@ -16,10 +16,14 @@ const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
 };
 
 /**
- * What to say about the piece: its title with the bars and notes it has, and what failed to open
+ * What to say about the piece: its title, the bars and notes it has, and what failed to open
  * last, if anything did. Kept as data until here, so the text follows a language switch.
  */
-export function usePieceText(playback: Playback, openScore: OpenScore, demos: readonly Demo[]): { summary: ComputedRef<string>; error: ComputedRef<string | null> } {
+export function usePieceText(
+  playback: Playback,
+  openScore: OpenScore,
+  demos: readonly Demo[],
+): { title: ComputedRef<string>; details: ComputedRef<string>; error: ComputedRef<string | null> } {
   const { t } = useI18n();
   const state = usePlaybackState(playback);
   const opened = useOpenScore(openScore);
@@ -32,17 +36,22 @@ export function usePieceText(playback: Playback, openScore: OpenScore, demos: re
     return t('openError', { file, reason: t(ERROR_MESSAGES[failure.reason]) });
   });
 
-  const summary = computed(() => {
+  const title = computed(() => {
     const score = state.value.score;
     if (!score) return '';
     const { demo } = opened.value;
-    return t('scoreSummary', {
-      title: demo ? demoTitle(demo.id) : score.title,
+    return demo ? demoTitle(demo.id) : score.title;
+  });
+
+  const details = computed(() => {
+    const score = state.value.score;
+    if (!score) return '';
+    return t('scoreDetails', {
       // A pickup is not counted as a bar of its own: the count is the last bar's number.
       bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
       notes: t('notesCount', { count: score.notes.length }),
     });
   });
 
-  return { summary, error };
+  return { title, details, error };
 }

@@ -18,7 +18,7 @@ const emit = defineEmits<{ back: [] }>();
 const { playback, openScore, demos } = useDeps();
 const { t } = useI18n();
 const viewMode = useShownViewMode();
-const { summary, error } = usePieceText(playback, openScore, demos);
+const { title, details, error } = usePieceText(playback, openScore, demos);
 </script>
 
 <template>
@@ -26,7 +26,9 @@ const { summary, error } = usePieceText(playback, openScore, demos);
     <header class="bar">
       <button class="button back" :title="t('backToLibrary')" :aria-label="t('backToLibrary')" @click="emit('back')">←</button>
       <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
-      <span class="title" :class="{ failed: error }" :role="error ? 'alert' : undefined">{{ error ?? summary }}</span>
+      <span v-if="error" class="title failed" role="alert">{{ error }}</span>
+      <!-- (How long the piece is: said where there is room for it.) -->
+      <span v-else class="title">{{ title }}<span v-if="details" class="details"> · {{ details }}</span></span>
       <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
       <ViewModeSwitch class="view-switch" />
       <SettingsPanel piece />
@@ -73,6 +75,13 @@ const { summary, error } = usePieceText(playback, openScore, demos);
   white-space: nowrap;
   min-width: 0;
   flex: 1;
+}
+
+/* A phone: the name alone. */
+@media (max-width: 599px) {
+  .details {
+    display: none;
+  }
 }
 
 .title.failed {
