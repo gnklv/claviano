@@ -126,7 +126,9 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - the screens repainted, one at a time:
     - [x] the library: opening a file is its one main action (free play beside it, quietly); its
       tiles, headings and notices are components; a phone is the same narrow screen as elsewhere;
-    - [ ] the piece;
+    - [x] the piece: one row of settings in place of three copies; its widths of screen named or
+      made the common ones; spacing from the scale; the loop a wash of ink with a line at each
+      end, the last colour that was not of the palette;
     - [ ] free play.
   With it: one pop-up in place of two, no colour written by hand in a component.
 

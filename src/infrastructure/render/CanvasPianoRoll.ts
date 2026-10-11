@@ -18,7 +18,8 @@ const DEFAULT_COLORS: RollColors = {
   background: '#14161c',
   barLine: 'rgba(255, 255, 255, 0.08)',
   barNumber: 'rgba(255, 255, 255, 0.35)',
-  loop: 'rgba(120, 200, 140, 0.08)',
+  loop: 'rgba(255, 250, 240, 0.06)',
+  loopEdge: 'rgba(255, 250, 240, 0.4)',
   nowLine: 'rgba(255, 255, 255, 0.5)',
   whiteKey: '#f4f1ea',
   blackKey: '#1d1f24',
@@ -443,6 +444,11 @@ export class CanvasPianoRoll implements RollView {
     if (bottom <= top) return;
     this.ctx.fillStyle = this.colors.loop;
     this.ctx.fillRect(0, top, this.width, bottom - top);
+    // A line at each end that is in sight: where the music turns back, and where it comes back to.
+    this.ctx.fillStyle = this.colors.loopEdge;
+    for (const y of [yOf(frame.loop.end), yOf(frame.loop.start)]) {
+      if (y >= 0 && y <= rollHeight) this.ctx.fillRect(0, Math.round(y), this.width, 1);
+    }
   }
 
   private drawBars(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {

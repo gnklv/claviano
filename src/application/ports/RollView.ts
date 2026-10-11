@@ -27,7 +27,9 @@ export interface RollColors {
   readonly background: string;
   readonly barLine: string;
   readonly barNumber: string;
+  /** The looped stretch: its wash, and the line at each of its ends. */
   readonly loop: string;
+  readonly loopEdge: string;
   readonly nowLine: string;
   readonly whiteKey: string;
   readonly blackKey: string;

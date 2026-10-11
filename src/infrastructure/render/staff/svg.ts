@@ -13,6 +13,7 @@ export const COLORS = {
   note: 'var(--ink)',
   hand: { right: 'var(--right)', left: 'var(--left)' } satisfies Record<Hand, string>,
   loop: 'var(--loop)',
+  loopEdge: 'var(--loop-edge)',
   cursor: 'var(--cursor)',
 };
 

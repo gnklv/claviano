@@ -406,7 +406,7 @@ export class SvgStaff implements StaffView {
     }
   }
 
-  /** The loop's bars, shaded behind the music. */
+  /** The loop's bars, behind the music: a wash over them, and a line at each end. */
   private drawLoop(): void {
     this.loopLayer.replaceChildren();
     const { score, loop, geometry } = this;
@@ -416,8 +416,11 @@ export class SvgStaff implements StaffView {
     const start = geometry.edgeX(barPosition(score, loop.start));
     // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
     const end = geometry.edgeX(barPosition(score, Math.max(loop.start, loop.end - 1e-6)));
+    const y = top - 3 * space;
+    const height = geometry.systemBottom() - top + 6 * space;
     this.loopLayer.append(
-      svg('rect', { x: start, y: top - 3 * space, width: Math.max(0, end - start), height: geometry.systemBottom() - top + 6 * space, fill: COLORS.loop }),
+      svg('rect', { x: start, y, width: Math.max(0, end - start), height, fill: COLORS.loop }),
+      ...[start, end].map((x) => svg('path', { d: `M${x} ${y}V${y + height}`, stroke: COLORS.loopEdge, 'stroke-width': 1 })),
     );
   }
 

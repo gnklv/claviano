@@ -150,7 +150,9 @@
   --bar-number: rgb(255 250 240 / 0.4);
   --grid-line: rgb(255 250 240 / 0.08);
   --now-line: rgb(255 250 240 / 0.5);
-  --loop: rgb(120 200 140 / 0.1);
+  /* The bars that are looped: a wash of ink behind them, and a line at each end. */
+  --loop: rgb(255 250 240 / 0.06);
+  --loop-edge: rgb(255 250 240 / 0.4);
   --cursor: rgb(201 74 62 / 0.95);
   --pedal: var(--text);
 
@@ -191,7 +193,8 @@
   --bar-number: rgb(34 32 28 / 0.5);
   --grid-line: rgb(34 32 28 / 0.08);
   --now-line: rgb(34 32 28 / 0.35);
-  --loop: rgb(60 160 90 / 0.12);
+  --loop: rgb(34 32 28 / 0.06);
+  --loop-edge: rgb(34 32 28 / 0.4);
   --cursor: rgb(179 57 47 / 0.9);
   --pedal: var(--text);
 

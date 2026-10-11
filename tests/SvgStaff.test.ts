@@ -157,11 +157,15 @@ describe('SvgStaff', () => {
       expect(shaded(container).length).toBe(1);
       expect(loop.style.fill).toBe('var(--loop)');
       expect(Number(loop.getAttribute('width'))).toBeGreaterThan(0);
+      // (A line at each of its ends, in the same ink.)
+      const edges = () => [...container.querySelectorAll<SVGPathElement>('path')].filter((path) => path.style.stroke === 'var(--loop-edge)');
+      expect(edges()).toHaveLength(2);
 
       staff.setLoop(barRange(score, 1, 3));
       expect(Number(shaded(container)[0].getAttribute('width'))).toBeGreaterThan(Number(loop.getAttribute('width')));
       staff.setLoop(null);
       expect(shaded(container)).toEqual([]);
+      expect(edges()).toEqual([]);
     });
 
     it('leaves the notes as they are when the loop changes: only its shade is drawn anew', () => {

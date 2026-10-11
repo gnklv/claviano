@@ -9,6 +9,7 @@ export function readRollColors(): RollColors {
     barLine: cssVar('--grid-line'),
     barNumber: cssVar('--bar-number'),
     loop: cssVar('--loop'),
+    loopEdge: cssVar('--loop-edge'),
     nowLine: cssVar('--now-line'),
     whiteKey: cssVar('--key-white'),
     blackKey: cssVar('--key-black'),
