@@ -3,7 +3,7 @@ import { computed, ref, useTemplateRef } from 'vue';
 import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useBarLoop } from '../composables/useBarLoop';
-import { useMediaQuery } from '../composables/useMediaQuery';
+import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -17,7 +17,7 @@ const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
 /** A phone: no room in the bar for what is set once a session; it goes into a sheet behind "⋯". */
-const phone = useMediaQuery('(max-width: 599px)');
+const phone = useMediaQuery(SMALL_SCREEN);
 const practiceSheet = useTemplateRef('practiceSheet');
 /** Bar numbers as printed: a pickup is bar 0, so the first and last numbers depend on the score. */
 const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
@@ -154,6 +154,16 @@ function togglePlay(): void {
   .transport {
     grid-template-columns: 1fr auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
+  }
+}
+
+/* A phone on its side: one thin row (practice is behind "⋯"), every pixel of height is the music's. */
+@media (max-height: 500px) {
+  .transport {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: 'playback tempo loop';
+    column-gap: 12px;
+    padding-block: 6px max(6px, env(safe-area-inset-bottom));
   }
 }
 

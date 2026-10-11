@@ -213,7 +213,8 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
 2. [x] The new transport bar (always at hand / once a session / seldom; on a phone the middle
        ones are in a sheet behind "⋯") and the settings panel, with volume sliders for the piano
        and the metronome in it
-3. [ ] Phones and tablets: strips that hide on a phone on its side; a pass on an iPhone and an
+3. [ ] Phones and tablets (done: a phone upright and on its side, where the header and the
+       transport leave the screen to the music); a pass on an iPhone and an
        iPad in the iOS Simulator (layout and touch), then on real devices (sound, memory,
        smoothness, the samples in iOS Safari)
 4. [ ] The library remembers: opened pieces kept in the browser, each with its place, tempo, loop
@@ -246,6 +247,5 @@ Small things noticed, to fix between the steps:
       the sample (scripts/metronome.ts)
 - [ ] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)
-- [ ] The top of the staff is cut off when the stage is low (a phone on its side, a wide and
-      short window): an 8va bracket, words and tempo marks over high notes run past the edge.
-      With step 3
+- [x] The top of the staff was cut off when the stage is low: a phone on its side shows the
+      staff or the keys, not both, and gives them the whole screen while the music plays

@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type WritableComputedRef } from 'vue';
-import { useMediaQuery } from './useMediaQuery';
+import { SMALL_SCREEN, useMediaQuery } from './useMediaQuery';
 
 export type ViewMode = 'staff' | 'keys' | 'both';
 
@@ -32,13 +32,11 @@ export function useViewMode() {
   return viewMode;
 }
 
-/** A phone held upright has no height for the staff and the keys at once. */
-const NO_ROOM_FOR_BOTH = '(max-width: 599px)';
-
 /** The views there is room to choose from on this screen. */
 export function useOfferedViewModes(): ComputedRef<readonly ViewMode[]> {
-  const narrow = useMediaQuery(NO_ROOM_FOR_BOTH);
-  return computed(() => (narrow.value ? VIEW_MODES.filter((mode) => mode !== 'both') : VIEW_MODES));
+  // A phone has no height for the staff and the keys at once: upright the keys are too far down, on its side the staff is too small to read.
+  const small = useMediaQuery(SMALL_SCREEN);
+  return computed(() => (small.value ? VIEW_MODES.filter((mode) => mode !== 'both') : VIEW_MODES));
 }
 
 /**

@@ -20,7 +20,15 @@ const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
 let roll: RollView | null = null;
-const resizeObserver = new ResizeObserver(() => roll?.resize());
+/*
+ * Resizing a canvas wipes it, and the browser tells of a new size after the frame's drawing is
+ * done: drawn again at once, or the frame goes out blank (a blink at every step while the stage
+ * grows or shrinks).
+ */
+const resizeObserver = new ResizeObserver(() => {
+  roll?.resize();
+  draw();
+});
 
 onMounted(() => {
   roll = createRoll(canvas.value!);
@@ -33,7 +41,9 @@ watch(theme, () => roll?.setColors(readRollColors()), { flush: 'post' });
 onUnmounted(() => resizeObserver.disconnect());
 
 // Drawn outside Vue's reactivity: 60 fps straight from Playback to the canvas.
-useAnimationFrame(() => {
+useAnimationFrame(draw);
+
+function draw(): void {
   if (!roll) return;
   roll.render({
     score: playback.score ?? EMPTY_SCORE,
@@ -46,7 +56,7 @@ useAnimationFrame(() => {
     pedalLabel: (move) => t(PEDAL_LABELS[move.pedal][move.kind]),
   });
   canvas.value?.classList.toggle('scrollable', roll.scrollable);
-});
+}
 
 // --- A tap jumps to that moment; a drag looks around: up and down through the music, sideways
 // along a keyboard wider than the screen. The music plays on, and the view goes back to it later. ---

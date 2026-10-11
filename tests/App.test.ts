@@ -28,7 +28,7 @@ let volume: Volume;
 let app: VueApp;
 let root: HTMLElement;
 /** The window's width, as the app asks about it: a phone or not. */
-const screen = { phone: false, listeners: new Set<() => void>() };
+const screen = { phone: false, short: false, listeners: new Set<() => void>() };
 const turnIntoPhone = async () => {
   screen.phone = true;
   screen.listeners.forEach((listener) => listener());
@@ -59,11 +59,12 @@ beforeEach(() => {
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
   screen.phone = false;
+  screen.short = false;
   screen.listeners.clear();
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
     const media = {
       get matches() {
-        return screen.phone && query.includes('max-width: 599px');
+        return (screen.phone && query.includes('max-width: 599px')) || (screen.short && query.includes('max-height: 500px'));
       },
       addEventListener: (_: string, listener: () => void) => screen.listeners.add(listener),
       removeEventListener: (_: string, listener: () => void) => screen.listeners.delete(listener),
@@ -222,6 +223,83 @@ describe('the app', () => {
     press('Space');
     await settled();
     expect(playback.playing).toBe(true);
+  });
+
+  describe('a phone on its side', () => {
+    const immersed = () => root.querySelector('.piece')!.classList.contains('immersed');
+    const press = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    const touch = (selector: string) => root.querySelector(selector)!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+
+    beforeEach(async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+      screen.short = true;
+      screen.listeners.forEach((listener) => listener());
+      await nextTick();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it('keeps what is set once a session behind "⋯", and offers the staff or the keys, not both', () => {
+      const bar = root.querySelector('.transport')!;
+      expect([...bar.querySelectorAll('button[aria-pressed]')].filter((element) => !element.closest('dialog'))).toHaveLength(1);
+      expect(button(/^Practice$/)).toBeDefined();
+      expect([...root.querySelector('.piece header [role=group][aria-label=View]')!.querySelectorAll('button')]).toHaveLength(2);
+    });
+
+    it('gives the screen to the music while it plays: the header and the transport go three seconds after the last touch', async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(immersed()).toBe(false);
+
+      press('Space');
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(immersed()).toBe(false);
+      touch('.transport');
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(immersed()).toBe(false);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(immersed()).toBe(true);
+      expect(root.querySelector('.waker')).not.toBeNull();
+    });
+
+    it('brings them back at a touch, and for good when the music stops', async () => {
+      press('Space');
+      await vi.advanceTimersByTimeAsync(3100);
+      expect(immersed()).toBe(true);
+
+      touch('.waker');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(immersed()).toBe(false);
+      expect(root.querySelector('.waker')).toBeNull();
+      await vi.advanceTimersByTimeAsync(3100);
+      expect(immersed()).toBe(true);
+
+      press('Space');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(immersed()).toBe(false);
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(immersed()).toBe(false);
+    });
+
+    it('does not take them from under an open panel', async () => {
+      press('Space');
+      await vi.advanceTimersByTimeAsync(0);
+      button(/^Settings$/).click();
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(immersed()).toBe(false);
+      button(/^Close$/).click();
+      await vi.advanceTimersByTimeAsync(3100);
+      expect(immersed()).toBe(true);
+    });
+
+    it('is not so on a screen of full height', async () => {
+      screen.short = false;
+      screen.listeners.forEach((listener) => listener());
+      press('Space');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(immersed()).toBe(false);
+    });
   });
 
   describe('the view', () => {

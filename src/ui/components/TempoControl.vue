@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import type { NoteValue } from '../../domain/notation/noteValue';
 import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useMediaQuery } from '../composables/useMediaQuery';
+import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -29,7 +29,7 @@ const { playback } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const percent = computed(() => Math.round(state.value.tempo * 100));
-const phone = useMediaQuery('(max-width: 599px)');
+const phone = useMediaQuery(SMALL_SCREEN);
 
 /** The tempo the music is played at now, the setting applied: "♩ = 45" at 50% of ♩ = 90. Empty without a tempo mark. */
 const mark = ref('');
