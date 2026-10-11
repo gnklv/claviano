@@ -154,12 +154,12 @@ chords: 215
   {"staff":"treble","hand":"right","beat":84,"beats":2,"bar":22,"notes":[{"step":2},{"step":5},{"step":7}],"duration":{"value":"half","dots":0},"stemUp":true}
   {"staff":"bass","hand":"left","beat":84,"beats":2,"bar":22,"notes":[{"step":2},{"step":7},{"step":11}],"duration":{"value":"half","dots":0},"stemUp":true,"ledgerSteps":[10]}
   {"staff":"treble","hand":"right","beat":86,"beats":2,"bar":23,"notes":[{"step":2}],"duration":{"value":"half","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":86,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":2,"headless":true}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":86,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":2,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
   {"staff":"treble","hand":"right","beat":86.5,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":87,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":7}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":87.5,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":88,"beats":2,"bar":23,"notes":[{"step":1}],"duration":{"value":"half","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":88,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":1,"headless":true}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":88,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":1,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
   {"staff":"bass","hand":"left","beat":88,"beats":2,"bar":23,"notes":[{"step":4}],"duration":{"value":"half","dots":0}}
   {"staff":"treble","hand":"right","beat":88.5,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":5}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":89,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":6}],"duration":{"value":"eighth","dots":0}}

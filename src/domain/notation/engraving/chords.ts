@@ -155,6 +155,10 @@ export function untangleVoices(chords: readonly StaffChord[], beams: readonly Be
  * other, their heads would sit on each other, so one voice moves right by a head. With stems apart
  * it is the up-stem voice; with stems the same way, the voice with the upper note of the second
  * (as the upper note of a second in a chord goes right).
+ *
+ * So do two voices on one and the same note whose heads cannot be one head: an open one and a
+ * black one (a half note against a quarter), or a dotted one against a plain one. The voice whose
+ * stem goes down moves right, and the two stand side by side as they are read: upper voice first.
  */
 export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
   const result = [...chords];
@@ -171,6 +175,15 @@ export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
         if (a >= b) continue;
         const one = chords[a]!;
         const other = chords[b]!;
+        // On one note, with heads that are not alike.
+        if (!sameHead(one, other) && one.notes.some((x) => other.notes.some((y) => x.step === y.step))) {
+          const moved = one.stemUp === other.stemUp ? b : one.stemUp ? b : a;
+          const stays = moved === a ? b : a;
+          result[moved] = { ...result[moved]!, voiceShift: true };
+          // (The dots of the one that stays would lie on the head moved over beside it.)
+          if (chords[stays]!.duration.dots > 0) result[stays] = { ...result[stays]!, dotsPastVoice: true };
+          continue;
+        }
         // The second between them, if any: the upper note's chord and the lower one's.
         const [pair] = one.notes.flatMap((x) => other.notes.filter((y) => Math.abs(x.step - y.step) === 1).map((y) => [x, y] as const));
         if (!pair) continue;
@@ -182,6 +195,65 @@ export function shiftVoicesApart(chords: readonly StaffChord[]): StaffChord[] {
     }
   }
   return result;
+}
+
+/** Whether one head can stand for both: the same shape (open or black), dotted alike. */
+const sameHead = (one: StaffChord, other: StaffChord): boolean => headShape(one) === headShape(other) && one.duration.dots === other.duration.dots;
+const headShape = (chord: StaffChord): string => (chord.duration.value === 'whole' || chord.duration.value === 'half' ? chord.duration.value : 'black');
+
+/** An accidental is about three spaces tall: two this many steps apart or more can stand in one column. */
+const ACCIDENTAL_STEPS = 6;
+
+/**
+ * Sets the accidentals of what starts together on one staff (a chord, or the chords of two voices)
+ * in columns: each as near the heads as it can stand without lying on one already set. From the
+ * top note down, which is how they are read.
+ */
+export function accidentalsInColumns(chords: readonly StaffChord[]): StaffChord[] {
+  const result = chords.map((chord) => chord);
+  const byPlace = new Map<string, number[]>();
+  chords.forEach((chord, i) => {
+    const key = `${chord.staff}|${chord.beat}`;
+    byPlace.set(key, [...(byPlace.get(key) ?? []), i]);
+  });
+  for (const indices of byPlace.values()) {
+    const sharpened = indices
+      .flatMap((chord) => chords[chord]!.notes.map((note, index) => ({ chord, index, note })))
+      .filter(({ note }) => note.accidental && !note.headless)
+      .sort((a, b) => a.note.step - b.note.step);
+    if (sharpened.length < 2) continue;
+    /** The step of the last accidental set in each column. */
+    const columns: number[] = [];
+    for (const { chord, index, note } of sharpened) {
+      let column = columns.findIndex((last) => note.step - last >= ACCIDENTAL_STEPS);
+      if (column < 0) column = columns.length;
+      columns[column] = note.step;
+      if (column === 0) continue;
+      const notes = [...result[chord]!.notes];
+      notes[index] = { ...notes[index]!, accidentalColumn: column };
+      result[chord] = { ...result[chord]!, notes };
+    }
+  }
+  return result;
+}
+
+/**
+ * Where the dots of a dotted chord stand: each in a space, the note's own or (for a note on a
+ * line) the one above; where that space has a dot already, the one below. From the top note down.
+ */
+export function withDots(chord: StaffChord): StaffChord {
+  if (chord.duration.dots === 0 || chord.notes.length < 2) return chord;
+  const taken = new Set<number>();
+  let moved = false;
+  const notes = chord.notes.map((note) => {
+    const own = note.step % 2 === 0 ? note.step - 1 : note.step;
+    const step = taken.has(own) ? own + 2 : own;
+    taken.add(step);
+    if (step === own) return note;
+    moved = true;
+    return { ...note, dotStep: step };
+  });
+  return moved ? { ...chord, notes } : chord;
 }
 
 /**

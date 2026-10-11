@@ -1,7 +1,7 @@
 import { barAtBeat, barLength, writtenBarStart, type Score } from '../../score';
 import { MIDDLE_LINE_STEP, staffStep } from '../staffPosition';
 import type { WrittenNote, WrittenRest } from '../written';
-import type { StaffRest } from './types';
+import type { StaffChord, StaffRest } from './types';
 
 /* Rests: where each hangs or sits on the staff, and how they make way for a second voice. */
 
@@ -44,5 +44,31 @@ export function layoutRests(score: Score, rests: readonly WrittenRest[], written
       step,
       duration,
     };
+  });
+}
+
+/** A rest keeps this many steps (two spaces) clear of a note of another voice that starts with it. */
+const CLEAR_OF_NOTES = 4;
+
+/**
+ * A rest of one voice where another voice on its staff has notes at the same moment stands clear
+ * of them, on the side their stems do not go to: under notes whose stems go up (they are the upper
+ * voice, and the rest the lower one's), over notes whose stems go down.
+ */
+export function restsClearOfNotes(rests: readonly StaffRest[], chords: readonly StaffChord[]): StaffRest[] {
+  const notesAt = new Map<string, { steps: number[]; stemUp: boolean }>();
+  for (const chord of chords) {
+    const key = `${chord.staff}|${chord.beat}`;
+    const there = notesAt.get(key) ?? { steps: [], stemUp: chord.stemUp };
+    there.steps.push(...chord.notes.map((note) => note.step));
+    notesAt.set(key, there);
+  }
+  return rests.map((rest) => {
+    const there = notesAt.get(`${rest.staff}|${rest.beat}`);
+    if (!there) return rest;
+    const top = Math.min(...there.steps);
+    const bottom = Math.max(...there.steps);
+    if (rest.step <= top - CLEAR_OF_NOTES || rest.step >= bottom + CLEAR_OF_NOTES) return rest;
+    return { ...rest, step: there.stemUp ? bottom + CLEAR_OF_NOTES : top - CLEAR_OF_NOTES };
   });
 }

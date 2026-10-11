@@ -32,7 +32,7 @@ import {
 import type { ClefSign } from '../../domain/notation/written';
 import { barPosition, tapeBars } from './staffLayout';
 import { drawBeam, drawChord, drawFingering, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
-import { columnsOf } from './staff/columns';
+import { CLEF_CHANGE, columnsOf } from './staff/columns';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
 import { StaffGeometry } from './staff/geometry';
@@ -597,7 +597,7 @@ export class SvgStaff implements StaffView {
   }
 }
 
-/** The room grace notes need at the start of printed bars (before the first note) and at their end (after the last). */
+/** The room grace notes and a change of clef need at the start of printed bars (before the first note), and grace notes at their end (after the last). */
 function graceRoom(
   score: Score | null,
   graces: readonly StaffGrace[],
@@ -613,6 +613,12 @@ function graceRoom(
     else if (Math.abs(principal.beat - writtenBarStart(score, principal.bar)) < 1e-6) {
       lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
     }
+  }
+  // A change of clef at a bar's first beat: the small clef stands there too, after the bar line.
+  for (const change of score.notation.clefs) {
+    if (change.beat <= 1e-9) continue;
+    const bar = barAtBeat(score, change.beat);
+    if (Math.abs(change.beat - writtenBarStart(score, bar)) < 1e-6) lead.set(bar, Math.max(lead.get(bar) ?? 0, CLEF_CHANGE));
   }
   return { lead, tail };
 }

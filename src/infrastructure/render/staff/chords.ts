@@ -24,6 +24,8 @@ import { COLORS, noteGlyph, svg } from './svg';
 
 const LEDGER_EXTENSION = 0.4;
 const ACCIDENTAL_OFFSET = 1.3;
+/** One column of accidentals from the next. */
+export const ACCIDENTAL_COLUMN = 1.15;
 const DOT_OFFSET = 0.35;
 /** Brackets stand this far from their notehead, and take this much room (an accidental moves out of their way). */
 const BRACKET_GAP = 0.08;
@@ -106,12 +108,12 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     // other voice's head too); dots follow the rightmost head.
     if (note.accidental) {
       const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0) - (note.parenthesized ? BRACKET_ROOM * size : 0);
-      group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - ACCIDENTAL_OFFSET * size, y));
+      group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - (ACCIDENTAL_OFFSET + (note.accidentalColumn ?? 0) * ACCIDENTAL_COLUMN) * size, y));
     }
-    // A dot goes in a space: for a note on a line, in the space just above.
+    // A dot goes in a space: for a note on a line, in the space just above (or where the engraving put it, clear of another's).
     if (dots) {
-      const dotStep = note.step % 2 === 0 ? note.step - 1 : note.step;
-      group.append(glyph(AUGMENTATION_DOT, headsRight + DOT_OFFSET * size, yOf(dotStep)));
+      const dotStep = note.dotStep ?? (note.step % 2 === 0 ? note.step - 1 : note.step);
+      group.append(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
     }
   }
 

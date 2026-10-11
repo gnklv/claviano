@@ -16,6 +16,16 @@ export interface StaffNote {
   readonly step: number;
   readonly accidental: Accidental | null;
   /**
+   * How far from the heads its accidental stands, in columns: 0 (or none) next to them. Accidentals
+   * of notes close to one another on the staff cannot stand in one column, one over the other.
+   */
+  readonly accidentalColumn?: number;
+  /**
+   * Where the dot of a dotted note stands, as a staff step: in a space, the note's own or (for a
+   * note on a line) the one above; the one below where another note of the chord has that one.
+   */
+  readonly dotStep?: number;
+  /**
    * Drawn on the other side of the stem. Two notes a second apart cannot sit side by side on one
    * stem, so one of them moves over: the upper one to the right of an up-stem, the lower one to
    * the left of a down-stem.
@@ -43,10 +53,16 @@ export interface StaffChord {
    */
   readonly handMark: boolean;
   /**
-   * Moved right by a notehead's width: the up-stem voice where two voices on one staff meet a
-   * second apart, so their heads do not sit on each other.
+   * Moved right by a notehead's width: one of two voices on one staff where they meet a second
+   * apart, or on one note with heads that cannot be one (a half note and a quarter), so their
+   * heads do not sit on each other.
    */
   readonly voiceShift?: boolean;
+  /**
+   * Its dots stand a notehead further right: past the head of another voice moved over beside it
+   * (see `voiceShift`), on which they would otherwise lie.
+   */
+  readonly dotsPastVoice?: boolean;
   /** Printed small (cue size): heads, stem, flags and beams all smaller. */
   readonly small?: boolean;
   /** Sorted from the top of the staff down. */

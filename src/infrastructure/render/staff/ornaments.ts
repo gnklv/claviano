@@ -1,5 +1,6 @@
 import { wavyLine } from '../curves';
-import type { StaffArpeggio, StaffOrnament, StaffTremolo } from '../../../domain/notation/engraving';
+import type { StaffArpeggio, StaffChord, StaffOrnament, StaffTremolo } from '../../../domain/notation/engraving';
+import { ACCIDENTAL_COLUMN } from './chords';
 import type { StaffContext } from './context';
 import { BAR_LINE_GAP } from './geometry';
 import { ACCIDENTAL_GLYPH, MUSIC_FONT, ORNAMENT_GLYPHS } from './glyphs';
@@ -118,7 +119,12 @@ export function drawArpeggio({ geometry, ink }: StaffContext, arpeggio: StaffArp
   const { space } = geometry;
   const chords = arpeggio.chords.map((index) => ink.chord(index));
   const places = chords.map((chord) => ink.of(chord));
-  const lefts = chords.map((chord, i) => places[i]!.left - (chord.notes.some((note) => note.accidental) ? ARPEGGIO_PAST_ACCIDENTAL : 0) * space);
+  // (Past every column of the chord's accidentals.)
+  const past = (chord: StaffChord) => {
+    const sharpened = chord.notes.filter((note) => note.accidental);
+    return sharpened.length === 0 ? 0 : ARPEGGIO_PAST_ACCIDENTAL + Math.max(...sharpened.map((note) => note.accidentalColumn ?? 0)) * ACCIDENTAL_COLUMN;
+  };
+  const lefts = chords.map((chord, i) => places[i]!.left - past(chord) * space);
   // Never on the bar line: a chord at the start of a bar keeps the line within its own bar.
   const x = Math.max(Math.min(...lefts) - ARPEGGIO_GAP * space, geometry.barLineX(chords[0]?.bar ?? 0) + (BAR_LINE_GAP / 4) * space);
   const top = Math.min(...places.map((place) => place.highest)) - 0.6 * space;

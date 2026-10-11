@@ -2,10 +2,10 @@ import { barAtBeat, type Score } from '../../score';
 import { groupBy, type NonEmpty } from '../../group';
 import { staffStep } from '../staffPosition';
 import type { Clef, WrittenNote, WrittenRest } from '../written';
-import { ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, stepSpan, untangleVoices, voiceKeys, withSeconds } from './chords';
+import { accidentalsInColumns, ledgerSteps, markHandCrossings, shiftVoicesApart, stemUpFor, stepSpan, untangleVoices, voiceKeys, withDots, withSeconds } from './chords';
 import { layoutGraces } from './graces';
 import { layoutArpeggios, layoutFingerings, layoutMarks, layoutOrnaments, layoutTremolos } from './marks';
-import { layoutRests } from './rests';
+import { layoutRests, restsClearOfNotes } from './rests';
 import { layoutSlurs, layoutTies } from './slurs';
 import type { Beam, NotationLayout, StaffChord, StaffNote, StaffOctaveShift, Tuplet } from './types';
 
@@ -26,13 +26,15 @@ import type { Beam, NotationLayout, StaffChord, StaffNote, StaffOctaveShift, Tup
  */
 
 export type * from './types';
-export { ledgerSteps, shiftVoicesApart, stepSpan, untangleVoices, withSeconds } from './chords';
+export { accidentalsInColumns, ledgerSteps, shiftVoicesApart, stepSpan, untangleVoices, withDots, withSeconds } from './chords';
+export { restsClearOfNotes };
 
 /** Engraves a score: its notation, set on the staves. */
 export function engrave(score: Score): NotationLayout {
   const layout = layoutWritten(score, printedNotes(score.notation.notes), score.notation.rests);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
-  return { ...layout, chords: shiftVoicesApart(layout.chords.map(withSeconds)) };
+  const chords = accidentalsInColumns(shiftVoicesApart(layout.chords.map(withSeconds))).map(withDots);
+  return { ...layout, chords, rests: restsClearOfNotes(layout.rests, chords) };
 }
 
 /** The notes that are printed. Where the first note of a chord is hidden, the next one leads the chord. */
