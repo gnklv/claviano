@@ -2,6 +2,7 @@
 import SettingsPanel from '../components/SettingsPanel.vue';
 import { useLibrary } from '../composables/useLibrary';
 import { usePieceText } from '../composables/usePieceText';
+import { demoPieceId } from '../../application/use-cases/Library';
 import { useDeps, type Demo } from '../deps';
 import { relativeDay } from '../i18n/relativeDay';
 import { useI18n } from '../i18n/useI18n';
@@ -18,6 +19,13 @@ const { t, locale } = useI18n();
 const shelf = useLibrary(library);
 /** (The day is told as of when the library was come to: it is not a clock.) */
 const now = Date.now();
+
+/** Where a piece was left, for its card: "bar 25 of 64"; nothing for one never begun. */
+function leftAt(id: string): string | null {
+  const memory = shelf.value.memory(id);
+  return memory && memory.position > 0 ? t('leftAtBar', { bar: memory.bar, bars: memory.bars }) : null;
+}
+const noteOf = (...parts: (string | null)[]): string => parts.filter((part) => part !== null).join(' · ');
 const { error } = usePieceText(playback, openScore, demos);
 
 function onFileChosen(event: Event): void {
@@ -49,11 +57,11 @@ function onFileChosen(event: Event): void {
         </label>
         <button v-for="piece in shelf.pieces" :key="piece.id" class="card" @click="emit('piece', piece.id)">
           <span class="name">{{ piece.title }}</span>
-          <span class="note">{{ relativeDay(piece.openedAt, now, locale) }}</span>
+          <span class="note">{{ noteOf(leftAt(piece.id), relativeDay(piece.openedAt, now, locale)) }}</span>
         </button>
         <button v-for="demo in demos" :key="demo.id" class="card" @click="emit('demo', demo)">
           <span class="name">{{ t(demo.title) }}</span>
-          <span class="note">{{ t('demo') }}</span>
+          <span class="note">{{ noteOf(t('demo'), leftAt(demoPieceId(demo))) }}</span>
         </button>
       </div>
 

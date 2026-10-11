@@ -1,0 +1,168 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { ScoreParser } from '../src/application/ports/ScoreParser';
+import { BarLoop } from '../src/application/use-cases/BarLoop';
+import { Library } from '../src/application/use-cases/Library';
+import { LoadScore } from '../src/application/use-cases/LoadScore';
+import { OpenScore } from '../src/application/use-cases/OpenScore';
+import { Playback } from '../src/application/use-cases/Playback';
+import { rememberPieces } from '../src/application/use-cases/rememberPieces';
+import { contentId } from '../src/domain/contentId';
+import { createScore, type Score } from '../src/domain/score';
+import { FakeAudio, FakePieceShelf, FakeTicker } from './fakes';
+
+/* How a piece is left and come back to: eight bars of one second each, one note in each. */
+
+const piece = (title: string): Score =>
+  createScore(
+    title,
+    Array.from({ length: 8 }, (_, bar) => ({ pitch: 60 + bar, start: bar, duration: 1, beat: bar * 4, beats: 4, velocity: 0.8, hand: 'right' as const })),
+    Array.from({ length: 8 }, (_, bar) => bar),
+  );
+const tunes: ScoreParser = { canParse: (fileName) => fileName.endsWith('.tune'), parse: (_, title) => piece(title) };
+const bytes = (text: string): ArrayBuffer => new TextEncoder().encode(text).buffer;
+const ONE = contentId(bytes('one'));
+const TWO = contentId(bytes('two'));
+
+let shelf: FakePieceShelf;
+let playback: Playback;
+let barLoop: BarLoop;
+let library: Library;
+let writeDown: () => void;
+/** The app starts (again): with the shelf as it was left. */
+const start = async () => {
+  playback = new Playback(new FakeAudio(), new FakeTicker());
+  barLoop = new BarLoop(playback);
+  library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, [{ id: 'demo', load: () => piece('Demo') }]);
+  writeDown = rememberPieces(library, playback, barLoop);
+  await library.load();
+};
+
+beforeEach(async () => {
+  shelf = new FakePieceShelf();
+  await start();
+});
+
+describe('remembering pieces', () => {
+  it('starts a piece opened for the first time plain: from the beginning, at full tempo, both hands, no loop', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.6);
+    playback.setHandEnabled('left', false);
+    barLoop.select(2, 3, 2);
+    await library.openFile('two.tune', bytes('two'));
+    expect(playback.tempo).toBe(1);
+    expect(playback.isHandEnabled('left')).toBe(true);
+    expect(playback.position).toBe(0);
+    expect(barLoop.enabled).toBe(false);
+  });
+
+  it('keeps with a piece its place, tempo, hands and loop, and the bar it was left at', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.7);
+    playback.setHandEnabled('right', false);
+    barLoop.select(3, 5, 2);
+    playback.seek(3.5);
+    expect(library.memory(ONE)).toEqual({
+      position: 3.5,
+      tempo: 0.7,
+      hands: { right: false, left: true },
+      loop: { on: true, from: 3, to: 5 },
+      bar: 4,
+      bars: 8,
+    });
+  });
+
+  it('comes back to a piece as it was left, after another piece and after the app is started again', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.7);
+    playback.setHandEnabled('right', false);
+    barLoop.select(3, 5, 2);
+    playback.seek(3.5);
+    await library.openFile('two.tune', bytes('two'));
+    playback.seek(6);
+
+    for (const restart of [false, true]) {
+      if (restart) await start();
+      await library.open(ONE);
+      expect(playback.tempo).toBe(0.7);
+      expect(playback.isHandEnabled('right')).toBe(false);
+      expect(playback.position).toBe(3.5);
+      expect([barLoop.enabled, barLoop.from, barLoop.to]).toEqual([true, 3, 5]);
+      expect(playback.loop).toEqual({ start: 2, end: 5 });
+      await library.open(TWO);
+      expect(playback.tempo).toBe(1);
+      expect(playback.position).toBe(6);
+      expect(barLoop.enabled).toBe(false);
+    }
+  });
+
+  it('remembers demos as it does files', async () => {
+    await library.open('demo.demo');
+    playback.setTempo(0.5);
+    playback.seek(4);
+    await start();
+    await library.open('demo.demo');
+    expect(playback.tempo).toBe(0.5);
+    expect(playback.position).toBe(4);
+  });
+
+  it('writes down the place the music has reached when told to (the page is going)', async () => {
+    const audio = new FakeAudio();
+    playback = new Playback(audio, new FakeTicker());
+    barLoop = new BarLoop(playback);
+    library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
+    writeDown = rememberPieces(library, playback, barLoop);
+    await library.openFile('one.tune', bytes('one'));
+    await playback.play();
+    audio.time += 2.5;
+    expect(library.memory(ONE)?.position).toBe(0);
+    writeDown();
+    expect(library.memory(ONE)?.position).toBeCloseTo(2.5);
+    expect(library.memory(ONE)?.bar).toBe(3);
+  });
+
+  it('writes down the place when the music is stopped by another piece opening', async () => {
+    const audio = new FakeAudio();
+    playback = new Playback(audio, new FakeTicker());
+    barLoop = new BarLoop(playback);
+    library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
+    rememberPieces(library, playback, barLoop);
+    await library.openFile('one.tune', bytes('one'));
+    await playback.play();
+    audio.time += 2.5;
+    await library.openFile('two.tune', bytes('two'));
+    expect(library.memory(ONE)?.position).toBeCloseTo(2.5);
+    expect(library.memory(TWO)?.position).toBe(0);
+  });
+
+  it('starts a piece left at its very end from the beginning', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.8);
+    playback.seek(7.9);
+    await library.openFile('two.tune', bytes('two'));
+    await library.open(ONE);
+    expect(playback.position).toBe(0);
+    expect(playback.tempo).toBe(0.8);
+  });
+
+  it('takes no memory from what is not one (an older version’s, a stranger’s)', async () => {
+    shelf.remembered.set(ONE, { position: 'far', tempo: 2 });
+    shelf.remembered.set(TWO, null);
+    await start();
+    expect(library.memory(ONE)).toBeNull();
+    await library.openFile('one.tune', bytes('one'));
+    expect(playback.tempo).toBe(1);
+    expect(playback.position).toBe(0);
+  });
+
+  it('remembers for the visit where nothing can be stored', async () => {
+    shelf.broken = true;
+    await start();
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.6);
+    await library.openFile('two.tune', bytes('two'));
+    await library.open(ONE);
+    // (Nothing is on the shelf to open it from: it stays as it was.)
+    expect(library.current).toBe(TWO);
+    expect(library.memory(ONE)?.tempo).toBe(0.6);
+  });
+});

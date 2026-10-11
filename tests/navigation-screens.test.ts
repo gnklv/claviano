@@ -7,6 +7,8 @@ import { createNavigation, pieceAt, screenAt, type Navigation } from '../src/ui/
 let hasPiece: boolean;
 /** The piece that is open, for its address. */
 let openPiece: string | null;
+/** The pieces the addresses named, that were not open. */
+let askedFor: string[];
 let navigation: Navigation;
 let back: ReturnType<typeof vi.spyOn>;
 let opened = false;
@@ -15,6 +17,7 @@ const open = (hash = '') => {
   navigation = createNavigation(
     (screen) => screen === 'library' || hasPiece,
     () => openPiece,
+    (piece) => askedFor.push(piece),
   );
   opened = true;
 };
@@ -27,6 +30,7 @@ const browserGoesTo = (hash: string) => {
 beforeEach(() => {
   hasPiece = false;
   openPiece = null;
+  askedFor = [];
   back = vi.spyOn(history, 'back').mockImplementation(() => browserGoesTo('#/'));
 });
 afterEach(() => {
@@ -79,6 +83,22 @@ describe('a piece’s address', () => {
     expect(location.hash).toBe('#/piece/def-456');
     expect(navigation.piece.value).toBe('def-456');
     expect(history.length).toBe(steps);
+  });
+
+  it('asks for the piece it names when that is not the open one: at the start, and as the browser moves', () => {
+    open('#/piece/abc-123');
+    expect(askedFor).toEqual(['abc-123']);
+    // (Nothing to show yet: the library, until the piece opens.)
+    expect(navigation.screen.value).toBe('library');
+
+    hasPiece = true;
+    openPiece = 'abc-123';
+    navigation.go('piece');
+    browserGoesTo('#/');
+    browserGoesTo('#/piece/abc-123');
+    expect(askedFor).toEqual(['abc-123']);
+    browserGoesTo('#/piece/def-456');
+    expect(askedFor).toEqual(['abc-123', 'def-456']);
   });
 
   it('is told as the browser moves to it, and is none in the library', () => {

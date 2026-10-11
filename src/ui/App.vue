@@ -7,7 +7,7 @@ import { usePlaybackState } from './composables/usePlaybackState';
 import { useDeps } from './deps';
 import { useI18n } from './i18n/useI18n';
 import { useLibrary } from './composables/useLibrary';
-import { createNavigation, pieceAt } from './navigation/useScreen';
+import { createNavigation } from './navigation/useScreen';
 import LibraryScreen from './screens/LibraryScreen.vue';
 import PieceScreen from './screens/PieceScreen.vue';
 
@@ -21,25 +21,21 @@ const { t } = useI18n();
 const state = usePlaybackState(playback);
 const dragging = ref(false);
 
-// The piece the address names when the app starts (a reload, a bookmark): opened again below, once the screens stand.
-const askedAtStart = pieceAt(location.hash);
 const navigation = createNavigation(
   (screen) => screen === 'library' || playback.score !== null,
   () => library.current,
+  // An address that names another piece than the open one (a reload, a bookmark, the browser's Forward): that piece is opened.
+  (piece) => void library.open(piece),
 );
 const { screen } = navigation;
 onUnmounted(() => navigation.dispose());
-if (askedAtStart !== null) void library.open(askedAtStart);
 
 // A piece that has just opened is shown, under its own address; leaving it for the library, the music stops.
 const shelf = useLibrary(library);
 watch([() => state.value.score, () => shelf.value.current], ([score]) => {
   if (score) navigation.go('piece');
 });
-// The browser's Forward to another piece's address than the one that is open: that piece is opened.
-watch(navigation.piece, (asked) => {
-  if (asked !== null && asked !== library.current) void library.open(asked);
-});
+
 watch(screen, (shown) => {
   if (shown === 'library') playback.pause();
 });

@@ -9,6 +9,7 @@ import { Library } from '../src/application/use-cases/Library';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
+import { rememberPieces } from '../src/application/use-cases/rememberPieces';
 import { Volume } from '../src/application/use-cases/Volume';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
@@ -88,9 +89,11 @@ beforeEach(() => {
     const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser()]));
     const library = new Library(shelf, openScore, playback, demos);
     void library.load();
+    const barLoop = new BarLoop(playback);
+    rememberPieces(library, playback, barLoop);
     app = createApp(App).provide(depsKey, {
       playback,
-      barLoop: new BarLoop(playback),
+      barLoop,
       volume,
       instrument,
       openScore,
@@ -232,6 +235,35 @@ describe('the app', () => {
       location.hash = '#/piece/demo.ode';
       await restart();
       expect(root.querySelector('.title')?.textContent).toContain('Ode to Joy');
+    });
+
+    it('comes back to a piece where it was left: the place, the tempo, the loop, the hands; and says the place on its card', async () => {
+      button(/Ode to Joy/).click();
+      await settled();
+      playback.setTempo(0.7);
+      playback.setHandEnabled('left', false);
+      playback.seek(playback.score!.bars[4] + 0.1);
+      button(/Back to the library/).click();
+      await settled();
+      expect(button(/Ode to Joy/).textContent).toMatch(/Demo · bar 5 of 8/);
+
+      location.hash = '#/';
+      await restart();
+      expect(button(/Ode to Joy/).textContent).toMatch(/Demo · bar 5 of 8/);
+      button(/Ode to Joy/).click();
+      await settled();
+      expect(playback.tempo).toBe(0.7);
+      expect(playback.isHandEnabled('left')).toBe(false);
+      expect(playback.position).toBeCloseTo(playback.score!.bars[4] + 0.1);
+      expect(button(/^Tempo: 70%$/)).toBeDefined();
+    });
+
+    it('says on a card where its piece was left, before the day', async () => {
+      await drop('first.musicxml', xml('First'));
+      playback.seek(0.5);
+      button(/Back to the library/).click();
+      await settled();
+      expect(button(/^First/).querySelector('.note')?.textContent).toBe('bar 1 of 1 · today');
     });
 
     it('opens in the library when the address names a piece that is not there', async () => {

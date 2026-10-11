@@ -1,6 +1,6 @@
 import { contentId } from '../../domain/contentId';
 import type { Score } from '../../domain/score';
-import type { PieceShelf, ShelvedPiece } from '../ports/PieceShelf';
+import type { PieceMemory, PieceShelf, ShelvedPiece } from '../ports/PieceShelf';
 import type { DemoPiece, OpenScore } from './OpenScore';
 import type { Playback } from './Playback';
 
@@ -19,6 +19,7 @@ export const demoPieceId = (demo: DemoPiece): string => `demo.${demo.id}`;
  */
 export class Library {
   private shelved: ShelvedPiece[] = [];
+  private remembered = new Map<string, PieceMemory>();
   /** The piece being opened, until it opens or fails. */
   private pending: string | null = null;
   private opened: { id: string; score: Score } | null = null;
@@ -52,7 +53,20 @@ export class Library {
     return this.opened && this.opened.score === this.playback.score ? this.opened.id : null;
   }
 
-  /** Called when the shelf changes, or another piece is open. */
+  /** How a piece was left; null for one never opened (or never remembered). */
+  memory(id: string): PieceMemory | null {
+    return this.remembered.get(id) ?? null;
+  }
+
+  /** Keeps how a piece is left. */
+  remember(id: string, memory: PieceMemory): void {
+    this.remembered.set(id, memory);
+    this.emit();
+    // (Not kept between visits where there is no shelf; for this visit it is.)
+    this.shelf.remember(id, memory).catch(() => {});
+  }
+
+  /** Called when the shelf changes, what is remembered of a piece does, or another piece is open. */
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -60,9 +74,13 @@ export class Library {
 
   /** Reads the shelf: once, when the app starts. */
   load(): Promise<void> {
-    this.loaded = this.shelf.list().then(
-      (pieces) => {
+    this.loaded = Promise.all([this.shelf.list(), this.shelf.memories()]).then(
+      ([pieces, memories]) => {
         this.shelved = sorted(pieces);
+        for (const [id, stored] of Object.entries(memories)) {
+          const memory = asMemory(stored);
+          if (memory) this.remembered.set(id, memory);
+        }
         this.emit();
       },
       () => {
@@ -87,13 +105,15 @@ export class Library {
   /** Opens a piece by its id: a demo, or one from the shelf. An id nobody knows opens nothing. */
   async open(id: string): Promise<void> {
     const asked = ++this.asked;
+    // (What is remembered of the piece is read first: it is set as the piece opens.)
+    await this.loaded;
+    if (asked !== this.asked) return;
     const demo = this.demos.find((candidate) => demoPieceId(candidate) === id);
     if (demo) {
       this.pending = id;
       await this.openScore.openDemo(demo);
       return;
     }
-    await this.loaded;
     const piece = this.shelved.find((candidate) => candidate.id === id);
     const data = piece ? await this.shelf.file(id).catch(() => null) : null;
     if (!piece || !data || asked !== this.asked) return;
@@ -116,6 +136,19 @@ export class Library {
   private emit(): void {
     for (const listener of this.listeners) listener();
   }
+}
+
+/** What was stored as a piece's memory, if it is one: the store may hold an older version's, or anything. */
+function asMemory(stored: unknown): PieceMemory | null {
+  if (typeof stored !== 'object' || stored === null) return null;
+  const { position, tempo, hands, loop, bar, bars } = stored as Partial<Record<keyof PieceMemory, unknown>>;
+  const numbers = [position, tempo, bar, bars];
+  if (!numbers.every((value) => typeof value === 'number' && Number.isFinite(value))) return null;
+  if (typeof hands !== 'object' || hands === null || typeof loop !== 'object' || loop === null) return null;
+  const { right, left } = hands as Record<string, unknown>;
+  const { on, from, to } = loop as Record<string, unknown>;
+  if (typeof right !== 'boolean' || typeof left !== 'boolean' || typeof on !== 'boolean' || typeof from !== 'number' || typeof to !== 'number') return null;
+  return stored as PieceMemory;
 }
 
 const sorted = (pieces: readonly ShelvedPiece[]): ShelvedPiece[] => [...pieces].sort((a, b) => b.openedAt - a.openedAt);

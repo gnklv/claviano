@@ -7,6 +7,7 @@ import { OpenScore } from './application/use-cases/OpenScore';
 import { Playback } from './application/use-cases/Playback';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
 import { Volume } from './application/use-cases/Volume';
+import { rememberPieces } from './application/use-cases/rememberPieces';
 import { rememberPracticeSettings } from './application/use-cases/rememberPracticeSettings';
 import { odeToJoy } from './demo/odeToJoy';
 import { playAsMusic } from './infrastructure/audio/audioSession';
@@ -47,12 +48,19 @@ const demos: Demo[] = [
 const openScore = new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml]));
 const library = new Library(new IndexedDbPieceShelf(), openScore, playback, demos);
 void library.load();
+const barLoop = new BarLoop(playback);
+const writeDownThePlace = rememberPieces(library, playback, barLoop);
+// The place moves on while the music plays: written down when the page is left (closed, or put away on a phone).
+window.addEventListener('pagehide', writeDownThePlace);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') writeDownThePlace();
+});
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
 createApp(App)
   .provide(depsKey, {
     playback,
-    barLoop: new BarLoop(playback),
+    barLoop,
     volume,
     instrument: piano,
     openScore,

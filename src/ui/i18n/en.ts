@@ -47,6 +47,7 @@ export const en = {
 
   openMidi: 'Open file',
   demo: 'Demo',
+  leftAtBar: 'bar {bar} of {bars}',
   demoOde: 'Ode to Joy',
   demoShowcase: 'Showcase: everything the player can do',
   openFormats: 'MIDI, MusicXML, MXL',

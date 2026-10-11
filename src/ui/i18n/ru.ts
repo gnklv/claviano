@@ -41,6 +41,7 @@ export const ru: Dictionary = {
 
   openMidi: 'Открыть файл',
   demo: 'Демо',
+  leftAtBar: 'такт {bar} из {bars}',
   demoOde: 'Ода к радости',
   demoShowcase: 'Витрина: всё, что умеет плеер',
   openFormats: 'MIDI, MusicXML, MXL',

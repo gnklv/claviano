@@ -1,5 +1,5 @@
 import type { AudioOutput, NoteToPlay, SoundPart } from '../src/application/ports/AudioOutput';
-import type { PieceShelf, ShelvedPiece } from '../src/application/ports/PieceShelf';
+import type { PieceMemory, PieceShelf, ShelvedPiece } from '../src/application/ports/PieceShelf';
 import type { Ticker } from '../src/application/ports/Ticker';
 
 /* Stand-ins for the ports, shared by the tests. */
@@ -59,6 +59,14 @@ export class FakePieceShelf implements PieceShelf {
       this.pieces.set(piece.id, piece);
       if (data) this.files.set(piece.id, data);
     });
+  }
+  /** (Anything may be put here by hand, as anything may be found in a browser's storage.) */
+  readonly remembered = new Map<string, unknown>();
+  memories(): Promise<Record<string, unknown>> {
+    return this.answer(() => Object.fromEntries(this.remembered));
+  }
+  remember(id: string, memory: PieceMemory): Promise<void> {
+    return this.answer(() => void this.remembered.set(id, memory));
   }
   private answer<T>(work: () => T): Promise<T> {
     return this.broken ? Promise.reject(new Error('no storage')) : Promise.resolve().then(work);

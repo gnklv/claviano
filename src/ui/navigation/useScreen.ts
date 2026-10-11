@@ -46,9 +46,15 @@ export interface Navigation {
 /**
  * `canShow`: whether a screen has what it needs (a piece to show). An address that cannot be
  * shown, such as a piece's after the page is reloaded and the piece is gone, leads to the library.
- * `openPiece`: the id of the piece that is open, for its address.
+ * `openPiece`: the id of the piece that is open, for its address. `askFor`: told the piece an
+ * address names when it is not the one that is open (the page was loaded there, an address was
+ * typed in, the browser went Forward to it), so that it can be opened.
  */
-export function createNavigation(canShow: (screen: Screen) => boolean, openPiece: () => string | null = () => null): Navigation {
+export function createNavigation(
+  canShow: (screen: Screen) => boolean,
+  openPiece: () => string | null = () => null,
+  askFor: (piece: string) => void = () => {},
+): Navigation {
   const screen = ref<Screen>('library');
   const piece = ref<string | null>(null);
   /** The library is one step back in the browser's history: going to it is going back. */
@@ -56,6 +62,8 @@ export function createNavigation(canShow: (screen: Screen) => boolean, openPiece
 
   const settle = () => {
     const asked = screenAt(location.hash);
+    const named = pieceAt(location.hash);
+    if (named !== null && named !== openPiece()) askFor(named);
     if (asked === 'piece' && !canShow('piece')) {
       // Not a step in the history: Back from here must not come to this address again.
       history.replaceState(null, '', ADDRESSES.library);
@@ -66,7 +74,7 @@ export function createNavigation(canShow: (screen: Screen) => boolean, openPiece
     }
     if (asked === 'library') libraryBehind = false;
     screen.value = asked;
-    piece.value = asked === 'piece' ? pieceAt(location.hash) : null;
+    piece.value = asked === 'piece' ? named : null;
   };
   settle();
   window.addEventListener('hashchange', settle);
