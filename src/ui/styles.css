@@ -107,15 +107,28 @@ body,
 /* Mobile browsers show and hide their address bar; dvh follows the height actually visible. */
 #app {
   height: 100dvh;
+  background: var(--bg);
 }
 
 html {
   /* No zoom on a quick double tap (e.g. pause then play); pinch zoom still works. */
   touch-action: manipulation;
+  /*
+   * The page itself never scrolls (its screens fill the window, and scroll inside where they
+   * need to): pulled past its edge it does not bounce, and on Android does not reload.
+   */
+  overscroll-behavior: none;
+  /* No grey flash over what a finger taps: the controls show a press themselves. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--bg);
+  /*
+   * What shows around the app: an installed app on an iPhone paints the strip under the clock in
+   * the body's colour. The header's and the transport's, which are what meets the screen's edges;
+   * the app itself stands on its own background (#app below).
+   */
+  background: var(--panel);
   color: var(--text);
   font: 14px/1.4 system-ui, -apple-system, sans-serif;
   /*
