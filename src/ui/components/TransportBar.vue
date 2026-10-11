@@ -150,10 +150,12 @@ function togglePlay(): void {
 }
 
 /* Wide screens: everything in one row. */
-@media (min-width: 1200px) {
+@media (min-width: 1150px) {
   .transport {
     grid-template-columns: 1fr auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
+    /* (A tablet on its side is just this wide: closer together, and the place in the piece keeps its length.) */
+    column-gap: 16px;
   }
 }
 
