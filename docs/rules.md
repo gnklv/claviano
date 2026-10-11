@@ -55,7 +55,7 @@ copy of something written a month before.
 ## The look
 
 The character is a pianist's notebook: paper and ink, titles in a serif, one accent. The full rules
-are in [design.md](design.md) (written with the design system); these hold from the start:
+are in [design.md](design.md); these are the ones most easily broken:
 
 - **Tokens, not values.** A component has no colour, radius, size of type, spacing or width of
   screen written by hand: each comes from a token. A new value means a new token, with a reason.

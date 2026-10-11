@@ -121,7 +121,8 @@ Before the next steps, in this order (agreed after a review of the code and of t
     screen's header, a sheet, one pop-up (the tempo's panel and a piece's menu were two) and a menu
     in it; three durations and one curve for all that moves. The design page shows them all, to be
     looked at in both themes, as the showcase does for notation;
-  - the rules written down (`docs/design.md`);
+  - [x] the rules written down (`docs/design.md`): the character, colour, type, space, icons,
+    motion, which component when, and the three kinds of screen;
   - the screens repainted, one at a time.
   With it: one pop-up in place of two, no colour written by hand in a component.
 

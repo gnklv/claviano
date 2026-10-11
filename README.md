@@ -159,3 +159,4 @@ timer jitter; the view only reads `playback.position` each frame.
 - [docs/concept.md](docs/concept.md): what the app is for, its screens, where its tools go.
 - [docs/roadmap.md](docs/roadmap.md): what is done, what is next and in what order, what was left out.
 - [docs/rules.md](docs/rules.md): how the code and the interface are kept in order.
+- [docs/design.md](docs/design.md): how the interface looks and why; what it is built of.
