@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOUCH_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import ActionTile from '../components/ActionTile.vue';
 import AppNotice from '../components/AppNotice.vue';
 import SectionHeading from '../components/SectionHeading.vue';
@@ -24,6 +25,14 @@ const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo:
 
 const { playback, openScore, library, demos } = useDeps();
 const { t, locale } = useI18n();
+
+/**
+ * The kinds of file the chooser offers. Not on a phone or a tablet: an iPhone knows files by its
+ * own list of kinds, in which ".mxl" is not, and shows such a file greyed out, not to be chosen.
+ * There every file is offered, and one that is not music is said to be so when it is opened.
+ */
+const FILE_KINDS = '.mid,.midi,.musicxml,.xml,.mxl';
+const touch = useMediaQuery(TOUCH_SCREEN);
 const shelf = useLibrary(library);
 /** (The day is told as of when the library was come to: it is not a clock.) */
 const now = Date.now();
@@ -65,7 +74,7 @@ function onFileChosen(event: Event): void {
       <div class="actions">
         <!-- (The screen is for opening a piece: that is its main action. A file can be dropped onto the window as well, which the window says when one is held over it.) -->
         <ActionTile tag="label" main icon="plus" :title="t('openMidi')" :note="t('openFormats')">
-          <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
+          <input type="file" :accept="touch ? undefined : FILE_KINDS" hidden @change="onFileChosen" />
         </ActionTile>
         <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
       </div>

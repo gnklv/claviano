@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { button, drop, onPiece, playback, restart, root, settled, shelf, text, useApp, xml } from './harness';
+import { button, drop, onPiece, playback, restart, root, screen, settled, shelf, text, useApp, xml } from './harness';
 
 /* The library: what it shows, what it keeps, and what can be done with a piece on its shelf. */
 
@@ -14,6 +14,15 @@ it('starts in the library: a file to open, free play, and the demos', () => {
   expect(root.querySelector('input[type=file]')).not.toBeNull();
   // (That a file can be dropped is said by the window itself, when one is held over it.)
   expect(root.querySelector('[data-drop-hint]')?.getAttribute('data-drop-hint')).toBeTruthy();
+});
+
+it('offers the chooser its kinds of file, but every file on a touch screen: an iPhone does not know ".mxl" and would not let it be chosen', async () => {
+  const chooser = () => root.querySelector<HTMLInputElement>('input[type=file]')!;
+  expect(chooser().accept).toContain('.mxl');
+  screen.touch = true;
+  screen.listeners.forEach((listener) => listener());
+  await settled();
+  expect(chooser().hasAttribute('accept')).toBe(false);
 });
 
 it('says in the library what did not open, and stays there', async () => {

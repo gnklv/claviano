@@ -48,7 +48,7 @@ export let tilesShown: readonly PlayedTile[];
 export let start: () => void;
 export let root: HTMLElement;
 /** The window's width, as the app asks about it: a phone or not. */
-export const screen = { phone: false, short: false, listeners: new Set<() => void>() };
+export const screen = { phone: false, short: false, touch: false, listeners: new Set<() => void>() };
 export const turnIntoPhone = async () => {
   screen.phone = true;
   screen.listeners.forEach((listener) => listener());
@@ -96,11 +96,14 @@ export function useApp(): void {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   screen.phone = false;
   screen.short = false;
+  screen.touch = false;
   screen.listeners.clear();
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
     const media = {
       get matches() {
-        return (screen.phone && query.includes('max-width: 599px')) || (screen.short && query.includes('max-height: 500px'));
+        return (
+          (screen.phone && query.includes('max-width: 599px')) || (screen.short && query.includes('max-height: 500px')) || (screen.touch && query.includes('pointer: coarse'))
+        );
       },
       addEventListener: (_: string, listener: () => void) => screen.listeners.add(listener),
       removeEventListener: (_: string, listener: () => void) => screen.listeners.delete(listener),

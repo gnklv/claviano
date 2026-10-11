@@ -4,6 +4,8 @@ import { onScopeDispose, ref, type Ref } from 'vue';
 export const NARROW_SCREEN = '(max-width: 599px)';
 /** A phone on its side (or a window as low). */
 export const SHORT_SCREEN = '(max-height: 500px)';
+/** A screen that is touched, not pointed at: a phone, a tablet. */
+export const TOUCH_SCREEN = '(pointer: coarse)';
 /** Either: no room for all the tools at once. */
 export const SMALL_SCREEN = `${NARROW_SCREEN}, ${SHORT_SCREEN}`;
 
