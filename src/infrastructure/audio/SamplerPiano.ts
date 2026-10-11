@@ -1,6 +1,7 @@
 import type { AudioOutput, NoteToPlay, SoundPart } from '../../application/ports/AudioOutput';
 import type { Instrument, InstrumentStatus, NoteToPrepare } from '../../application/ports/Instrument';
 import {
+  CLICK_GAIN,
   describeSet,
   layerFor,
   nearestRecorded,
@@ -60,10 +61,12 @@ const SPARE_LENGTH = 2;
  * Until the base layer has all of the piece's notes, and if the files never arrive (offline, a
  * blocked request), a fallback output plays instead: the whole piece, not note by note, so the
  * two sounds never mix. A note whose own layer is not decoded yet is played from the base layer.
- * The metronome's clicks always come from the fallback.
+ * The metronome clicks from its own samples as soon as they are in, and from the fallback before.
  */
 export class SamplerPiano implements AudioOutput, Instrument {
   private readonly output: GainNode;
+  /** The metronome's clicks go their own way: past the piano's limiter, at their own volume. */
+  private readonly clicks: GainNode;
   private readonly voices = new Set<Voice>();
   private readonly listeners = new Set<() => void>();
   private set: SampleSet | null = null;
@@ -93,12 +96,15 @@ export class SamplerPiano implements AudioOutput, Instrument {
     limiter.ratio.value = 12;
     master.connect(limiter).connect(ctx.destination);
     this.output = master;
+    this.clicks = ctx.createGain();
+    this.clicks.connect(ctx.destination);
   }
 
-  /** The samples and the fallback (which plays until they are in, and always the clicks) are one instrument: as loud as each other. */
+  /** The samples and the fallback (which plays until they are in) are one instrument, and one metronome: as loud as each other. */
   setVolume(part: SoundPart, volume: number): void {
     this.fallback.setVolume(part, volume);
     if (part === 'instrument') this.output.gain.setTargetAtTime(MASTER_GAIN * volumeGain(volume), this.ctx.currentTime, 0.02);
+    else this.clicks.gain.setTargetAtTime(volumeGain(volume), this.ctx.currentTime, 0.02);
   }
 
   /** 'ready' once the samples play instead of the fallback. */
@@ -350,14 +356,14 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   /** Plays a small sound through at a set loudness. */
-  private playOnce(sample: Sample, at: number, level: number, rate = 1): void {
+  private playOnce(sample: Sample, at: number, level: number, rate = 1, out: AudioNode = this.output): void {
     const { ctx } = this;
     const source = ctx.createBufferSource();
     source.buffer = sample.buffer;
     source.playbackRate.value = rate;
     const gain = ctx.createGain();
     gain.gain.value = level;
-    source.connect(gain).connect(this.output);
+    source.connect(gain).connect(out);
     const voice: Voice = { source, gain };
     this.voices.add(voice);
     source.start(at, sample.onset);
@@ -368,7 +374,14 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   playClick(at: number, accent: boolean): void {
-    this.fallback.playClick(at, accent);
+    // The recorded metronome's click, higher on the first beat of a bar; the fallback's until the clicks are in.
+    const file = this.on ? this.set?.metronome?.[accent ? 'accent' : 'beat'] : undefined;
+    const click = file ? this.decoded.get(file) : undefined;
+    if (!click) {
+      this.fallback.playClick(at, accent);
+      return;
+    }
+    this.playOnce(click, Math.max(at, this.ctx.currentTime), accent ? CLICK_GAIN.accent : CLICK_GAIN.beat, 1, this.clicks);
   }
 
   stopAll(): void {

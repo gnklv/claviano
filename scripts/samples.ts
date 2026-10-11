@@ -131,3 +131,4 @@ const manifest = {
 };
 writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`public/piano: ${Math.round(total / 1024)} KB`);
+console.log('The metronome\'s ticks are not part of this: run npm run metronome now.');

@@ -67,14 +67,26 @@ const set = describeSet({
       loud: recorded.filter((pitch) => pitch <= 87).map((pitch) => ({ pitch, file: `ring-loud/${pitch}.mp3` })),
     },
     pedal: { down: ['pedal/down1.mp3', 'pedal/down2.mp3'], up: ['pedal/up1.mp3', 'pedal/up2.mp3'] },
+    metronome: { version: 'm7', accent: 'metronome/accent.wav', beat: 'metronome/beat.wav' },
   },
 });
 
 describe('describeSet', () => {
   it('lists every file, each with the version in its address', () => {
-    expect(set.files).toHaveLength(3 * 30 + 88 + 2 * 23 + 4);
+    expect(set.files).toHaveLength(3 * 30 + 88 + 2 * 23 + 4 + 2);
     expect(set.layers[set.base].get(60)).toBe('mid/60.mp3?v=1');
     expect(set.recorded.map((v) => v.toFixed(2))).toEqual(['0.31', '0.48', '0.79']);
+  });
+
+  it('gives the clicks of the metronome their own version: cut anew, they are fetched anew, and the piano is not', () => {
+    expect(set.metronome).toEqual({ accent: 'metronome/accent.wav?v=m7', beat: 'metronome/beat.wav?v=m7' });
+    expect(set.files).toContain('metronome/beat.wav?v=m7');
+  });
+
+  it('has no metronome in a set that brings none', () => {
+    const plain = describeSet({ name: '', author: '', license: '', version: '1', base: 'a', layers: [], extras: { release: [], resonance: { splitVelocity: 45, soft: [], loud: [] }, pedal: { down: [], up: [] } } });
+    expect(plain.metronome).toBeNull();
+    expect(samplesWanted(plain, []).files.size).toBe(0);
   });
 });
 
@@ -92,6 +104,9 @@ describe('samplesWanted', () => {
       file('mid/60'),
       file('mid/72'),
       file('loud/72'),
+      // The metronome's clicks first of the small sounds: heard from the first bar.
+      'metronome/accent.wav?v=m7',
+      'metronome/beat.wav?v=m7',
       file('pedal/down1'),
       file('pedal/down2'),
       file('pedal/up1'),
@@ -107,6 +122,7 @@ describe('samplesWanted', () => {
     // The small sounds are kept in mono, the notes in stereo.
     expect(mono.has(file('release/60'))).toBe(true);
     expect(mono.has(file('pedal/down1'))).toBe(true);
+    expect(mono.has('metronome/beat.wav?v=m7')).toBe(true);
     expect(mono.has(file('mid/60'))).toBe(false);
   });
 

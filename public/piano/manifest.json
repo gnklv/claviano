@@ -1176,6 +1176,11 @@
         "pedal/up1.mp3",
         "pedal/up2.mp3"
       ]
+    },
+    "metronome": {
+      "version": "c571088e",
+      "accent": "metronome/accent.wav",
+      "beat": "metronome/beat.wav"
     }
   }
 }

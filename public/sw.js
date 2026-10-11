@@ -14,7 +14,7 @@ const PIANO_CACHE = 'claviano-piano-v1';
 
 const scope = new URL(self.registration.scope);
 const isOurs = (url) => url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
-const isSample = (url) => url.pathname.startsWith(`${scope.pathname}piano/`) && url.pathname.endsWith('.mp3');
+const isSample = (url) => url.pathname.startsWith(`${scope.pathname}piano/`) && /\.(mp3|wav)$/.test(url.pathname);
 const isManifest = (url) => url.pathname === `${scope.pathname}piano/manifest.json`;
 const cacheFor = (url) => caches.open(isSample(url) ? PIANO_CACHE : APP_CACHE);
 /** Only whole, successful answers are worth keeping. */
@@ -104,11 +104,15 @@ async function dropOldBuild(page) {
   }
 }
 
-/** A rebuilt sample set has a new version: the old set's files are of no more use. */
+/**
+ * A rebuilt sample set has a new version: the old set's files are of no more use. (The
+ * metronome's ticks have a version of their own in the set.)
+ */
 async function dropOldSamples(manifest) {
-  const { version } = await manifest.json();
+  const { version, extras } = await manifest.json();
+  const current = [version, extras?.metronome?.version];
   const cache = await caches.open(PIANO_CACHE);
   for (const request of await cache.keys()) {
-    if (new URL(request.url).searchParams.get('v') !== version) await cache.delete(request);
+    if (!current.includes(new URL(request.url).searchParams.get('v'))) await cache.delete(request);
   }
 }

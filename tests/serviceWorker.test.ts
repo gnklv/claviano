@@ -139,6 +139,16 @@ describe('the service worker', () => {
       expect(keptIn('piano')).toEqual([]);
     });
 
+    it('of the metronome are kept by its own version, and let go when that changes', async () => {
+      for (const file of ['piano/loud/60.mp3?v=new', 'piano/metronome/beat.wav?v=ticks', 'piano/metronome/beat.wav?v=oldticks']) {
+        network.has(file, 'sound');
+        await ask(get(file));
+      }
+      network.has('piano/manifest.json', JSON.stringify({ version: 'new', extras: { metronome: { version: 'ticks' } } }));
+      await ask(get('piano/manifest.json'));
+      expect(keptIn('piano')).toEqual(['piano/loud/60.mp3?v=new', 'piano/metronome/beat.wav?v=ticks']);
+    });
+
     it('of an old set are let go when the manifest names a new version', async () => {
       for (const file of ['piano/loud/60.mp3?v=old', 'piano/soft/60.mp3?v=old', 'piano/loud/60.mp3?v=new']) {
         network.has(file, 'sound');

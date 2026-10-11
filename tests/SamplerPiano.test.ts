@@ -98,9 +98,12 @@ const manifest: PianoManifest = {
       loud: PITCHES.map((pitch) => ({ pitch, file: `ring-loud/${pitch}.mp3` })),
     },
     pedal: { down: ['pedal/down.mp3'], up: ['pedal/up.mp3'] },
+    metronome: { version: 'tick', accent: 'metronome/accent.wav', beat: 'metronome/beat.wav' },
   },
 };
-const ALL_FILES = 6 + 3 + 6 + 2;
+const ALL_FILES = 6 + 3 + 6 + 2 + 2;
+/** What a piece of one note needs decoded: its key from the base layer, the key's knock and ring, the pedal down and up, and the metronome's two clicks. */
+const DECODED_FOR_ONE_NOTE = 7;
 
 /** The network: what was asked for, in order, and which addresses fail (and how many times). */
 class FakeNetwork {
@@ -220,8 +223,8 @@ describe('SamplerPiano', () => {
       await settled();
       await ready();
       expect(new Set(network.files).size).toBe(ALL_FILES);
-      // Middle C from the base layer, its knock and ring, and the pedal going down and up.
-      await vi.waitFor(() => expect(ctx.decodes).toBe(5));
+      // Middle C from the base layer, its knock and ring, the pedal going down and up, and the metronome's clicks.
+      await vi.waitFor(() => expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE));
     });
 
     it('never has more than a few files on their way at once', async () => {
@@ -253,7 +256,7 @@ describe('SamplerPiano', () => {
     it('keeps the small sounds short and in mono', async () => {
       piano.prepare([toPrepare(60)]);
       piano.start('/piano/');
-      await vi.waitFor(() => expect(ctx.decodes).toBe(5));
+      await vi.waitFor(() => expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE));
       await ready();
       piano.playPedal(0, true);
       const noise = ctx.sources[0].buffer!;
@@ -297,27 +300,27 @@ describe('SamplerPiano', () => {
       piano.prepare([toPrepare(60, 0.8, 2.5)]);
       piano.start('/piano/');
       await settled();
-      await vi.waitFor(() => expect(ctx.decodes).toBe(5));
+      await vi.waitFor(() => expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE));
       // Faster (the notes get shorter), then as it was.
       for (const seconds of [2, 2.5]) {
         piano.prepare([toPrepare(60, 0.8, seconds)]);
         await new Promise((resolve) => setTimeout(resolve, 5));
         expect(piano.status).toBe('ready');
       }
-      expect(ctx.decodes).toBe(5);
+      expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE);
     });
 
     it('cuts a long sample down for much shorter notes, without decoding it again', async () => {
       piano.prepare([toPrepare(60, 0.8, 30)]);
       piano.start('/piano/');
       await settled();
-      await vi.waitFor(() => expect(ctx.decodes).toBe(5));
+      await vi.waitFor(() => expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE));
 
       piano.prepare([toPrepare(60, 0.8, 0.5)]);
       expect(piano.status).toBe('ready');
       piano.playNote(toPlay(60));
       expect(ctx.sources[0].buffer!.seconds).toBeLessThan(SAMPLE_SECONDS);
-      expect(ctx.decodes).toBe(5);
+      expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE);
     });
   });
 
@@ -407,18 +410,53 @@ describe('SamplerPiano', () => {
       expect(setTarget.mock.calls[0][0]).toBeCloseTo(0.5 * 0.25);
     });
 
-    it('leaves the metronome to the fallback, which makes the clicks', () => {
+    it('turns the metronome up and down in the fallback too, which clicks until the recorded clicks are in', () => {
       piano.setVolume('metronome', 0.4);
       expect(fallback.volumes).toEqual({ metronome: 0.4 });
     });
   });
 
-  it('always leaves the metronome’s clicks to the fallback', async () => {
-    piano.prepare([toPrepare(60)]);
-    piano.start('/piano/');
-    await ready();
-    piano.playClick(1, true);
-    expect(fallback.clicks).toEqual([{ at: 1, accent: true }]);
+  describe('the metronome', () => {
+    const clicksIn = async () => {
+      piano.prepare([toPrepare(60)]);
+      piano.start('/piano/');
+      await vi.waitFor(() => expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE));
+    };
+
+    it('clicks from the fallback until its own clicks are in', () => {
+      piano.playClick(1, true);
+      expect(fallback.clicks).toEqual([{ at: 1, accent: true }]);
+      expect(ctx.sources).toEqual([]);
+    });
+
+    it('clicks from the recording once its clicks are in, asked for by their own version', async () => {
+      await clicksIn();
+      expect(network.requests).toContain('/piano/metronome/beat.wav?v=tick');
+      expect(network.requests).toContain('/piano/metronome/accent.wav?v=tick');
+
+      piano.playClick(1, false);
+      expect(fallback.clicks).toEqual([]);
+      expect(ctx.sources).toHaveLength(1);
+      expect(ctx.sources[0].startedAt).toBe(1);
+      // As recorded: not sped up or slowed down.
+      expect(ctx.sources[0].playbackRate.value).toBe(1);
+    });
+
+    it('has one click for the first beat of a bar and another for the rest', async () => {
+      await clicksIn();
+      for (const accent of [true, false, false, false, true, false]) piano.playClick(0, accent);
+      const [first, other] = ctx.sources.map((source) => source.buffer);
+      expect(first).not.toBe(other);
+      expect(ctx.sources.map((source) => source.buffer)).toEqual([first, other, other, other, first, other]);
+    });
+
+    it('clicks from the fallback when the piano is switched off', async () => {
+      await clicksIn();
+      piano.setEnabled(false);
+      piano.playClick(1, false);
+      expect(fallback.clicks).toHaveLength(1);
+      expect(ctx.sources).toEqual([]);
+    });
   });
 
   it('stops the fallback too when told to be silent', async () => {

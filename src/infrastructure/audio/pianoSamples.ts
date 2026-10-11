@@ -38,6 +38,11 @@ export interface PianoExtras {
   };
   /** The sustain pedal's noise going down and coming up: a few takes of each, picked at random. */
   readonly pedal: { readonly down: readonly string[]; readonly up: readonly string[] };
+  /**
+   * The metronome's clicks, for the first beat of a bar and for the others (see
+   * scripts/metronome.ts), with a version of their own for caching. A set may have none.
+   */
+  readonly metronome?: { readonly version: string; readonly accent: string; readonly beat: string };
 }
 
 /** One loudness the piano was recorded at. */
@@ -89,9 +94,14 @@ export interface SampleSet {
   readonly resonance: { readonly split: number; readonly pitches: readonly number[]; readonly soft: ReadonlyMap<number, string>; readonly loud: ReadonlyMap<number, string> };
   /** The pedal's noise going down and coming up: a few takes of each. */
   readonly pedal: { readonly down: readonly string[]; readonly up: readonly string[] };
+  /** The metronome's clicks, for the first beat of a bar and for the others; null in a set that has none. */
+  readonly metronome: { readonly accent: string; readonly beat: string } | null;
   /** Every file of the set. */
   readonly files: readonly string[];
 }
+
+/** The files of a set's metronome, if it has one. */
+const clicksOf = (metronome: SampleSet['metronome']): string[] => (metronome ? [metronome.accent, metronome.beat] : []);
 
 /** Reads a manifest into the set; the files' addresses carry the set's version, for caching. */
 export function describeSet(manifest: PianoManifest): SampleSet {
@@ -99,7 +109,7 @@ export function describeSet(manifest: PianoManifest): SampleSet {
   const byPitch = (notes: readonly PianoFile[]) => new Map(notes.map((note) => [note.pitch, versioned(note.file)]));
   const base = Math.max(0, manifest.layers.findIndex((layer) => layer.id === manifest.base));
   const layers = manifest.layers.map((layer) => byPitch(layer.notes));
-  const { release, resonance, pedal } = manifest.extras;
+  const { release, resonance, pedal, metronome } = manifest.extras;
   const set = {
     layers,
     recorded: manifest.layers.map((layer) => (layer.velocity[0] + layer.velocity[1]) / 2 / 127),
@@ -108,10 +118,11 @@ export function describeSet(manifest: PianoManifest): SampleSet {
     release: byPitch(release),
     resonance: { split: resonance.splitVelocity / 127, pitches: resonance.soft.map((note) => note.pitch), soft: byPitch(resonance.soft), loud: byPitch(resonance.loud) },
     pedal: { down: pedal.down.map(versioned), up: pedal.up.map(versioned) },
+    metronome: metronome ? { accent: `${metronome.accent}?v=${metronome.version}`, beat: `${metronome.beat}?v=${metronome.version}` } : null,
   };
   return {
     ...set,
-    files: [...layers.flatMap((layer) => [...layer.values()]), ...set.pedal.down, ...set.pedal.up, ...set.resonance.soft.values(), ...set.resonance.loud.values(), ...set.release.values()],
+    files: [...layers.flatMap((layer) => [...layer.values()]), ...clicksOf(set.metronome), ...set.pedal.down, ...set.pedal.up, ...set.resonance.soft.values(), ...set.resonance.loud.values(), ...set.release.values()],
   };
 }
 
@@ -143,8 +154,8 @@ export interface SamplesWanted {
 
 /**
  * The samples to have decoded for these notes, in the order to get them: the base layer of the
- * notes' pitches, each note's own layer, then the pedal's noise, the strings' rings and the keys'
- * knocks. Decoded sound takes a lot of memory (a 12-second stereo sample is 4.6 MB): only what the
+ * notes' pitches, each note's own layer, then the metronome's clicks, the pedal's noise, the
+ * strings' rings and the keys' knocks. Decoded sound takes a lot of memory (a 12-second stereo sample is 4.6 MB): only what the
  * notes need is kept, and of each sample no more than the longest note played from it sounds.
  */
 export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): SamplesWanted {
@@ -182,8 +193,10 @@ export function samplesWanted(set: SampleSet, notes: readonly NoteToPrepare[]): 
     }
   }
   const small = notes.length > 0 ? [...set.pedal.down, ...set.pedal.up, ...rings, ...knocks] : [];
-  for (const file of small) files.set(file, SMALL_SOUND_SECONDS);
-  return { files, required, mono: new Set(small) };
+  // The metronome's clicks before the other small sounds: they are tiny, and heard from the first bar.
+  const smallSounds = notes.length > 0 ? [...clicksOf(set.metronome), ...small] : [];
+  for (const file of smallSounds) files.set(file, SMALL_SOUND_SECONDS);
+  return { files, required, mono: new Set(smallSounds) };
 }
 
 /** The layer to play a key struck at `velocity` (0–1) from: the one recorded nearest to it. */
@@ -273,3 +286,6 @@ export function resonanceGain(velocity: number, seconds: number): number {
 
 /** The gain of the pedal's noise. */
 export const PEDAL_GAIN = fromDb(PEDAL_DB);
+
+/** How loud the metronome's clicks are played: on the first beat of a bar, and on the others (which are lower as well). */
+export const CLICK_GAIN = { accent: 0.9, beat: 0.65 };

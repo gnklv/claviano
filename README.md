@@ -37,6 +37,13 @@ by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licens
 They were changed for the web: three of the sixteen loudness layers and the sounds of keys and the
 pedal coming up, tails shortened to 12 seconds, converted to MP3. `scripts/samples.ts` (`npm run samples`) rebuilds them from the original.
 
+**Metronome.** Its clicks, in `public/piano/metronome`, are cut from
+[a recording of a metronome](https://freesound.org/people/djfroyd/sounds/262867/) by djfroyd, in
+the public domain ([CC0](https://creativecommons.org/publicdomain/zero/1.0/)): a higher click for
+the first beat of a bar, a lower one for the others. `scripts/metronome.ts`
+(`npm run metronome`) cuts them from the recording. (With the synth chosen as the sound, the
+metronome is a synth's blip.)
+
 ## Controls
 
 | | |
@@ -184,6 +191,8 @@ timer jitter; the view only reads `playback.position` each frame.
       (through both hands as one wave). Each is drawn as printed and played as its notes
 - [x] MIDI note values: up to the next note played (either hand), or the end of the beat, and a
       note held longer keeps its length; so a short-played quarter is still written as a quarter
+- [x] Volume for the notes and for the metronome, each on its own; the metronome clicks from a
+      recording of one
 - [x] A repeated note is seen to be repeated: its key goes out for a moment before each new
       strike, as a finger leaves it (the falling tiles keep their written length and touch)
 - [x] Read as printed (MusicXML): notes and rests the engraver hid, notes without heads (a voice
