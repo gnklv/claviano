@@ -291,20 +291,37 @@ export class SamplerPiano implements AudioOutput, Instrument {
   }
 
   playNote(note: NoteToPlay): void {
-    const { pitch, velocity, at, duration, soft, held } = note;
+    const start = Math.max(note.at, this.ctx.currentTime);
+    const end = this.sound(note.pitch, note.velocity, note.soft, start);
+    if (end) end(start + Math.max(note.duration, 0.05), note.held);
+    else this.fallback.playNote(note);
+  }
+
+  strike(pitch: number, velocity: number): () => void {
+    const start = this.ctx.currentTime;
+    const end = this.sound(pitch, velocity, false, start);
+    if (!end) return this.fallback.strike(pitch, velocity);
+    // The key was down from the strike to now: the note ends as the key comes up.
+    return () => {
+      const now = Math.max(this.ctx.currentTime, start + 0.05);
+      end(now, now - start);
+    };
+  }
+
+  /**
+   * Starts a note sounding at `start`. Returns how to end it: called once, with when the sound is
+   * to stop and how long the key itself was down (see NoteToPlay.held). Null when the piano's own
+   * sound is not there for this note: the simpler sound is to play it.
+   */
+  private sound(pitch: number, velocity: number, soft: boolean, start: number): ((end: number, held: number) => void) | null {
     const { ctx, set } = this;
     const recorded = set ? nearestRecorded(set.pitches, pitch) : pitch;
     const sampleOf = (layer: number) => this.decoded.get(set?.layers[layer]?.get(recorded) ?? '');
     const base = set ? sampleOf(set.base) : undefined;
-    if (!set || !base || !this.on || this.currentStatus !== 'ready') {
-      this.fallback.playNote(note);
-      return;
-    }
+    if (!set || !base || !this.on || this.currentStatus !== 'ready') return null;
     // The layer recorded nearest to this strike gives the tone: mellow when soft, bright when loud.
     const own = sampleOf(layerFor(set.recorded, velocity));
     const sample = own && own.level > 0 ? own : base;
-    const start = Math.max(at, ctx.currentTime);
-    const end = start + Math.max(duration, 0.05);
 
     const source = ctx.createBufferSource();
     source.buffer = sample.buffer;
@@ -315,7 +332,6 @@ export class SamplerPiano implements AudioOutput, Instrument {
     // As loud as the base layer would be at this velocity, whichever layer plays: only the tone differs.
     const level = velocityGain(velocity, set.recorded[set.base] ?? 0) * (base.level / sample.level);
     gain.gain.setValueAtTime(level, start);
-    gain.gain.setTargetAtTime(0, end, RELEASE);
     gain.connect(this.output);
 
     if (soft) {
@@ -330,21 +346,24 @@ export class SamplerPiano implements AudioOutput, Instrument {
     const voice: Voice = { source, gain };
     this.voices.add(voice);
     source.start(start, sample.onset);
-    source.stop(end + RELEASE * 6);
     source.onended = () => {
       gain.disconnect();
       this.voices.delete(voice);
     };
 
-    // The key comes up (unless it was up already): its knock, softer the longer it was held.
-    const knock = this.decoded.get(set.release.get(pitch) ?? '');
-    if (knock && held > 0) this.playOnce(knock, start + Math.min(held, end - start), releaseGain(velocity, held));
-    // The damper lands and the sound stops: what is left of the strings' ring.
-    const rings = velocity < set.resonance.split ? set.resonance.soft : set.resonance.loud;
-    const from = nearestRecorded(set.resonance.pitches, pitch);
-    const ring = this.decoded.get(rings.get(from) ?? '');
-    // The top strings have no dampers: nothing to land.
-    if (ring && Math.abs(pitch - from) <= 1) this.playOnce(ring, end, resonanceGain(velocity, end - start), playbackRate(from, pitch));
+    return (end, held) => {
+      gain.gain.setTargetAtTime(0, end, RELEASE);
+      source.stop(end + RELEASE * 6);
+      // The key comes up (unless it was up already): its knock, softer the longer it was held.
+      const knock = this.decoded.get(set.release.get(pitch) ?? '');
+      if (knock && held > 0) this.playOnce(knock, start + Math.min(held, end - start), releaseGain(velocity, held));
+      // The damper lands and the sound stops: what is left of the strings' ring.
+      const rings = velocity < set.resonance.split ? set.resonance.soft : set.resonance.loud;
+      const from = nearestRecorded(set.resonance.pitches, pitch);
+      const ring = this.decoded.get(rings.get(from) ?? '');
+      // The top strings have no dampers: nothing to land.
+      if (ring && Math.abs(pitch - from) <= 1) this.playOnce(ring, end, resonanceGain(velocity, end - start), playbackRate(from, pitch));
+    };
   }
 
   playPedal(at: number, down: boolean): void {

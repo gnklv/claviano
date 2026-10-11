@@ -50,6 +50,13 @@ export const en = {
 
   openMidi: 'Open file',
   myPieces: 'My pieces',
+  freePlay: 'Free play',
+  freePlayNote: 'Play something of your own',
+  freePlayHint: 'Play on the keys below.',
+  freePlayHintLetters: 'Or on the computer keyboard: the letters on the keys, Z and X to move an octave.',
+  octave: 'Octave',
+  octaveLower: 'An octave lower',
+  octaveHigher: 'An octave higher',
   shelfUnavailable: 'Pieces are not kept here: the browser gives no storage (as in a private window). They open as usual, and are gone when the page is closed.',
   demos: 'Demos',
   leftAtBar: 'bar {bar} of {bars}',

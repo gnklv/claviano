@@ -5,6 +5,7 @@ import type { Instrument } from '../src/application/ports/Instrument';
 import type { RollView } from '../src/application/ports/RollView';
 import type { StaffView } from '../src/application/ports/StaffView';
 import { BarLoop } from '../src/application/use-cases/BarLoop';
+import { FreePlay } from '../src/application/use-cases/FreePlay';
 import { Library } from '../src/application/use-cases/Library';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
@@ -29,6 +30,8 @@ let playback: Playback;
 let volume: Volume;
 let app: VueApp;
 let shelf: FakePieceShelf;
+/** What sounds: the piece's notes, and the keys struck by hand. */
+let audio: FakeAudio;
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
 let start: () => void;
 let root: HTMLElement;
@@ -78,7 +81,8 @@ beforeEach(() => {
   });
   shelf = new FakePieceShelf();
   start = () => {
-    playback = new Playback(new FakeAudio(), new FakeTicker());
+    audio = new FakeAudio();
+    playback = new Playback(audio, new FakeTicker());
     volume = new Volume(new FakeAudio());
     root = document.createElement('div');
     document.body.append(root);
@@ -98,6 +102,7 @@ beforeEach(() => {
       instrument,
       openScore,
       library,
+      freePlay: new FreePlay(audio, instrument, playback),
       createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
       createStaff: () => view<StaffView>({}),
       demos,
@@ -193,8 +198,8 @@ describe('the app', () => {
       await drop('second.musicxml', xml('Second'));
       button(/Back to the library/).click();
       await settled();
-      expect(cards()).toEqual(['Open file', 'Second', 'First', 'Ode to Joy', 'Showcase: everything the player can do']);
-      expect(root.querySelectorAll('.cards .note')[1]?.textContent).toBe('today');
+      expect(cards()).toEqual(['Second', 'First', 'Ode to Joy', 'Showcase: everything the player can do']);
+      expect(root.querySelectorAll('.cards .note')[0]?.textContent).toBe('today');
     });
 
     it('has the demos apart, under a heading of their own, after one’s own pieces', async () => {
@@ -206,9 +211,15 @@ describe('the app', () => {
         [...heading.nextElementSibling!.querySelectorAll('.name')].map((name) => name.textContent),
       ]);
       expect(sections).toEqual([
-        ['My pieces', ['Open file', 'First']],
+        ['My pieces', ['First']],
         ['Demos', ['Ode to Joy', 'Showcase: everything the player can do']],
       ]);
+      // Over both, apart from the pieces: what can be begun.
+      expect([...root.querySelectorAll('.actions .name')].map((name) => name.textContent)).toEqual(['Open file', 'Free play']);
+    });
+
+    it('has no heading for one’s own pieces while there are none', () => {
+      expect([...root.querySelectorAll('.shelf h2')].map((heading) => heading.textContent)).toEqual(['Demos']);
     });
 
     it('does not keep what did not open, and keeps one card for a file opened twice', async () => {
@@ -398,7 +409,7 @@ describe('the app', () => {
       expect(onPiece()).toBe(true);
       button(/Back to the library/).click();
       await settled();
-      expect(cards()).toEqual(['Open file', 'Ode to Joy', 'Showcase: everything the player can do']);
+      expect(cards()).toEqual(['Ode to Joy', 'Showcase: everything the player can do']);
       // And says so, once, in the library.
       expect(root.querySelector('[role=status]')?.textContent).toMatch(/not kept here/);
     });
@@ -592,6 +603,89 @@ describe('the app', () => {
       press('Space');
       await vi.advanceTimersByTimeAsync(5000);
       expect(immersed()).toBe(false);
+    });
+  });
+
+  describe('free play', () => {
+    const key = (pitch: number) => root.querySelector<HTMLElement>(`[data-pitch="${pitch}"]`)!;
+    const press = (code: string, type = 'keydown') => window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true }));
+    const held = () => audio.struck.filter((struck) => struck.released === null).map((struck) => struck.pitch);
+
+    beforeEach(async () => {
+      button(/Free play/).click();
+      await settled();
+    });
+
+    it('is a screen of its own, come to from the library and left by the arrow', async () => {
+      expect(location.hash).toBe('#/play');
+      expect(root.querySelector('.free-play')).not.toBeNull();
+      expect(root.querySelector('.title')?.textContent).toBe('Free play');
+      button(/Back to the library/).click();
+      await settled();
+      expect(root.querySelector('.free-play')).toBeNull();
+      expect(location.hash).toBe('#/');
+    });
+
+    it('has a keyboard from a Do, white keys and black, the Dos named', () => {
+      const pitches = [...root.querySelectorAll<HTMLElement>('[data-pitch]')].map((shown) => Number(shown.dataset.pitch)).sort((a, b) => a - b);
+      expect(pitches[0]).toBe(48);
+      expect(pitches).toHaveLength(25);
+      expect(root.querySelectorAll('.key.black')).toHaveLength(10);
+      expect(key(48).textContent).toContain('C3');
+      expect(key(60).textContent).toContain('C4');
+    });
+
+    it('sounds a key for as long as a letter of the computer’s keyboard is held, and lights it', async () => {
+      press('KeyA');
+      press('KeyW');
+      await settled();
+      expect(held()).toEqual([48, 49]);
+      expect(key(48).classList.contains('down')).toBe(true);
+      expect(key(49).classList.contains('down')).toBe(true);
+      // (A held key repeats itself: one strike all the same.)
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', repeat: true }));
+      expect(audio.struck).toHaveLength(2);
+
+      press('KeyA', 'keyup');
+      await settled();
+      expect(held()).toEqual([49]);
+      expect(key(48).classList.contains('down')).toBe(false);
+    });
+
+    it('moves the keyboard by octaves, from the buttons and by Z and X', async () => {
+      button(/^An octave higher$/).click();
+      await settled();
+      expect(key(60).textContent).toContain('A');
+      press('KeyZ');
+      press('KeyZ');
+      await settled();
+      expect(root.querySelector('[data-pitch="36"]')).not.toBeNull();
+      press('KeyA');
+      expect(held()).toEqual([36]);
+    });
+
+    it('lets every key go when the screen is left', async () => {
+      press('KeyA');
+      press('KeyD');
+      button(/Back to the library/).click();
+      await settled();
+      expect(held()).toEqual([]);
+      // And the letters play nothing elsewhere.
+      press('KeyG');
+      expect(audio.struck).toHaveLength(2);
+    });
+
+    it('stops the piece that was playing', async () => {
+      button(/Back to the library/).click();
+      await settled();
+      button(/Ode to Joy/).click();
+      await settled();
+      await playback.play();
+      location.hash = '#/play';
+      window.dispatchEvent(new Event('hashchange'));
+      await settled();
+      expect(root.querySelector('.free-play')).not.toBeNull();
+      expect(playback.playing).toBe(false);
     });
   });
 

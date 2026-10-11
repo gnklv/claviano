@@ -14,6 +14,13 @@ export class FakeAudio implements AudioOutput {
   playNote(note: NoteToPlay): void {
     this.played.push(note);
   }
+  /** Keys struck by hand, and when each came up (null while it is held). */
+  struck: { pitch: number; velocity: number; at: number; released: number | null }[] = [];
+  strike(pitch: number, velocity: number): () => void {
+    const key = { pitch, velocity, at: this.time, released: null as number | null };
+    this.struck.push(key);
+    return () => (key.released = this.time);
+  }
   pedalMoves: { at: number; down: boolean }[] = [];
   playPedal(at: number, down: boolean): void {
     this.pedalMoves.push({ at, down });

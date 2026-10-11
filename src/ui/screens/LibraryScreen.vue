@@ -10,12 +10,12 @@ import { useI18n } from '../i18n/useI18n';
 import { saveFile } from '../saveFile';
 
 /*
- * Where the app starts. One's own pieces first: a file to open, and the pieces opened before (the
- * latest first). The demos under them, apart and smaller: they show what the player can do, and
- * are nobody's pieces.
+ * Where the app starts. On top, what can be begun: opening a file, playing something of one's
+ * own. Under that one's pieces (the latest first), once there are any. The demos last, apart and
+ * smaller: they show what the player can do, and are nobody's pieces.
  */
 
-const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo] }>();
+const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo]; play: [] }>();
 
 const { playback, openScore, library, demos } = useDeps();
 const { t, locale } = useI18n();
@@ -58,27 +58,43 @@ function onFileChosen(event: Event): void {
     <main class="shelf">
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-      <h2 class="heading">{{ t('myPieces') }}</h2>
-      <div class="cards">
-        <label class="card open">
-          <span class="name">{{ t('openMidi') }}</span>
-          <span class="note">{{ t('openFormats') }}</span>
+      <!-- What can be begun here: two actions, apart from the pieces under them. -->
+      <div class="actions">
+        <label class="action">
+          <span class="sign" aria-hidden="true">＋</span>
+          <span class="words">
+            <span class="name">{{ t('openMidi') }}</span>
+            <span class="note">{{ t('openFormats') }}</span>
+          </span>
           <input type="file" accept=".mid,.midi,.musicxml,.xml,.mxl" hidden @change="onFileChosen" />
         </label>
-        <PieceCard
-          v-for="piece in shelf.pieces"
-          :key="piece.id"
-          :title="piece.title"
-          :note="noteOf(leftAt(piece.id), relativeDay(piece.openedAt, now, locale))"
-          @open="emit('piece', piece.id)"
-          @rename="library.rename(piece.id, $event)"
-          @save="saveOut(piece.id)"
-          @remove="library.remove(piece.id)"
-        />
+        <button class="action" @click="emit('play')">
+          <span class="sign" aria-hidden="true">♪</span>
+          <span class="words">
+            <span class="name">{{ t('freePlay') }}</span>
+            <span class="note">{{ t('freePlayNote') }}</span>
+          </span>
+        </button>
       </div>
       <p class="hint">{{ t('libraryHint') }}</p>
       <!-- A private window, or no room: said once, here, so that pieces gone after a reload are no surprise. -->
       <p v-if="!shelf.keeps" class="unkept" role="status">{{ t('shelfUnavailable') }}</p>
+
+      <template v-if="shelf.pieces.length > 0">
+        <h2 class="heading">{{ t('myPieces') }}</h2>
+        <div class="cards">
+          <PieceCard
+            v-for="piece in shelf.pieces"
+            :key="piece.id"
+            :title="piece.title"
+            :note="noteOf(leftAt(piece.id), relativeDay(piece.openedAt, now, locale))"
+            @open="emit('piece', piece.id)"
+            @rename="library.rename(piece.id, $event)"
+            @save="saveOut(piece.id)"
+            @remove="library.remove(piece.id)"
+          />
+        </div>
+      </template>
 
       <h2 class="heading">{{ t('demos') }}</h2>
       <div class="cards demos">
@@ -131,7 +147,7 @@ function onFileChosen(event: Event): void {
 }
 
 .heading {
-  margin-block: 0 12px;
+  margin-bottom: 12px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
@@ -145,9 +161,63 @@ function onFileChosen(event: Event): void {
   font-size: 13px;
 }
 
-/* (After one's own pieces and what is said under them: a section apart.) */
-.hint ~ .heading {
-  margin-top: 40px;
+/* Each section stands apart from what is over it. */
+.heading {
+  margin-top: 36px;
+}
+
+/* The actions: side by side, a row of two, each a sign and what it does. Not cards: nothing here is a piece. */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.action {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action:hover,
+.action:focus-within {
+  background: var(--drop-overlay);
+}
+
+.sign {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.words {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.action .name,
+.action .note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Under a finger there is nothing to drag a file with: the hint keeps its room, and says nothing. */
@@ -184,18 +254,6 @@ function onFileChosen(event: Event): void {
 .card:hover,
 .card:focus-within {
   background: var(--control-hover);
-}
-
-/* Opening a file is an action, not a piece: an outline rather than a filled card. */
-.card.open {
-  border-style: dashed;
-  border-color: var(--accent);
-  background: transparent;
-}
-
-.card.open:hover,
-.card.open:focus-within {
-  background: var(--drop-overlay);
 }
 
 .name {
@@ -241,6 +299,16 @@ function onFileChosen(event: Event): void {
 
   .card {
     min-height: 72px;
+  }
+
+  /* The actions: one under the other, their words in full. */
+  .actions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .action {
+    padding-block: 10px;
   }
 }
 </style>

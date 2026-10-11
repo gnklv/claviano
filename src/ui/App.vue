@@ -8,6 +8,7 @@ import { useDeps } from './deps';
 import { useI18n } from './i18n/useI18n';
 import { useLibrary } from './composables/useLibrary';
 import { createNavigation } from './navigation/useScreen';
+import FreePlayScreen from './screens/FreePlayScreen.vue';
 import LibraryScreen from './screens/LibraryScreen.vue';
 import PieceScreen from './screens/PieceScreen.vue';
 
@@ -22,7 +23,8 @@ const state = usePlaybackState(playback);
 const dragging = ref(false);
 
 const navigation = createNavigation(
-  (screen) => screen === 'library' || playback.score !== null,
+  // (A piece's screen needs a piece; the others need nothing.)
+  (screen) => screen !== 'piece' || playback.score !== null,
   () => library.current,
   // An address that names another piece than the open one (a reload, a bookmark, the browser's Forward): that piece is opened.
   (piece) => void library.open(piece),
@@ -38,7 +40,7 @@ watch([() => state.value.score, () => shelf.value.current], ([score, current], [
 });
 
 watch(screen, (shown) => {
-  if (shown === 'library') playback.pause();
+  if (shown !== 'piece') playback.pause();
 });
 
 async function openFile(file: File): Promise<void> {
@@ -106,7 +108,8 @@ onUnmounted(() => {
     @drop.prevent="onDrop"
   >
     <PieceScreen v-if="screen === 'piece'" @back="navigation.go('library')" />
-    <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" />
+    <FreePlayScreen v-else-if="screen === 'play'" @back="navigation.go('library')" />
+    <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" @play="navigation.go('play')" />
   </div>
 </template>
 

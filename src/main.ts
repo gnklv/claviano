@@ -1,6 +1,7 @@
 // Composition root: the only place that knows about concrete implementations.
 import { createApp } from 'vue';
 import { BarLoop } from './application/use-cases/BarLoop';
+import { FreePlay } from './application/use-cases/FreePlay';
 import { Library } from './application/use-cases/Library';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
@@ -65,6 +66,7 @@ createApp(App)
     instrument: piano,
     openScore,
     library,
+    freePlay: new FreePlay(piano, piano, playback),
     createRoll: (canvas) => new CanvasPianoRoll(canvas),
     createStaff: (container) => new SvgStaff(container),
     demos,

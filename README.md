@@ -51,6 +51,8 @@ metronome is a synth's blip.)
 | Space | play / pause |
 | ← → | previous / next bar |
 | Home | back to the start (of the loop, when one is on) |
+| A S D F… and W E T Y… | in free play: the white and the black keys, from the lowest Do shown |
+| Z X | in free play: the keyboard an octave lower / higher |
 | − + 0 | tempo: a step (5%) slower / faster / back to the piece's own |
 | Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45). The button opens a panel: − and + by a step, a slider, and 50–100% a touch away |
 | Right / Left | mute a hand (it is still shown, dimmed) |
@@ -227,8 +229,9 @@ piece, free play). Each step stands on the one before, so nothing is laid out tw
        iPhone's tags, the system bar in the header's colour; in the settings, a button to install
        where the browser lets the page ask, and a word on how on an iPhone. An installed app's
        library is not wiped by iOS Safari
-6. [ ] Free play from the keys on the screen: what is played is written down as it is played,
-       saved as a piece, saved out as MIDI
+6. [ ] Free play from the keys on the screen. Done: the screen, with a keyboard that sounds
+       under fingers, the mouse and the computer's keys. To do: what is played is written down
+       as it is played, saved as a piece, saved out as MIDI
 7. [ ] Fingering hints: where the notes give no fingering, a comfortable one worked out from the
        hand (how far each pair of fingers reaches, the thumb passing under, the thumb on black
        keys, the weak fingers), shown sparingly, as good editions do: where the hand moves or a

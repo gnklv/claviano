@@ -15,7 +15,7 @@ let opened = false;
 const open = (hash = '') => {
   location.hash = hash;
   navigation = createNavigation(
-    (screen) => screen === 'library' || hasPiece,
+    (screen) => screen !== 'piece' || hasPiece,
     () => openPiece,
     (piece) => askedFor.push(piece),
   );
@@ -107,6 +107,26 @@ describe('a piece’s address', () => {
     browserGoesTo('#/piece/abc-123');
     expect(navigation.piece.value).toBe('abc-123');
     browserGoesTo('#/');
+    expect(navigation.piece.value).toBeNull();
+  });
+});
+
+describe('free play', () => {
+  it('has an address of its own, a step forward from the library and a step back to it', () => {
+    expect(screenAt('#/play')).toBe('play');
+    expect(screenAt('#/play/')).toBe('play');
+    open();
+    navigation.go('play');
+    expect(navigation.screen.value).toBe('play');
+    expect(location.hash).toBe('#/play');
+    navigation.go('library');
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(navigation.screen.value).toBe('library');
+  });
+
+  it('is shown when the page is loaded at its address: it needs nothing', () => {
+    open('#/play');
+    expect(navigation.screen.value).toBe('play');
     expect(navigation.piece.value).toBeNull();
   });
 });

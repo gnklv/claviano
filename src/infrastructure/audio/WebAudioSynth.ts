@@ -76,17 +76,27 @@ export class WebAudioSynth implements AudioOutput {
   }
 
   playNote({ pitch, velocity, at, duration, soft }: NoteToPlay): void {
+    const start = Math.max(at, this.ctx.currentTime);
+    this.sound(pitch, velocity, soft, start)(start + Math.max(duration, 0.05));
+  }
+
+  strike(pitch: number, velocity: number): () => void {
+    const start = this.ctx.currentTime;
+    const end = this.sound(pitch, velocity, false, start);
+    return () => end(Math.max(this.ctx.currentTime, start + 0.05));
+  }
+
+  /** Starts a note sounding at `start`; returns how to end it, called once with when the sound is to stop. */
+  private sound(pitch: number, velocity: number, soft: boolean, start: number): (end: number) => void {
     const { ctx } = this;
-    const start = Math.max(at, ctx.currentTime);
-    const end = start + Math.max(duration, 0.05);
     const peak = 0.1 + 0.4 * velocity;
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, start);
     gain.gain.linearRampToValueAtTime(peak, start + ATTACK);
     gain.gain.setTargetAtTime(peak * 0.15, start + ATTACK, DECAY);
-    if (start + ATTACK + RING_OUT_FROM < end) gain.gain.setTargetAtTime(0, start + ATTACK + RING_OUT_FROM, RING_OUT);
-    gain.gain.setTargetAtTime(0, end, RELEASE);
+    // (A note held long rings out by itself; one let go before that is cut short by its release, below.)
+    gain.gain.setTargetAtTime(0, start + ATTACK + RING_OUT_FROM, RING_OUT);
     gain.connect(this.output);
 
     const frequency = pitchFrequency(pitch);
@@ -99,14 +109,17 @@ export class WebAudioSynth implements AudioOutput {
 
     const voice: Voice = { gain, oscillators: [fundamental, overtone] };
     this.voices.add(voice);
-    const stopAt = end + RELEASE * 6;
-    for (const osc of voice.oscillators) {
-      osc.start(start);
-      osc.stop(stopAt);
-    }
+    for (const osc of voice.oscillators) osc.start(start);
     fundamental.onended = () => {
       gain.disconnect();
       this.voices.delete(voice);
+    };
+
+    return (end) => {
+      // The ringing out is dropped where the release comes first: one fade at a time.
+      if (end <= start + ATTACK + RING_OUT_FROM) gain.gain.cancelScheduledValues(start + ATTACK + RING_OUT_FROM);
+      gain.gain.setTargetAtTime(0, end, RELEASE);
+      for (const osc of voice.oscillators) osc.stop(end + RELEASE * 6);
     };
   }
 

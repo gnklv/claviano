@@ -8,13 +8,13 @@ import { readonly, ref, type Ref } from 'vue';
  * A piece's address names the piece ("#/piece/<id>"), so a page reloaded there can open it again.
  */
 
-export type Screen = 'library' | 'piece';
+export type Screen = 'library' | 'piece' | 'play';
 
-const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece' };
+const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece', play: '#/play' };
 const PIECE_ADDRESS = /^#\/piece(?:\/([^/]+))?\/*$/;
 
 /** The screen an address stands for; anything unknown is the library. */
-export const screenAt = (hash: string): Screen => (PIECE_ADDRESS.test(hash) ? 'piece' : 'library');
+export const screenAt = (hash: string): Screen => (PIECE_ADDRESS.test(hash) ? 'piece' : hash.replace(/\/+$/, '') === ADDRESSES.play ? 'play' : 'library');
 
 /** The piece an address names; null for the library's, or a piece's address without a name. */
 export function pieceAt(hash: string): string | null {
@@ -95,6 +95,10 @@ export function createNavigation(
         libraryBehind = true;
         location.hash = pieceAddress(openPiece());
         piece.value = openPiece();
+      } else if (next === 'play') {
+        libraryBehind = true;
+        location.hash = ADDRESSES.play;
+        piece.value = null;
       } else if (libraryBehind) {
         history.back();
       } else {

@@ -24,6 +24,11 @@ export interface AudioOutput {
   /** Must be called from a user gesture before the first sound (browser autoplay policy). */
   resume(): Promise<void>;
   playNote(note: NoteToPlay): void;
+  /**
+   * A key struck now by hand, to sound for as long as it is held: nobody knows yet for how long.
+   * Returns the key's release: call it once, when the key comes up.
+   */
+  strike(pitch: number, velocity: number): () => void;
   /** The sustain pedal going down or coming up: the noise of its mechanism, if the output has one. */
   playPedal(at: number, down: boolean): void;
   /** A metronome click; `accent` for the first beat of a bar. */
