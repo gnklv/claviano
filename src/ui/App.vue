@@ -32,8 +32,9 @@ onUnmounted(() => navigation.dispose());
 
 // A piece that has just opened is shown, under its own address; leaving it for the library, the music stops.
 const shelf = useLibrary(library);
-watch([() => state.value.score, () => shelf.value.current], ([score]) => {
-  if (score) navigation.go('piece');
+watch([() => state.value.score, () => shelf.value.current], ([score, current], [scoreBefore]) => {
+  // (Not when the open piece is merely taken off the shelf: it has no name any more, and nothing has opened.)
+  if (score && (score !== scoreBefore || current !== null)) navigation.go('piece');
 });
 
 watch(screen, (shown) => {

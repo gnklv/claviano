@@ -122,6 +122,36 @@ export class Library {
     if (this.current === id) await this.keep({ ...piece, openedAt: this.now() });
   }
 
+  /** Gives a piece on the shelf another name (its file keeps its own). */
+  async rename(id: string, title: string): Promise<void> {
+    const piece = this.shelved.find((candidate) => candidate.id === id);
+    const name = title.trim();
+    if (piece && name && name !== piece.title) await this.keep({ ...piece, title: name });
+  }
+
+  /** A piece's file as it was given, with its name: to save it out. Null when it is not there. */
+  async file(id: string): Promise<{ name: string; data: ArrayBuffer } | null> {
+    const piece = this.shelved.find((candidate) => candidate.id === id);
+    const data = piece ? await this.shelf.file(id).catch(() => null) : null;
+    return piece && data ? { name: piece.fileName, data } : null;
+  }
+
+  /** Takes a piece off the shelf, for good: its file and what was remembered of it go too. */
+  async remove(id: string): Promise<void> {
+    if (!this.shelved.some((piece) => piece.id === id)) return;
+    try {
+      await this.shelf.remove(id);
+    } catch {
+      // Still there: it stays on the shelf.
+      return;
+    }
+    this.shelved = this.shelved.filter((piece) => piece.id !== id);
+    this.remembered.delete(id);
+    // (If it is the one that is open, it plays on, as a piece of no shelf: nothing more is remembered of it.)
+    if (this.opened?.id === id) this.opened = null;
+    this.emit();
+  }
+
   private async keep(piece: ShelvedPiece, data?: ArrayBuffer): Promise<void> {
     try {
       await this.shelf.save(piece, data);

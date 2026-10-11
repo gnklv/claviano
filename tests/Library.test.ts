@@ -159,6 +159,54 @@ describe('the library', () => {
     expect(changes).toBe(told);
   });
 
+  describe('what can be done with a piece', () => {
+    const ONE = contentId(bytes('one'));
+    beforeEach(() => library.openFile('one.tune', bytes('one')));
+
+    it('gives it another name, kept on the shelf and through the same file opened again', async () => {
+      await library.rename(ONE, '  Für Elise ');
+      expect(library.pieces[0]?.title).toBe('Für Elise');
+      expect(library.pieces[0]?.fileName).toBe('one.tune');
+      await library.openFile('one.tune', bytes('one'));
+      expect(library.pieces.map((kept) => kept.title)).toEqual(['Für Elise']);
+      await start();
+      expect(library.pieces[0]?.title).toBe('Für Elise');
+    });
+
+    it('keeps its name when given none, or one for a piece that is not there', async () => {
+      await library.rename(ONE, '   ');
+      await library.rename('gone-123', 'Someone');
+      expect(library.pieces.map((kept) => kept.title)).toEqual(['one']);
+    });
+
+    it('gives its file out as it was given, under its own name', async () => {
+      await library.rename(ONE, 'Für Elise');
+      const file = await library.file(ONE);
+      expect(file?.name).toBe('one.tune');
+      expect(new TextDecoder().decode(file?.data)).toBe('one');
+      expect(await library.file('gone-123')).toBeNull();
+    });
+
+    it('takes it off the shelf with its file and what was remembered of it', async () => {
+      library.remember(ONE, { position: 2, tempo: 0.7, hands: { right: true, left: true }, loop: { on: false, from: 1, to: 4 }, bar: 3, bars: 8 });
+      await library.remove(ONE);
+      expect(library.pieces).toEqual([]);
+      expect(library.memory(ONE)).toBeNull();
+      expect([shelf.pieces.size, shelf.files.size, shelf.remembered.size]).toEqual([0, 0, 0]);
+      // It was the open one: it plays on, as a piece of no shelf.
+      expect(playback.score?.title).toBe('one');
+      expect(library.current).toBeNull();
+      await start();
+      expect(library.pieces).toEqual([]);
+    });
+
+    it('leaves it on the shelf when the shelf fails to let go of it', async () => {
+      shelf.broken = true;
+      await library.remove(ONE);
+      expect(library.pieces).toHaveLength(1);
+    });
+  });
+
   it('goes on without a shelf: pieces open, nothing is kept, nothing fails', async () => {
     shelf.broken = true;
     await start();

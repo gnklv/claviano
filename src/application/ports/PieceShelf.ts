@@ -33,6 +33,8 @@ export interface PieceShelf {
   file(id: string): Promise<ArrayBuffer | null>;
   /** Puts a piece on the shelf, or writes anew what is known of one; `data` is its file, given when it is new. */
   save(piece: ShelvedPiece, data?: ArrayBuffer): Promise<void>;
+  /** Takes a piece off the shelf, with its file and what was remembered of it. */
+  remove(id: string): Promise<void>;
   /** How each piece was left, by its id (a demo's too, which is not on the shelf). What is read is whatever was stored: to be checked. */
   memories(): Promise<Record<string, unknown>>;
   remember(id: string, memory: PieceMemory): Promise<void>;

@@ -19,10 +19,10 @@ import { useI18n } from '../i18n/useI18n';
 
 const emit = defineEmits<{ back: [] }>();
 
-const { playback, openScore, demos } = useDeps();
+const { playback, openScore, library, demos } = useDeps();
 const { t } = useI18n();
 const viewMode = useShownViewMode();
-const { title, details, error } = usePieceText(playback, openScore, demos);
+const { title, details, error } = usePieceText(playback, openScore, library, demos);
 
 // A phone on its side: the header and the transport leave the screen to the music while it plays.
 const state = usePlaybackState(playback);

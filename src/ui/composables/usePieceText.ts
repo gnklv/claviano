@@ -1,10 +1,12 @@
 import { computed, type ComputedRef } from 'vue';
+import type { Library } from '../../application/use-cases/Library';
 import type { OpenFailure, OpenScore } from '../../application/use-cases/OpenScore';
 import type { Playback } from '../../application/use-cases/Playback';
 import { barNumber } from '../../domain/score';
 import type { Demo } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
+import { useLibrary } from './useLibrary';
 import { useOpenScore } from './useOpenScore';
 import { usePlaybackState } from './usePlaybackState';
 
@@ -22,11 +24,13 @@ const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
 export function usePieceText(
   playback: Playback,
   openScore: OpenScore,
+  library: Library,
   demos: readonly Demo[],
 ): { title: ComputedRef<string>; details: ComputedRef<string>; error: ComputedRef<string | null> } {
   const { t } = useI18n();
   const state = usePlaybackState(playback);
   const opened = useOpenScore(openScore);
+  const shelf = useLibrary(library);
   const demoTitle = (id: string): string => t(demos.find((demo) => demo.id === id)?.title ?? 'errorUnknown');
 
   const error = computed(() => {
@@ -40,7 +44,10 @@ export function usePieceText(
     const score = state.value.score;
     if (!score) return '';
     const { demo } = opened.value;
-    return demo ? demoTitle(demo.id) : score.title;
+    if (demo) return demoTitle(demo.id);
+    // The name it has on the shelf (it may have been given another one there), else the file's own.
+    const { pieces, current } = shelf.value;
+    return pieces.find((piece) => piece.id === current)?.title ?? score.title;
   });
 
   const details = computed(() => {

@@ -60,6 +60,13 @@ export class FakePieceShelf implements PieceShelf {
       if (data) this.files.set(piece.id, data);
     });
   }
+  remove(id: string): Promise<void> {
+    return this.answer(() => {
+      this.pieces.delete(id);
+      this.files.delete(id);
+      this.remembered.delete(id);
+    });
+  }
   /** (Anything may be put here by hand, as anything may be found in a browser's storage.) */
   readonly remembered = new Map<string, unknown>();
   memories(): Promise<Record<string, unknown>> {

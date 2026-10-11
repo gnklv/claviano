@@ -47,6 +47,13 @@ export class IndexedDbPieceShelf implements PieceShelf {
     await finished(transaction);
   }
 
+  async remove(id: string): Promise<void> {
+    const db = await this.open();
+    const transaction = db.transaction([PIECES, FILES, MEMORIES], 'readwrite');
+    for (const store of [PIECES, FILES, MEMORIES]) transaction.objectStore(store).delete(id);
+    await finished(transaction);
+  }
+
   async memories(): Promise<Record<string, unknown>> {
     const db = await this.open();
     const store = db.transaction(MEMORIES).objectStore(MEMORIES);
