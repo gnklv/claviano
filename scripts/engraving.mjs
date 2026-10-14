@@ -12,7 +12,7 @@
  *   node scripts/engraving.mjs demo.showcase --every 4      photographs every fourth bar
  *
  * Photographs go to .engraving/ (not kept either). CHROME names another browser to drive; SIZE
- * another view than 1600x420.
+ * another view than 1600x420 (a phone: 390x844, on its side 844x390); THEME=dark the dark theme.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -21,6 +21,9 @@ const [piece, ...options] = process.argv.slice(2);
 if (!piece) throw new Error('Which piece? A file of samples/, or demo.<id>.');
 const option = (name) => (options.includes(name) ? options[options.indexOf(name) + 1] : null);
 const [width, height] = (process.env.SIZE ?? '1600x420').split('x').map(Number);
+const THEME = process.env.THEME === 'dark' ? 'dark' : 'light';
+/** A view as narrow as a phone's is one: touched, not pointed at. */
+const PHONE = width < 600 || height < 500;
 const OUT = '.engraving';
 const APP = 'http://localhost:5173/claviano/';
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -103,10 +106,13 @@ const send = (method, params = {}) => new Promise((resolve) => (answers.set(++as
 const inPage = async (expression) => (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
 
 try {
-  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  const up = await fetch(APP).then((answer) => answer.ok).catch(() => false);
+  if (!up) throw new Error(`Nothing answers at ${APP}: start the dev server (npm run dev).`);
+  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: PHONE ? 2 : 1, mobile: PHONE });
+  if (PHONE) await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   await send('Page.navigate', { url: `${APP}#/` });
   await sleep(1500);
-  await inPage(`localStorage.setItem('claviano.view', 'staff'); localStorage.setItem('claviano.theme', 'light'); localStorage.setItem('claviano.locale', 'en')`);
+  await inPage(`localStorage.setItem('claviano.view', 'staff'); localStorage.setItem('claviano.theme', '${THEME}'); localStorage.setItem('claviano.locale', 'en')`);
   await send('Page.navigate', { url: `${APP}?engraving#/` });
   await sleep(1500);
   const open = piece.startsWith('demo.') ? `window.claviano.library.open('${piece}')` : `fetch('/samples/${piece}').then((file) => file.arrayBuffer()).then((data) => window.claviano.library.openFile('${piece}', data))`;
@@ -125,11 +131,14 @@ try {
   for (const bar of shots) {
     await inPage(`(async () => { const playback = window.claviano.playback; playback.seek(playback.score.bars[${bar}] ?? 0); await new Promise((resolve) => setTimeout(resolve, 900)); })()`);
     const shot = await send('Page.captureScreenshot', { format: 'png' });
-    const file = `${OUT}/${piece.replace(/\..*$/, '')}-${String(bar).padStart(3, '0')}.png`;
+    const file = `${OUT}/${piece.replace(/\..*$/, '')}-${width}x${height}-${THEME}-${String(bar).padStart(3, '0')}.png`;
     writeFileSync(file, Buffer.from(shot.result.data, 'base64'));
     console.log('  photographed', file);
   }
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
 } finally {
   chrome.kill();
 }
-process.exit(0);
+process.exit();

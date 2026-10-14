@@ -133,9 +133,10 @@ Before the next steps, in this order (agreed after a review of the code and of t
       signature through a take), the thin header of a phone on its side.
   With it: one pop-up in place of two, no colour written by hand in a component.
 
-Then, when the places are next touched: free play does not ready the instrument for the piece
-(that is PrepareInstrument's), one scheduler of metronome clicks for playback and recording, what
-is remembered of pieces out of `Library` into a class of its own.
+- [x] The review's debts: readying the instrument is PrepareInstrument's alone, for a piece and for
+      free play (free play only says whether it is entered); one way of handing sound ahead of
+      time (`handAhead`), for the music and for a take's metronome; what is remembered of pieces
+      is `PieceMemories`', and `Library` is the shelf.
 
 Before the trainer, the engraving of crowded music (found on four pieces: a csárdás, Golden Brown,
 the Pink Panther, Golden Hour), a step looked at before the next:
@@ -199,5 +200,7 @@ Small things noticed, to fix between the steps:
 - [ ] A fingering over a bar's first note can run into the bar's number
 - [ ] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)
+- [ ] On a phone held upright the staff takes less than half the height: it is sized by the width
+      (two bars and a bit in sight), and a piece that reaches far makes it smaller still
 - [x] The top of the staff was cut off when the stage is low: a phone on its side shows the
       staff or the keys, not both, and gives them the whole screen while the music plays

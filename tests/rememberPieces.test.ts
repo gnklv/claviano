@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { ScoreParser } from '../src/application/ports/ScoreParser';
 import { BarLoop } from '../src/application/use-cases/BarLoop';
 import { Library } from '../src/application/use-cases/Library';
+import { PieceMemories } from '../src/application/use-cases/PieceMemories';
 import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
@@ -27,14 +28,16 @@ let shelf: FakePieceShelf;
 let playback: Playback;
 let barLoop: BarLoop;
 let library: Library;
+let memories: PieceMemories;
 let writeDown: () => void;
 /** The app starts (again): with the shelf as it was left. */
 const start = async () => {
   playback = new Playback(new FakeAudio(), new FakeTicker());
   barLoop = new BarLoop(playback);
   library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, [{ id: 'demo', load: () => piece('Demo') }]);
-  writeDown = rememberPieces(library, playback, barLoop);
-  await library.load();
+  memories = new PieceMemories(shelf);
+  writeDown = rememberPieces(library, memories, playback, barLoop);
+  await Promise.all([library.load(), memories.load()]);
 };
 
 beforeEach(async () => {
@@ -61,7 +64,7 @@ describe('remembering pieces', () => {
     playback.setHandEnabled('right', false);
     barLoop.select(3, 5, 2);
     playback.seek(3.5);
-    expect(library.memory(ONE)).toEqual({
+    expect(memories.memory(ONE)).toEqual({
       position: 3.5,
       tempo: 0.7,
       hands: { right: false, left: true },
@@ -110,14 +113,14 @@ describe('remembering pieces', () => {
     playback = new Playback(audio, new FakeTicker());
     barLoop = new BarLoop(playback);
     library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
-    writeDown = rememberPieces(library, playback, barLoop);
+    writeDown = rememberPieces(library, memories, playback, barLoop);
     await library.openFile('one.tune', bytes('one'));
     await playback.play();
     audio.time += 2.5;
-    expect(library.memory(ONE)?.position).toBe(0);
+    expect(memories.memory(ONE)?.position).toBe(0);
     writeDown();
-    expect(library.memory(ONE)?.position).toBeCloseTo(2.5);
-    expect(library.memory(ONE)?.bar).toBe(3);
+    expect(memories.memory(ONE)?.position).toBeCloseTo(2.5);
+    expect(memories.memory(ONE)?.bar).toBe(3);
   });
 
   it('writes down the place when the music is stopped by another piece opening', async () => {
@@ -125,13 +128,13 @@ describe('remembering pieces', () => {
     playback = new Playback(audio, new FakeTicker());
     barLoop = new BarLoop(playback);
     library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
-    rememberPieces(library, playback, barLoop);
+    rememberPieces(library, memories, playback, barLoop);
     await library.openFile('one.tune', bytes('one'));
     await playback.play();
     audio.time += 2.5;
     await library.openFile('two.tune', bytes('two'));
-    expect(library.memory(ONE)?.position).toBeCloseTo(2.5);
-    expect(library.memory(TWO)?.position).toBe(0);
+    expect(memories.memory(ONE)?.position).toBeCloseTo(2.5);
+    expect(memories.memory(TWO)?.position).toBe(0);
   });
 
   it('starts a piece left at its very end from the beginning', async () => {
@@ -144,11 +147,38 @@ describe('remembering pieces', () => {
     expect(playback.tempo).toBe(0.8);
   });
 
+  it('lets go of what is remembered of a piece taken off the shelf', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.7);
+    expect(memories.memory(ONE)?.tempo).toBe(0.7);
+    await library.remove(ONE);
+    expect(memories.memory(ONE)).toBeNull();
+    expect(shelf.remembered.size).toBe(0);
+  });
+
+  it('sets a piece as it was left even when it opens before what was kept has been read', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    playback.setTempo(0.7);
+    playback.seek(3);
+    // Again, with the shelf read in the other order: the piece first, its memory after.
+    playback = new Playback(new FakeAudio(), new FakeTicker());
+    barLoop = new BarLoop(playback);
+    library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
+    memories = new PieceMemories(shelf);
+    rememberPieces(library, memories, playback, barLoop);
+    await library.load();
+    await library.open(ONE);
+    expect(playback.tempo).toBe(1);
+    await memories.load();
+    expect(playback.tempo).toBe(0.7);
+    expect(playback.position).toBe(3);
+  });
+
   it('takes no memory from what is not one (an older version’s, a stranger’s)', async () => {
     shelf.remembered.set(ONE, { position: 'far', tempo: 2 });
     shelf.remembered.set(TWO, null);
     await start();
-    expect(library.memory(ONE)).toBeNull();
+    expect(memories.memory(ONE)).toBeNull();
     await library.openFile('one.tune', bytes('one'));
     expect(playback.tempo).toBe(1);
     expect(playback.position).toBe(0);
@@ -163,6 +193,6 @@ describe('remembering pieces', () => {
     await library.open(ONE);
     // (Nothing is on the shelf to open it from: it stays as it was.)
     expect(library.current).toBe(TWO);
-    expect(library.memory(ONE)?.tempo).toBe(0.6);
+    expect(memories.memory(ONE)?.tempo).toBe(0.6);
   });
 });

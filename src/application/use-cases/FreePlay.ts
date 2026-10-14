@@ -1,13 +1,8 @@
 import { HIGHEST_KEY, LOWEST_KEY } from '../../domain/pitch';
 import type { AudioOutput } from '../ports/AudioOutput';
-import type { Instrument } from '../ports/Instrument';
-import { notesToPrepare } from './PrepareInstrument';
-import type { Playback } from './Playback';
 
 /** How hard a key is struck where nothing tells (a screen has no way to). */
-const STRIKE = 0.75;
-/** The instrument is kept ready for notes held up to this long, in seconds. */
-const HELD_SECONDS = 8;
+export const STRIKE = 0.75;
 /** The keyboard starts at this Do, and moves by octaves between the lowest and the highest on a piano. */
 const FIRST_DO = 48;
 const LOWEST_DO = 24;
@@ -18,7 +13,8 @@ const HIGHEST_DO = 96;
  * (the screen, the computer's keyboard; later a microphone, a MIDI keyboard) is nothing to it.
  *
  * The keyboard shown is a stretch of the piano's, `keys` wide from `lowest` (a Do), moved by
- * octaves; the instrument is kept ready for every key of it.
+ * octaves. (Keeping the instrument ready for it is PrepareInstrument's, which asks whether free
+ * play is entered.)
  */
 export class FreePlay {
   private readonly held = new Map<number, () => void>();
@@ -28,11 +24,12 @@ export class FreePlay {
   private readonly listeners = new Set<() => void>();
   private readonly keyListeners = new Set<(pitch: number, down: boolean, at: number) => void>();
 
-  constructor(
-    private readonly audio: AudioOutput,
-    private readonly instrument: Instrument,
-    private readonly playback: Playback,
-  ) {}
+  constructor(private readonly audio: AudioOutput) {}
+
+  /** Free play is on the screen: its keys are what the instrument is to be ready for. */
+  get entered(): boolean {
+    return this.on;
+  }
 
   /** The lowest key shown: a Do. */
   get lowest(): number {
@@ -57,7 +54,7 @@ export class FreePlay {
     return this.first < HIGHEST_DO && this.first + 12 + this.width - 1 <= HIGHEST_KEY;
   }
 
-  /** Called when keys are pressed or let go, or the keyboard moves. */
+  /** Called when keys are pressed or let go, the keyboard moves, or free play is entered or left. */
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -74,18 +71,17 @@ export class FreePlay {
     return this.audio.now();
   }
 
-  /** Coming to play: the instrument is made ready for the keys shown. */
+  /** Coming to play. */
   enter(): void {
     this.on = true;
-    this.prepare();
+    this.emit();
   }
 
-  /** Leaving: every key comes up, and the instrument is given back to the piece that is open. */
+  /** Leaving: every key comes up. */
   leave(): void {
     this.on = false;
     this.releaseAll();
-    const { score, tempo } = this.playback;
-    this.instrument.prepare(score ? notesToPrepare(score, tempo) : []);
+    this.emit();
   }
 
   /** How many keys there is room for (the screen's width tells). */
@@ -138,12 +134,7 @@ export class FreePlay {
   }
 
   private changed(): void {
-    if (this.on) this.prepare();
     this.emit();
-  }
-
-  private prepare(): void {
-    this.instrument.prepare(Array.from({ length: this.width }, (_, key) => ({ pitch: this.first + key, velocity: STRIKE, seconds: HELD_SECONDS })));
   }
 
   private tell(pitch: number, down: boolean): void {

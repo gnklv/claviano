@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useMirror } from '../composables/useMirror';
 import { TOUCH_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import ActionTile from '../components/ActionTile.vue';
 import AppNotice from '../components/AppNotice.vue';
@@ -23,7 +24,7 @@ import { saveFile } from '../saveFile';
 
 const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo]; play: [] }>();
 
-const { playback, openScore, library, demos } = useDeps();
+const { playback, openScore, library, memories, demos } = useDeps();
 const { t, locale } = useI18n();
 
 /**
@@ -34,12 +35,14 @@ const { t, locale } = useI18n();
 const FILE_KINDS = '.mid,.midi,.musicxml,.xml,.mxl';
 const touch = useMediaQuery(TOUCH_SCREEN);
 const shelf = useLibrary(library);
+/** How each piece was left (as it is remembered now). */
+const remembered = useMirror(memories, () => ({ of: (id: string) => memories.memory(id) }));
 /** (The day is told as of when the library was come to: it is not a clock.) */
 const now = Date.now();
 
 /** Where a piece was left, for its card: "bar 25 of 64"; nothing for one never begun. */
 function leftAt(id: string): string | null {
-  const memory = shelf.value.memory(id);
+  const memory = remembered.value.of(id);
   return memory && memory.position > 0 ? t('leftAtBar', { bar: memory.bar, bars: memory.bars }) : null;
 }
 const noteOf = (...parts: (string | null)[]): string => parts.filter((part) => part !== null).join(' · ');

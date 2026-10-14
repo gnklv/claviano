@@ -2,6 +2,7 @@ import { scoreFromTake, type PlayedNote } from '../../domain/notation/recording'
 import type { Score } from '../../domain/score';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
+import { handAhead } from './handAhead';
 import type { FreePlay } from './FreePlay';
 
 /** The time signatures to record in: how many beats to the bar, and what a beat is, in quarter notes. */
@@ -32,11 +33,6 @@ export interface Take {
  */
 export type RecorderState = 'idle' | 'armed' | 'recording' | 'recorded';
 
-/**
- * Clicks are handed to the output this far ahead, in seconds: the ticker is not exact, the output's
- * clock is. No further than it takes: a click handed out sounds, whatever is stopped meanwhile.
- */
-const AHEAD = 0.12;
 /** A first note this much of a beat before a bar line is taken for that bar's: played a touch early. */
 const EARLY = 0.2;
 
@@ -260,16 +256,13 @@ export class Recorder {
     // (A moment from now: the first click whole, not cut by being asked for late.)
     this.firstClick = this.audio.now() + 0.1;
     this.clicked = 0;
-    const hand = () => {
-      const until = this.audio.now() + AHEAD;
+    void this.audio.resume();
+    this.stopClicks = handAhead(this.ticker, this.audio, (until) => {
       for (let at = this.firstClick + this.clicked * this.beatSeconds(); at < until; at = this.firstClick + this.clicked * this.beatSeconds()) {
         this.audio.playClick(at, this.clicked % METERS[this.signature].beats === 0);
         this.clicked++;
       }
-    };
-    void this.audio.resume();
-    hand();
-    this.stopClicks = this.ticker.start(hand);
+    });
   }
 
   private emit(): void {

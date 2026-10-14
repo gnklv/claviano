@@ -196,10 +196,9 @@ describe('the library', () => {
     });
 
     it('takes it off the shelf with its file and what was remembered of it', async () => {
-      library.remember(ONE, { position: 2, tempo: 0.7, hands: { right: true, left: true }, loop: { on: false, from: 1, to: 4 }, bar: 3, bars: 8 });
+      shelf.remembered.set(ONE, { position: 2 });
       await library.remove(ONE);
       expect(library.pieces).toEqual([]);
-      expect(library.memory(ONE)).toBeNull();
       expect([shelf.pieces.size, shelf.files.size, shelf.remembered.size]).toEqual([0, 0, 0]);
       // It was the open one: it plays on, as a piece of no shelf.
       expect(playback.score?.title).toBe('one');

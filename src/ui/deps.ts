@@ -6,6 +6,7 @@ import type { TilesView } from '../application/ports/TilesView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
+import type { PieceMemories } from '../application/use-cases/PieceMemories';
 import type { DemoPiece, OpenScore } from '../application/use-cases/OpenScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Recorder } from '../application/use-cases/Recorder';
@@ -28,6 +29,8 @@ export interface AppDeps {
   readonly openScore: OpenScore;
   /** The shelf of pieces opened before, and opening a piece from it. */
   readonly library: Library;
+  /** How each piece was left. */
+  readonly memories: PieceMemories;
   /** Playing by hand, from the keys on the screen. */
   readonly freePlay: FreePlay;
   /** Recording what is played there. */

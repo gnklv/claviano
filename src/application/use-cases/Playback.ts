@@ -5,9 +5,8 @@ import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/sco
 import { firstAtOrAfter } from '../../domain/search';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
+import { AHEAD, handAhead } from './handAhead';
 
-/** How far ahead of the audio clock notes are handed to the output, in seconds. */
-const LOOKAHEAD = 0.2;
 const MIN_LOOP_LENGTH = 0.1;
 /**
  * Starting in the middle of notes (after a seek, a pause, a tempo change), the notes still sounding
@@ -202,7 +201,7 @@ export class Playback {
     const from = this.anchor.score;
     this.isPlaying = true;
     this.restartFrom(from >= range.start && from < range.end ? from : range.start, this.countInOn);
-    this.stopTicker = this.ticker.start(() => this.tick());
+    this.stopTicker = handAhead(this.ticker, this.audio, (until) => this.tick(until));
     this.emit();
   }
 
@@ -372,19 +371,20 @@ export class Playback {
     this.sounded.push({ at, accent });
   }
 
-  private tick(): void {
+  private tick(until: number): void {
     const score = this.currentScore;
     if (!score || !this.isPlaying) return;
     if (!this.currentLoop && this.position >= score.duration) {
       this.halt(false);
       return;
     }
-    this.schedule(score);
+    this.schedule(score, until);
   }
 
-  private schedule(score: Score): void {
+  /** Hands the output what is due up to `until` on its clock (see handAhead). */
+  private schedule(score: Score, until = this.audio.now() + AHEAD): void {
     const { notes } = score;
-    const horizonAudio = this.audio.now() + LOOKAHEAD;
+    const horizonAudio = until;
     for (;;) {
       const segmentEnd = this.currentLoop?.end ?? score.duration;
       const horizon = Math.min(this.toScore(horizonAudio), segmentEnd);

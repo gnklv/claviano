@@ -2,6 +2,7 @@ import { barAt, barNumber } from '../../domain/score';
 import type { PieceMemory } from '../ports/PieceShelf';
 import type { BarLoop } from './BarLoop';
 import type { Library } from './Library';
+import type { PieceMemories } from './PieceMemories';
 import type { Playback } from './Playback';
 
 /** Left this close to the end (in seconds), a piece starts from the beginning next time. */
@@ -14,9 +15,14 @@ const AT_THE_END = 0.5;
  *
  * Returns a function that writes down where the open piece stands now: to call when the page is
  * about to go (the place moves on while the music plays, and nothing tells of that).
+ *
+ * A piece taken off the shelf takes what is remembered of it along.
  */
-export function rememberPieces(library: Library, playback: Playback, barLoop: BarLoop): () => void {
+export function rememberPieces(library: Library, memories: PieceMemories, playback: Playback, barLoop: BarLoop): () => void {
   let current = library.current;
+  /** The piece whose memory has been set since it opened (none, while what was kept is still being read). */
+  let restored: string | null = null;
+  let shelved = new Set(library.pieces.map((piece) => piece.id));
   /** While a piece's memory is being set, the changes it makes are not news of their own. */
   let restoring = false;
   let last = '';
@@ -37,14 +43,15 @@ export function rememberPieces(library: Library, playback: Playback, barLoop: Ba
 
   const save = (): void => {
     const id = library.current;
-    // (Between two pieces, while the next one loads, there is nothing to write down.)
-    if (restoring || id === null || id !== current) return;
+    // (Between two pieces, while the next one loads, there is nothing to write down; nor before
+    // what was kept of it has been set.)
+    if (restoring || id === null || id !== current || restored !== id) return;
     const memory = now();
     if (!memory) return;
     const value = id + JSON.stringify(memory);
     if (value === last) return;
     last = value;
-    library.remember(id, memory);
+    memories.remember(id, memory);
   };
 
   const restore = (memory: PieceMemory | null): void => {
@@ -63,13 +70,26 @@ export function rememberPieces(library: Library, playback: Playback, barLoop: Ba
     restoring = false;
   };
 
+  /** Sets the open piece's memory, once what was kept has been read; and only once for each opening. */
+  const restoreCurrent = (): void => {
+    if (current === null || restored === current || !memories.loaded) return;
+    restored = current;
+    restore(memories.memory(current));
+  };
+
   library.onChange(() => {
+    const now = new Set(library.pieces.map((piece) => piece.id));
+    for (const id of shelved) if (!now.has(id)) memories.forget(id);
+    shelved = now;
+
     const id = library.current;
     if (id === current) return;
     current = id;
-    if (id !== null) restore(library.memory(id));
+    restored = null;
+    restoreCurrent();
     save();
   });
+  memories.onChange(restoreCurrent);
   playback.onChange(save);
   barLoop.onChange(save);
   return save;

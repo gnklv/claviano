@@ -1,13 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Instrument } from '../src/application/ports/Instrument';
 import { FreePlay } from '../src/application/use-cases/FreePlay';
-import { Playback } from '../src/application/use-cases/Playback';
 import { Recorder } from '../src/application/use-cases/Recorder';
 import { FakeAudio, FakeTicker } from './fakes';
 
 /* Recording what is played, on a clock set by hand. At the starting tempo (80) a beat is 0.75 s, a bar of 4/4 three seconds. */
 
-const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare() {} };
 let audio: FakeAudio;
 let ticker: FakeTicker;
 let play: FreePlay;
@@ -33,7 +30,7 @@ const taken = () => recorder.take?.notes.map(({ pitch, start, end }) => [pitch, 
 beforeEach(() => {
   audio = new FakeAudio();
   ticker = new FakeTicker();
-  play = new FreePlay(audio, instrument, new Playback(new FakeAudio(), new FakeTicker()));
+  play = new FreePlay(audio);
   recorder = new Recorder(play, audio, ticker);
 });
 

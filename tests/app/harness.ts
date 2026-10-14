@@ -7,7 +7,9 @@ import type { PlayedTile, TilesView } from '../../src/application/ports/TilesVie
 import { BarLoop } from '../../src/application/use-cases/BarLoop';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
+import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
 import { Library } from '../../src/application/use-cases/Library';
+import { PieceMemories } from '../../src/application/use-cases/PieceMemories';
 import { LoadScore } from '../../src/application/use-cases/LoadScore';
 import { OpenScore } from '../../src/application/use-cases/OpenScore';
 import { Playback } from '../../src/application/use-cases/Playback';
@@ -126,9 +128,12 @@ export function useApp(): void {
     const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser(), new MidiFileParser()]));
     const library = new Library(shelf, openScore, playback, demos);
     void library.load();
+    const memories = new PieceMemories(shelf);
+    void memories.load();
     const barLoop = new BarLoop(playback);
-    rememberPieces(library, playback, barLoop);
-    const freePlay = new FreePlay(audio, instrument, playback);
+    rememberPieces(library, memories, playback, barLoop);
+    const freePlay = new FreePlay(audio);
+    keepInstrumentPrepared(playback, freePlay, instrument);
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
     app = createApp(App).provide(depsKey, {
       playback,
@@ -137,6 +142,7 @@ export function useApp(): void {
       instrument,
       openScore,
       library,
+      memories,
       freePlay,
       recorder,
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),

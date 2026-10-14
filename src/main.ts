@@ -6,6 +6,7 @@ import { FreePlay } from './application/use-cases/FreePlay';
 import { Library } from './application/use-cases/Library';
 import { LoadScore } from './application/use-cases/LoadScore';
 import { OpenScore } from './application/use-cases/OpenScore';
+import { PieceMemories } from './application/use-cases/PieceMemories';
 import { Playback } from './application/use-cases/Playback';
 import { Recorder } from './application/use-cases/Recorder';
 import { keepInstrumentPrepared } from './application/use-cases/PrepareInstrument';
@@ -42,7 +43,6 @@ const offline = import.meta.env.PROD ? startOfflineCache(import.meta.env.BASE_UR
 void offline.then(() => piano.start(`${import.meta.env.BASE_URL}piano/`));
 
 const playback = new Playback(piano, new IntervalTicker());
-keepInstrumentPrepared(playback, piano);
 const volume = new Volume(piano);
 rememberPracticeSettings(playback, piano, volume, new LocalSettingsStore('claviano.practice'));
 const musicXml = new MusicXmlParser();
@@ -52,10 +52,13 @@ const demos: Demo[] = [
   { id: 'showcase', title: 'demoShowcase', load: () => fetchScore(`${import.meta.env.BASE_URL}demos/showcase.musicxml`, musicXml, 'showcase') },
 ];
 const openScore = new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml]));
-const library = new Library(new IndexedDbPieceShelf(), openScore, playback, demos);
+const shelf = new IndexedDbPieceShelf();
+const library = new Library(shelf, openScore, playback, demos);
 void library.load();
+const memories = new PieceMemories(shelf);
+void memories.load();
 const barLoop = new BarLoop(playback);
-const writeDownThePlace = rememberPieces(library, playback, barLoop);
+const writeDownThePlace = rememberPieces(library, memories, playback, barLoop);
 // The place moves on while the music plays: written down when the page is left (closed, or put away on a phone).
 window.addEventListener('pagehide', writeDownThePlace);
 document.addEventListener('visibilitychange', () => {
@@ -65,7 +68,8 @@ document.addEventListener('visibilitychange', () => {
 });
 if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library } });
 
-const freePlay = new FreePlay(piano, piano, playback);
+const freePlay = new FreePlay(piano);
+keepInstrumentPrepared(playback, freePlay, piano);
 const recorder = new Recorder(freePlay, piano, new IntervalTicker());
 const rest = restWhenPutAway(playback, recorder);
 const midiWriter = new MidiFileWriter();
@@ -78,6 +82,7 @@ createApp(App)
     instrument: piano,
     openScore,
     library,
+    memories,
     freePlay,
     recorder,
     keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),

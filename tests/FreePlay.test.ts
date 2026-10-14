@@ -1,25 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Instrument, NoteToPrepare } from '../src/application/ports/Instrument';
 import { FreePlay } from '../src/application/use-cases/FreePlay';
-import { Playback } from '../src/application/use-cases/Playback';
-import { createScore } from '../src/domain/score';
-import { FakeAudio, FakeTicker } from './fakes';
+import { FakeAudio } from './fakes';
 
 /* Playing by hand: keys held and let go, on a stretch of the piano that moves by octaves. */
 
 let audio: FakeAudio;
-let playback: Playback;
 let play: FreePlay;
-/** What the instrument was last told to be ready for. */
-let prepared: readonly NoteToPrepare[];
-const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare: (notes) => (prepared = notes) };
 const held = () => audio.struck.filter((struck) => struck.released === null).map((struck) => struck.pitch);
 
 beforeEach(() => {
   audio = new FakeAudio();
-  playback = new Playback(audio, new FakeTicker());
-  prepared = [];
-  play = new FreePlay(audio, instrument, playback);
+  play = new FreePlay(audio);
 });
 
 describe('free play', () => {
@@ -94,27 +85,14 @@ describe('free play', () => {
     expect(play.lowest % 12).toBe(0);
   });
 
-  it('keeps the instrument ready for the keys shown, while it is played', () => {
-    play.setKeys(13);
-    expect(prepared).toEqual([]);
+  it('is entered and left, and every key held comes up as it is left', () => {
+    expect(play.entered).toBe(false);
     play.enter();
-    expect(prepared.map((note) => note.pitch)).toEqual(Array.from({ length: 13 }, (_, key) => 48 + key));
-    play.shift(1);
-    expect(prepared[0]?.pitch).toBe(60);
-    play.setKeys(25);
-    expect(prepared).toHaveLength(25);
-  });
-
-  it('gives the instrument back to the piece that is open, when it is left', () => {
-    playback.load(createScore('Piece', [{ pitch: 72, start: 0, duration: 1, beat: 0, beats: 1, velocity: 0.8, hand: 'right' }], [0]));
-    play.enter();
+    expect(play.entered).toBe(true);
     play.press(60);
     play.leave();
+    expect(play.entered).toBe(false);
     expect(held()).toEqual([]);
-    expect(prepared.map((note) => note.pitch)).toEqual([72]);
-    // Not played any more: the keyboard moving readies nothing.
-    play.shift(1);
-    expect(prepared.map((note) => note.pitch)).toEqual([72]);
   });
 
   it('tells its listeners of keys and of the keyboard moving, until they leave', () => {

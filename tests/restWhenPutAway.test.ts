@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Instrument } from '../src/application/ports/Instrument';
 import { FreePlay } from '../src/application/use-cases/FreePlay';
 import { Playback } from '../src/application/use-cases/Playback';
 import { Recorder } from '../src/application/use-cases/Recorder';
@@ -9,7 +8,6 @@ import { FakeAudio, FakeTicker } from './fakes';
 
 /* The page put away (another tab, the window out of sight, the app left on a phone): what sounds comes to rest. */
 
-const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare() {} };
 let audio: FakeAudio;
 let playback: Playback;
 let play: FreePlay;
@@ -19,7 +17,7 @@ let putAway: () => void;
 beforeEach(() => {
   audio = new FakeAudio();
   playback = new Playback(audio, new FakeTicker());
-  play = new FreePlay(audio, instrument, playback);
+  play = new FreePlay(audio);
   recorder = new Recorder(play, audio, new FakeTicker());
   recorder.setMetronome(false);
   putAway = restWhenPutAway(playback, recorder);
