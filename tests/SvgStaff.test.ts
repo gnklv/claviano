@@ -345,15 +345,22 @@ describe('a staff whose size is on the move', () => {
   const notes = (container: HTMLElement) => tape(container).children.length;
   const firstNote = (container: HTMLElement) => tape(container).lastElementChild;
 
-  it('is drawn anew at once for a size told by itself', () => {
+  it('is stretched at once to a size told by itself, where drawing anew takes longer than a frame, and drawn anew when it has come to rest', () => {
     const size = { width: 800, height: 300 };
     const { staff, container } = drawStaff(ode(), size);
     const before = firstNote(container);
-    time += 1000;
     size.height = 200;
     staff.resize();
+    expect(firstNote(container)).toBe(before);
+    expect(transformOf(container)).toMatch(/^translate\(0px, [\d.-]+px\) scale\(0\.\d+\)$/);
+    // Smaller, the tape is boxed as it will be: it reaches the view's edges, faded there and cut.
+    const box = (container.children[1] as HTMLElement).style;
+    expect(parseFloat(box.right)).toBeLessThan(0);
+    expect(parseFloat(box.bottom)).toBeLessThan(0);
+    vi.advanceTimersByTime(200);
     expect(firstNote(container)).not.toBe(before);
     expect(transformOf(container)).toBe('');
+    expect([box.right, box.bottom]).toEqual(['0px', '0px']);
   });
 
   it('is stretched through sizes told one after another, where drawing anew takes longer than a frame, and drawn anew when they stop', () => {

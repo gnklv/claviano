@@ -81,10 +81,10 @@ const SEEK_THRESHOLD_SECONDS = 0.5;
 const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
 /**
  * Drawing the piece anew took longer than this, in milliseconds: longer than a frame lasts on a
- * screen that shows 120 of them a second. Done at every step of a size on the move, the steps are seen.
+ * screen that shows 120 of them a second. Done at a step of a size on the move, the step is seen.
  */
 const FRAME_MS = 8;
-/** Sizes told this soon one after another, in milliseconds, are one size on the move; this long without one, it has come to rest. */
+/** A size not told again for this long, in milliseconds, has come to rest. */
 const RESIZING_MS = 120;
 
 /** A click within this many staff spaces of a notehead's centre means that note. */
@@ -150,11 +150,12 @@ export class SvgStaff implements StaffView {
   /** The loop's shade, behind the music too: redrawn alone when the loop changes. */
   private readonly loopLayer: SVGGElement = svg('g');
   private hoverBar: number | null = null;
-  /** When a size was last told, and whether the last drawing anew took longer than a frame (see resize). */
-  private resizedAt = Number.NEGATIVE_INFINITY;
+  /** Whether the last drawing anew took longer than a frame (see resize). */
   private costly = false;
   /** What is drawn is stretched to a size on the move, to be drawn anew when that comes to rest. */
   private stretched = false;
+  /** While stretched: how far the music is moved along the tape, in what is drawn, to stand under the cursor where it will be drawn anew. */
+  private stretchShift = 0;
   private settling: ReturnType<typeof setTimeout> | undefined;
   /** The tape dragged by hand (see dragBy), or null while it follows the music. */
   private manual: { offset: number; idle: number } | null = null;
@@ -220,8 +221,7 @@ export class SvgStaff implements StaffView {
         : undefined,
     });
     this.currentBeat = 0;
-    this.drawBackground();
-    this.drawStrip();
+    this.redraw();
   }
 
   setHandLabels(labels: Record<Hand, string>): void {
@@ -273,13 +273,11 @@ export class SvgStaff implements StaffView {
   /** Call when the container's size changes. */
   resize(): void {
     const { clientWidth: width, clientHeight: height } = this.container;
-    const now = performance.now();
-    const inARow = now - this.resizedAt < RESIZING_MS;
-    this.resizedAt = now;
-    if (this.stretched || (inARow && this.costly)) {
-      // The size is on the move (a strip of the screen folding away, a window dragged by its edge),
-      // and drawing the whole piece anew takes longer than a frame: what is drawn is stretched to
-      // the new size, which costs nothing, and drawn anew once the size has come to rest.
+    if (this.stretched || (this.costly && (width !== this.geometry.width || height !== this.geometry.height))) {
+      // Drawing the whole piece anew takes longer than a frame, and a size is seldom told alone (a
+      // strip of the screen folding away, a window dragged by its edge): drawn anew at its first step,
+      // the steps after it would be missed. What is drawn is stretched to each new size, which costs
+      // nothing, and drawn anew once the size has come to rest.
       this.stretch(width, height);
       clearTimeout(this.settling);
       this.settling = setTimeout(() => this.settle(), RESIZING_MS);
@@ -293,18 +291,26 @@ export class SvgStaff implements StaffView {
 
   /**
    * Shows what is drawn as it would stand in a view of another size, near enough: larger or smaller
-   * as the staff would be, and in the middle of the height. (Near enough: the bars would be laid
-   * out a little wider or narrower. Drawn anew, they are.)
+   * as the staff would be, in the middle of the height, the music under the cursor where that will
+   * stand, and the tape faded at what will be its ends. (Near enough: the bars would be laid out a
+   * little wider or narrower. Drawn anew, they are.)
    */
   private stretch(width: number, height: number): void {
     const { geometry } = this;
     const by = geometry.spaceFor(width, height) / geometry.space;
-    const down = height / 2 - (by * geometry.height) / 2;
+    // (To a tenth of a pixel: the noise of arithmetic is no move.)
+    const down = Math.round((height / 2 - (by * geometry.height) / 2) * 10) / 10;
+    // The tape is boxed as it will be, in what is drawn: from the left column (stretched with the
+    // rest) to the view's edges. Its fade, and the edge that cuts it, go with the box.
+    const tape = (width - by * geometry.gutterWidth()) / by;
+    this.stretchShift = Math.round(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())) * 10) / 10;
+    this.tape.style.right = `${width - geometry.gutterWidth() - tape}px`;
+    this.tape.style.bottom = `${height - height / by}px`;
+    this.lastOffset = Number.NaN;
+    this.lastCursorLeft = Number.NaN;
     if (!this.stretched) {
       this.stretched = true;
-      // What is drawn reaches past its box while that is smaller than the view: nothing cuts it there.
-      this.tape.style.maskImage = 'none';
-      this.tape.style.setProperty('-webkit-mask-image', 'none');
+      // The left column reaches past its box while that is smaller than the view: nothing cuts it there.
       this.background.style.overflow = 'visible';
     }
     for (const part of [this.background, this.tape, this.cursor]) {
@@ -323,8 +329,11 @@ export class SvgStaff implements StaffView {
       part.style.transform = '';
       part.style.transformOrigin = '';
     }
-    this.tape.style.maskImage = TAPE_FADE;
-    this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
+    this.stretchShift = 0;
+    this.tape.style.right = '0';
+    this.tape.style.bottom = '0';
+    this.lastOffset = Number.NaN;
+    this.lastCursorLeft = Number.NaN;
     this.background.style.overflow = '';
     const { clientWidth: width, clientHeight: height } = this.container;
     if (width === this.geometry.width && height === this.geometry.height) return;
@@ -391,7 +400,7 @@ export class SvgStaff implements StaffView {
     }
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
-    const cursorX = this.manual ? x + this.shownOffset : geometry.cursorX();
+    const cursorX = (this.manual ? x + this.shownOffset : geometry.cursorX()) + this.stretchShift;
     const cursorLeft = Math.round((geometry.gutterWidth() + cursorX - 1) * 10) / 10;
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
@@ -399,7 +408,7 @@ export class SvgStaff implements StaffView {
       this.cursor.style.visibility = cursorX < 0 || cursorX > geometry.width - geometry.gutterWidth() ? 'hidden' : 'visible';
     }
 
-    const offset = Math.round(this.shownOffset * 10) / 10;
+    const offset = Math.round((this.shownOffset + this.stretchShift) * 10) / 10;
     if (offset === this.lastOffset) return;
     this.showAround(offset);
     this.lastOffset = offset;
