@@ -53,6 +53,7 @@ import {
 import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
 import { COLORS, svg } from './staff/svg';
+import { TapeWindow } from './staff/tapeWindow';
 
 /*
  * The staff's parts live in ./staff: where things go (geometry), where the notes reach (ink), and
@@ -94,7 +95,7 @@ const NOTE_SNAP = 1.2;
  *
  * Three layers: staff lines and clefs that never move, the tape with bar lines and notes that
  * slides left, and the cursor on top. The whole tape is built once per score; during playback
- * only its transform changes, which is cheap for the browser.
+ * only its transform changes, and only the stretch of it near the view is shown (see TapeWindow).
  */
 export class SvgStaff implements StaffView {
   private readonly background: SVGSVGElement;
@@ -105,6 +106,7 @@ export class SvgStaff implements StaffView {
 
   private readonly geometry = new StaffGeometry();
   private readonly ink = new StaffInk(this.geometry);
+  private readonly nearView = new TapeWindow();
 
   private score: Score | null = null;
   private loop: TimeRange | null = null;
@@ -399,6 +401,7 @@ export class SvgStaff implements StaffView {
 
     const offset = Math.round(this.shownOffset * 10) / 10;
     if (offset === this.lastOffset) return;
+    this.showAround(offset);
     this.lastOffset = offset;
     this.strip.setAttribute('transform', `translate(${offset} 0)`);
   }
@@ -571,7 +574,17 @@ export class SvgStaff implements StaffView {
     restLayer.append(...drawTempoMarks(context, brackets, barNumbers.y));
 
     this.strip.append(restLayer, ...this.chordElements, ...this.graceElements, beamLayer);
+    // The shades behind the music are few, and always shown; the layers are shown shape by shape.
+    const always = new Set<Element>([this.overlay, this.loopLayer, restLayer, beamLayer]);
+    this.nearView.measure([...this.strip.children, ...restLayer.children, ...beamLayer.children].filter((shape) => !always.has(shape)) as SVGGraphicsElement[]);
+    if (!Number.isNaN(this.shownOffset)) this.showAround(this.shownOffset);
     this.lastOffset = Number.NaN;
+  }
+
+  /** Shows the tape near the view, the strip drawn `offset` pixels along. */
+  private showAround(offset: number): void {
+    const { geometry } = this;
+    this.nearView.view(-offset, geometry.width - geometry.gutterWidth());
   }
 
   /**

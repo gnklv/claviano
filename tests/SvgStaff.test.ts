@@ -392,3 +392,41 @@ describe('a staff whose size is on the move', () => {
   });
 });
 
+
+describe('a piece many screens long', () => {
+  beforeEach(() => {
+    // The test DOM lays nothing out: a shape is taken to stand where its first written place is.
+    vi.spyOn(SVGGraphicsElement.prototype, 'getBBox').mockImplementation(function (this: SVGGraphicsElement) {
+      const placed = [this, ...this.querySelectorAll('*')].find((shape) => shape.hasAttribute('x'));
+      const x = Number(placed?.getAttribute('x') ?? 0);
+      return { x, y: 0, width: placed ? 1 : 0, height: placed ? 1 : 0 } as DOMRect;
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  const signs = (container: HTMLElement) =>
+    [...container.children[1].querySelectorAll('text')]
+      .map((text) => ({ x: Number(text.getAttribute('x')), shown: !text.closest('[style*="display: none"]') }))
+      .sort((a, b) => a.x - b.x);
+
+  it('shows the tape near the view only, and more of it as the music moves on', () => {
+    const score = showcase();
+    const { staff, container } = drawStaff(score, { width: 800, height: 300 });
+    /** The signs within the first 400 pixels of the view. */
+    const inView = () => {
+      const left = -Number(/translate\(([-\d.]+)/.exec(container.children[1].querySelector('svg > g')!.getAttribute('transform')!)![1]);
+      return signs(container).filter((sign) => sign.x >= left && sign.x < left + 400);
+    };
+    expect(inView().length).toBeGreaterThan(0);
+    expect(inView().every((sign) => sign.shown)).toBe(true);
+    expect(signs(container).at(-1)!.shown).toBe(false);
+
+    // Halfway through. (A leap so far is glided over: a second of frames, on a clock set by hand.)
+    let time = performance.now();
+    vi.spyOn(performance, 'now').mockImplementation(() => (time += 100));
+    for (let frame = 0; frame < 10; frame++) staff.render(score.duration / 2);
+    expect(inView().length).toBeGreaterThan(0);
+    expect(inView().every((sign) => sign.shown)).toBe(true);
+    expect(signs(container).filter((sign) => sign.x < 400).some((sign) => sign.shown)).toBe(false);
+  });
+});

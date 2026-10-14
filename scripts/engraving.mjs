@@ -38,6 +38,8 @@ function scan() {
   const staff = document.querySelector('.staff');
   const tape = staff.children[1].querySelector('svg');
   const view = staff.getBoundingClientRect();
+  // The page shows only the tape near the view: the whole of it is shown to be read.
+  for (const hidden of tape.querySelectorAll('[style*="display"]')) hidden.style.display = '';
   const canvas = document.createElement('canvas').getContext('2d');
   const name = (text) => [...text].map((c) => (c.codePointAt(0) >= 0xe000 ? `U+${c.codePointAt(0).toString(16).toUpperCase()}` : c)).join('');
   const signs = [...tape.querySelectorAll('text')].flatMap((text) => {
