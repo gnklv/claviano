@@ -23,7 +23,10 @@ const spelled = (text: string): string => [...text].map((c) => (c.codePointAt(0)
 
 /** One line for each element drawn, nested as in the drawing: its tag, attributes, paint and text. */
 export function drawing(element: Element, depth = 0): string {
+  // (What is drawn, whether or not it is shown now: the tape far from the view is hidden.)
   const attributes = [...element.attributes]
+    .map((attribute) => ({ name: attribute.name, value: attribute.name === 'style' ? attribute.value.replace(/ ?display: none;/, '') : attribute.value }))
+    .filter((attribute) => attribute.value !== '')
     .map((attribute) => `${attribute.name}="${rounded(attribute.value)}"`)
     .sort()
     .join(' ');

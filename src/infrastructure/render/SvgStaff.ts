@@ -576,8 +576,10 @@ export class SvgStaff implements StaffView {
     this.strip.append(restLayer, ...this.chordElements, ...this.graceElements, beamLayer);
     // The shades behind the music are few, and always shown; the layers are shown shape by shape.
     const always = new Set<Element>([this.overlay, this.loopLayer, restLayer, beamLayer]);
-    this.nearView.measure([...this.strip.children, ...restLayer.children, ...beamLayer.children].filter((shape) => !always.has(shape)) as SVGGraphicsElement[]);
-    if (!Number.isNaN(this.shownOffset)) this.showAround(this.shownOffset);
+    this.nearView.measure([...this.strip.children, ...restLayer.children, ...beamLayer.children].filter((shape) => !always.has(shape)) as SVGElement[]);
+    // Hidden before the browser first lays them out: around where the tape will stand for the music.
+    const target = geometry.cursorX() - geometry.px(barPosition(score, this.lastPosition));
+    this.showAround(this.manual?.offset ?? target + this.lag);
     this.lastOffset = Number.NaN;
   }
 

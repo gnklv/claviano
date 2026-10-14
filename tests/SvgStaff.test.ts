@@ -395,14 +395,6 @@ describe('a staff whose size is on the move', () => {
 
 
 describe('a piece many screens long', () => {
-  beforeEach(() => {
-    // The test DOM lays nothing out: a shape is taken to stand where its first written place is.
-    vi.spyOn(SVGGraphicsElement.prototype, 'getBBox').mockImplementation(function (this: SVGGraphicsElement) {
-      const placed = [this, ...this.querySelectorAll('*')].find((shape) => shape.hasAttribute('x'));
-      const x = Number(placed?.getAttribute('x') ?? 0);
-      return { x, y: 0, width: placed ? 1 : 0, height: placed ? 1 : 0 } as DOMRect;
-    });
-  });
   afterEach(() => vi.restoreAllMocks());
 
   const signs = (container: HTMLElement) =>
