@@ -95,7 +95,8 @@ const NOTE_SNAP = 1.2;
  *
  * Three layers: staff lines and clefs that never move, the tape with bar lines and notes that
  * slides left, and the cursor on top. The whole tape is built once per score; during playback
- * only its transform changes, and only the stretch of it near the view is shown (see TapeWindow).
+ * it is only moved, as a layer of its own that the browser slides without drawing it again, and
+ * only the stretch of it near the view is shown (see TapeWindow).
  */
 export class SvgStaff implements StaffView {
   private readonly background: SVGSVGElement;
@@ -174,7 +175,8 @@ export class SvgStaff implements StaffView {
     this.tape.style.maskImage = TAPE_FADE;
     this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
     this.tapeSvg = svg('svg');
-    Object.assign(this.tapeSvg.style, { display: 'block', width: '100%', height: '100%' });
+    // The tape reaches past its box, as far as the piece goes: the fade at its ends cuts it to the view.
+    Object.assign(this.tapeSvg.style, { display: 'block', width: '100%', height: '100%', overflow: 'visible', willChange: 'transform' });
     this.strip = svg('g');
     this.tapeSvg.append(this.strip);
     this.tape.append(this.tapeSvg);
@@ -242,7 +244,7 @@ export class SvgStaff implements StaffView {
     if (!score || score.notes.length === 0) return null;
     const { geometry, ink } = this;
     const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
-    const px = clientX - this.tapeSvg.getBoundingClientRect().left - offset;
+    const px = clientX - this.tape.getBoundingClientRect().left - offset;
     const place = geometry.pageAt(px);
     if (!place) return null;
     const snap = NOTE_SNAP * geometry.space;
@@ -303,7 +305,6 @@ export class SvgStaff implements StaffView {
       // What is drawn reaches past its box while that is smaller than the view: nothing cuts it there.
       this.tape.style.maskImage = 'none';
       this.tape.style.setProperty('-webkit-mask-image', 'none');
-      this.tapeSvg.style.overflow = 'visible';
       this.background.style.overflow = 'visible';
     }
     for (const part of [this.background, this.tape, this.cursor]) {
@@ -324,7 +325,6 @@ export class SvgStaff implements StaffView {
     }
     this.tape.style.maskImage = TAPE_FADE;
     this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
-    this.tapeSvg.style.overflow = '';
     this.background.style.overflow = '';
     const { clientWidth: width, clientHeight: height } = this.container;
     if (width === this.geometry.width && height === this.geometry.height) return;
@@ -403,7 +403,7 @@ export class SvgStaff implements StaffView {
     if (offset === this.lastOffset) return;
     this.showAround(offset);
     this.lastOffset = offset;
-    this.strip.setAttribute('transform', `translate(${offset} 0)`);
+    this.tapeSvg.style.transform = `translateX(${offset}px)`;
   }
 
   /**

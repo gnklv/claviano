@@ -108,12 +108,13 @@ describe('SvgStaff', () => {
     it('moves the tape with the music, and leaves it alone while the music stands still', () => {
       const score = ode();
       const { staff, container } = drawStaff(score);
-      const strip = container.querySelectorAll('svg')[1].firstElementChild!;
-      const start = strip.getAttribute('transform');
+      const tape = container.querySelectorAll('svg')[1];
+      const start = tape.style.transform;
+      expect(start).toMatch(/^translateX\(/);
       staff.render(0);
-      expect(strip.getAttribute('transform')).toBe(start);
+      expect(tape.style.transform).toBe(start);
       staff.render(score.duration / 2);
-      expect(strip.getAttribute('transform')).not.toBe(start);
+      expect(tape.style.transform).not.toBe(start);
     });
   });
 
@@ -414,7 +415,7 @@ describe('a piece many screens long', () => {
     const { staff, container } = drawStaff(score, { width: 800, height: 300 });
     /** The signs within the first 400 pixels of the view. */
     const inView = () => {
-      const left = -Number(/translate\(([-\d.]+)/.exec(container.children[1].querySelector('svg > g')!.getAttribute('transform')!)![1]);
+      const left = -Number(/translateX\(([-\d.]+)/.exec(container.children[1].querySelector('svg')!.style.transform)![1]);
       return signs(container).filter((sign) => sign.x >= left && sign.x < left + 400);
     };
     expect(inView().length).toBeGreaterThan(0);

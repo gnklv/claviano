@@ -18,8 +18,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
     text font-family="Bravura" font-size="34.78" style="fill: var(--ink);" text-anchor="middle" x="44.35" y="173.91" U+E084
     text font-family="Bravura" font-size="34.78" style="fill: var(--ink);" text-anchor="middle" x="44.35" y="191.3" U+E084
   DIV style="position: absolute; top: 0px; bottom: 0px; right: 0px; mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%); left: 93.91px;"
-    svg style="display: block; width: 100%; height: 100%;"
-      g transform="translate(279 0)"
+    svg style="display: block; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(279px);"
+      g
         g
         g
         line stroke-width="1" style="stroke: var(--bar-line);" x1="-12.17" x2="-12.17" y1="78.26" y2="200"
