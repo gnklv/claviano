@@ -365,6 +365,10 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     const mark = score.notation.tempoMarks.find((tempo) => Math.abs(tempo.beat - beat) < 1e-6);
     const width = here.reduce((sum, w) => sum + wordsWidth(w.text, true, space) + WORDS_GAP * space, 0) + (mark ? 5 * space : 0);
     let y = lineY(left, left + Math.max(width, 5 * space));
+    // Over a bar number further along the line, which the words and the mark would run into (a
+    // pickup's tempo reaching into the first full bar's number).
+    const crossed = numbers.find((number) => number.left > left + space && number.left < left + width && Math.abs(number.y - y) < WORDS_LINE * space);
+    if (crossed) y = Math.min(y, crossed.y - WORDS_LINE * space);
     // Tempo marks close together (a written-out ritardando) step up, each over the one before it.
     const before = standing.at(-1);
     if (before && left < before.right + WORDS_GAP * space && Math.abs(before.y - y) < WORDS_LINE * space) y = before.y - WORDS_LINE * space;

@@ -11,7 +11,7 @@ import { graceWidth } from './graces';
  */
 
 /** An accidental before a head, with the gap to it. */
-const ACCIDENTAL = 1.4;
+const ACCIDENTAL = 1.6;
 /** A dot after a head, with the gap to it. */
 const DOT = 0.75;
 /** The flag of a note that is not beamed, on an up-stem: it hangs to the right of the head. */

@@ -52,3 +52,29 @@ describe('slur', () => {
     expect(capped.height).toBe(40);
   });
 });
+
+describe('a slur bulging towards the other staff', () => {
+  // A long slur under a run on the upper staff: from (0, 100) to (1000, 160), in a staff of 10px spaces.
+  const under = (limits: { x: number; y: number }[] = []) => slur({ x1: 0, y1: 100, x2: 1000, y2: 160, above: false, space: 10, limits });
+
+  it('bulges as deep as a slur that long may, with nothing in its way', () => {
+    expect(under().height).toBe(40);
+  });
+
+  it('is flatter where notes of the other staff stand under it, and does not reach them', () => {
+    // A note of the lower staff 20px under the straight line, at the middle.
+    const shape = under([{ x: 500, y: 150 }]);
+    expect(shape.height).toBeLessThan(40);
+    // At the middle the curve stands its height off the line: clear of that note by a clearance.
+    expect(130 + shape.height).toBeLessThanOrEqual(150 - 8 + 1e-9);
+  });
+
+  it('keeps a little curve even where the other staff leaves no room at all', () => {
+    expect(under([{ x: 500, y: 120 }]).height).toBe(8);
+  });
+
+  it('heeds no note beyond its ends', () => {
+    expect(under([{ x: -50, y: 101 }, { x: 1050, y: 161 }]).height).toBe(40);
+  });
+});
+

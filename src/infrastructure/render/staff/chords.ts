@@ -32,6 +32,8 @@ const BRACKET_GAP = 0.08;
 const BRACKET_ROOM = 0.55;
 /** A fingering in the text font ("2-1") is this tall, in staff spaces; the music font's numbers are drawn to match. */
 const FINGERING_SIZE = 1.5;
+/** How wide one character of a fingering is, in staff spaces. */
+const FINGERING_WIDTH = 0.9;
 /** Beams: thickness, distance between stacked beams, stub length for a lone shorter note. */
 const BEAM_THICKNESS = 0.5;
 const BEAM_SPACING = 0.75;
@@ -332,6 +334,11 @@ export function drawFingering({ geometry: { space }, ink }: StaffContext, finger
   number.setAttribute('text-anchor', 'middle');
   // A hint is paler than a finger the notes themselves give.
   if (fingering.hint) number.setAttribute('opacity', String(HINT_OPACITY));
+  // Ink of its staff: a bar number, a word or a dynamic set later keeps clear of it.
+  const chord = ink.chord(fingering.chord);
+  const width = Math.max(1, fingering.text.length) * FINGERING_WIDTH * space;
+  const foot = yOf(fingering.step) + (fingering.above ? 0 : FINGERING_SIZE * space);
+  ink.add({ staff: chord.staff, left: left + headWidth / 2 - width / 2, right: left + headWidth / 2 + width / 2, top: foot - FINGERING_SIZE * space, bottom: foot });
   return number;
 }
 
@@ -361,6 +368,20 @@ export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: Sta
   };
   const start = outerPoint(phrase.from);
   const end = outerPoint(phrase.to);
+  // Bulging towards the other staff (under the upper one, over the lower one): its notes there are not to be reached.
+  const staff = ink.chord(phrase.from).staff;
+  const other = staff === 'treble' ? 'bass' : 'treble';
+  const towardsOther = phrase.above === (staff === 'bass');
+  const limits = towardsOther
+    ? ink.within(other, start.x, end.x).map((index) => {
+        const chord = ink.chord(index);
+        const g = ink.of(chord);
+        const stemmed = chord.duration.value !== 'whole';
+        // The near edge of that chord: its highest head (or up-stem's end) for the lower staff, its lowest for the upper one.
+        const near = other === 'bass' ? Math.min(g.highest - space / 2, stemmed && chord.stemUp ? ink.stemEnd(index) : Infinity) : Math.max(g.lowest + space / 2, stemmed && !chord.stemUp ? ink.stemEnd(index) : -Infinity);
+        return { x: g.left + g.headWidth / 2, y: near };
+      })
+    : [];
   const shape = slur({
     x1: start.x,
     y1: start.y,
@@ -369,6 +390,7 @@ export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: Sta
     above: phrase.above,
     space,
     obstacles: phrase.between.map(outerPoint),
+    limits,
   });
   return svg('path', { d: shape.path, fill: 'currentColor' });
 }

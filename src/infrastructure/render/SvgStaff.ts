@@ -207,7 +207,13 @@ export class SvgStaff implements StaffView {
     this.geometry.setScore(score, {
       graceRoom: graceRoom(score, layout.graces, layout.chords),
       columns: score ? columnsOf(score, layout) : [],
-      reach: score ? reachOf(layout, { pedal: score.pedal.length > 0, words: score.notation.words.length > 0 || score.notation.tempoMarks.length > 0 }) : undefined,
+      reach: score
+        ? reachOf(layout, {
+            pedal: score.pedal.length > 0,
+            words: score.notation.words.length > 0 || score.notation.tempoMarks.length > 0,
+            dynamics: score.notation.dynamics.length > 0,
+          })
+        : undefined,
     });
     this.currentBeat = 0;
     this.drawBackground();

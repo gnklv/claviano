@@ -154,8 +154,10 @@ the Pink Panther, Golden Hour), a step looked at before the next:
 
 `npm run engraving -- <piece>` counts, in a real browser, the signs that lie on one another or fall
 outside the view, and photographs bars: the four pieces went from 165 and 168 to 10 and 4.
-Left: a slur across a long run still passes through its notes; one dynamic of the csárdás stands
-12 px under the view.
+Then the tails: a slur that bulges towards the other staff keeps clear of that staff's notes (it is
+flatter); a fingering is ink that bar numbers and words clear; a tempo line steps over a bar number
+it would run into; room under the lower staff for the pedal and dynamics, so that nothing is cut off.
+Left: a slur under a run that goes down to the lower staff can still touch a stem there.
 
 8. [ ] A tempo trainer: a loop that quickens by itself, a little each time round, from the tempo it
        is begun at to the piece's own
@@ -197,8 +199,8 @@ Small things noticed, to fix between the steps:
       To come back to: a studio recording of a woodblock or of a mechanical metronome, cut to
       the sample (scripts/metronome.ts)
 - [ ] Fingering hints are on the staff only: the falling notes do not show them
-- [ ] A fingering over a bar's first note can run into the bar's number
-- [ ] Words over the staff run into each other where two stand at one place ("Values" over the
+- [x] A fingering over a bar's first note can run into the bar's number
+- [x] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)
 - [ ] On a phone held upright the staff takes less than half the height: it is sized by the width
       (two bars and a bit in sight), and a piece that reaches far makes it smaller still

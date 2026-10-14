@@ -45,6 +45,11 @@ export interface SlurOptions {
   readonly space: number;
   /** Points the slur must pass clear of (noteheads, stem ends between its ends). */
   readonly obstacles?: readonly { readonly x: number; readonly y: number }[];
+  /**
+   * Points it must not reach, on the side it bulges to: the notes of the other staff, which a slur
+   * under a long run down the upper staff would otherwise sink into. They make it flatter.
+   */
+  readonly limits?: readonly { readonly x: number; readonly y: number }[];
 }
 
 /** Slurs span phrases, so they may bulge more than ties, and must clear the notes they cover. */
@@ -57,7 +62,7 @@ const SLUR_CLEARANCE = 0.8;
  * A phrasing slur: like a tie, but its ends may sit at different heights, and it rises (or sinks)
  * as far as needed to pass clear of every obstacle between them.
  */
-export function slur({ x1, y1, x2, y2, above, space, obstacles = [] }: SlurOptions): ArcShape {
+export function slur({ x1, y1, x2, y2, above, space, obstacles = [], limits = [] }: SlurOptions): ArcShape {
   const length = Math.max(1, x2 - x1);
   const sign = above ? -1 : 1;
   const lineY = (x: number) => y1 + ((y2 - y1) * (x - x1)) / length;
@@ -68,6 +73,13 @@ export function slur({ x1, y1, x2, y2, above, space, obstacles = [] }: SlurOptio
     height = Math.max(height, beyond + SLUR_CLEARANCE * space);
   }
   height = Math.min(height, SLUR_MAX_HEIGHT * space);
+  for (const point of limits) {
+    // The curve stands 4t(1−t) of its height off the straight line at a share t of its way.
+    const t = (point.x - x1) / length;
+    if (t <= 0 || t >= 1) continue;
+    const room = sign * (point.y - lineY(point.x)) - SLUR_CLEARANCE * space;
+    height = Math.min(height, Math.max(SLUR_MIN_HEIGHT * space, room / (4 * t * (1 - t))));
+  }
   return crescent(x1, y1, x2, y2, height, THICKNESS * space, above);
 }
 

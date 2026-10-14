@@ -18,17 +18,22 @@ const BEYOND_A_HEAD = 7;
 const BEYOND_A_TIP = 3;
 /** Words and the tempo stand over everything else of the upper staff: a space more above. */
 const WORDS = 2;
-/** The pedal's signs stand under everything else of the lower staff: a space and a half more below. */
-const PEDAL = 3;
+/**
+ * The pedal's signs stand under everything else of the lower staff: two spaces and a half more
+ * below. Dynamics pushed under the lower staff stand there too, over the pedal: a space and a half.
+ * (Tuned on Golden Hour and the csárdás, whose lowest notes have both under them.)
+ */
+const PEDAL = 5;
+const DYNAMICS = 3;
 
 /**
  * In staff steps (half spaces): how much room the piece needs above the upper staff's top line,
  * and below the lower staff's bottom line, for all of it to be seen. Never less than nothing.
- * `has`: what else the piece has that stands outermost: words above, the pedal's signs below.
+ * `has`: what else the piece has that stands outermost: words above, the pedal's signs and dynamics below.
  */
-export function reachOf(layout: NotationLayout, has: { pedal?: boolean; words?: boolean } = {}): { above: number; below: number } {
+export function reachOf(layout: NotationLayout, has: { pedal?: boolean; words?: boolean; dynamics?: boolean } = {}): { above: number; below: number } {
   const over = has.words ? WORDS : 0;
-  const under = has.pedal ? PEDAL : 0;
+  const under = (has.pedal ? PEDAL : 0) + (has.dynamics ? DYNAMICS : 0);
   let above = 0;
   let below = 0;
   /** `top` and `bottom`: the steps it reaches to on its staff, room beyond it counted in. */

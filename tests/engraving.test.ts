@@ -664,7 +664,7 @@ describe('how far a piece reaches beyond its staves', () => {
       ledgerSteps: [],
     }) satisfies StaffChord;
   const EMPTY = { octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
-  const reach = (chords: StaffChord[], has?: { pedal?: boolean; words?: boolean }) => reachOf({ ...EMPTY, chords }, has);
+  const reach = (chords: StaffChord[], has?: { pedal?: boolean; words?: boolean; dynamics?: boolean }) => reachOf({ ...EMPTY, chords }, has);
 
   it('is no more than the room there always is, for music within the staves and a little beyond', () => {
     // In steps: ten of them are the five spaces a staff always has over and under it.
@@ -685,9 +685,10 @@ describe('how far a piece reaches beyond its staves', () => {
     expect(reach([chord([-2], 'treble', true, 'whole')]).above).toBe(9);
   });
 
-  it('is more under a piece with the pedal, and over one with words', () => {
+  it('is more under a piece with the pedal or dynamics, and over one with words', () => {
     const low = [chord([16], 'bass', true)];
-    expect(reach(low, { pedal: true }).below).toBe(reach(low).below + 3);
+    expect(reach(low, { pedal: true }).below).toBe(reach(low).below + 5);
+    expect(reach(low, { pedal: true, dynamics: true }).below).toBe(reach(low).below + 8);
     const high = [chord([-8], 'treble', false)];
     expect(reach(high, { words: true }).above).toBe(reach(high).above + 2);
   });
