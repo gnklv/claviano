@@ -99,7 +99,8 @@ One rule: the first row never hides, the third never takes room on the stage.
 - **A phone upright:** the bar has play, tempo and loop; the rest is in a sheet that slides up from
   the bottom. "Both" does not fit this height: the staff or the keys.
 - **A phone on its side:** the best way to see a keyboard. The header and the bar shrink to thin
-  strips and hide while the music plays; a touch brings them back.
+  strips and hide while the music plays; a touch brings them back. The falling notes take the room
+  they leave; the staff keeps its size, in the middle of it (laid out anew, it would jolt).
 - **The computer's keyboard** stays (Space, the arrows by bars), with keys for tempo and the loop
   to add.
 

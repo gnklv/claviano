@@ -12,7 +12,7 @@ import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePieceText } from '../composables/usePieceText';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useShownViewMode } from '../composables/useViewMode';
-import { computed } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useDeps } from '../deps';
 
 /* Learning a piece: the stage (the staff, the falling notes, or both) with the transport under it. */
@@ -29,11 +29,31 @@ const { immersed, wake } = useImmersion(
   useMediaQuery(SHORT_SCREEN),
   computed(() => state.value.playing),
 );
+
+/*
+ * While they are away the staff keeps the height it had beside them, in the middle of the room they
+ * leave, as the falling notes keep the size of their keys: a staff of another height is laid out
+ * anew, and that is seen as a jolt. It is let go once they are back in place.
+ */
+const stage = useTemplateRef<HTMLElement>('stage');
+const staffHeight = ref<number | null>(null);
+watch(
+  immersed,
+  (on) => {
+    const height = stage.value?.querySelector<HTMLElement>('.staff')?.clientHeight ?? 0;
+    if (on && height > 0) staffHeight.value = height;
+  },
+  // (Measured before the strips start to go.)
+  { flush: 'pre' },
+);
+const stripsSettled = () => {
+  if (!immersed.value) staffHeight.value = null;
+};
 </script>
 
 <template>
   <div class="piece" :class="{ immersed }" @pointerdown.capture="wake">
-    <div class="strip">
+    <div class="strip" @transitionend.self="stripsSettled" @transitioncancel.self="stripsSettled">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
         <ScreenHeader class="bar" back :alert="!!error" @back="emit('back')">
@@ -49,8 +69,8 @@ const { immersed, wake } = useImmersion(
       </div>
     </div>
 
-    <main class="stage" :class="`view-${viewMode}`">
-      <StaffView v-if="viewMode !== 'keys'" class="view staff" />
+    <main ref="stage" class="stage" :class="`view-${viewMode}`">
+      <StaffView v-if="viewMode !== 'keys'" class="view staff" :class="{ held: staffHeight }" :style="staffHeight ? { height: `${staffHeight}px` } : undefined" />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" />
       <CountInOverlay />
       <InstrumentNotice />
@@ -58,7 +78,7 @@ const { immersed, wake } = useImmersion(
       <div v-if="immersed" class="waker" />
     </main>
 
-    <div class="strip">
+    <div class="strip" @transitionend.self="stripsSettled" @transitioncancel.self="stripsSettled">
       <div class="fold">
         <TransportBar />
       </div>
@@ -154,6 +174,15 @@ const { immersed, wake } = useImmersion(
 
 .view {
   min-height: 0;
+}
+
+.held {
+  align-self: center;
+}
+
+/* (The room around a staff held in the middle is its paper too.) */
+.stage:has(.held) {
+  background: var(--surface);
 }
 
 .view-both .staff {

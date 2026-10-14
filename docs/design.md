@@ -139,7 +139,7 @@ Three kinds of screen are told apart, by name (`ui/composables/useMediaQuery.ts`
 - **narrow** (under 600px wide): a phone held upright. One column; what is set once a session goes
   into a sheet.
 - **short** (under 500px high): a phone on its side. Every pixel of height is the music's: the
-  strips fold away while it plays.
+  strips fold away while it plays, and the staff holds its size while they do.
 - **under a finger** (`pointer: coarse`, or narrow): pressable things grow to 44px.
 
 A layout that needs another width says why, beside the number.

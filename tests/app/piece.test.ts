@@ -279,6 +279,24 @@ describe('a phone on its side', () => {
     expect(immersed()).toBe(false);
   });
 
+  it('keeps the staff as tall as it was beside them, until they are back in place', async () => {
+    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.textContent?.trim() === 'Notes')!.click();
+    await nextTick();
+    const staff = root.querySelector<HTMLElement>('.staff')!;
+    Object.defineProperty(staff, 'clientHeight', { get: () => 200, configurable: true });
+    press('Space');
+    await vi.advanceTimersByTimeAsync(3100);
+    expect(immersed()).toBe(true);
+    expect(staff.style.height).toBe('200px');
+
+    touch('.waker');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(staff.style.height).toBe('200px');
+    root.querySelector('.strip')!.dispatchEvent(new Event('transitionend'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(staff.style.height).toBe('');
+  });
+
   it('does not take them from under an open panel', async () => {
     press('Space');
     await vi.advanceTimersByTimeAsync(0);

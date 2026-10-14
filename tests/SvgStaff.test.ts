@@ -371,7 +371,7 @@ describe('a staff whose size is on the move', () => {
     staff.resize();
     const drawn = firstNote(container);
 
-    // A strip of the screen folding away: a new size at every frame.
+    // A window dragged by its edge: a new size at every frame.
     for (const height of [270, 240, 210, 200]) {
       size.height = height;
       staff.resize();

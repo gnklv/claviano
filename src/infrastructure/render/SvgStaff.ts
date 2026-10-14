@@ -275,7 +275,7 @@ export class SvgStaff implements StaffView {
     const { clientWidth: width, clientHeight: height } = this.container;
     if (this.stretched || (this.costly && (width !== this.geometry.width || height !== this.geometry.height))) {
       // Drawing the whole piece anew takes longer than a frame, and a size is seldom told alone (a
-      // strip of the screen folding away, a window dragged by its edge): drawn anew at its first step,
+      // window dragged by its edge, a browser's bars sliding away on a phone): drawn anew at its first step,
       // the steps after it would be missed. What is drawn is stretched to each new size, which costs
       // nothing, and drawn anew once the size has come to rest.
       this.stretch(width, height);
