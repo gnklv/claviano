@@ -41,10 +41,10 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="2110.23" y="47.5" 6
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="2534.77" y="47.5" 7
           text font-family="system-ui, sans-serif" font-size="13.75" style="fill: var(--bar-number);" x="2959.32" y="47.5" 8
-        g style="color: var(--left);"
+        g style="color: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="193.75" U+E0A2
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="218.75" U+E0A2
-        g style="color: var(--right);"
+        g style="color: var(--ink);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-7.37" y="112.5" U+E0A4
           line stroke-width="1.5" style="stroke: currentColor;" x1="6.63" x2="6.63" y1="110.38" y2="68.75"
         g style="color: var(--ink);"
@@ -171,4 +171,11 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="3176.72" y="125" U+E0A3
           line stroke-width="1.5" style="stroke: currentColor;" x1="3190.72" x2="3190.72" y1="122.88" y2="81.25"
         g style="color: var(--ink);"
+    svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(280.2px);"
+      g style="color: var(--left);"
+        text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="193.75" U+E0A2
+        text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="218.75" U+E0A2
+      g style="color: var(--right);"
+        text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-7.37" y="112.5" U+E0A4
+        line stroke-width="1.5" style="stroke: currentColor;" x1="6.63" x2="6.63" y1="110.38" y2="68.75"
   DIV style="position: absolute; width: 2px; background: var(--cursor); border-radius: 1px; left: 369.2px; top: 37.5px; height: 225px; visibility: visible;"

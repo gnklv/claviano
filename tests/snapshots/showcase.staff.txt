@@ -207,7 +207,7 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="11.3" font-style="italic" style="fill: var(--ink);" x="9479.03" y="48.7" rit.
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="11.3" font-style="italic" style="fill: var(--ink);" x="9783.28" y="48.7" Repeats
           text font-family="'Playfair Display', 'Times New Roman', Georgia, serif" font-size="11.3" font-style="italic" style="fill: var(--ink);" x="9763.28" y="33.04" a tempo
-        g style="color: var(--right);"
+        g style="color: var(--ink);"
           text font-family="Bravura" font-size="34.78" style="fill: currentColor;" x="-5.13" y="104.35" U+E0A4
           line stroke-width="1.04" style="stroke: currentColor;" x1="4.61" x2="4.61" y1="102.87" y2="73.91"
         g style="color: var(--ink);"
@@ -1077,4 +1077,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           polyline points="1565.8,144.35 1619.33,144.35 1619.33,151.3" stroke-width="1.04" style="stroke: currentColor; fill: none;"
           path d="M 5175.3 76.52 C 5207.91 48.04 5273.13 32.83 5305.74 46.09 C 5273.13 35.38 5207.91 50.59 5175.3 76.52 Z" style="fill: currentColor;"
           path d="M 5175.3 210.43 C 5262.26 255.72 5436.17 253.55 5523.13 206.09 C 5436.17 251 5262.26 253.17 5175.3 210.43 Z" style="fill: currentColor;"
+    svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(279px);"
+      g style="color: var(--right);"
+        text font-family="Bravura" font-size="34.78" style="fill: currentColor;" x="-5.13" y="104.35" U+E0A4
+        line stroke-width="1.04" style="stroke: currentColor;" x1="4.61" x2="4.61" y1="102.87" y2="73.91"
   DIV style="position: absolute; width: 2px; background: var(--cursor); border-radius: 1px; left: 371.9px; top: 60.87px; height: 156.52px; visibility: visible;"

@@ -39,7 +39,8 @@ describe('SvgStaff', () => {
   it('draws nothing but the staves without a piece, and does not mind being asked about it', () => {
     for (const score of [null, EMPTY_SCORE]) {
       const { staff, container } = drawStaff(score);
-      expect(container.querySelectorAll('svg').length).toBe(2);
+      // The staves and their clefs; the tape; the chords lit over it.
+      expect(container.querySelectorAll('svg').length).toBe(3);
       expect(lit(container)).toEqual([]);
       expect(staff.pageAt(500)).toBeNull();
       staff.setHover(0);
@@ -56,6 +57,7 @@ describe('SvgStaff', () => {
     staff.setScore(showcase());
     expect(container.querySelectorAll('svg *').length).toBeGreaterThan(odeElements);
     staff.setScore(ode());
+    staff.render(0);
     expect(container.querySelectorAll('svg *').length).toBe(odeElements);
   });
 
@@ -229,6 +231,7 @@ describe('SvgStaff', () => {
     size.height = 200;
     staff.resize();
     expect(staffLine().getAttribute('x2')).toBe('1200');
+    staff.render(0);
     expect(container.querySelectorAll('svg *').length).toBe(elements);
   });
 

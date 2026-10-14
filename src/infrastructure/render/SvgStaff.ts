@@ -102,6 +102,8 @@ export class SvgStaff implements StaffView {
   private readonly background: SVGSVGElement;
   private readonly tape: HTMLDivElement;
   private readonly tapeSvg: SVGSVGElement;
+  /** Over the tape, moving with it: the sounding chords, lit (see highlight). */
+  private readonly litSvg: SVGSVGElement;
   private readonly strip: SVGGElement;
   private readonly cursor: HTMLDivElement;
 
@@ -138,11 +140,11 @@ export class SvgStaff implements StaffView {
   private fingerings: StaffFingering[] = [];
   private chordElements: SVGGElement[] = [];
   private graceElements: SVGGElement[] = [];
-  /** Grace notes currently highlighted. */
-  private readonly litGraces = new Set<number>();
+  /** Grace notes currently highlighted, and their lit copies. */
+  private readonly litGraces = new Map<number, SVGElement>();
   private longestChord = 0;
-  /** Chords currently highlighted in their hand's color. */
-  private readonly lit = new Set<number>();
+  /** Chords currently highlighted in their hand's color, and their lit copies. */
+  private readonly lit = new Map<number, SVGElement>();
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   private handLabels: Record<Hand, string> = { right: 'R.H.', left: 'L.H.' };
   /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
@@ -180,7 +182,9 @@ export class SvgStaff implements StaffView {
     Object.assign(this.tapeSvg.style, { display: 'block', width: '100%', height: '100%', overflow: 'visible', willChange: 'transform' });
     this.strip = svg('g');
     this.tapeSvg.append(this.strip);
-    this.tape.append(this.tapeSvg);
+    this.litSvg = svg('svg');
+    Object.assign(this.litSvg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', overflow: 'visible', willChange: 'transform' });
+    this.tape.append(this.tapeSvg, this.litSvg);
 
     this.cursor = document.createElement('div');
     Object.assign(this.cursor.style, { position: 'absolute', width: '2px', background: COLORS.cursor, borderRadius: '1px' });
@@ -412,7 +416,7 @@ export class SvgStaff implements StaffView {
     if (offset === this.lastOffset) return;
     this.showAround(offset);
     this.lastOffset = offset;
-    this.tapeSvg.style.transform = `translateX(${offset}px)`;
+    this.tapeSvg.style.transform = this.litSvg.style.transform = `translateX(${offset}px)`;
   }
 
   /**
@@ -526,6 +530,7 @@ export class SvgStaff implements StaffView {
     this.strip.replaceChildren();
     this.lit.clear();
     this.litGraces.clear();
+    this.litSvg.replaceChildren();
     this.chordElements = [];
     this.graceElements = [];
     const score = this.score;
@@ -601,6 +606,10 @@ export class SvgStaff implements StaffView {
   /**
    * Colors the chords sounding at `beat` (along the page) in their hand's color, like the keys on
    * the keyboard. Working along the page means a repeated bar lights up again on every pass.
+   *
+   * A lit chord is a copy of it, laid over it in a layer of its own: the tape itself is not touched
+   * while the music plays. (A browser that draws the tape in tiles, as Safari does, would draw a
+   * whole tile of it again at every note that starts or stops, and the tape would stumble.)
    */
   private highlight(beat: number, isHandEnabled: (hand: Hand) => boolean): void {
     const { chords } = this.ink;
@@ -610,25 +619,34 @@ export class SvgStaff implements StaffView {
       if (chord.beat > beat + 1e-9) break;
       if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) active.add(i);
     }
-    for (const index of this.lit) {
+    for (const [index, copy] of this.lit) {
       if (active.has(index)) continue;
-      this.chordElements[index]!.style.color = COLORS.note;
+      copy.remove();
       this.lit.delete(index);
     }
     for (const index of active) {
-      if (this.lit.has(index)) continue;
-      this.chordElements[index]!.style.color = COLORS.hand[this.ink.chord(index).hand];
-      this.lit.add(index);
+      if (!this.lit.has(index)) this.lit.set(index, this.litCopy(this.chordElements[index]!, COLORS.hand[this.ink.chord(index).hand]));
     }
 
     // Grace notes: few, and each sounds for a moment.
     this.graces.forEach((grace, index) => {
       const sounding = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
       if (sounding === this.litGraces.has(index)) return;
-      this.graceElements[index]!.style.color = sounding ? COLORS.hand[grace.hand] : COLORS.note;
-      if (sounding) this.litGraces.add(index);
-      else this.litGraces.delete(index);
+      if (sounding) this.litGraces.set(index, this.litCopy(this.graceElements[index]!, COLORS.hand[grace.hand]));
+      else {
+        this.litGraces.get(index)!.remove();
+        this.litGraces.delete(index);
+      }
     });
+  }
+
+  /** A copy of what is drawn, in a hand's colour, over it. */
+  private litCopy(drawn: SVGElement, color: string): SVGElement {
+    const copy = drawn.cloneNode(true) as SVGElement;
+    copy.style.display = '';
+    copy.style.color = color;
+    this.litSvg.append(copy);
+    return copy;
   }
 }
 
