@@ -109,6 +109,8 @@ export class CanvasPianoRoll implements RollView {
   private snapCamera = true;
   private lastPosition = 0;
   private lastRenderAt = 0;
+  /** What the last frame drawn showed: a frame that would show the same is not drawn (see render). */
+  private drawn: unknown[] | null = null;
   /** Seconds ahead shown in the current frame; less than the maximum on short screens. */
   private secondsVisible = 4;
   /**
@@ -132,6 +134,7 @@ export class CanvasPianoRoll implements RollView {
 
   setColors(colors: RollColors): void {
     this.colors = colors;
+    this.drawn = null;
   }
 
   /**
@@ -187,6 +190,8 @@ export class CanvasPianoRoll implements RollView {
     this.canvas.width = Math.round(this.width * dpr);
     this.canvas.height = Math.round(this.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // (A canvas given a new size is blank.)
+    this.drawn = null;
   }
 
   render(frame: RollFrame): void {
@@ -210,6 +215,27 @@ export class CanvasPianoRoll implements RollView {
     const yOf = (time: number) => rollHeight - (time - shown.position) * pxPerSecond;
     this.lastFrame = { score: frame.score, position: shown.position, rollHeight, pxPerSecond };
     this.updateCamera(shown, dt, seeked);
+
+    // Nothing to draw anew when nothing drawn would change: a piece at rest, with nobody moving it.
+    // (A page that is only looked at should not keep the processor busy, on a phone least of all.)
+    const what = [
+      frame.score,
+      frame.position,
+      shown.position,
+      this.scrollX,
+      frame.playing,
+      frame.loop?.start,
+      frame.loop?.end,
+      frame.isHandEnabled('right'),
+      frame.isHandEnabled('left'),
+      frame.pedalEnabled,
+      // (The language the keys are labelled in.)
+      frame.noteLabel(60),
+      width,
+      height,
+    ];
+    if (this.drawn && what.every((value, i) => value === this.drawn![i])) return;
+    this.drawn = what;
 
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
