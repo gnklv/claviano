@@ -1,9 +1,10 @@
 import type { PieceMemory, PieceShelf } from '../ports/PieceShelf';
 
 /**
- * How each piece was left: its place, tempo, hands and loop, and the bar it was at (see
- * rememberPieces, which writes it down and sets it again). Kept on the shelf between visits; for
- * this visit only where the shelf keeps nothing (a private window).
+ * How each piece was left: its place, tempo, hands, loop, trainer, bookmarks and one's own
+ * fingers, and the bar it was at (see rememberPieces, which writes it down and sets it again).
+ * Kept on the shelf between visits; for this visit only where the shelf keeps nothing (a private
+ * window).
  */
 export class PieceMemories {
   private remembered = new Map<string, PieceMemory>();

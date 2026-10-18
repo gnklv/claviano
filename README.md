@@ -1,7 +1,8 @@
 # Claviano
 
-A self-written web player for learning piano pieces: open a MIDI file, watch the notes fall onto
-the keyboard, slow it down, loop the hard bars, practice one hand at a time.
+A self-written web player for learning piano pieces: open a MIDI or MusicXML file, read it on the
+staff or watch the notes fall onto the keyboard, slow it down, loop the hard bars, practice one
+hand at a time; or play something of one's own and have it written down.
 
 **Try it:** https://gnklv.github.io/claviano/
 
@@ -57,12 +58,20 @@ metronome is a synth's blip.)
 | Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45). The button opens a panel: − and + by a step, a slider, and 50–100% a touch away |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
+| Tempo → Tempo trainer | the loop quickens by itself, a step every few passes, from one tempo to another |
+| Bar readout → Bookmarks | named places in the piece, to go to at a press; 1–9 go to the first nine |
 | Click on the staff or the notes | jump there (a click outside the loop turns the loop off) |
 | Drag the staff or the notes | look ahead or back while the music plays on; the view returns after 3 s of playing |
 | Shift+drag on the staff (long press on a phone) | loop those bars |
 | Metronome | a click on every beat (6/8 by dotted quarters), the first of a bar accented |
 | ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
 | ⚙ → Count-in | count the beats leading in before playing ("1 2 3" before a pickup on 4) |
+| ⚙ → Fingering | fingering hints where the notes give none, and one's own fingers |
+| Fingers | (with Fingering on) press a note on the staff or its falling tile, and set its finger |
+| Free play | play on the keys on the screen or the computer's letters; record, listen, save as a piece |
+
+What is set in a piece (its place, tempo, hands, loop, trainer, bookmarks, one's own fingers) is
+kept with it and set again when it is opened.
 
 Drag a MIDI (`.mid`) or MusicXML file (`.musicxml`, or compressed `.mxl`) onto the window, or use
 "Open file".
@@ -81,6 +90,11 @@ src/
                      count-in (metronome.ts). And as printed: score.notation, each bar once,
                      linked to the played bars by barWritten. Every score has both: a notation
                      file is played by the domain, a performance is written down by it.
+    fingering/         Which finger takes a note: hints worked out from the hand, by what each
+                       pair of fingers reaches (hand.ts) and the rules for a line (melody.ts);
+                       runs, chords and scales (passage.ts, scales.ts) and what of it is said
+                       on the page (hints.ts), fitted round the fingers the notes give and
+                       one's own (own.ts).
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.
@@ -101,11 +115,17 @@ src/
                        signatures.ts for key signatures and where the key and metre change.
                        No pixels: a thing's place is its bar and beat.
   application/
-    ports/           AudioOutput, Instrument, Ticker, ScoreParser — interfaces the core needs.
-    use-cases/       Playback (tempo, loop, hands, pedals, metronome, count-in), LoadScore,
-                     PrepareInstrument (what the instrument must be ready to play).
-                     Library (the shelf of pieces opened before, behind the PieceShelf port;
-                     the same file is the same piece, told by its content).
+    ports/           Interfaces the core needs: AudioOutput, Instrument, Ticker, ScoreParser,
+                     ScoreWriter, PieceShelf, SettingsStore; and the views it is drawn in:
+                     StaffView, RollView, TilesView.
+    use-cases/       Playback (tempo, loop, hands, pedals, metronome and count-in: clicks.ts),
+                     BarLoop (the loop in printed bars), TempoTrainer, Bookmarks, OwnFingering,
+                     LoadScore and OpenScore, PrepareInstrument (what the instrument must be
+                     ready to play), Volume. Library (the shelf of pieces opened before, behind
+                     the PieceShelf port; the same file is the same piece, told by its content);
+                     PieceMemories and rememberPieces (how each piece was left, set again when
+                     it opens). FreePlay and Recorder (the keys on the screen, and a take
+                     written down; keepTake puts it on the shelf).
   infrastructure/    Implementations of the ports:
     writers/           MidiFileWriter — the reader's other half: what is played in free play is
                        kept as a Standard MIDI File, a track for each hand.
@@ -127,6 +147,7 @@ src/
                        the samples are in, and the metronome.
     offline/           offlineCache — starts the service worker (public/sw.js) that keeps the
                        app and the samples on disk: a second visit works without the network.
+    storage/           IndexedDbPieceShelf (pieces and their memories), LocalSettingsStore.
     timing/            IntervalTicker.
     render/            CanvasPianoRoll — falling notes + keyboard on Canvas 2D, showing only
                        the octaves the piece uses (keyboardRange). When keys would get too
@@ -138,9 +159,11 @@ src/
                        the notation as the domain engraves it; staffLayout says how wide bars
                        are on the tape, the staff/ folder turns bars and beats into pixels and
                        SVG, beams.ts and curves.ts into beam lines and slurs; sounding notes
-                       light up.
-  ui/                Vue 3 shell: App.vue, components/, composables/. Calls use cases only;
-                     per-frame work (canvas, position readout) bypasses reactivity.
+                       light up. CanvasPlayedTiles — the keys played in free play, as tiles.
+  ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
+                     components/ (the building blocks are shown on #/design), composables/.
+                     Calls use cases, mirrored by useMirror; per-frame work (canvas, position
+                     readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
                        (checked by TypeScript). Plurals via Intl.PluralRules. Note labels:
                        C4 in English, До1 in Russian (Russian octave numbering).
@@ -148,7 +171,8 @@ src/
                        the SVG staff uses them directly, the canvas reads them on switch.
   demo/              Built-in "Ode to Joy" for trying the player without a file.
   main.ts            Composition root.
-tests/               Use cases tested with fake audio/ticker; parser tested with hand-built MIDI.
+tests/               By behaviour: use cases with the ports' stand-ins (fakes.ts), parsers with
+                     hand-built files, the screens through a shared harness (app/).
 ```
 
 Playback schedules notes ~200 ms ahead on the Web Audio clock, so timing does not depend on
