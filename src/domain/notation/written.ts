@@ -102,7 +102,7 @@ export interface WrittenNote {
   /** Part of a rolled chord (a wavy line before it): from the bottom up, or from the top down. */
   readonly arpeggio: 'up' | 'down' | null;
   /** The finger to play it with ("3"; "2-1" for a change on the key), and the side it is printed on if the source says. */
-  readonly fingering?: { readonly text: string; readonly below: boolean | null; /** Not of the source: worked out, and offered (see fingering/hints.ts). */ readonly hint?: boolean };
+  readonly fingering?: { readonly text: string; readonly below: boolean | null; /** Not of the source: worked out, and offered (see fingering/hints.ts). */ readonly hint?: boolean; /** Not of the source: set by the one who plays (see fingering/own.ts). */ readonly own?: boolean };
   /** Its head is printed in brackets: a note that may be left out. */
   readonly parenthesized?: boolean;
   /** Printed small (cue size): a part that stands behind the main one, an optional note. It sounds as any other. */

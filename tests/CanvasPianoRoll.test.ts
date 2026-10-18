@@ -10,18 +10,24 @@ import { CanvasPianoRoll } from '../src/infrastructure/render/CanvasPianoRoll';
 function countedCanvas() {
   let drawn = 0;
   /** What the drawing sets on the context (its fill style, its font). */
-  const settings: Record<string | symbol, unknown> = {};
+  let settings: Record<string | symbol, unknown> = {};
+  /** The settings put by with `save`, and the line width each rectangle was outlined with. */
+  const saved: Record<string | symbol, unknown>[] = [];
+  const outlines: unknown[] = [];
   const context = new Proxy(settings, {
-    get: (target, name) => {
-      if (name in target) return target[name];
+    get: (_, name) => {
+      if (name in settings) return settings[name];
       if (name === 'measureText') return () => ({ width: 10 });
       if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
+      if (name === 'save') return () => void saved.push({ ...settings });
+      if (name === 'restore') return () => void (settings = saved.pop() ?? settings);
+      if (name === 'strokeRect') return () => void outlines.push(settings.lineWidth);
       return () => void (name === 'fillRect' && drawn++);
     },
-    set: (target, name, value) => ((target[name] = value), true),
+    set: (_, name, value) => ((settings[name] = value), true),
   });
-  const canvas = { clientWidth: 800, clientHeight: 400, width: 0, height: 0, getContext: () => context } as unknown as HTMLCanvasElement;
-  return { canvas, drawn: () => drawn };
+  const canvas = { clientWidth: 800, clientHeight: 400, width: 0, height: 0, getContext: () => context, getBoundingClientRect: () => ({ left: 0, top: 0 }) } as unknown as HTMLCanvasElement;
+  return { canvas, drawn: () => drawn, outlines };
 }
 
 const score = odeToJoy('Ode to Joy');
@@ -79,5 +85,32 @@ describe('the falling notes', () => {
       step();
       expect(drawn()).toBeGreaterThan(before);
     }
+  });
+
+  it('tell the note under a press: the tiles sounding at that height, and none over the keyboard', () => {
+    const { canvas } = countedCanvas();
+    const roll = new CanvasPianoRoll(canvas);
+    roll.render(frame(0));
+    let rollHeight = 0;
+    while (roll.timeAt(rollHeight + 1) !== null) rollHeight++;
+    // A tenth of a second into the music: what sounds then is under the press, across the keys.
+    const y = rollHeight - 0.1 / roll.secondsPerPixel!;
+    const found = new Set<number | null>();
+    for (let x = 0; x < 800; x++) found.add(roll.noteAt(x, y));
+    found.delete(null);
+    const sounding = score.notes.flatMap((note, index) => (note.start <= 0.1 && note.start + note.duration >= 0.1 ? [index] : []));
+    expect([...found].sort((a, b) => a! - b!)).toEqual(sounding);
+    expect(roll.noteAt(400, rollHeight + 10)).toBeNull();
+  });
+
+  it('ring the note being fingered without thickening the keys drawn after it', () => {
+    const { canvas, outlines } = countedCanvas();
+    const roll = new CanvasPianoRoll(canvas);
+    roll.render(frame(0));
+    const plain = [...outlines];
+    outlines.length = 0;
+    roll.render(frame(0, { picked: [0] }));
+    expect(plain.length).toBeGreaterThan(0);
+    expect(outlines).toEqual(plain);
   });
 });

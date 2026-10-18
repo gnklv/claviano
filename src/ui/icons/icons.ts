@@ -44,6 +44,8 @@ export const ICONS = {
   metronome: [line('M9.5 4h5L19 20H5zM12 16l5-9.5')],
   // A ribbon, as is kept between the pages of a book: a place to come back to.
   bookmark: [line('M7 4h10v16l-5-3.5L7 20z')],
+  // A pencil, for writing in what the notes do not say: one's own fingers.
+  pencil: [line('M15.5 5.5l3 3M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19z')],
 } satisfies Record<string, IconPart[]>;
 
 export type IconName = keyof typeof ICONS;

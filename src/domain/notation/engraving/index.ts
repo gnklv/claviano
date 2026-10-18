@@ -77,7 +77,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const bar = barAtBeat(score, first.beat);
     const notes = group
       // The clef in force (not the staff) decides where a pitch sits.
-      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, ...(note.headless ? { headless: true } : {}), ...(note.parenthesized ? { parenthesized: true } : {}) }))
+      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, sounding: note.sounding, ...(note.headless ? { headless: true } : {}), ...(note.parenthesized ? { parenthesized: true } : {}) }))
       .sort((a, b) => a.step - b.step);
     const { top, bottom } = stepSpan(notes);
     const chord: StaffChord = {

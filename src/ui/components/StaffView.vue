@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { useGlide } from '../composables/useGlide';
 import { computed, ref, useTemplateRef, watch } from 'vue';
-import { withFingerHints } from '../../domain/fingering/hints';
-import { timeAtPage, writtenBarNumber } from '../../domain/score';
+import type { NoteOnPage } from '../../domain/fingering/own';
+import { timeAtPage, writtenBarNumber, type Score } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useDrawnView } from '../composables/useDrawnView';
-import { useFingerHints } from '../composables/useFingerHints';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import type { Hand } from '../../domain/note';
 import { useDeps } from '../deps';
@@ -15,12 +14,18 @@ import { useI18n } from '../i18n/useI18n';
 const { playback, barLoop: loop, createStaff } = useDeps();
 const state = usePlaybackState(playback);
 const { t, locale } = useI18n();
-const fingerHints = useFingerHints();
 /**
- * What the staff is given to draw: the piece, with fingering hints written in where they are asked
- * for. (The staff draws what it is given; whether hints are shown is decided here.)
+ * `page`: what the staff is given to draw, the piece with its fingering as it is to be shown (see
+ * useFingeredPage). `fingering`: a press on a note picks it (`pick`), and does not move the music;
+ * `picked` is marked.
  */
-const page = computed(() => (state.value.score && fingerHints.value ? withFingerHints(state.value.score) : state.value.score));
+const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null }>();
+const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
+const page = computed(() => props.page);
+watch(
+  () => props.picked,
+  (note) => staff.view?.setPicked(note ?? null),
+);
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
@@ -136,6 +141,12 @@ function onPointerUp(event: PointerEvent): void {
   if (mode === 'drag') glide.letGo();
   const score = playback.score;
   if (!score || mode === 'drag' || (caught && mode === 'pending')) return;
+  if (props.fingering && mode === 'pending') {
+    // Fingering: a press on a note picks it; the music stays where it is.
+    const note = staff.view?.noteAt(event.clientX, event.clientY);
+    if (note) emit('pick', note);
+    return;
+  }
   // Repeated bars: the pass nearest to where playback is now.
   const time = timeAtPage(score, place.bar, place.beat, playback.position);
   if (mode === 'select') {

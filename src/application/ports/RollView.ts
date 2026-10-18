@@ -1,3 +1,4 @@
+import type { Fingering } from '../../domain/fingering/own';
 import type { Hand } from '../../domain/note';
 import type { PedalEvent, PedalKind } from '../../domain/pedal';
 import type { Score, TimeRange } from '../../domain/score';
@@ -20,6 +21,10 @@ export interface RollFrame {
   readonly noteLabel: (midi: number) => string;
   /** How to label a pedal move ("Pedal ↓"), in the current language. */
   readonly pedalLabel: (move: PedalMove) => string;
+  /** The finger for each of the score's notes (as they stand in `score.notes`), printed on its tile; null: none. */
+  readonly fingers?: readonly (Fingering | null)[];
+  /** The notes (as they stand in `score.notes`) being given a finger, ringed: one on each pass. */
+  readonly picked?: readonly number[];
 }
 
 /** The roll's colors as plain values: the UI resolves the theme's colors and passes them in. */
@@ -52,6 +57,8 @@ export interface RollView {
    * the pointer is on or just beside its bottom), or null over the keyboard.
    */
   timeAt(clientY: number): number | null;
+  /** The note (its place in `score.notes`) whose tile is under the pointer, or null. */
+  noteAt(clientX: number, clientY: number): number | null;
   /** How many seconds of music one pixel of height stands for, as last drawn (for dragging the notes). */
   readonly secondsPerPixel: number | null;
   /** True when the keyboard is wider than the screen and can be scrolled. */

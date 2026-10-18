@@ -1,3 +1,4 @@
+import type { NoteOnPage } from '../../domain/fingering/own';
 import type { Hand } from '../../domain/note';
 import type { Score, TimeRange } from '../../domain/score';
 
@@ -15,6 +16,10 @@ export interface StaffView {
    * beat when the pointer is just beside it). Null outside the music.
    */
   pageAt(clientX: number): { bar: number; beat: number } | null;
+  /** The note under the pointer (its head within reach), or null. */
+  noteAt(clientX: number, clientY: number): NoteOnPage | null;
+  /** Marks a note as the one being fingered (null: none). */
+  setPicked(note: NoteOnPage | null): void;
   /** Lightly shades the printed bar under the pointer (null: none). */
   setHover(bar: number | null): void;
   /** Shades printed bars `from..to` while they are being dragged over (null: none). */

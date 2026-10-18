@@ -3,6 +3,7 @@ import { useGlide } from '../composables/useGlide';
 import { useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { PedalMove, RollView } from '../../application/ports/RollView';
+import type { Fingering } from '../../domain/fingering/own';
 import type { Hand } from '../../domain/note';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useDrawnView } from '../composables/useDrawnView';
@@ -11,6 +12,12 @@ import { useI18n } from '../i18n/useI18n';
 import { readRollColors } from '../theme/readRollColors';
 import { useTheme } from '../theme/useTheme';
 
+/**
+ * `fingers`: the finger for each of the piece's notes, printed on its tile; `picked`: the notes
+ * ringed (see RollFrame). While `fingering`, a press on a tile picks its note instead of going there.
+ */
+const props = defineProps<{ fingers?: readonly (Fingering | null)[]; fingering?: boolean; picked?: readonly number[] }>();
+const emit = defineEmits<{ pick: [note: number] }>();
 const { playback, barLoop: loop, createRoll } = useDeps();
 const { noteLabel, t } = useI18n();
 /** The right pedal is just "Pedal": it is the one people mean. */
@@ -58,11 +65,13 @@ function draw(): void {
     pedalEnabled: playback.pedalEnabled,
     noteLabel,
     pedalLabel,
+    fingers: props.fingers,
+    picked: props.picked,
   });
   canvas.value?.classList.toggle('scrollable', view.scrollable);
 }
 
-// --- A tap jumps to that moment; a drag looks around: up and down through the music, sideways
+// --- A tap jumps to that moment (or, while fingering, picks the note tapped); a drag looks around: up and down through the music, sideways
 // along a keyboard wider than the screen. The music plays on, and the view goes back to it later. ---
 
 /** A pointer moves this many pixels before it counts as dragging rather than tapping. */
@@ -129,6 +138,11 @@ function onPointerUp(event: PointerEvent): void {
     return;
   }
   if (caught) return;
+  const note = props.fingering ? roll.view?.noteAt(event.clientX, event.clientY) : null;
+  if (note !== null && note !== undefined) {
+    emit('pick', note);
+    return;
+  }
   const time = roll.view?.timeAt(event.clientY);
   if (time === null || time === undefined) return;
   loop.jumpTo(time);

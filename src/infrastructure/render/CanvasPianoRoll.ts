@@ -1,4 +1,5 @@
 import { keyReleasesOf } from '../../domain/keys';
+import type { Fingering } from '../../domain/fingering/own';
 import { noteEnd, type Hand } from '../../domain/note';
 import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { isBlackKey } from '../../domain/pitch';
@@ -34,6 +35,10 @@ const DEFAULT_COLORS: RollColors = {
 const MUTED_ALPHA = 0.25;
 /** A click within this many pixels of a note's start (its bottom edge) means that note. */
 const NOTE_SNAP_PX = 10;
+/** A press this near a tile, beside it or past its end, is on it: a fingertip is wider than a black key's tile (pixels). */
+const TILE_SNAP_PX = 6;
+/** The ring round a picked tile, and how far out from it (pixels). */
+const PICKED_RING_PX = 2;
 /*
  * The pedals. Where a foot moves, a plain label falls with the notes near the right edge
  * ("Pedal ↓", "Pedal ↑", "Pedal ↑↓" for a change, "Left pedal ↓"…; the staff keeps the sheet-music
@@ -71,6 +76,13 @@ const SCROLL_KEY_PX = 20;
  * it narrows down to the nearer ones (see pickSpan)…
  */
 const FOLLOW_LOOKAHEADS_SECONDS = [2, 1, 0.5];
+/** A finger printed on a tile: this tall, as large as reads from the bench, and not printed where a tile is too narrow for a figure this small (pixels). */
+const FINGER_PX = 18;
+const MIN_FINGER_PX = 9;
+/** The figures' face, as wide as each system draws it (measured there: see layoutKeyboard). */
+const fingerFont = (size: number): string => `600 ${size}px system-ui, sans-serif`;
+/** How pale a fingering hint is printed, as on the staff. */
+const HINT_ALPHA = 0.6;
 /** …with this many white keys to spare at the edge, unless it was scrolled by hand (see following.ts). */
 const FOLLOW_MARGIN_KEYS = 1;
 
@@ -85,6 +97,8 @@ export class CanvasPianoRoll implements RollView {
   private width = 0;
   private height = 0;
   private keys = new Map<number, KeyRect>();
+  /** One size for every finger: the largest whose figure fits across the narrowest tile (a black key's). */
+  private fingerSize = FINGER_PX;
   private keyboardHeight = MIN_KEYBOARD_PX;
   private keyWidth = 0;
   /** Width of the whole keyboard; more than the canvas width when it scrolls. */
@@ -137,6 +151,34 @@ export class CanvasPianoRoll implements RollView {
    * The moment of the music at height `clientY` over the falling notes, or null over the keyboard.
    * A click on or just beside the bottom of a note means that note: it snaps to the note's start.
    */
+  noteAt(clientX: number, clientY: number): number | null {
+    const frame = this.lastFrame;
+    if (!frame) return null;
+    const { score, position, rollHeight, pxPerSecond } = frame;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = clientX - rect.left + this.scrollX;
+    const y = clientY - rect.top;
+    if (y < 0 || y > rollHeight) return null;
+    const time = position + (rollHeight - y) / pxPerSecond;
+    const snap = TILE_SNAP_PX / pxPerSecond;
+    // The tile nearest across, of those the press is on: a black key's tile stands over its neighbours'.
+    let best: number | null = null;
+    let bestDistance = Infinity;
+    for (let i = firstNoteAtOrAfter(score, time - snap - this.longestNote); i < score.notes.length; i++) {
+      const note = score.notes[i]!;
+      if (note.start > time + snap) break;
+      const key = this.keys.get(note.pitch);
+      if (!key || noteEnd(note) < time - snap) continue;
+      const distance = Math.abs(x - (key.x + key.width / 2));
+      if (distance > key.width / 2 + TILE_SNAP_PX) continue;
+      if (distance < bestDistance || (distance === bestDistance && key.black)) {
+        best = i;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
   timeAt(clientY: number): number | null {
     const frame = this.lastFrame;
     if (!frame || frame.score.notes.length === 0) return null;
@@ -225,6 +267,8 @@ export class CanvasPianoRoll implements RollView {
       frame.pedalEnabled,
       // (The language the keys are labelled in.)
       frame.noteLabel(60),
+      frame.fingers,
+      frame.picked,
       width,
       height,
     ];
@@ -392,6 +436,7 @@ export class CanvasPianoRoll implements RollView {
     const keyWidth = fitWidth >= SCROLL_BELOW_PX ? fitWidth : Math.min(SCROLL_KEY_PX, maxKeyWidth);
 
     this.keys = layoutKeys(keyWidth, range);
+    this.fingerSize = Math.min(FINGER_PX, (Math.min(...[...this.keys.values()].map((key) => key.width)) - 2) / this.digitWidth());
     this.keyWidth = keyWidth;
     this.contentWidth = whiteKeys * keyWidth;
     this.keyboardHeight = Math.min(tallest, Math.max(MIN_KEYBOARD_PX, keyWidth * KEY_LENGTH_RATIO));
@@ -504,13 +549,51 @@ export class CanvasPianoRoll implements RollView {
       const top = yOf(end);
       const bottom = Math.min(rollHeight, yOf(note.start));
       const inset = key.black ? 1 : 2;
+      if (frame.picked?.includes(i)) this.drawPicked(key.x + inset, top, key.width - inset * 2, bottom - top);
       ctx.globalAlpha = enabled ? 1 : MUTED_ALPHA;
       ctx.fillStyle = this.colors.hand[note.hand];
       ctx.beginPath();
       ctx.roundRect(key.x + inset, top, key.width - inset * 2, Math.max(2, bottom - top), 4);
       ctx.fill();
+      const finger = frame.fingers?.[i];
+      if (finger) this.drawFinger(finger, key, top, bottom, enabled);
     }
     ctx.globalAlpha = 1;
+  }
+
+  /** How wide the widest figure of a finger is, for its height, in the face this system draws. */
+  private digitWidth(): number {
+    const { ctx } = this;
+    ctx.font = fingerFont(100);
+    return Math.max(...['1', '2', '3', '4', '5'].map((figure) => ctx.measureText(figure).width)) / 100;
+  }
+
+  /** The note being given a finger: a ring round its tile, as the staff rings its head. */
+  private drawPicked(x: number, top: number, width: number, height: number): void {
+    const { ctx } = this;
+    // (Its pen is its own: the keys' borders are drawn after, with the pen as it is left.)
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = this.colors.loopEdge;
+    ctx.lineWidth = PICKED_RING_PX;
+    ctx.beginPath();
+    ctx.roundRect(x - PICKED_RING_PX, top - PICKED_RING_PX, width + PICKED_RING_PX * 2, Math.max(2, height) + PICKED_RING_PX * 2, 4 + PICKED_RING_PX);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** A finger on its tile, at the end that comes to the key first; a hint paler, as on the staff. */
+  private drawFinger(finger: Fingering, key: KeyRect, top: number, bottom: number, enabled: boolean): void {
+    const { ctx } = this;
+    const size = this.fingerSize;
+    // (Only where it can be read: on keys wide enough for a figure, on a tile long enough for it.)
+    if (size < MIN_FINGER_PX || bottom - top < size + 4) return;
+    ctx.globalAlpha = (enabled ? 1 : MUTED_ALPHA) * (finger.hint ? HINT_ALPHA : 1);
+    ctx.fillStyle = this.colors.whiteKey;
+    ctx.font = fingerFont(size);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(finger.text, key.x + key.width / 2, bottom - 2);
   }
 
   private drawKeyboard(

@@ -2,6 +2,7 @@ import { barAt, barNumber } from '../../domain/score';
 import type { PieceMemory } from '../ports/PieceShelf';
 import type { BarLoop } from './BarLoop';
 import type { Bookmarks } from './Bookmarks';
+import type { OwnFingering } from './OwnFingering';
 import type { Library } from './Library';
 import type { PieceMemories } from './PieceMemories';
 import type { Playback } from './Playback';
@@ -12,9 +13,9 @@ const AT_THE_END = 0.5;
 
 /**
  * Coming back to a piece is coming back to where it was left: its place, tempo, loop, hands, tempo
- * trainer and bookmarks are kept with it, and set again when it is opened. A piece opened for the
- * first time starts plain: from the beginning, at full tempo, both hands, no loop, no trainer, no
- * bookmarks.
+ * trainer, bookmarks and one's own fingering are kept with it, and set again when it is opened. A
+ * piece opened for the first time starts plain: from the beginning, at full tempo, both hands, no
+ * loop, no trainer, no bookmarks, no fingers of one's own.
  *
  * Returns a function that writes down where the open piece stands now: to call when the page is
  * about to go (the place moves on while the music plays, and nothing tells of that).
@@ -27,9 +28,10 @@ export interface Practice {
   readonly barLoop: BarLoop;
   readonly trainer: TempoTrainer;
   readonly bookmarks: Bookmarks;
+  readonly fingering: OwnFingering;
 }
 
-export function rememberPieces(library: Library, memories: PieceMemories, { playback, barLoop, trainer, bookmarks }: Practice): () => void {
+export function rememberPieces(library: Library, memories: PieceMemories, { playback, barLoop, trainer, bookmarks, fingering }: Practice): () => void {
   let current = library.current;
   /** The piece whose memory has been set since it opened (none, while what was kept is still being read). */
   let restored: string | null = null;
@@ -49,6 +51,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
       loop: { on: barLoop.enabled, from: barLoop.from, to: barLoop.to },
       trainer: { on: trainer.enabled, ...trainer.plan },
       bookmarks: bookmarks.all,
+      fingers: fingering.all,
       bar: barNumber(score, barAt(score, position)),
       bars: barNumber(score, score.bars.length - 1),
     };
@@ -83,6 +86,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     const kept = memory?.trainer;
     trainer.restore(kept ? { on: kept.on, plan: { from: kept.from, to: kept.to, step: kept.step, every: kept.every } } : { on: false, plan: DEFAULT_PLAN });
     bookmarks.set(memory?.bookmarks ?? []);
+    fingering.set(memory?.fingers ?? []);
     restoring = false;
   };
 
@@ -110,5 +114,6 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
   barLoop.onChange(save);
   trainer.onChange(save);
   bookmarks.onChange(save);
+  fingering.onChange(save);
   return save;
 }

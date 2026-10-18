@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import ScreenHeader from '../components/ScreenHeader.vue';
 import CountInOverlay from '../components/CountInOverlay.vue';
+import FingerBar from '../components/FingerBar.vue';
+import ToggleChip from '../components/ToggleChip.vue';
 import InstrumentNotice from '../components/InstrumentNotice.vue';
 import PianoRoll from '../components/PianoRoll.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
 import StaffView from '../components/StaffView.vue';
 import TransportBar from '../components/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
+import { useFingeredPage } from '../composables/useFingeredPage';
+import { useFingerHints } from '../composables/useFingerHints';
 import { useImmersion } from '../composables/useImmersion';
 import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePieceText } from '../composables/usePieceText';
@@ -14,15 +18,43 @@ import { useResize } from '../composables/useResize';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useShownViewMode } from '../composables/useViewMode';
 import { computed, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue';
+import type { Finger } from '../../domain/fingering/hand';
+import type { NoteOnPage } from '../../domain/fingering/own';
+import { noteOnPage, playedFingers, playedOf } from '../../domain/fingering/own';
 import { useDeps } from '../deps';
+import { useI18n } from '../i18n/useI18n';
 
 /* Learning a piece: the stage (the staff, the falling notes, or both) with the transport under it. */
 
 const emit = defineEmits<{ back: [] }>();
 
-const { playback, openScore, library, demos } = useDeps();
+const { playback, openScore, library, demos, fingering: own } = useDeps();
 const viewMode = useShownViewMode();
 const { title, details, error } = usePieceText(playback, openScore, library, demos);
+const { t } = useI18n();
+
+// --- Fingering: what is shown of it, and one's own being set (on the staff, a note at a time). ---
+
+const fingering = ref(false);
+const picked = ref<NoteOnPage | null>(null);
+watch(fingering, () => (picked.value = null));
+/** Whether fingering is shown at all (hints, one's own): only then are one's own fingers set. */
+const shown = useFingerHints();
+const page = useFingeredPage(shown);
+// (Fingering no longer shown: there is nothing to set.)
+watch(shown, (on) => {
+  if (!on) fingering.value = false;
+});
+/** The falling notes are given the finger for each of their notes, as the staff prints it. */
+const fingers = computed(() => (page.value ? playedFingers(page.value) : undefined));
+/** A note is picked on the staff or on the falling notes, and shown picked on both: on the tiles, every pass that plays it. */
+const pickedTiles = computed(() => (page.value && picked.value ? playedOf(page.value, picked.value) : undefined));
+function setFinger(finger: Finger | null): void {
+  if (picked.value) own.setFinger(picked.value, finger);
+}
+function pickTile(index: number): void {
+  if (page.value) picked.value = noteOnPage(page.value, index) ?? picked.value;
+}
 
 // A phone on its side: the header and the transport leave the screen to the music while it plays.
 const state = usePlaybackState(playback);
@@ -68,6 +100,7 @@ useResize(stage, letGoWhenBack);
             <template v-else>{{ title }}<span v-if="details" class="details"> · {{ details }}</span></template>
           </template>
           <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
+          <ToggleChip v-if="shown" :pressed="fingering" icon="pencil" @update:pressed="fingering = $event">{{ t('fingers') }}</ToggleChip>
           <ViewModeSwitch class="view-switch" />
           <SettingsPanel piece />
         </ScreenHeader>
@@ -75,8 +108,18 @@ useResize(stage, letGoWhenBack);
     </div>
 
     <main ref="stage" class="stage" :class="`view-${viewMode}`">
-      <StaffView v-if="viewMode !== 'keys'" ref="staffView" class="view staff" :class="{ held }" :style="held ? { height: `${held.staff}px` } : undefined" />
-      <PianoRoll v-if="viewMode !== 'staff'" class="view" />
+      <StaffView
+        v-if="viewMode !== 'keys'"
+        ref="staffView"
+        class="view staff"
+        :class="{ held }"
+        :style="held ? { height: `${held.staff}px` } : undefined"
+        :page="page"
+        :fingering="fingering"
+        :picked="picked"
+        @pick="picked = $event"
+      />
+      <PianoRoll v-if="viewMode !== 'staff'" class="view" :fingers="fingers" :fingering="fingering" :picked="pickedTiles" @pick="pickTile" />
       <CountInOverlay />
       <InstrumentNotice />
       <!-- The first touch of an immersed stage only brings the header and the transport back: it does not jump in the music. -->
@@ -85,7 +128,8 @@ useResize(stage, letGoWhenBack);
 
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
-        <TransportBar />
+        <FingerBar v-if="fingering" :page="page" :picked="picked" @set="setFinger" @done="fingering = false" />
+        <TransportBar v-else />
       </div>
     </div>
   </div>

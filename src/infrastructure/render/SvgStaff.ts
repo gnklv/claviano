@@ -35,12 +35,13 @@ import {
 import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
 import { ChordLights } from './staff/chordLights';
-import { barsShade, loopShade } from './staff/shades';
+import { barsShade, loopShade, noteShade } from './staff/shades';
 import { COLORS, svg, tenth } from './staff/svg';
 import { TapeMotion } from './staff/tapeMotion';
 import { TapeStretch } from './staff/tapeStretch';
 import { TapeWindow } from './staff/tapeWindow';
-import { SAME_MOMENT } from '../../domain/moment';
+import { SAME_MOMENT, sameMoment } from '../../domain/moment';
+import type { NoteOnPage } from '../../domain/fingering/own';
 
 /*
  * The staff's parts live in ./staff: where things go (geometry), where the notes reach (ink), the
@@ -106,6 +107,8 @@ export class SvgStaff implements StaffView {
   /** The loop's shade, behind the music too: redrawn alone when the loop changes. */
   private readonly loopLayer: SVGGElement = svg('g');
   private hoverBar: number | null = null;
+  /** The note being fingered, marked behind its head. */
+  private picked: NoteOnPage | null = null;
   /** Whether the last drawing anew took longer than a frame (see resize). */
   private costly = false;
   private lastCursorLeft = Number.NaN;
@@ -192,6 +195,41 @@ export class SvgStaff implements StaffView {
       if (distance <= snap && (!nearest || distance < Math.abs(ink.placeOf(nearest) - px))) nearest = chord;
     }
     return nearest && barAtBeat(score, nearest.beat) === place.bar ? { bar: place.bar, beat: nearest.beat } : place;
+  }
+
+  /**
+   * The note under the pointer: of the chords beside it, the head nearest, if one is within reach
+   * (a staff space up or down, as far across as a click on a note snaps).
+   */
+  noteAt(clientX: number, clientY: number): NoteOnPage | null {
+    const score = this.score;
+    if (!score || score.notes.length === 0) return null;
+    const { geometry, ink } = this;
+    const box = this.tape.getBoundingClientRect();
+    const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
+    const px = (clientX - box.left) / this.stretch.by - offset;
+    const py = (clientY - box.top) / this.stretch.by;
+    const snap = NOTE_SNAP * geometry.space;
+    let nearest: { note: NoteOnPage; distance: number } | null = null;
+    for (const index of ink.near(px - snap, px + snap)) {
+      const chord = ink.chord(index);
+      const top = geometry.staffTop(chord.staff);
+      for (const note of chord.notes) {
+        if (note.sounding === undefined || note.headless) continue;
+        const across = Math.abs(ink.placeOf(chord) - px);
+        const down = Math.abs(top + (note.step * geometry.space) / 2 - py);
+        if (across > snap || down > geometry.space) continue;
+        const distance = Math.hypot(across, down);
+        if (!nearest || distance < nearest.distance) nearest = { note: { beat: chord.beat, pitch: note.sounding, hand: chord.hand }, distance };
+      }
+    }
+    return nearest?.note ?? null;
+  }
+
+  /** Marks a note as the one being fingered, behind it (null: none). */
+  setPicked(note: NoteOnPage | null): void {
+    this.picked = note;
+    this.drawOverlay();
   }
 
   /** Lightly shades the printed bar under the pointer (null: none). */
@@ -339,10 +377,26 @@ export class SvgStaff implements StaffView {
   private drawOverlay(): void {
     const score = this.score;
     const selection = this.selection;
-    if (!score || score.notes.length === 0) this.overlay.replaceChildren();
-    else if (selection) this.overlay.replaceChildren(barsShade(this.geometry, Math.min(selection.from, selection.to), Math.max(selection.from, selection.to), 1));
-    else if (this.hoverBar !== null && this.hoverBar < tapeBars(score).starts.length) this.overlay.replaceChildren(barsShade(this.geometry, this.hoverBar, this.hoverBar, 0.5));
-    else this.overlay.replaceChildren();
+    const shades: SVGElement[] = [];
+    if (score && score.notes.length > 0) {
+      if (selection) shades.push(barsShade(this.geometry, Math.min(selection.from, selection.to), Math.max(selection.from, selection.to), 1));
+      else if (this.hoverBar !== null && this.hoverBar < tapeBars(score).starts.length) shades.push(barsShade(this.geometry, this.hoverBar, this.hoverBar, 0.5));
+      const head = this.picked && this.headOf(this.picked);
+      if (head) shades.push(noteShade(this.geometry, head.x, head.y));
+    }
+    this.overlay.replaceChildren(...shades);
+  }
+
+  /** Where the head of a note of the page is drawn, if it is. */
+  private headOf(note: NoteOnPage): { x: number; y: number } | null {
+    const { ink, geometry } = this;
+    for (const index of ink.near(-Infinity, Infinity)) {
+      const chord = ink.chord(index);
+      if (chord.hand !== note.hand || !sameMoment(chord.beat, note.beat)) continue;
+      const head = chord.notes.find((each) => each.sounding === note.pitch && !each.headless);
+      if (head) return { x: ink.placeOf(chord), y: geometry.staffTop(chord.staff) + (head.step * geometry.space) / 2 };
+    }
+    return null;
   }
 
   /** The loop's bars, behind the music. */

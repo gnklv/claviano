@@ -4,6 +4,7 @@ import ActionTile from '../components/ActionTile.vue';
 import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
+import FingerBar from '../components/FingerBar.vue';
 import MenuList from '../components/MenuList.vue';
 import PanelControl from '../components/PanelControl.vue';
 import PieceCard from '../components/PieceCard.vue';
@@ -62,6 +63,8 @@ const MENU = [
   { id: 'gone', label: 'What cannot be undone', danger: true },
 ];
 const chosen = ref('');
+/** The finger last chosen in the bar of fingers (it sets nothing here). */
+const finger = ref('');
 </script>
 
 <template>
@@ -189,6 +192,14 @@ const chosen = ref('');
         <PanelControl title="Tempo" label="Tempo: 80%">80%<template #panel><p class="panel-words">What the button sets stands here.</p></template></PanelControl>
         <PanelControl title="Bookmarks" label="Bar 12 / 64 · Bookmarks" variant="quiet" icon="bookmark">Bar 12 / 64<template #panel><p class="panel-words">The piece’s bookmarks stand here.</p></template></PanelControl>
       </div>
+
+      <SectionHeading>The bar of fingers</SectionHeading>
+      <p class="about">In place of the transport while one's own fingers are set: first a word on what to do, then the note picked and a finger for it.</p>
+      <div class="bars">
+        <FingerBar :page="null" :picked="null" />
+        <FingerBar :page="null" :picked="{ beat: 0, pitch: 64, hand: 'right' }" @set="finger = $event === null ? 'none' : String($event)" />
+      </div>
+      <span class="caption">{{ finger && `set: ${finger}` }}</span>
 
       <SectionHeading>A row of settings</SectionHeading>
       <p class="about">What is set, and the control that sets it. Sheets are made of these.</p>
@@ -321,6 +332,11 @@ const chosen = ref('');
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   max-width: 640px;
+}
+
+.bars {
+  display: grid;
+  gap: var(--space-3);
 }
 
 .rows {

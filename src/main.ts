@@ -2,6 +2,7 @@
 import { createApp } from 'vue';
 import { BarLoop } from './application/use-cases/BarLoop';
 import { Bookmarks } from './application/use-cases/Bookmarks';
+import { OwnFingering } from './application/use-cases/OwnFingering';
 import { keepTake } from './application/use-cases/keepTake';
 import { FreePlay } from './application/use-cases/FreePlay';
 import { Library } from './application/use-cases/Library';
@@ -64,7 +65,8 @@ void memories.load();
 const barLoop = new BarLoop(playback);
 const trainer = new TempoTrainer(playback);
 const bookmarks = new Bookmarks(playback, barLoop);
-const writeDownThePlace = rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks });
+const fingering = new OwnFingering(playback);
+const writeDownThePlace = rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering });
 // The place moves on while the music plays: written down when the page is left (closed, or put away on a phone).
 window.addEventListener('pagehide', writeDownThePlace);
 document.addEventListener('visibilitychange', () => {
@@ -72,7 +74,7 @@ document.addEventListener('visibilitychange', () => {
   rest();
   writeDownThePlace();
 });
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks } });
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks, fingering } });
 
 const freePlay = new FreePlay(piano);
 keepInstrumentPrepared(playback, freePlay, piano);
@@ -90,6 +92,7 @@ createApp(App)
     barLoop,
     trainer,
     bookmarks,
+    fingering,
     volume,
     instrument: piano,
     openScore,

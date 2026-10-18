@@ -41,8 +41,8 @@ last opened; the latest come first. Beside the cards, two actions: "Open file" a
 
 **What is remembered of a piece.** The file itself, as it was given; the place one stopped at; and
 the practice settings for this piece: tempo, loop, which hands are on, the tempo trainer, the
-bookmarks. So coming back to a piece is coming back to where it was left, at 70% on bars 25–28,
-the trainer taking it on to 100%, "the reprise" a press away.
+bookmarks, one's own fingers. So coming back to a piece is coming back to where it was left, at
+70% on bars 25–28, the trainer taking it on to 100%, "the reprise" a press away.
 
 **The same file opened again is the same card,** told by its content, not its name. A file that
 has changed (a corrected version under the same name) is a new card beside the old one: no

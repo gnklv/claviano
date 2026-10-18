@@ -35,3 +35,13 @@ export function loopShade(geometry: StaffGeometry, score: Score, loop: TimeRange
     ...[start, end].map((x) => svg('path', { d: `M${x} ${y}V${y + height}`, stroke: COLORS.loopEdge, 'stroke-width': 1 })),
   ];
 }
+
+/**
+ * A note being fingered: a wash round its head and a ring in the loop's edge colour, as its tile is
+ * ringed among the falling notes (a wash alone is lost among the heads). The ring clears the head
+ * and its neighbours a step away; its weight was tuned by eye, against a phone's staff.
+ */
+export function noteShade(geometry: StaffGeometry, x: number, y: number): SVGEllipseElement {
+  const { space } = geometry;
+  return svg('ellipse', { cx: x, cy: y, rx: 1.2 * space, ry: 0.95 * space, fill: COLORS.loop, stroke: COLORS.loopEdge, 'stroke-width': 0.2 * space });
+}

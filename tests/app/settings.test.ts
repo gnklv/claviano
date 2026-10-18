@@ -50,17 +50,17 @@ describe('the settings panel', () => {
   it('has on the piece screen the view as well', async () => {
     button(/Ode to Joy/).click();
     await settled();
-    expect(labels()).toEqual(['View', 'Fingering hints', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
+    expect(labels()).toEqual(['View', 'Fingering', 'Sound', 'Notes volume', 'Metronome volume', 'Theme', 'Language']);
   });
 
 
-  it('offers fingering hints on the piece screen: off unless asked for; the staff is given the piece with them written in', async () => {
+  it('offers fingering on the piece screen: off unless asked for; the staff is given the piece with the hints written in', async () => {
     button(/Ode to Joy/).click();
     await settled();
     // (The staff is what shows them.)
     [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((option) => option.textContent?.trim() === 'Notes')!.click();
     await settled();
-    const hints = () => root.querySelector('[role=group][aria-label="Fingering hints"]')!;
+    const hints = () => root.querySelector('[role=group][aria-label="Fingering"]')!;
     const chosen = () => hints().querySelector('[aria-pressed=true]')?.textContent?.trim();
     /** The fingers the staff has been given to print, as hints. */
     const hinted = () => staffScores.at(-1)!.notation.notes.filter((note) => note.fingering?.hint).length;

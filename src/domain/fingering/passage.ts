@@ -191,8 +191,10 @@ export function fingerPassage(moments: readonly (readonly number[])[], hand: Han
   for (let from = 0; from < moments.length; ) {
     let to = from;
     while (to < moments.length && moments[to]!.length === 1 && (to === from || !hints.free?.[to])) to++;
-    if (to > from) {
-      scaleFingers(moments.slice(from, to).map((keys) => keys[0]!), hand, hints.key).forEach((finger, i) => (given[from + i]![0] ??= finger));
+    // (Not where a finger is given in the run already: the scale's fingers would not fit round it, and
+    // the run is worked out to fit it instead.)
+    if (to > from && given.slice(from, to).every((fingers) => !fingers[0])) {
+      scaleFingers(moments.slice(from, to).map((keys) => keys[0]!), hand, hints.key).forEach((finger, i) => (given[from + i]![0] = finger));
     }
     from = Math.max(to, from + 1);
   }

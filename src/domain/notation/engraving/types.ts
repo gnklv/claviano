@@ -35,6 +35,8 @@ export interface StaffNote {
   readonly headless?: boolean;
   /** The head stands in brackets: a note that may be left out. */
   readonly parenthesized?: boolean;
+  /** The MIDI pitch it sounds at: with its chord's beat, the note of the page it is (see fingering/own.ts). */
+  readonly sounding?: number;
 }
 
 /** Notes on one staff that start together and look the same share a stem: a chord (or a single note). */

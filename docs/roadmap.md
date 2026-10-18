@@ -164,8 +164,16 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
        step, after 1, 2 or 3 passes. Playback plays each pass of the loop at the tempo set for it,
        from its first note; a count-in only before the first. Set in the tempo panel, the button
        says where it is going ("60% to 100%"), and it is kept with the piece.
-9. [ ] One's own fingering over the hints: a finger set by hand at a note stands as the notes'
-       own do, is kept with the piece, and the hints are fitted round it
+9. [x] One's own fingering over the hints: a finger set by hand at a note stands as the notes'
+       own do, is kept with the piece, and the hints are fitted round it (`OwnFingering`,
+       `domain/fingering/own.ts`). The Fingering setting shows the hints and one's own fingers;
+       while it is on, "Fingers" is in the header: a press on a note of the staff, or on its tile
+       among the falling notes, picks it (ringed on both, the tile on every pass), and a finger is
+       set from a bar in place of the transport; each note is picked by hand (a step on by itself
+       to the next note was tried, and was more in the way than a help). Fingers at notes a piece
+       no longer has are let go of when it is opened. A run along a scale is no longer
+       given the scale's fingers where a finger is set in it. The falling notes print the fingers
+       on their tiles too, at one size, the one a black key holds
 10. [x] Bookmarks in a piece: named places ("the reprise", "the hard bars") to go to at a press,
         kept with the piece (`Bookmarks`). A printed bar each, the pass nearest to the music with
         repeats; the bar readout opens them (`PanelControl`, as the tempo), one is added at the bar
@@ -204,7 +212,8 @@ Small things noticed, to fix between the steps:
       metronome recorded in a room (rattling, blurred next to the piano), but a little synthetic.
       To come back to: a studio recording of a woodblock or of a mechanical metronome, cut to
       the sample (scripts/metronome.ts)
-- [ ] Fingering hints are on the staff only: the falling notes do not show them
+- [x] Fingering hints are on the staff only: the falling notes do not show them (they print
+      what the staff does, on the tiles)
 - [x] A fingering over a bar's first note can run into the bar's number
 - [x] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)

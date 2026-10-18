@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 import { createApp, nextTick, type App as VueApp } from 'vue';
-import type { RollView } from '../../src/application/ports/RollView';
+import type { RollFrame, RollView } from '../../src/application/ports/RollView';
 import type { StaffView } from '../../src/application/ports/StaffView';
+import type { NoteOnPage } from '../../src/domain/fingering/own';
 import type { PlayedTile, TilesView } from '../../src/application/ports/TilesView';
 import { BarLoop } from '../../src/application/use-cases/BarLoop';
 import { Bookmarks } from '../../src/application/use-cases/Bookmarks';
+import { OwnFingering } from '../../src/application/use-cases/OwnFingering';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
 import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
@@ -40,13 +42,20 @@ const instrument = new FakeInstrument();
 
 export let playback: Playback;
 export let bookmarks: Bookmarks;
+export let fingering: OwnFingering;
 export let volume: Volume;
 export let app: VueApp;
 export let shelf: FakePieceShelf;
 /** What sounds: the piece's notes, and the keys struck by hand. */
 export let audio: FakeAudio;
+/** The frames the falling notes were given to draw. */
+export let rollFrames: RollFrame[];
 /** What the staff was told to show, each time it was told. */
 export let staffScores: (Score | null)[];
+/** The note a press on the staff lands on, as the test puts it there; and the note the staff was told is picked. */
+export const staffPointer: { note: NoteOnPage | null; picked: NoteOnPage | null } = { note: null, picked: null };
+/** The note (its place in the piece's played notes) whose tile a press on the falling notes lands on, as the test puts it there. */
+export const rollPointer: { note: number | null } = { note: null };
 /** The tiles of free play, as last handed to their view. */
 export let tilesShown: readonly PlayedTile[];
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
@@ -104,6 +113,9 @@ export function useApp(): void {
   screen.short = false;
   screen.touch = false;
   screen.listeners.clear();
+  staffPointer.note = null;
+  staffPointer.picked = null;
+  rollPointer.note = null;
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
     const media = {
       get matches() {
@@ -123,6 +135,7 @@ export function useApp(): void {
   start = () => {
     audio = new FakeAudio();
     staffScores = [];
+    rollFrames = [];
     tilesShown = [];
     playback = new Playback(audio, new FakeTicker());
     volume = new Volume(new FakeAudio());
@@ -140,7 +153,8 @@ export function useApp(): void {
     const barLoop = new BarLoop(playback);
     const trainer = new TempoTrainer(playback);
     bookmarks = new Bookmarks(playback, barLoop);
-    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks });
+    fingering = new OwnFingering(playback);
+    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering });
     const freePlay = new FreePlay(audio);
     keepInstrumentPrepared(playback, freePlay, instrument);
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
@@ -149,6 +163,7 @@ export function useApp(): void {
       barLoop,
       trainer,
       bookmarks,
+      fingering,
       volume,
       instrument,
       openScore,
@@ -157,8 +172,15 @@ export function useApp(): void {
       freePlay,
       recorder,
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
-      createRoll: () => fakeView<RollView>({ secondsPerPixel: null, scrollable: false }),
-      createStaff: () => fakeView<StaffView>({ setScore: (score) => void staffScores.push(score) }),
+      createRoll: () => fakeView<RollView>({ secondsPerPixel: null, scrollable: false, noteAt: () => rollPointer.note, render: (frame) => void rollFrames.push(frame) }),
+      createStaff: () =>
+        fakeView<StaffView>({
+          setScore: (score) => void staffScores.push(score),
+          // (A press anywhere on the staff is on its first bar, on the note the test puts under it.)
+          pageAt: () => ({ bar: 0, beat: 0 }),
+          noteAt: () => staffPointer.note,
+          setPicked: (note) => void (staffPointer.picked = note),
+        }),
       createTiles: () => fakeView<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
       demos,
     });
