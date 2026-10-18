@@ -58,7 +58,8 @@ component names the token; it never writes a colour.
 
 ## Space and shape
 
-- **Spacing from a scale**, `--space-1` (4px) to `--space-6` (32px). Between the parts of one thing,
+- **Spacing from a scale**, `--space-0` (2px) to `--space-6` (32px). Between what belongs together
+  as one line (a title and its note, a letter and its key's edge), 0; between the parts of one thing,
   1 or 2; between things, 3 or 4; between sections, 5 or 6.
 - **Three radii**: `--radius-s` for what is small and inside something (a field, a row of a menu),
   `--radius-m` for what stands by itself (a button, a tile, a panel), `--radius-pill` for a chip and
@@ -66,7 +67,8 @@ component names the token; it never writes a colour.
 - **Under a finger, everything pressable is 44px at the least** (`--touch`), on a touch screen and
   on a narrow window alike.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
-  depth is said by `--panel` on `--bg`, and by an edge.
+  depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
+  `--scrim`.
 
 ## Icons
 

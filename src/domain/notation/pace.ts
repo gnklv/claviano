@@ -1,5 +1,6 @@
 import { lastAtOrBefore } from '../search';
 import type { Notation, TempoChange } from './notation';
+import { SAME_MOMENT } from '../moment';
 
 /*
  * Changes of pace written in words: "rit." and "rall." (slowing down), "riten." (held back),
@@ -76,19 +77,19 @@ export function paceTempos(notation: Notation, defaultTempo: number, depths: Pac
   const onsets = [...new Set(notation.notes.map((note) => note.beat))].sort((a, b) => a - b);
   const lastBar = notation.bars.at(-1);
   const end = lastBar ? lastBar.start + lastBar.length : 0;
-  const barAt = (beat: number) => Math.max(0, lastAtOrBefore(notation.bars, beat + 1e-9, (bar) => bar.start));
+  const barAt = (beat: number) => Math.max(0, lastAtOrBefore(notation.bars, beat + SAME_MOMENT, (bar) => bar.start));
 
   const made: TempoChange[] = [];
   const set = (beat: number, bpm: number) => made.push({ bar: barAt(beat), beat, bpm });
   /** The pace in force at `beat`: the last set at or before it, by the piece or by the words so far. */
   const paceAt = (beat: number): number => {
-    const byPiece = own[lastAtOrBefore(own, beat + 1e-9, (tempo) => tempo.beat)];
-    const byWords = made.filter((tempo) => tempo.beat <= beat + 1e-9).at(-1);
+    const byPiece = own[lastAtOrBefore(own, beat + SAME_MOMENT, (tempo) => tempo.beat)];
+    const byWords = made.filter((tempo) => tempo.beat <= beat + SAME_MOMENT).at(-1);
     if (byWords && (!byPiece || byWords.beat >= byPiece.beat)) return byWords.bpm;
     return byPiece?.bpm ?? defaultTempo;
   };
 
-  const first = own[0] && own[0].beat <= 1e-9 ? own[0].bpm : defaultTempo;
+  const first = own[0] && own[0].beat <= SAME_MOMENT ? own[0].bpm : defaultTempo;
   /** The pace before the last change, for "a tempo" to give back. */
   let before = first;
 
@@ -101,7 +102,7 @@ export function paceTempos(notation: Notation, defaultTempo: number, depths: Pac
     before = from;
 
     // It runs until something else sets the pace: the piece, or the next words of pace.
-    const nextTempo = own.find((tempo) => tempo.beat > word.beat + 1e-9)?.beat ?? Infinity;
+    const nextTempo = own.find((tempo) => tempo.beat > word.beat + SAME_MOMENT)?.beat ?? Infinity;
     const nextWords = words[index + 1]?.beat ?? Infinity;
     const stop = Math.min(nextTempo, nextWords);
     const barsLeft = notation.bars.length - barAt(word.beat);
@@ -112,8 +113,8 @@ export function paceTempos(notation: Notation, defaultTempo: number, depths: Pac
     const givenBack = stop === Infinity && !toTheEnd;
 
     // The slowest (or the fastest) is reached at the last note struck before it ends.
-    const lastOnset = onsets[lastAtOrBefore(onsets, until - 1e-6, (onset) => onset)];
-    const arrive = toTheEnd && lastOnset !== undefined && lastOnset > word.beat + 1e-6 ? lastOnset : until;
+    const lastOnset = onsets[lastAtOrBefore(onsets, until - SAME_MOMENT, (onset) => onset)];
+    const arrive = toTheEnd && lastOnset !== undefined && lastOnset > word.beat + SAME_MOMENT ? lastOnset : until;
 
     const whole = word.kind === 'faster' ? depths.faster : toTheEnd ? depths.final : depths.passing;
     const to = word.slight ? 1 - (1 - whole) / 2 : whole;
@@ -121,7 +122,7 @@ export function paceTempos(notation: Notation, defaultTempo: number, depths: Pac
     const length = arrive - word.beat;
     const pace = (x: number) => (word.kind === 'faster' ? 1 + (to - 1) * x : atOnce * ritardando(x, to / atOnce));
 
-    for (let beat = word.beat; beat < arrive - 1e-6; beat += STEP) set(beat, from * pace((beat - word.beat) / length));
+    for (let beat = word.beat; beat < arrive - SAME_MOMENT; beat += STEP) set(beat, from * pace((beat - word.beat) / length));
     // The last note of the piece is held longer, but not for as long as that pace would make it:
     // it has only to die away (and a fermata over it holds it further).
     // (Where the piece sets a tempo of its own there, that is the pace from then on.)

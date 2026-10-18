@@ -1,5 +1,6 @@
 import { barAtBeat, type Score, type TimeSignature } from '../score';
 import type { Clef } from './written';
+import { SAME_MOMENT } from '../moment';
 
 /*
  * Key signatures on the staff, and where the key and the metre change along the page.
@@ -53,10 +54,10 @@ export function signatureChanges(score: Score): SignatureChange[] {
     return entry;
   };
   score.notation.keySignatures.forEach((key, i) => {
-    if (i > 0 && key.beat > 1e-9) at(key.beat).key = { from: score.notation.keySignatures[i - 1]!.fifths, to: key.fifths };
+    if (i > 0 && key.beat > SAME_MOMENT) at(key.beat).key = { from: score.notation.keySignatures[i - 1]!.fifths, to: key.fifths };
   });
   score.notation.timeSignatures.forEach((time, i) => {
-    if (i > 0 && time.beat > 1e-9) at(time.beat).time = time;
+    if (i > 0 && time.beat > SAME_MOMENT) at(time.beat).time = time;
   });
   return [...byBar].sort((a, b) => a[0] - b[0]).map(([bar, change]) => ({ bar, ...change }));
 }

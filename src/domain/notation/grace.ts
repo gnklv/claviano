@@ -1,3 +1,4 @@
+import { SAME_MOMENT } from '../moment';
 /*
  * Grace notes: small notes printed before a note, with no time of their own in the bar. How they
  * are played is a convention:
@@ -42,7 +43,7 @@ export function graceTiming(group: GraceGroup, principal: GracePrincipal | null,
     return { start: beat, each: taken, delay: taken };
   }
   const length = group.count * CRUSHED_BEATS;
-  if (beat - length >= earliest - 1e-9) return { start: beat - length, each: CRUSHED_BEATS, delay: 0 };
+  if (beat - length >= earliest - SAME_MOMENT) return { start: beat - length, each: CRUSHED_BEATS, delay: 0 };
   // No room before: on the beat, in no more than half of the note they lead to.
   const each = principal ? Math.min(CRUSHED_BEATS, principal.beats / 2 / group.count) : CRUSHED_BEATS;
   return { start: beat, each, delay: principal ? group.count * each : 0 };

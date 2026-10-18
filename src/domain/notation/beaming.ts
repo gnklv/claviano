@@ -1,5 +1,6 @@
 import type { TimeSignature } from '../score';
 import { flagCount, type WrittenDuration } from './noteValue';
+import { SAME_MOMENT, sameMoment } from '../moment';
 
 /*
  * Beaming: which notes are joined by a beam. Eighths and shorter notes are beamed within a beat,
@@ -56,10 +57,10 @@ export function groupBeams(chords: readonly BeamCandidate[]): number[][] {
         continue;
       }
       const unit = beamUnit(chord.timeSignature);
-      const window = `${chord.bar}:${Math.floor((chord.beat - chord.barBeat + 1e-9) / unit)}`;
+      const window = `${chord.bar}:${Math.floor((chord.beat - chord.barBeat + SAME_MOMENT) / unit)}`;
       const last = current.at(-1);
       const previous = last === undefined ? null : chords[last]!;
-      if (window !== currentWindow || (previous && Math.abs(previous.beat - chord.beat) < 1e-9)) close();
+      if (window !== currentWindow || (previous && sameMoment(previous.beat, chord.beat))) close();
       currentWindow = window;
       current.push(index);
     }

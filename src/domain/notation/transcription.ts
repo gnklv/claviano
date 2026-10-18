@@ -9,6 +9,7 @@ import { quantize } from './quantize';
 import { barAccidentals, spell, type Accidental, type SpelledPitch } from './spelling';
 import { BOTTOM_LINE_STEP, staffFor, staffStep } from './staffPosition';
 import type { BeamMark, Clef, WrittenNote } from './written';
+import { SAME_MOMENT } from '../moment';
 
 /*
  * Writing down what was played: from the notes of a performance (a MIDI file) to notation, the
@@ -166,7 +167,7 @@ function writtenLengths(score: Score, placed: Placed[]): Placed[] {
     let hi = onsets.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (onsets[mid]! <= beat + 1e-9) lo = mid + 1;
+      if (onsets[mid]! <= beat + SAME_MOMENT) lo = mid + 1;
       else hi = mid;
     }
     return onsets[lo];
@@ -177,8 +178,8 @@ function writtenLengths(score: Score, placed: Placed[]): Placed[] {
     const barEnd = score.notation.bars[p.bar + 1]?.start ?? barStart + barLengthInBeats(timeSignatureAt(score, barStart));
     const next = nextOnset(p.beat);
     const { length } = beatsOf(timeSignatureAt(score, p.beat));
-    const endOfBeat = barStart + Math.ceil((p.beat + p.beats - barStart) / length - 1e-9) * length;
-    const until = next !== undefined && next <= barEnd + 1e-9 ? next : endOfBeat;
+    const endOfBeat = barStart + Math.ceil((p.beat + p.beats - barStart) / length - SAME_MOMENT) * length;
+    const until = next !== undefined && next <= barEnd + SAME_MOMENT ? next : endOfBeat;
     const end = Math.min(barEnd, Math.max(p.beat + p.beats, until));
     const beats = end - p.beat;
     return beats === p.beats ? p : { ...p, beats, duration: writtenDuration(beats) };
@@ -287,9 +288,9 @@ export function writeTempoMarks(tempos: readonly { beat: number; perMinute: numb
     if (marks.at(-1)?.perMinute === perMinute) return;
     const until = sorted[i + 1]?.beat ?? end;
     let bar = 0;
-    while (bar + 1 < bars.length && bars[bar + 1]! <= tempo.beat + 1e-9) bar++;
+    while (bar + 1 < bars.length && bars[bar + 1]! <= tempo.beat + SAME_MOMENT) bar++;
     const barLength = (bars[bar + 1] ?? end) - (bars[bar] ?? 0);
-    if (marks.length > 0 && until - tempo.beat < barLength - 1e-9) return;
+    if (marks.length > 0 && until - tempo.beat < barLength - SAME_MOMENT) return;
     marks.push({ beat: tempo.beat, unit: { value: 'quarter', dots: 0 }, perMinute });
   });
   return marks;

@@ -71,7 +71,7 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?
 
 .words {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0);
   min-width: 0;
 }
 

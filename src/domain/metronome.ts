@@ -8,6 +8,7 @@ import {
   type Score,
   type TimeSignature,
 } from './score';
+import { SAME_MOMENT } from './moment';
 
 /*
  * The metronome: a click on every beat, the first of each bar accented. Beats are counted the way
@@ -50,10 +51,10 @@ export function metronomeClicks(score: Score): Click[] {
     const offset = pickup ? Math.max(0, count * length - (end - start)) : 0;
     for (let k = 0; k < count; k++) {
       const beat = start - offset + k * length;
-      if (beat < start - 1e-9 || beat > end - 1e-9) continue;
+      if (beat < start - SAME_MOMENT || beat > end - SAME_MOMENT) continue;
       if (isHeldAt(score, beat)) continue;
       const time = secondsAtBeat(score, beat);
-      if (time > score.duration + 1e-9) continue;
+      if (time > score.duration + SAME_MOMENT) continue;
       clicks.push({ time, accent: k === 0 });
     }
   });
@@ -76,7 +77,7 @@ export interface CountInClick {
 export function countIn(score: Score, time: number): CountInClick[] {
   const start = beatAtSeconds(score, time);
   let bar = 0;
-  while (bar + 1 < score.barBeats.length && score.barBeats[bar + 1]! <= start + 1e-9) bar++;
+  while (bar + 1 < score.barBeats.length && score.barBeats[bar + 1]! <= start + SAME_MOMENT) bar++;
   const signature = signatureOfBar(score, bar);
   const { count, length } = beatsOf(signature);
 
@@ -87,7 +88,7 @@ export function countIn(score: Score, time: number): CountInClick[] {
   const gridStart = barStart - (pickup ? Math.max(0, count * length - (barEnd - barStart)) : 0);
 
   // Beats of the grid before the start, in this bar; then, if too few, a whole bar more.
-  const inBar = Math.ceil((start - gridStart) / length - 1e-9);
+  const inBar = Math.ceil((start - gridStart) / length - SAME_MOMENT);
   const beats = inBar >= 2 ? inBar : inBar + count;
   const secondsPerQuarter = (secondsAtBeat(score, start + length) - secondsAtBeat(score, start)) / length || 0.5;
   const clicks: CountInClick[] = [];

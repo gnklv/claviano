@@ -4,6 +4,7 @@ import type { StaffContext } from './context';
 import { LINES_PER_STAFF } from './geometry';
 import { DYNAMIC_LETTERS, TEXT_FONT } from './glyphs';
 import { COLORS, inked, inkedPolyline, svg } from './svg';
+import { sameMoment } from '../../../domain/moment';
 
 /*
  * Dynamics: marks (SMuFL letters p, m, f, r, s, z, n combined), words (cresc., dim.) and hairpins,
@@ -80,7 +81,7 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
   // Words under the upper staff ("sempre pianissimo"): on the dynamics' line, after a mark standing at the same place.
   for (const mark of score.notation.words) {
     if (!mark.below) continue;
-    const beside = score.notation.dynamics.find((dynamic) => Math.abs(dynamic.beat - mark.beat) < 1e-6);
+    const beside = score.notation.dynamics.find((dynamic) => sameMoment(dynamic.beat, mark.beat));
     const left = x(mark.beat) + (beside ? (beside.text.length * (beside.letters ? DYNAMIC_LETTER_WIDTH : 0.6) + 1) * space : -0.5 * space);
     const words = svg('text', {
       x: left,
@@ -96,7 +97,7 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
 
   for (const hairpin of score.notation.hairpins) {
     // Clear of a mark at either end: start after it, end before it.
-    const markAt = (beat: number) => score.notation.dynamics.find((m) => m.letters && Math.abs(m.beat - beat) < 1e-6);
+    const markAt = (beat: number) => score.notation.dynamics.find((m) => m.letters && sameMoment(m.beat, beat));
     const startMark = markAt(hairpin.start);
     const endMark = markAt(hairpin.end);
     const from = x(hairpin.start) + (startMark ? (startMark.text.length * DYNAMIC_LETTER_WIDTH) / 2 + 0.4 : -0.5) * space;

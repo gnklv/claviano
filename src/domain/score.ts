@@ -7,6 +7,7 @@ import type { WrittenDuration } from './notation/noteValue';
 import type { DynamicLevel, DynamicMark, Hairpin } from './notation/dynamics';
 import type { Notation } from './notation/notation';
 import { firstAtOrAfter, lastAtOrBefore } from './search';
+import { SAME_MOMENT } from './moment';
 
 export interface TimeRange {
   readonly start: number;
@@ -199,7 +200,7 @@ export function createScore(
   const end = music.writtenEndBeat ?? endBeat;
   const writtenBars = starts.map((start, index) => {
     const next = starts[index + 1];
-    const nominal = barLengthInBeats(timeSignatures[Math.max(0, lastAtOrBefore(timeSignatures, start + 1e-9, (t) => t.beat))]!);
+    const nominal = barLengthInBeats(timeSignatures[Math.max(0, lastAtOrBefore(timeSignatures, start + SAME_MOMENT, (t) => t.beat))]!);
     const length = next !== undefined ? next - start : end - start > 0 ? Math.min(nominal, end - start) : nominal;
     return { start, length, navigation: music.navigation?.[index] ?? {} };
   });
@@ -289,7 +290,7 @@ export function isHeldAt(score: Score, beat: number): boolean {
   const map = score.timeMap;
   const i = segmentOf(map, 'beat', beat);
   const next = map[i + 1];
-  return !!map[i]?.hold && beat > map[i].beat + 1e-9 && (next === undefined || beat < next.beat - 1e-9);
+  return !!map[i]?.hold && beat > map[i].beat + SAME_MOMENT && (next === undefined || beat < next.beat - SAME_MOMENT);
 }
 
 const itself = (value: number) => value;
@@ -300,7 +301,7 @@ export const barAt = (score: Score, time: number): number =>
 
 /** The printed bar that contains `beat` (quarter notes along the page). */
 export const barAtBeat = (score: Score, beat: number): number =>
-  Math.max(0, lastAtOrBefore(score.notation.bars, beat + 1e-9, (bar) => bar.start));
+  Math.max(0, lastAtOrBefore(score.notation.bars, beat + SAME_MOMENT, (bar) => bar.start));
 
 /** How many quarter notes printed bar `index` lasts. */
 export const barLength = (score: Score, index: number): number => score.notation.bars[index]?.length ?? 0;
@@ -319,7 +320,7 @@ export function pageEnd(score: Score): number {
  * like the two sixteenths before the first full bar of Für Elise.
  */
 export const hasPickup = (score: Score): boolean =>
-  score.notation.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - 1e-6;
+  score.notation.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - SAME_MOMENT;
 
 /** The number printed on printed bar `written`: a pickup is bar 0, the first full bar is 1. */
 export const writtenBarNumber = (score: Score, written: number): number => written + (hasPickup(score) ? 0 : 1);
@@ -379,7 +380,7 @@ export const timeSignatureAt = (score: Score, beat: number): TimeSignature =>
 
 /** The metronome mark in force at `beat` along the page, if the source gives one. */
 export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
-  const index = lastAtOrBefore(score.notation.tempoMarks, beat + 1e-9, (mark) => mark.beat);
+  const index = lastAtOrBefore(score.notation.tempoMarks, beat + SAME_MOMENT, (mark) => mark.beat);
   return score.notation.tempoMarks[Math.max(0, index)] ?? null;
 }
 
@@ -420,7 +421,7 @@ export function barStarts(timeSignatures: readonly TimeSignature[], end: number)
   sorted.forEach((signature, i) => {
     const until = sorted[i + 1]?.beat ?? end;
     const length = barLengthInBeats(signature);
-    for (let beat = signature.beat; beat < until - 1e-9; beat += length) bars.push(beat);
+    for (let beat = signature.beat; beat < until - SAME_MOMENT; beat += length) bars.push(beat);
   });
   return bars;
 }
@@ -434,7 +435,7 @@ export function barLengthInBeats({ numerator, denominator }: TimeSignature): num
 export function clefSignAt(score: Score, staff: number, beat: number): ClefSign {
   let sign: ClefSign = { clef: staff === 1 ? 'treble' : 'bass', octaves: 0 };
   for (const change of score.notation.clefs) {
-    if (change.beat > beat + 1e-9) break;
+    if (change.beat > beat + SAME_MOMENT) break;
     if (change.staff === staff) sign = { clef: change.clef, octaves: change.octaves ?? 0 };
   }
   return sign;

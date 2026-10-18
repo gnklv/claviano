@@ -10,6 +10,7 @@ import { PACE_DEPTHS, paceTempos, type PaceDepths } from './pace';
 import { arpeggioDelays, neighbour, playOrnament, playTremolo, playTremoloBetween } from './ornaments';
 import { midiOf } from './spelling';
 import type { Articulation } from './written';
+import { SAME_MOMENT, sameMoment } from '../moment';
 
 /*
  * Playing what is written: from the notation of a piece (see notation.ts) to its notes in time.
@@ -126,7 +127,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
     const beat = note.beat + delay;
     const beats = note.beats - delay;
     const [ornament] = note.ornaments;
-    const fifths = keys[lastAtOrBefore(keys, note.beat + 1e-9, (key) => key.beat)]?.fifths ?? 0;
+    const fifths = keys[lastAtOrBefore(keys, note.beat + SAME_MOMENT, (key) => key.beat)]?.fifths ?? 0;
     // Under an octave shift the note is printed octaves away from where it sounds; its neighbours are counted from there.
     const spelled = { ...note.pitch, octave: note.pitch.octave + Math.round((note.sounding - midiOf(note.pitch)) / 12) };
     const pieces = ornament
@@ -170,8 +171,8 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
   for (const measure of measures) {
     for (const sound of measure.sounds) {
       // A sforzando (or the f of an fp) on the notes it is written at.
-      const accent = accents[firstAtOrAfter(accents, sound.beat - 1e-6, (a) => a.beat)];
-      const stress = accent && Math.abs(accent.beat - sound.beat) < 1e-6 ? accent : null;
+      const accent = accents[firstAtOrAfter(accents, sound.beat - SAME_MOMENT, (a) => a.beat)];
+      const stress = accent && sameMoment(accent.beat, sound.beat) ? accent : null;
       const level = sound.ownDynamics ?? stress?.level ?? levelAt(sound.beat);
       sound.velocity = Math.min(1, ((level * 0.9) / 127) * sound.loudness * (stress?.factor ?? 1));
     }
@@ -253,7 +254,7 @@ function distinctTempoMarks(marks: readonly TempoMark[]): TempoMark[] {
   const result: TempoMark[] = [];
   for (const mark of [...marks].sort((a, b) => a.beat - b.beat)) {
     const last = result.at(-1);
-    if (last && Math.abs(last.beat - mark.beat) < 1e-9) {
+    if (last && sameMoment(last.beat, mark.beat)) {
       if (last.printed && !mark.printed) continue;
       result.pop();
     }
@@ -392,7 +393,7 @@ function withFermatas(toSeconds: (beat: number) => number, merged: [number, numb
 function alternateTremolos(sounds: Sound[]): Sound[] {
   if (!sounds.some((sound) => sound.tremolo)) return sounds;
   const result = sounds.filter((sound) => !sound.tremolo);
-  const same = (a: Sound, b: Sound) => a.staff === b.staff && Math.abs(a.beat - b.beat) < 1e-6;
+  const same = (a: Sound, b: Sound) => a.staff === b.staff && sameMoment(a.beat, b.beat);
   const starts = sounds.filter((sound) => sound.tremolo?.type === 'start');
   const stops = sounds.filter((sound) => sound.tremolo?.type === 'stop');
   const done = new Set<Sound>();
@@ -400,7 +401,7 @@ function alternateTremolos(sounds: Sound[]): Sound[] {
     if (done.has(start)) continue;
     const first = starts.filter((sound) => same(sound, start));
     // The other side: the first notes with a "stop" on that staff after this one.
-    const next = stops.find((sound) => sound.staff === start.staff && sound.beat > start.beat - 1e-6 && !done.has(sound));
+    const next = stops.find((sound) => sound.staff === start.staff && sound.beat > start.beat - SAME_MOMENT && !done.has(sound));
     const second = next ? stops.filter((sound) => same(sound, next)) : [];
     for (const sound of [...first, ...second]) done.add(sound);
     if (!next) {
@@ -428,7 +429,7 @@ function rollChords(sounds: Sound[]): Sound[] {
   const done = new Set<Sound>();
   for (const first of rolled) {
     if (done.has(first)) continue;
-    const chord = rolled.filter((sound) => Math.abs(sound.beat - first.beat) < 1e-6);
+    const chord = rolled.filter((sound) => sameMoment(sound.beat, first.beat));
     chord.sort((a, b) => (first.roll === 'down' ? b.pitch - a.pitch : a.pitch - b.pitch));
     const delays = arpeggioDelays(chord.length, Math.min(...chord.map((sound) => sound.beats)));
     chord.forEach((sound, i) => {

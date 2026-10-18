@@ -3,6 +3,7 @@ import { lastAtOrBefore } from '../../../domain/search';
 import { cancelledSteps, signatureChanges, type SignatureChange } from '../../../domain/notation/signatures';
 import { momentIn, placeIn, spaceBar, type BarSpacing, type Column } from '../../../domain/notation/spacing';
 import { beatAtPosition, beatPosition, tapeBars, type Clef } from '../staffLayout';
+import { SAME_MOMENT, sameMoment } from '../../../domain/moment';
 
 /*
  * All sizes are in staff spaces (the distance between two staff lines),
@@ -238,7 +239,7 @@ export class StaffGeometry {
     if (!score) return 0;
     const starts = tapeBars(score).starts;
     const bar = tapeBarAt(starts, x);
-    return Math.abs((starts[bar] ?? 0) - x) < 1e-6 ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
+    return sameMoment(starts[bar] ?? 0, x) ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
   }
 
   /** Cursor position inside the tape. */
@@ -303,5 +304,5 @@ function signatureChangeWidth(change: SignatureChange): number {
 
 /** The bar (index into `starts`) whose start is at or before `x` on the tape (the first one before it). */
 function tapeBarAt(starts: readonly number[], x: number): number {
-  return Math.max(0, lastAtOrBefore(starts, x + 1e-9, (start) => start));
+  return Math.max(0, lastAtOrBefore(starts, x + SAME_MOMENT, (start) => start));
 }

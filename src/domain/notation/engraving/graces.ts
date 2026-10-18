@@ -5,6 +5,7 @@ import { staffStep } from '../staffPosition';
 import type { Clef } from '../written';
 import { ledgerSteps, stepSpan } from './chords';
 import type { StaffChord, StaffGrace, StaffNote } from './types';
+import { SAME_MOMENT, sameMoment } from '../../moment';
 
 /* Grace notes: small notes before the note they lead to. */
 
@@ -19,8 +20,8 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
   chords.forEach((chord, index) => onStaff[chord.staff].push(index));
   const chordAt = (staff: Clef, beat: number): number | null => {
     const indices = onStaff[staff];
-    const index = indices[firstAtOrAfter(indices, beat - 1e-6, (i) => chords[i]!.beat)];
-    return index !== undefined && Math.abs(chords[index]!.beat - beat) < 1e-6 ? index : null;
+    const index = indices[firstAtOrAfter(indices, beat - SAME_MOMENT, (i) => chords[i]!.beat)];
+    return index !== undefined && sameMoment(chords[index]!.beat, beat) ? index : null;
   };
   // The group being gathered: its place, its slots (still being filled) and where its sound ends.
   let open = null as { key: string; slots: { notes: StaffNote[]; ledgerSteps: number[] }[]; end: number } | null;

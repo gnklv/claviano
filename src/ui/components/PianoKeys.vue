@@ -248,7 +248,7 @@ useWindowListener('blur', onBlur);
   box-sizing: border-box;
   /* (A keycap: as small as a letter in it can be read.) */
   min-width: 18px;
-  padding: 3px var(--space-1);
+  padding: var(--space-0) var(--space-1);
   border: 1px solid currentColor;
   border-radius: var(--radius-s);
   font-size: var(--text-key);
@@ -268,7 +268,7 @@ useWindowListener('blur', onBlur);
 }
 
 .black .letter {
-  margin-bottom: 2px;
+  margin-bottom: var(--space-0);
 }
 
 /* The letters are the computer keyboard's: nothing to say where there is only a finger. */

@@ -105,7 +105,7 @@ const percent = computed({
 .presets {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .preset {

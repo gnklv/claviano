@@ -4,6 +4,7 @@ import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
 import { handAhead } from './handAhead';
 import type { FreePlay } from './FreePlay';
+import { SAME_MOMENT } from '../../domain/moment';
 
 /** The time signatures to record in: how many beats to the bar, and what a beat is, in quarter notes. */
 export const METERS = {
@@ -176,7 +177,7 @@ export class Recorder {
     // A note belongs to the bar it is written in: by its start as it is written down, on the grid of sixteenths.
     const sixteenth = this.beatSeconds() / METERS[this.signature].beat / 4;
     const writtenAt = (note: PlayedNote) => Math.round(note.start / sixteenth) * sixteenth;
-    this.notes = this.notes.filter((note) => writtenAt(note) < from - 1e-6).map((note) => (note.end !== null && note.end > from ? { ...note, end: from } : note));
+    this.notes = this.notes.filter((note) => writtenAt(note) < from - SAME_MOMENT).map((note) => (note.end !== null && note.end > from ? { ...note, end: from } : note));
     this.length = from;
     this.emit();
   }

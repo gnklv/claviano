@@ -1,3 +1,4 @@
+import { SAME_MOMENT } from '../moment';
 /*
  * How wide a bar is drawn. Left to itself music is set out by its time: a bar of a given width,
  * each note as far along it as its beat is through the bar. But a note needs room of its own (its
@@ -61,7 +62,7 @@ function merged(columns: readonly Column[]): Column[] {
   const result: Column[] = [];
   for (const column of sorted) {
     const last = result.at(-1);
-    if (last && column.at - last.at < 1e-6) result[result.length - 1] = { at: last.at, before: Math.max(last.before, column.before), after: Math.max(last.after, column.after) };
+    if (last && column.at - last.at < SAME_MOMENT) result[result.length - 1] = { at: last.at, before: Math.max(last.before, column.before), after: Math.max(last.after, column.after) };
     else result.push(column);
   }
   return result;

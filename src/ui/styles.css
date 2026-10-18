@@ -82,6 +82,8 @@
   --radius-pill: 999px;
 
   /* Space: gaps and paddings are steps of this scale. */
+  /* (Between what belongs together: a title and its note, a letter and its key's edge.) */
+  --space-0: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -105,6 +107,8 @@
 
   /* What stands over the page casts a shadow of this shade: a pop-up under itself, a sheet towards the page. */
   --shade: rgb(0 0 0 / 0.25);
+  /* Over a page while a sheet stands on it: the page stays in sight, quieter. */
+  --scrim: rgb(0 0 0 / 0.4);
   --shadow-raised: 0 10px 32px var(--shade);
 
   /* Under a finger nothing pressable is smaller. */

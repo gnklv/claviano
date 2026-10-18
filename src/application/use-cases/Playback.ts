@@ -6,6 +6,7 @@ import { firstAtOrAfter } from '../../domain/search';
 import type { AudioOutput } from '../ports/AudioOutput';
 import type { Ticker } from '../ports/Ticker';
 import { AHEAD, handAhead } from './handAhead';
+import { SAME_MOMENT } from '../../domain/moment';
 
 const MIN_LOOP_LENGTH = 0.1;
 /**
@@ -39,7 +40,7 @@ function firstClickAtOrAfter(clicks: readonly Click[], time: number): number {
   let hi = clicks.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (clicks[mid]!.time < time - 1e-9) lo = mid + 1;
+    if (clicks[mid]!.time < time - SAME_MOMENT) lo = mid + 1;
     else hi = mid;
   }
   return lo;

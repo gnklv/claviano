@@ -54,6 +54,7 @@ import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
 import { COLORS, svg } from './staff/svg';
 import { TapeWindow } from './staff/tapeWindow';
+import { SAME_MOMENT, sameMoment } from '../../domain/moment';
 
 /*
  * The staff's parts live in ./staff: where things go (geometry), where the notes reach (ink), and
@@ -307,12 +308,11 @@ export class SvgStaff implements StaffView {
   private stretch(width: number, height: number): void {
     const { geometry } = this;
     const by = geometry.spaceFor(width, height) / geometry.space;
-    // (To a tenth of a pixel: the noise of arithmetic is no move.)
-    const down = Math.round((height / 2 - (by * geometry.height) / 2) * 10) / 10;
+    const down = tenth(height / 2 - (by * geometry.height) / 2);
     // The tape is boxed as it will be, in what is drawn: from the left column (stretched with the
     // rest) to the view's edges. Its fade, and the edge that cuts it, go with the box.
     const tape = (width - by * geometry.gutterWidth()) / by;
-    this.stretchShift = Math.round(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())) * 10) / 10;
+    this.stretchShift = tenth(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())));
     this.stretchBy = by;
     this.stretchedTape = tape;
     this.tape.style.right = `${width - geometry.gutterWidth() - tape}px`;
@@ -413,14 +413,14 @@ export class SvgStaff implements StaffView {
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
     const cursorX = (held !== null ? x + this.shownOffset : geometry.cursorX()) + this.stretchShift;
-    const cursorLeft = Math.round((geometry.gutterWidth() + cursorX - 1) * 10) / 10;
+    const cursorLeft = tenth(geometry.gutterWidth() + cursorX - 1);
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
       this.cursor.style.left = `${cursorLeft}px`;
       this.cursor.style.visibility = cursorX < 0 || cursorX > this.tapeInSight() ? 'hidden' : 'visible';
     }
 
-    const offset = Math.round((this.shownOffset + this.stretchShift) * 10) / 10;
+    const offset = tenth(this.shownOffset + this.stretchShift);
     if (offset === this.lastOffset) return;
     this.showAround(offset);
     this.lastOffset = offset;
@@ -466,7 +466,7 @@ export class SvgStaff implements StaffView {
 
   /** The last change of clef, key or time at or before `beat` (as the domain finds what is in force there). */
   private gutterAt(beat: number): number {
-    return lastAtOrBefore(this.gutterChanges, beat + 1e-9, itself);
+    return lastAtOrBefore(this.gutterChanges, beat + SAME_MOMENT, itself);
   }
 
   // --- Drawing ---
@@ -523,7 +523,7 @@ export class SvgStaff implements StaffView {
     const top = geometry.trebleTop();
     const start = geometry.edgeX(barPosition(score, loop.start));
     // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
-    const end = geometry.edgeX(barPosition(score, Math.max(loop.start, loop.end - 1e-6)));
+    const end = geometry.edgeX(barPosition(score, Math.max(loop.start, loop.end - SAME_MOMENT)));
     const y = top - 3 * space;
     const height = geometry.systemBottom() - top + 6 * space;
     this.loopLayer.append(
@@ -632,8 +632,8 @@ export class SvgStaff implements StaffView {
     sounding.length = 0;
     for (let i = firstAtOrAfter(chords, beat - this.longestChord, beatOf); i < chords.length; i++) {
       const chord = chords[i]!;
-      if (chord.beat > beat + 1e-9) break;
-      if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) sounding.push(i);
+      if (chord.beat > beat + SAME_MOMENT) break;
+      if (chord.beat + chord.beats > beat + SAME_MOMENT && isHandEnabled(chord.hand)) sounding.push(i);
     }
     // (A few chords at a time: looked through, not looked up.)
     for (const index of lit) if (!sounding.includes(index)) this.chordCopies[index]!.remove();
@@ -647,7 +647,7 @@ export class SvgStaff implements StaffView {
     // Grace notes: few, and each sounds for a moment.
     for (let index = 0; index < this.graces.length; index++) {
       const grace = this.graces[index]!;
-      const on = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
+      const on = grace.beat <= beat + SAME_MOMENT && grace.beat + grace.beats > beat + SAME_MOMENT && isHandEnabled(grace.hand);
       if (on === this.litGraces.has(index)) continue;
       if (on) {
         this.litSvg.append((this.graceCopies[index] ??= litCopy(this.graceElements[index]!, COLORS.hand[grace.hand])));
@@ -668,6 +668,8 @@ function litCopy(drawn: SVGElement, color: string): SVGElement {
   return copy;
 }
 
+/** To a tenth of a pixel: what moves less is the noise of arithmetic, not a move to show. */
+const tenth = (px: number): number => Math.round(px * 10) / 10;
 const itself = (value: number): number => value;
 const beatOf = (chord: StaffChord): number => chord.beat;
 
@@ -684,15 +686,15 @@ function graceRoom(
     const principal = grace.principal === null ? null : chords[grace.principal];
     const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
     if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
-    else if (Math.abs(principal.beat - writtenBarStart(score, principal.bar)) < 1e-6) {
+    else if (sameMoment(principal.beat, writtenBarStart(score, principal.bar))) {
       lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
     }
   }
   // A change of clef at a bar's first beat: the small clef stands there too, after the bar line.
   for (const change of score.notation.clefs) {
-    if (change.beat <= 1e-9) continue;
+    if (change.beat <= SAME_MOMENT) continue;
     const bar = barAtBeat(score, change.beat);
-    if (Math.abs(change.beat - writtenBarStart(score, bar)) < 1e-6) lead.set(bar, Math.max(lead.get(bar) ?? 0, CLEF_CHANGE));
+    if (sameMoment(change.beat, writtenBarStart(score, bar))) lead.set(bar, Math.max(lead.get(bar) ?? 0, CLEF_CHANGE));
   }
   return { lead, tail };
 }

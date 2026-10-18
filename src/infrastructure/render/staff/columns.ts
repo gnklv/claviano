@@ -4,6 +4,7 @@ import { barAtBeat, barLength, writtenBarStart, type Score } from '../../../doma
 import { ACCIDENTAL_COLUMN } from './chords';
 import { HEAD_WIDTH } from './glyphs';
 import { graceWidth } from './graces';
+import { SAME_MOMENT } from '../../../domain/moment';
 
 /*
  * What stands at each moment of each printed bar, and the room it takes as it is drawn here (see
@@ -46,7 +47,7 @@ export function columnsOf(score: Score, layout: NotationLayout): Column[][] {
   for (const change of score.notation.clefs) {
     const bar = barAtBeat(score, change.beat);
     const at = share(bar, change.beat);
-    if (at > 1e-6) bars[bar]?.push({ at, before: CLEF_CHANGE, after: 0 });
+    if (at > SAME_MOMENT) bars[bar]?.push({ at, before: CLEF_CHANGE, after: 0 });
   }
   for (const rest of layout.rests) {
     const bar = barAtBeat(score, rest.beat);

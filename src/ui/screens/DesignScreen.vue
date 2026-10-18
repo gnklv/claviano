@@ -5,6 +5,7 @@ import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
 import MenuList from '../components/MenuList.vue';
+import PieceCard from '../components/PieceCard.vue';
 import PieceTile from '../components/PieceTile.vue';
 import PopOver from '../components/PopOver.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
@@ -12,6 +13,7 @@ import SectionHeading from '../components/SectionHeading.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import SettingRow from '../components/SettingRow.vue';
 import SheetDialog from '../components/SheetDialog.vue';
+import TempoMark from '../components/TempoMark.vue';
 import TextField from '../components/TextField.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
 import ToggleChip from '../components/ToggleChip.vue';
@@ -87,6 +89,8 @@ const chosen = ref('');
           Сыграть что-то своё <code class="caption">{{ size }}</code>
         </li>
       </ul>
+      <p class="about">A tempo written as in the music: its note in the music font, as on the staff.</p>
+      <p><TempoMark unit="quarter" :dotted="false" :per-minute="90" /> · <TempoMark unit="eighth" :dotted="true" :per-minute="60" /></p>
 
       <SectionHeading>Buttons</SectionHeading>
       <p class="about">One primary button on a screen: its main action. A quiet one stands over something else. An icon alone carries a name for a screen reader.</p>
@@ -152,6 +156,10 @@ const chosen = ref('');
         </PieceTile>
         <PieceTile title="Without a note" />
         <PieceTile low title="A low one" note="for what is nobody's" />
+      </div>
+      <p class="about">On the shelf: a press opens the piece; behind its menu, renaming it, saving its file, taking it off (asked twice).</p>
+      <div class="tiles">
+        <PieceCard title="La Valse d’Amélie" note="bar 12 of 64" />
       </div>
 
       <SectionHeading>Pop-up</SectionHeading>

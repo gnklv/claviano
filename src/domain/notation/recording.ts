@@ -2,6 +2,7 @@ import { handBySplitPoint, type Note } from '../note';
 import { createScore, type Score } from '../score';
 import { quantize } from './quantize';
 import { transcribed, writeTempoMarks } from './transcription';
+import { SAME_MOMENT } from '../moment';
 
 /** A note as it was played: when the key went down and came up, in seconds from the start of the take (null: still down). */
 export interface PlayedNote {
@@ -52,7 +53,7 @@ export function scoreFromTake(title: string, played: readonly PlayedNote[], beat
   // Whole bars, to the end of the last note.
   const barBeats = (beat.numerator * 4) / beat.denominator;
   const endBeat = notes.reduce((end, note) => Math.max(end, note.beat + note.beats), 0);
-  const bars = Math.max(1, Math.ceil(endBeat / barBeats - 1e-9));
+  const bars = Math.max(1, Math.ceil(endBeat / barBeats - SAME_MOMENT));
   const starts = Array.from({ length: bars }, (_, bar) => bar * barBeats);
   const end = bars * barBeats;
 

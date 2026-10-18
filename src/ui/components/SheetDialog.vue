@@ -105,12 +105,12 @@ function onCancel(event: Event): void {
 }
 
 .panel::backdrop {
-  background: rgb(0 0 0 / 0);
+  background: transparent;
   transition: background var(--leave) ease-out;
 }
 
 .panel[open]:not(.closing)::backdrop {
-  background: rgb(0 0 0 / 0.4);
+  background: var(--scrim);
   transition-duration: var(--enter);
 }
 
@@ -147,7 +147,7 @@ function onCancel(event: Event): void {
   }
 
   .panel[open]:not(.closing)::backdrop {
-    background: rgb(0 0 0 / 0);
+    background: transparent;
   }
 }
 

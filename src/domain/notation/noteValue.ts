@@ -1,3 +1,4 @@
+import { SAME_MOMENT } from '../moment';
 /*
  * Which note to draw for a duration: 2 quarters is a half note, 1.5 a dotted quarter.
  */
@@ -33,7 +34,7 @@ const WRITABLE: (WrittenDuration & { beats: number })[] = (Object.keys(BEATS) as
  * is a thirty-second.
  */
 export function writtenDuration(beats: number): WrittenDuration {
-  const fit = WRITABLE.find((candidate) => candidate.beats <= beats + 1e-9) ?? WRITABLE.at(-1)!;
+  const fit = WRITABLE.find((candidate) => candidate.beats <= beats + SAME_MOMENT) ?? WRITABLE.at(-1)!;
   return { value: fit.value, dots: fit.dots };
 }
 

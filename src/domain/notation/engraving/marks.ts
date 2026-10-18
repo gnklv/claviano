@@ -4,6 +4,7 @@ import { BOTTOM_LINE_STEP, staffStep } from '../staffPosition';
 import type { Articulation, WrittenChord, WrittenNote, WrittenRest } from '../written';
 import { stepSpan, voicesByStaffAndBar } from './chords';
 import type { StaffArpeggio, StaffChord, StaffFingering, StaffMark, StaffOrnament, StaffTremolo } from './types';
+import { SAME_MOMENT } from '../../moment';
 
 /*
  * Signs at a note: articulations and fermatas, ornaments, tremolo strokes and the sign of a rolled
@@ -112,7 +113,7 @@ export function layoutOrnaments(
       if (above) reached.above = step - 4;
       else reached.below = step + 4;
       const delayed = mark.kind === 'delayed-turn' || mark.kind === 'delayed-inverted-turn';
-      const barEnd = (score.notation.bars[chord.bar + 1]?.start ?? pageEnd(score)) - 1e-9;
+      const barEnd = (score.notation.bars[chord.bar + 1]?.start ?? pageEnd(score)) - SAME_MOMENT;
       ornaments.push({
         chord: index,
         kind: mark.kind,

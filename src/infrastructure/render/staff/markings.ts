@@ -36,6 +36,7 @@ import {
   timeDigits,
 } from './glyphs';
 import { COLORS, inked, inkedPolyline, svg } from './svg';
+import { SAME_MOMENT, sameMoment } from '../../../domain/moment';
 
 /**
  * Bar numbers: this far right of the bar line and over the top line, clear of notes by this much;
@@ -100,7 +101,7 @@ export function drawClefChanges({ score, geometry }: StaffContext): SVGElement[]
   const { space } = geometry;
   const shapes: SVGElement[] = [];
   for (const change of score.notation.clefs) {
-    if (change.beat <= 1e-9) continue; // the opening clefs live in the left column
+    if (change.beat <= SAME_MOMENT) continue; // the opening clefs live in the left column
     const bar = barAtBeat(score, change.beat);
     const staffTop = change.staff === 1 ? geometry.trebleTop() : geometry.bassTop();
     const octaveClef = octaveClefGlyph({ clef: change.clef, octaves: change.octaves ?? 0 });
@@ -360,9 +361,9 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     const left = placeOf(beat);
     let x = left;
     // The same tempo said again (a file slowing down step by step under one "Adagio") is not printed again.
-    const here = above.filter((mark) => mark.tempo && Math.abs(mark.beat - beat) < 1e-6 && mark.text !== lastTempoWords);
+    const here = above.filter((mark) => mark.tempo && sameMoment(mark.beat, beat) && mark.text !== lastTempoWords);
     lastTempoWords = here.at(-1)?.text ?? lastTempoWords;
-    const mark = score.notation.tempoMarks.find((tempo) => Math.abs(tempo.beat - beat) < 1e-6);
+    const mark = score.notation.tempoMarks.find((tempo) => sameMoment(tempo.beat, beat));
     const width = here.reduce((sum, w) => sum + wordsWidth(w.text, true, space) + WORDS_GAP * space, 0) + (mark ? 5 * space : 0);
     let y = lineY(left, left + Math.max(width, 5 * space));
     // Over a bar number further along the line, which the words and the mark would run into (a

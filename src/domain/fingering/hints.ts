@@ -4,6 +4,7 @@ import type { Score } from '../score';
 import type { Finger } from './hand';
 import { fingerPassage, samePosition } from './passage';
 import type { Key } from './scales';
+import { SAME_MOMENT, sameMoment } from '../moment';
 
 /*
  * Fingering hints for a piece as it is written: where the notes give no finger, one worked out
@@ -20,8 +21,6 @@ import type { Key } from './scales';
 
 /** The hand is free to move when nothing of its own sounds for this long, in quarter notes: a rest, a breath. */
 const REST = 1;
-/** Notes this close in time, in quarter notes, are struck together. */
-const TOGETHER = 1e-6;
 
 /** The key a piece is in at its start, from its key signature. */
 function keyOf(score: Score): Key | undefined {
@@ -60,7 +59,7 @@ export function fingerHints(score: Score): (FingerHint | null)[] {
     const moments: { beat: number; end: number; notes: typeof own }[] = [];
     for (const entry of own) {
       const last = moments.at(-1);
-      if (last && Math.abs(entry.note.beat - last.beat) < TOGETHER) {
+      if (last && sameMoment(entry.note.beat, last.beat)) {
         // (Two voices on one key are one key.)
         if (!last.notes.some((other) => other.note.sounding === entry.note.sounding)) last.notes.push(entry);
         last.end = Math.max(last.end, entry.note.beat + entry.note.beats);
@@ -72,7 +71,7 @@ export function fingerHints(score: Score): (FingerHint | null)[] {
     // Free where the hand has had a rest: nothing of its own sounding for a while before.
     let sounding = -Infinity;
     const free = moments.map((moment) => {
-      const rested = moment.beat - sounding >= REST - TOGETHER;
+      const rested = moment.beat - sounding >= REST - SAME_MOMENT;
       sounding = Math.max(sounding, moment.end);
       return rested;
     });

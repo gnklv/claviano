@@ -1,5 +1,6 @@
 import { noteEnd, type Note } from './note';
 import type { Score } from './score';
+import { sameMoment } from './moment';
 
 /*
  * The keys as a pianist's fingers move on them. A note written to last until the same note is
@@ -27,7 +28,7 @@ export function keyReleases(notes: readonly Note[]): number[] {
   for (let i = notes.length - 1; i >= 0; i--) {
     const note = notes[i]!;
     const reached = strikes.get(note.pitch);
-    const together = reached !== undefined && Math.abs(reached.at - note.start) < 1e-9;
+    const together = reached !== undefined && sameMoment(reached.at, note.start);
     const next = together ? reached.after : reached?.at;
     const end = noteEnd(note);
     releases[i] = next === undefined ? end : Math.min(end, next - Math.min(LIFT_SECONDS, (next - note.start) * LIFT_SHARE));
