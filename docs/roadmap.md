@@ -195,16 +195,26 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 13. [ ] How it was played, once the microphone hears a piece through: how many of the notes
         were there, and how even the time
 14. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
-15. [ ] Files with several instruments (low priority: the app is for one)
-16. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
+15. [ ] Pieces found from the library (to research first). Not a search of the web: the sites
+        with scores do not let a page read them (IMSLP and Mutopia send no CORS headers), most of
+        IMSLP is scanned PDF, MuseScore.com has no open way in, and music under copyright cannot
+        be given out. A catalogue of our own instead: piano pieces in the public domain as
+        MusicXML (from PDMX, OpenScore, Mutopia), sifted by a script (one instrument, opens, reads
+        well), kept in a repository of their own and served by jsDelivr (it lets a page read
+        them), with a small index (title, composer, difficulty, length, key) searched in the
+        browser at once; a piece found opens at a press. Still to settle: the sifting, the
+        index's shape, where the search stands in the library; a first few hundred pieces
+16. [ ] Files with several instruments (low priority: the app is for one)
+17. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
 
 Looked at in other players (Synthesia, flowkey, Simply Piano, Piano Marvel, Soundslice) and left
 out: note names on the tiles and keys, showing only the bars being practised, transposing (no
 need seen for them); printing a piece or a take (no case for it yet); courses and catalogues of
-songs, streaks and points, lists of what was practised (not what a pianist's notebook is for).
+songs (other than the free pieces of step 15), streaks and points, lists of what was practised
+(not what a pianist's notebook is for).
 
 At any time, between the steps: looking through real pieces for what is drawn or played wrong;
-the research for steps 12 and 14; checks on real devices and on GitHub Pages.
+the research for steps 12, 14 and 15; checks on real devices and on GitHub Pages.
 
 Small things noticed, to fix between the steps:
 
