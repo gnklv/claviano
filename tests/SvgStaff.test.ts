@@ -446,3 +446,46 @@ describe('a piece many screens long', () => {
     expect(signs(container).filter((sign) => sign.x < 400).some((sign) => sign.shown)).toBe(false);
   });
 });
+
+describe('the tape dragged by hand', () => {
+  /** A frame a tenth of a second after the last, on a clock set by hand. */
+  let time: number;
+  beforeEach(() => {
+    time = performance.now();
+    vi.spyOn(performance, 'now').mockImplementation(() => time);
+  });
+  afterEach(() => vi.restoreAllMocks());
+  const frame = (staff: ReturnType<typeof drawStaff>['staff'], position: number) => {
+    time += 100;
+    staff.render(position, undefined, true);
+  };
+  const offset = (container: HTMLElement) => Number(/translateX\(([-\d.]+)px\)/.exec(container.children[1].querySelector('svg')!.style.transform)![1]);
+  /** Where the tape stands for the music at `position`, on a staff nobody has touched. */
+  const following = (position: number) => {
+    const { staff, container } = drawStaff(ode());
+    for (let i = 0; i < 20; i++) frame(staff, position);
+    return offset(container);
+  };
+
+  it('stays where it was put while the music plays on, and goes back to it after a while', () => {
+    const { staff, container } = drawStaff(ode());
+    frame(staff, 1);
+    staff.dragBy(-150);
+    let position = 1;
+    frame(staff, position);
+    const put = offset(container);
+    for (; position < 3.5; position += 0.1) frame(staff, position);
+    expect(offset(container)).toBe(put);
+    for (; position < 5.5; position += 0.1) frame(staff, position);
+    expect(offset(container)).toBeCloseTo(following(position - 0.1), 0);
+  });
+
+  it('goes back at once when the music is sent elsewhere', () => {
+    const { staff, container } = drawStaff(ode());
+    frame(staff, 1);
+    staff.dragBy(-150);
+    frame(staff, 1.1);
+    for (let i = 0; i < 20; i++) frame(staff, 8);
+    expect(offset(container)).toBeCloseTo(following(8), 0);
+  });
+});

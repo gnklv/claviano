@@ -4,7 +4,8 @@ import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSp
 import { isBlackKey } from '../../domain/pitch';
 import { barNumber, firstNoteAtOrAfter, type Score } from '../../domain/score';
 import type { PedalMove, RollColors, RollFrame, RollView } from '../../application/ports/RollView';
-import { approach, clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
+import { approach, HandHold, SeekWatch } from './following';
+import { clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
 import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
 
 interface KeyRect {
@@ -70,12 +71,8 @@ const SCROLL_KEY_PX = 20;
  * it narrows down to the nearer ones (see pickSpan)…
  */
 const FOLLOW_LOOKAHEADS_SECONDS = [2, 1, 0.5];
-/** …with this many white keys to spare at the edge… */
+/** …with this many white keys to spare at the edge, unless it was scrolled by hand (see following.ts). */
 const FOLLOW_MARGIN_KEYS = 1;
-/** …unless the user scrolled by hand; then it waits this long (of playing time) before following again. */
-const MANUAL_HOLD_SECONDS = 3;
-/** A position change bigger than this between frames is a seek: the camera jumps instead of gliding. */
-const SEEK_THRESHOLD_SECONDS = 0.5;
 
 /**
  * Falling notes above a piano keyboard, drawn from scratch on a 2D canvas.
@@ -104,20 +101,19 @@ export class CanvasPianoRoll implements RollView {
 
   // Camera state
   private scrollX = 0;
-  private manualHold = false;
-  private manualIdleSeconds = 0;
+  /** Scrolled by hand: the camera stays where it was put. */
+  private readonly scrolled = new HandHold<true>();
   private snapCamera = true;
-  private lastPosition = 0;
+  private readonly seeks = new SeekWatch();
   private lastRenderAt = 0;
   /** What the last frame drawn showed: a frame that would show the same is not drawn (see render). */
   private drawn: unknown[] | null = null;
   /** Seconds ahead shown in the current frame; less than the maximum on short screens. */
   private secondsVisible = 4;
-  /**
-   * The notes dragged away from the music (see browseBy), or null while they follow it. While
-   * going back, `returning` is how far from the music they are, in pixels; otherwise false.
-   */
-  private view: { time: number; idle: number; returning: number | false } | null = null;
+  /** The moment the notes were dragged to, away from the music (see browseBy). */
+  private readonly browsed = new HandHold<number>();
+  /** Let go, the notes glide back to the music: how far from it they still are, in pixels. */
+  private returning = 0;
   /** What the last frame showed, to turn a click's height into a moment of the music. */
   private lastFrame: { score: Score; position: number; rollHeight: number; pxPerSecond: number } | null = null;
 
@@ -177,8 +173,7 @@ export class CanvasPianoRoll implements RollView {
     if (!this.scrollable) return 0;
     const before = this.scrollX;
     this.scrollX = clampOffset(this.scrollX + dx, this.cameraView());
-    this.manualHold = true;
-    this.manualIdleSeconds = 0;
+    this.scrolled.hold(true);
     return this.scrollX - before;
   }
 
@@ -207,8 +202,7 @@ export class CanvasPianoRoll implements RollView {
     const now = performance.now();
     const dt = this.lastRenderAt ? Math.min(0.1, (now - this.lastRenderAt) / 1000) : 0;
     this.lastRenderAt = now;
-    const seeked = Math.abs(frame.position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
-    this.lastPosition = frame.position;
+    const seeked = this.seeks.seeked(frame.position);
 
     // The notes are drawn at the moment in view: where the music is, unless dragged elsewhere.
     const shown = { ...frame, position: this.viewTime(frame, dt, pxPerSecond, seeked) };
@@ -254,7 +248,7 @@ export class CanvasPianoRoll implements RollView {
     ctx.fillRect(0, rollHeight - 1, width, 2);
     // Dragged away: a line marks where the music is, if it is in sight.
     const playing = yOf(frame.position);
-    if (this.view && playing >= 0 && playing <= rollHeight - 2) {
+    if (shown.position !== frame.position && playing >= 0 && playing <= rollHeight - 2) {
       ctx.fillStyle = this.colors.cursor;
       ctx.fillRect(0, playing - 1, width, 2);
     }
@@ -272,39 +266,34 @@ export class CanvasPianoRoll implements RollView {
     const frame = this.lastFrame;
     if (!frame) return 0;
     // (From where they were dragged to last, drawn yet or not: several moves between two frames add up.)
-    const before = this.view?.time ?? frame.position;
+    const before = this.browsed.value ?? frame.position;
     const time = Math.min(frame.score.duration, Math.max(0, before + seconds));
-    this.view = { time, idle: 0, returning: false };
+    this.browsed.hold(time);
+    this.returning = 0;
     return time - before;
   }
 
   /** Back to following the music at once (after a jump). */
   followMusic(): void {
-    this.view = null;
+    this.browsed.release();
+    this.returning = 0;
   }
 
   /** The moment in view: the music's position, or where the notes were dragged to (easing back after a while). */
   private viewTime(frame: RollFrame, dt: number, pxPerSecond: number, seeked: boolean): number {
-    const view = this.view;
-    if (!view || seeked) {
-      this.view = null;
+    if (seeked) {
+      this.followMusic();
       return frame.position;
     }
-    if (view.returning !== false) {
-      // Glide back by shrinking the distance to the music, not by chasing the music itself: it keeps
-      // moving, and a glide towards a moving target never quite arrives. In pixels, so the return
-      // looks the same at any zoom.
-      view.returning = approach(view.returning, 0, dt);
-      if (view.returning === 0) {
-        this.view = null;
-        return frame.position;
-      }
-      view.time = frame.position + view.returning / pxPerSecond;
-    } else if (frame.playing) {
-      view.idle += dt;
-      if (view.idle >= MANUAL_HOLD_SECONDS) view.returning = (view.time - frame.position) * pxPerSecond;
-    }
-    return view.time;
+    const letGo = this.browsed.pass(dt, frame.playing, false);
+    if (letGo !== null) this.returning = (letGo - frame.position) * pxPerSecond;
+    const held = this.browsed.value;
+    if (held !== null) return held;
+    // Glide back by shrinking the distance to the music, not by chasing the music itself: it keeps
+    // moving, and a glide towards a moving target never quite arrives. In pixels, so the return
+    // looks the same at any zoom.
+    this.returning = approach(this.returning, 0, dt);
+    return frame.position + this.returning / pxPerSecond;
   }
 
   /** The keys sounding at the music's position, with their hand (muted hands are not shown pressed). */
@@ -417,7 +406,7 @@ export class CanvasPianoRoll implements RollView {
         (a, b) => a.time - b.time,
       );
     }
-    if (score !== this.layoutScore) this.manualHold = false;
+    if (score !== this.layoutScore) this.scrolled.release();
     this.snapCamera = true;
     this.layoutScore = score;
     this.layoutWidth = width;
@@ -434,13 +423,8 @@ export class CanvasPianoRoll implements RollView {
       return;
     }
 
-    // After a manual scroll the camera waits; the wait only counts down while the music plays.
-    if (this.manualHold) {
-      if (!frame.playing) return;
-      this.manualIdleSeconds += dt;
-      if (this.manualIdleSeconds < MANUAL_HOLD_SECONDS) return;
-      this.manualHold = false;
-    }
+    // Scrolled by hand, the camera waits; a jump in the music sends it back at once.
+    if (this.scrolled.value !== null && this.scrolled.pass(dt, frame.playing, seeked) === null) return;
 
     const view = this.cameraView();
     const margin = FOLLOW_MARGIN_KEYS * this.keyWidth;

@@ -12,7 +12,7 @@ import {
 } from '../../domain/score';
 import { firstAtOrAfter, lastAtOrBefore } from '../../domain/search';
 import type { Hand } from '../../domain/note';
-import { approach } from './keyboardCamera';
+import { approach, HandHold, SeekWatch } from './following';
 import {
   engrave,
   reachOf,
@@ -70,13 +70,6 @@ const FADE = 0.12;
  * three of them to arrive). Ordinary playback is followed exactly, however fast (see render).
  */
 const TAPE_GLIDE_SECONDS = 0.1;
-/**
- * After the tape is dragged by hand it stays put for this long (of playing time) before it goes
- * back to the music, as the falling notes' keyboard does. A position change bigger than
- * SEEK_THRESHOLD_SECONDS between frames is a seek, which brings it back at once.
- */
-const MANUAL_HOLD_SECONDS = 3;
-const SEEK_THRESHOLD_SECONDS = 0.5;
 /** The tape fades out at both its ends. */
 const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
 /**
@@ -166,9 +159,9 @@ export class SvgStaff implements StaffView {
   /** While stretched: how far the music is moved along the tape, in what is drawn, to stand under the cursor where it will be drawn anew. */
   private stretchShift = 0;
   private settling: ReturnType<typeof setTimeout> | undefined;
-  /** The tape dragged by hand (see dragBy), or null while it follows the music. */
-  private manual: { offset: number; idle: number } | null = null;
-  private lastPosition = 0;
+  /** Where the tape was dragged to by hand (see dragBy, and following.ts for when it lets go). */
+  private readonly dragged = new HandHold<number>();
+  private readonly seeks = new SeekWatch();
   private lastCursorLeft = Number.NaN;
   private selection: { from: number; to: number } | null = null;
 
@@ -381,10 +374,9 @@ export class SvgStaff implements StaffView {
 
     // Dragged by hand: the tape stays where it was put; after a while of playing it goes back to the
     // music. A seek (a click, the arrows) goes back at once.
-    const seeked = Math.abs(position - this.lastPosition) > SEEK_THRESHOLD_SECONDS;
-    this.lastPosition = position;
-    const wasManual = this.manual !== null;
-    if (this.manual && (seeked || (playing && (this.manual.idle += dt) >= MANUAL_HOLD_SECONDS))) this.manual = null;
+    const seeked = this.seeks.seeked(position);
+    const letGo = this.dragged.pass(dt, playing, seeked) !== null;
+    const held = this.dragged.value;
 
     // Where the music went on the page since the last frame: to the next printed bar is playing on;
     // anything else (a repeat, a D.S., a seek) is a leap, and so is stepping over the room kept at
@@ -395,12 +387,12 @@ export class SvgStaff implements StaffView {
     const nextBar = bar === previous + 1;
     const leap =
       seeked ||
-      (wasManual && !this.manual) ||
+      letGo ||
       (bar !== previous && !nextBar) ||
       (nextBar && ((geometry.lead[bar] ?? 0) > 0 || (geometry.tail[previous] ?? 0) > 0));
 
-    if (this.manual) {
-      this.shownOffset = this.manual.offset;
+    if (held !== null) {
+      this.shownOffset = held;
       this.lag = 0;
     } else {
       // Follow the music exactly; but on a leap, glide to it. The glide shrinks the distance to the
@@ -412,7 +404,7 @@ export class SvgStaff implements StaffView {
     }
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
-    const cursorX = (this.manual ? x + this.shownOffset : geometry.cursorX()) + this.stretchShift;
+    const cursorX = (held !== null ? x + this.shownOffset : geometry.cursorX()) + this.stretchShift;
     const cursorLeft = Math.round((geometry.gutterWidth() + cursorX - 1) * 10) / 10;
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
@@ -435,11 +427,11 @@ export class SvgStaff implements StaffView {
     const score = this.score;
     if (!score || score.notes.length === 0) return 0;
     const { geometry } = this;
-    const current = this.manual?.offset ?? this.shownOffset;
+    const current = this.dragged.value ?? this.shownOffset;
     // Keep some of the music in sight: the cursor's place stays between the first and the last bar.
     const lowest = geometry.cursorX() - geometry.px(tapeBars(score).end);
     const offset = Math.min(geometry.cursorX(), Math.max(lowest, current + dx));
-    this.manual = { offset, idle: 0 };
+    this.dragged.hold(offset);
     return offset - current;
   }
 
@@ -449,7 +441,7 @@ export class SvgStaff implements StaffView {
 
   /** Back to following the music (after a jump): the tape glides to it. */
   followMusic(): void {
-    this.manual = null;
+    this.dragged.release();
   }
 
   /** What the left column shows under the cursor: the clefs, and the key and time signatures. */
@@ -601,8 +593,8 @@ export class SvgStaff implements StaffView {
     const always = new Set<Element>([this.overlay, this.loopLayer, restLayer, beamLayer]);
     this.nearView.measure([...this.strip.children, ...restLayer.children, ...beamLayer.children].filter((shape) => !always.has(shape)) as SVGElement[]);
     // Hidden before the browser first lays them out: around where the tape will stand for the music.
-    const target = geometry.cursorX() - geometry.px(barPosition(score, this.lastPosition));
-    this.showAround(this.manual?.offset ?? target + this.lag);
+    const target = geometry.cursorX() - geometry.px(barPosition(score, this.seeks.position));
+    this.showAround(this.dragged.value ?? target + this.lag);
     this.lastOffset = Number.NaN;
   }
 

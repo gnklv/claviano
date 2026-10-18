@@ -52,12 +52,3 @@ export function pickSpan(spans: readonly (Span | null)[], viewWidth: number, mar
   }
   return nearest;
 }
-
-/**
- * Moves `current` toward `target` smoothly: fast at first, slowing down as it arrives.
- * Frame-rate independent, so it looks the same at 60 and 120 fps.
- */
-export function approach(current: number, target: number, dtSeconds: number, timeConstant = 0.2): number {
-  const next = current + (target - current) * (1 - Math.exp(-dtSeconds / timeConstant));
-  return Math.abs(target - next) < 0.5 ? target : next;
-}

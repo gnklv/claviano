@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approach, clampOffset, followTarget, pickSpan } from '../src/infrastructure/render/keyboardCamera';
+import { clampOffset, followTarget, pickSpan } from '../src/infrastructure/render/keyboardCamera';
 
 /** A 1000px keyboard seen through a 300px screen. */
 const view = { contentWidth: 1000, viewWidth: 300 };
@@ -65,24 +65,5 @@ describe('pickSpan', () => {
   it('skips empty look-aheads', () => {
     expect(pickSpan([null, nextHalf], 300, MARGIN)).toBe(nextHalf);
     expect(pickSpan([null, null], 300, MARGIN)).toBeNull();
-  });
-});
-
-describe('approach', () => {
-  it('moves part of the way each frame and arrives eventually', () => {
-    let x = 0;
-    x = approach(x, 100, 1 / 60);
-    expect(x).toBeGreaterThan(0);
-    expect(x).toBeLessThan(100);
-    for (let i = 0; i < 120; i++) x = approach(x, 100, 1 / 60);
-    expect(x).toBe(100);
-  });
-
-  it('covers the same distance in the same time at any frame rate', () => {
-    let at60 = 0;
-    let at120 = 0;
-    for (let i = 0; i < 6; i++) at60 = approach(at60, 100, 1 / 60);
-    for (let i = 0; i < 12; i++) at120 = approach(at120, 100, 1 / 120);
-    expect(at60).toBeCloseTo(at120, 5);
   });
 });
