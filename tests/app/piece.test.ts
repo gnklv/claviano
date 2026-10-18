@@ -279,22 +279,42 @@ describe('a phone on its side', () => {
     expect(immersed()).toBe(false);
   });
 
-  it('keeps the staff as tall as it was beside them, until they are back in place', async () => {
-    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.textContent?.trim() === 'Notes')!.click();
-    await nextTick();
-    const staff = root.querySelector<HTMLElement>('.staff')!;
-    Object.defineProperty(staff, 'clientHeight', { get: () => 200, configurable: true });
-    press('Space');
-    await vi.advanceTimersByTimeAsync(3100);
-    expect(immersed()).toBe(true);
-    expect(staff.style.height).toBe('200px');
+  describe('the staff, while they are away', () => {
+    let stageHeight: number;
+    /** Plays until they go, on the staff alone, 200 px tall beside them in a stage as tall. */
+    const immerse = async () => {
+      [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.textContent?.trim() === 'Notes')!.click();
+      await nextTick();
+      stageHeight = 200;
+      Object.defineProperty(root.querySelector('.stage')!, 'clientHeight', { get: () => stageHeight, configurable: true });
+      Object.defineProperty(root.querySelector('.staff')!, 'clientHeight', { get: () => 200, configurable: true });
+      press('Space');
+      await vi.advanceTimersByTimeAsync(3100);
+      expect(immersed()).toBe(true);
+      stageHeight = 300;
+      return root.querySelector<HTMLElement>('.staff')!;
+    };
 
-    touch('.waker');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(staff.style.height).toBe('200px');
-    root.querySelector('.strip')!.dispatchEvent(new Event('transitionend'));
-    await vi.advanceTimersByTimeAsync(0);
-    expect(staff.style.height).toBe('');
+    it('keeps as tall as it was beside them, until they are back in place', async () => {
+      const staff = await immerse();
+      expect(staff.style.height).toBe('200px');
+      touch('.waker');
+      await vi.advanceTimersByTimeAsync(0);
+      // (On their way back: the stage is still taller.)
+      expect(staff.style.height).toBe('200px');
+      stageHeight = 200;
+      root.querySelector('.strip')!.dispatchEvent(new Event('transitionend'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(staff.style.height).toBe('');
+    });
+
+    it('is let go at once when they come back before they have gone', async () => {
+      const staff = await immerse();
+      stageHeight = 200;
+      touch('.waker');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(staff.style.height).toBe('');
+    });
   });
 
   it('does not take them from under an open panel', async () => {

@@ -158,6 +158,9 @@ export class SvgStaff implements StaffView {
   private stretched = false;
   /** While stretched: how far the music is moved along the tape, in what is drawn, to stand under the cursor where it will be drawn anew. */
   private stretchShift = 0;
+  /** While stretched: how much larger than drawn it is shown, and how wide the tape in sight is, in what is drawn. */
+  private stretchBy = 1;
+  private stretchedTape = 0;
   private settling: ReturnType<typeof setTimeout> | undefined;
   /** Where the tape was dragged to by hand (see dragBy, and following.ts for when it lets go). */
   private readonly dragged = new HandHold<number>();
@@ -249,7 +252,8 @@ export class SvgStaff implements StaffView {
     if (!score || score.notes.length === 0) return null;
     const { geometry, ink } = this;
     const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
-    const px = clientX - this.tape.getBoundingClientRect().left - offset;
+    // (The tape's box, stretched, is shown larger or smaller than what is drawn in it.)
+    const px = (clientX - this.tape.getBoundingClientRect().left) / this.stretchBy - offset;
     const place = geometry.pageAt(px);
     if (!place) return null;
     const snap = NOTE_SNAP * geometry.space;
@@ -309,6 +313,8 @@ export class SvgStaff implements StaffView {
     // rest) to the view's edges. Its fade, and the edge that cuts it, go with the box.
     const tape = (width - by * geometry.gutterWidth()) / by;
     this.stretchShift = Math.round(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())) * 10) / 10;
+    this.stretchBy = by;
+    this.stretchedTape = tape;
     this.tape.style.right = `${width - geometry.gutterWidth() - tape}px`;
     this.tape.style.bottom = `${height - height / by}px`;
     this.lastOffset = Number.NaN;
@@ -335,6 +341,8 @@ export class SvgStaff implements StaffView {
       part.style.transformOrigin = '';
     }
     this.stretchShift = 0;
+    this.stretchBy = 1;
+    this.stretchedTape = 0;
     this.tape.style.right = '0';
     this.tape.style.bottom = '0';
     this.lastOffset = Number.NaN;
@@ -409,7 +417,7 @@ export class SvgStaff implements StaffView {
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
       this.cursor.style.left = `${cursorLeft}px`;
-      this.cursor.style.visibility = cursorX < 0 || cursorX > geometry.width - geometry.gutterWidth() ? 'hidden' : 'visible';
+      this.cursor.style.visibility = cursorX < 0 || cursorX > this.tapeInSight() ? 'hidden' : 'visible';
     }
 
     const offset = Math.round((this.shownOffset + this.stretchShift) * 10) / 10;
@@ -534,6 +542,8 @@ export class SvgStaff implements StaffView {
     this.litSvg.replaceChildren();
     this.chordElements = [];
     this.graceElements = [];
+    // (Nothing of the last piece is kept to be shown: it would stay, and be shown again.)
+    this.nearView.measure([]);
     const score = this.score;
     if (!score || score.notes.length === 0) return;
 
@@ -600,8 +610,12 @@ export class SvgStaff implements StaffView {
 
   /** Shows the tape near the view, the strip drawn `offset` pixels along. */
   private showAround(offset: number): void {
-    const { geometry } = this;
-    this.nearView.view(-offset, geometry.width - geometry.gutterWidth());
+    this.nearView.view(-offset, this.tapeInSight());
+  }
+
+  /** How wide the tape in sight is, in what is drawn: wider while stretched smaller. */
+  private tapeInSight(): number {
+    return this.stretched ? this.stretchedTape : this.geometry.width - this.geometry.gutterWidth();
   }
 
   /**

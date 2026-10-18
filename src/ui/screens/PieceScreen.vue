@@ -10,9 +10,10 @@ import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { useImmersion } from '../composables/useImmersion';
 import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePieceText } from '../composables/usePieceText';
+import { useResize } from '../composables/useResize';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useShownViewMode } from '../composables/useViewMode';
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue';
 import { useDeps } from '../deps';
 
 /* Learning a piece: the stage (the staff, the falling notes, or both) with the transport under it. */
@@ -33,27 +34,31 @@ const { immersed, wake } = useImmersion(
 /*
  * While they are away the staff keeps the height it had beside them, in the middle of the room they
  * leave, as the falling notes keep the size of their keys: a staff of another height is laid out
- * anew, and that is seen as a jolt. It is let go once they are back in place.
+ * anew, and that is seen as a jolt. It is let go once they are back in place, when the stage is no
+ * taller than it was beside them (also when they never quite went).
  */
 const stage = useTemplateRef<HTMLElement>('stage');
-const staffHeight = ref<number | null>(null);
+const staffView = useTemplateRef<ComponentPublicInstance>('staffView');
+const held = ref<{ staff: number; stage: number } | null>(null);
 watch(
   immersed,
   (on) => {
-    const height = stage.value?.querySelector<HTMLElement>('.staff')?.clientHeight ?? 0;
-    if (on && height > 0) staffHeight.value = height;
+    const staff = (staffView.value?.$el as HTMLElement | undefined)?.clientHeight ?? 0;
+    if (on && staff > 0 && !held.value) held.value = { staff, stage: stage.value?.clientHeight ?? 0 };
   },
   // (Measured before the strips start to go.)
   { flush: 'pre' },
 );
-const stripsSettled = () => {
-  if (!immersed.value) staffHeight.value = null;
-};
+function letGoWhenBack(): void {
+  if (held.value && !immersed.value && (stage.value?.clientHeight ?? 0) <= held.value.stage + 0.5) held.value = null;
+}
+watch(immersed, letGoWhenBack, { flush: 'post' });
+useResize(stage, letGoWhenBack);
 </script>
 
 <template>
   <div class="piece" :class="{ immersed }" @pointerdown.capture="wake">
-    <div class="strip" @transitionend.self="stripsSettled" @transitioncancel.self="stripsSettled">
+    <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
         <ScreenHeader class="bar" back :alert="!!error" @back="emit('back')">
@@ -70,7 +75,7 @@ const stripsSettled = () => {
     </div>
 
     <main ref="stage" class="stage" :class="`view-${viewMode}`">
-      <StaffView v-if="viewMode !== 'keys'" class="view staff" :class="{ held: staffHeight }" :style="staffHeight ? { height: `${staffHeight}px` } : undefined" />
+      <StaffView v-if="viewMode !== 'keys'" ref="staffView" class="view staff" :class="{ held }" :style="held ? { height: `${held.staff}px` } : undefined" />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" />
       <CountInOverlay />
       <InstrumentNotice />
@@ -78,7 +83,7 @@ const stripsSettled = () => {
       <div v-if="immersed" class="waker" />
     </main>
 
-    <div class="strip" @transitionend.self="stripsSettled" @transitioncancel.self="stripsSettled">
+    <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <TransportBar />
       </div>
