@@ -23,7 +23,7 @@ export interface BeamCandidate {
  * The span notes are beamed within, in quarter notes. Simple metres (2/4, 3/4, 4/4) beam by the
  * quarter; compound ones (3/8, 6/8, 9/8, 12/8) by three eighths.
  */
-export function beamUnit({ numerator, denominator }: TimeSignature): number {
+function beamUnit({ numerator, denominator }: TimeSignature): number {
   return denominator === 8 && numerator % 3 === 0 ? 1.5 : 1;
 }
 

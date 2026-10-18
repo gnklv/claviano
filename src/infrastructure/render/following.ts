@@ -8,7 +8,7 @@
 /** Moved away by hand, a view stays put for this long of playing time before it goes back to the music. */
 export const HOLD_SECONDS = 3;
 /** The music moved further than this between two frames, in seconds: it was sent there, not played there. */
-export const SEEK_SECONDS = 0.5;
+const SEEK_SECONDS = 0.5;
 
 /** Tells the music sent elsewhere from the music playing on, frame by frame. */
 export class SeekWatch {

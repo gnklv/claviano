@@ -23,7 +23,7 @@ export function notesToPrepare(score: Score, tempo: number): NoteToPrepare[] {
 }
 
 /** What the instrument must be ready for in free play: every key shown, struck as a screen strikes them. */
-export function keysToPrepare(lowest: number, keys: number): NoteToPrepare[] {
+function keysToPrepare(lowest: number, keys: number): NoteToPrepare[] {
   return Array.from({ length: keys }, (_, key) => ({ pitch: lowest + key, velocity: STRIKE, seconds: HELD_SECONDS }));
 }
 

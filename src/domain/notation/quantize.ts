@@ -4,7 +4,7 @@
  */
 
 /** A thirty-second note, in quarter notes: the finest value we write. */
-export const THIRTY_SECOND = 0.125;
+const THIRTY_SECOND = 0.125;
 
 export interface QuantizedTime {
   readonly beat: number;

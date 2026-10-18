@@ -18,7 +18,7 @@ export const BOTTOM_LINE_STEP = 8;
 export const staffStep = (pitch: SpelledPitch, clef: Clef): number => TOP_LINE[clef] - (pitch.octave * 7 + pitch.letter);
 
 /** How many ledger lines a note at `step` needs. */
-export const ledgerLineCount = (step: number): number =>
+const ledgerLineCount = (step: number): number =>
   step < 0 ? Math.floor(-step / 2) : step > BOTTOM_LINE_STEP ? Math.floor((step - BOTTOM_LINE_STEP) / 2) : 0;
 
 /** More ledger lines than this, and a note may move to the other staff. */

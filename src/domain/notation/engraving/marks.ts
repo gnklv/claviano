@@ -12,7 +12,7 @@ import { SAME_MOMENT } from '../../moment';
  */
 
 /** Articulations that sit right at the notehead come first; accents stack outside them. */
-export const CLOSE_ARTICULATIONS: readonly Articulation[] = ['staccato', 'staccatissimo', 'tenuto', 'portato'];
+const CLOSE_ARTICULATIONS: readonly Articulation[] = ['staccato', 'staccatissimo', 'tenuto', 'portato'];
 const OUTER_ARTICULATIONS: readonly Articulation[] = ['accent', 'marcato'];
 /** A stem is 3.5 spaces: 7 steps. */
 const STEM_STEPS = 7;

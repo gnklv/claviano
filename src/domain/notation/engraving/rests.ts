@@ -6,7 +6,7 @@ import type { StaffChord, StaffRest } from './types';
 /* Rests: where each hangs or sits on the staff, and how they make way for a second voice. */
 
 /** Rest positions by the usual rules; see restStep. */
-export const WHOLE_REST_STEP = 2; // hangs from the fourth line
+const WHOLE_REST_STEP = 2; // hangs from the fourth line
 const OTHER_REST_STEP = MIDDLE_LINE_STEP; // centred on the middle line
 /** In a bar with two voices on one staff, rests move this far out of the way (two spaces). */
 const VOICE_REST_SHIFT = 4;

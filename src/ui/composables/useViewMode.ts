@@ -4,7 +4,7 @@ import { SMALL_SCREEN, useMediaQuery } from './useMediaQuery';
 
 export type ViewMode = 'staff' | 'keys' | 'both';
 
-export const VIEW_MODES: readonly ViewMode[] = ['staff', 'keys', 'both'];
+const VIEW_MODES: readonly ViewMode[] = ['staff', 'keys', 'both'];
 
 /** Which views are shown: staff, falling notes with keyboard, or both. Remembered between visits. */
 const viewMode = preference<ViewMode>('claviano.view', VIEW_MODES, 'keys');

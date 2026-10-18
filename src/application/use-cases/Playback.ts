@@ -15,8 +15,8 @@ const MIN_LOOP_LENGTH = 0.1;
  */
 const RESUMED_LOUDNESS = 0.6;
 const MIN_RESUMED_SECONDS = 0.1;
-export const MIN_TEMPO = 0.1;
-export const MAX_TEMPO = 2;
+const MIN_TEMPO = 0.1;
+const MAX_TEMPO = 2;
 
 /** Maps audio time to score time: score = anchor.score + (audio - anchor.audio) * tempo. */
 interface Anchor {

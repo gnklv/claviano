@@ -146,8 +146,8 @@ export interface ScoreMusic {
   readonly words?: readonly WordsMark[];
 }
 
-export const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
-export const DEFAULT_KEY_SIGNATURE: KeySignature = { beat: 0, fifths: 0, minor: false };
+const DEFAULT_TIME_SIGNATURE: TimeSignature = { beat: 0, numerator: 4, denominator: 4 };
+const DEFAULT_KEY_SIGNATURE: KeySignature = { beat: 0, fifths: 0, minor: false };
 
 /**
  * Sorts events by beat and makes sure one starts at beat 0. Files often repeat the same event

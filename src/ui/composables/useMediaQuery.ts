@@ -1,7 +1,7 @@
 import { onScopeDispose, ref, type Ref } from 'vue';
 
 /** A phone held upright. */
-export const NARROW_SCREEN = '(max-width: 599px)';
+const NARROW_SCREEN = '(max-width: 599px)';
 /** A phone on its side (or a window as low). */
 export const SHORT_SCREEN = '(max-height: 500px)';
 /** A screen that is touched, not pointed at: a phone, a tablet. */

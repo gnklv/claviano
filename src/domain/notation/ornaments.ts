@@ -91,7 +91,7 @@ export function playOrnament(kind: OrnamentKind, pitch: number, beats: number, u
 }
 
 /** How long each note of a tremolo with `strokes` strokes lasts: one stroke is eighths, two sixteenths… */
-export const tremoloBeats = (strokes: number): number => 0.5 / 2 ** (Math.min(4, Math.max(1, strokes)) - 1);
+const tremoloBeats = (strokes: number): number => 0.5 / 2 ** (Math.min(4, Math.max(1, strokes)) - 1);
 
 /** A note of `beats` repeated as a tremolo with `strokes` strokes on its stem. */
 export function playTremolo(pitch: number, beats: number, strokes: number): Played[] {

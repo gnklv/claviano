@@ -267,20 +267,3 @@ export function fingerPassage(moments: readonly (readonly number[])[], hand: Han
   }
   return fingers;
 }
-
-/** What is known of a line besides its notes. */
-export interface LineHints {
-  /** Fingers that are given (written in the notes), by the note's place in the line. */
-  readonly given?: readonly (Finger | null | undefined)[];
-  readonly key?: Key;
-}
-
-/** The fingers for a line of single notes (MIDI pitches, in the order they are played), one for each. */
-export function fingerLine(pitches: readonly number[], hand: Hand, hints: LineHints = {}): Finger[] {
-  const fingers = fingerPassage(
-    pitches.map((pitch) => [pitch]),
-    hand,
-    { given: hints.given?.map((finger) => [finger]), key: hints.key },
-  );
-  return fingers.map((moment) => moment[0]!);
-}

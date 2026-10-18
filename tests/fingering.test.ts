@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { reachBetween, type Finger } from '../src/domain/fingering/hand';
 import { fingerHints, withFingerHints } from '../src/domain/fingering/hints';
 import { transcribed } from '../src/domain/notation/transcription';
-import { fingerLine, fingerPassage } from '../src/domain/fingering/passage';
-import { scaleFingers } from '../src/domain/fingering/scales';
+import { fingerPassage } from '../src/domain/fingering/passage';
+import { scaleFingers, type Key } from '../src/domain/fingering/scales';
 import type { Hand, Note } from '../src/domain/note';
 import { createScore } from '../src/domain/score';
 
@@ -16,6 +16,13 @@ const scale = (root: number, octaves = 1): number[] => {
   return up;
 };
 const down = (pitches: number[]): number[] => [...pitches].reverse();
+/** The fingers for a line of single notes, one for each: a passage of one note at a time. */
+const fingerLine = (pitches: readonly number[], hand: Hand, hints: { given?: (Finger | null)[]; key?: Key } = {}): Finger[] =>
+  fingerPassage(
+    pitches.map((pitch) => [pitch]),
+    hand,
+    { given: hints.given?.map((finger) => [finger]), key: hints.key },
+  ).map((moment) => moment[0]);
 const right = (pitches: number[]) => fingerLine(pitches, 'right').join(' ');
 const left = (pitches: number[]) => fingerLine(pitches, 'left').join(' ');
 /** A line turned over about Re: white keys stay white, black stay black, up becomes down. */

@@ -20,7 +20,7 @@ const FLAG = 0.9;
 /** The wavy line of a rolled chord, before the chord and its accidentals. */
 const ARPEGGIO = 1.3;
 /** The small clef of a change of clef, with the gap to the note after it (it is drawn 2.6 before the note's place). */
-export const CLEF_CHANGE = 2.9;
+const CLEF_CHANGE = 2.9;
 /** A rest. */
 const REST = 1.2;
 const FLAGGED = new Set(['eighth', 'sixteenth', 'thirtySecond']);
