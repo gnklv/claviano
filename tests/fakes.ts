@@ -1,4 +1,5 @@
 import type { AudioOutput, NoteToPlay, SoundPart } from '../src/application/ports/AudioOutput';
+import type { Instrument } from '../src/application/ports/Instrument';
 import type { PieceMemory, PieceShelf, ShelvedPiece } from '../src/application/ports/PieceShelf';
 import type { Ticker } from '../src/application/ports/Ticker';
 
@@ -91,3 +92,20 @@ export class FakePieceShelf implements PieceShelf {
     return this.broken ? Promise.reject(new Error('no storage')) : Promise.resolve().then(work);
   }
 }
+
+/** An instrument whose sound is in already: it readies nothing, and never changes. */
+export class FakeInstrument implements Instrument {
+  readonly enabled = true;
+  readonly status = 'ready';
+  setEnabled(): void {}
+  onChange(): () => void {
+    return () => {};
+  }
+  prepare(): void {}
+}
+
+/**
+ * A view of the interface's (a staff, the falling notes, the tiles of free play) that does what it
+ * is given to do, and nothing for the rest of what it is asked.
+ */
+export const fakeView = <T>(methods: Partial<T>): T => new Proxy(methods, { get: (target, name) => (name in target ? target[name as keyof T] : () => null) }) as T;

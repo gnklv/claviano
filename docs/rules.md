@@ -79,7 +79,8 @@ are in [design.md](design.md); these are the ones most easily broken:
 
 - **What nothing uses is deleted in the commit that stops using it.** Not left "for later".
 - **A feature of notation has its bars in the showcase** (`scripts/showcase.ts`) and its checks in
-  `tests/showcase.test.ts`.
+  the `tests/showcase*.test.ts` files (notes and rests; ways of playing and pedals; changes along
+  the way).
 - **Comments say why**, in the words of the subject (music, the hand, the page), not what the next
   line does.
 - **A constant has a name and a reason.** A number tuned by ear or by hand says so, and against

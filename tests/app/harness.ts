@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 import { createApp, nextTick, type App as VueApp } from 'vue';
-import type { Instrument } from '../../src/application/ports/Instrument';
 import type { RollView } from '../../src/application/ports/RollView';
 import type { StaffView } from '../../src/application/ports/StaffView';
 import type { PlayedTile, TilesView } from '../../src/application/ports/TilesView';
@@ -26,7 +25,7 @@ import { depsKey } from '../../src/ui/deps';
 import { rereadPreferences } from '../../src/ui/preferences';
 import { listenForInstall } from '../../src/ui/install/useInstall';
 import { startTheme } from '../../src/ui/theme/useTheme';
-import { FakeAudio, FakePieceShelf, FakeTicker } from '../fakes';
+import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from '../fakes';
 
 /*
  * The app as a whole, for its tests: mounted with stand-ins for sound, drawing and storage, started
@@ -35,8 +34,7 @@ import { FakeAudio, FakePieceShelf, FakeTicker } from '../fakes';
  * button, drop a file).
  */
 
-const view = <T>(methods: Partial<T>): T => new Proxy(methods, { get: (target, name) => (name in target ? target[name as keyof T] : () => null) }) as T;
-const instrument: Instrument = { enabled: true, status: 'ready', setEnabled() {}, onChange: () => () => {}, prepare() {} };
+const instrument = new FakeInstrument();
 
 export let playback: Playback;
 export let volume: Volume;
@@ -152,9 +150,9 @@ export function useApp(): void {
       freePlay,
       recorder,
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
-      createRoll: () => view<RollView>({ secondsPerPixel: null, scrollable: false }),
-      createStaff: () => view<StaffView>({ setScore: (score) => void staffScores.push(score) }),
-      createTiles: () => view<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
+      createRoll: () => fakeView<RollView>({ secondsPerPixel: null, scrollable: false }),
+      createStaff: () => fakeView<StaffView>({ setScore: (score) => void staffScores.push(score) }),
+      createTiles: () => fakeView<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
       demos,
     });
     app.mount(root);

@@ -24,7 +24,7 @@ playback support (pickup, all note values, beams, accidentals, tuplets, voices, 
 key/time/clef/tempo/dynamics changes, hairpins, a wide range, articulations, fermatas, slurs, the sustain
 pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
-`tests/showcase.test.ts`. When you add a feature, add a bar to the showcase.
+the `tests/showcase*.test.ts` files. When you add a feature, add a bar to the showcase.
 
 **Reference copies.** `tests/snapshots/` holds what the showcase comes out as: its score (notes as
 played and as written) and its engraving, one line per note, chord or mark. `tests/snapshot.test.ts`

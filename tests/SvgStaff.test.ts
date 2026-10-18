@@ -1,39 +1,18 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { odeToJoy } from '../src/demo/odeToJoy';
+import { describe, expect, it } from 'vitest';
 import type { Hand } from '../src/domain/note';
 import { engrave } from '../src/domain/notation/engraving';
 import { transcribed } from '../src/domain/notation/transcription';
-import { barRange, createScore, EMPTY_SCORE, secondsAtBeat, type Score } from '../src/domain/score';
-import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+import { barRange, createScore, EMPTY_SCORE, secondsAtBeat } from '../src/domain/score';
 import { drawStaff } from './drawnStaff';
+import { lit, ode, shaded, showcase, sounding } from './staffPieces';
 
 /*
  * The staff as a view: what it shows of the music under the cursor, where a click lands on the
- * page, and the loop and selection behind the notes. What exactly it draws for a piece is kept in
- * the reference copies (snapshot.test.ts).
+ * page, and the loop and selection behind the notes. How the tape moves, is stretched and is
+ * dragged is in SvgStaffTape.test.ts; what exactly it draws for a piece is kept in the reference
+ * copies (snapshot.test.ts).
  */
-
-const showcase = (): Score => {
-  const file = readFileSync('public/demos/showcase.musicxml');
-  return new MusicXmlParser().parse(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength), 'showcase');
-};
-const ode = (): Score => odeToJoy('Ode to Joy');
-
-const HAND_COLORS: Record<string, Hand> = { 'var(--right)': 'right', 'var(--left)': 'left' };
-
-/** The hands of the groups lit in a hand's colour, in the order they are drawn. */
-const lit = (container: HTMLElement): Hand[] =>
-  [...container.querySelectorAll<SVGGElement>('g')].flatMap((group) => HAND_COLORS[group.style.color] ?? []);
-
-/** The hands of the chords sounding at `beat` along the page, as the engraving has them. */
-const sounding = (score: Score, beat: number): Hand[] =>
-  engrave(score)
-    .chords.filter((chord) => chord.beat <= beat + 1e-9 && chord.beat + chord.beats > beat + 1e-9)
-    .map((chord) => chord.hand);
-
-const shaded = (container: HTMLElement): SVGRectElement[] => [...container.querySelectorAll<SVGRectElement>('rect')];
 
 describe('SvgStaff', () => {
   it('draws nothing but the staves without a piece, and does not mind being asked about it', () => {
@@ -337,155 +316,5 @@ describe('SvgStaff', () => {
     staff.setHandLabels({ right: 'п. р.', left: 'л. р.' });
     expect(texts()).toContain('л. р.');
     expect(texts()).not.toContain('L.H.');
-  });
-});
-
-describe('a staff whose size is on the move', () => {
-  /** A clock on which every look takes `step` ms: drawing the piece anew is seen to take that long. */
-  let step: number;
-  let time: number;
-  beforeEach(() => {
-    time = 0;
-    step = 20;
-    // (Only the timers are set by hand: the clock is this test's own.)
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    vi.spyOn(performance, 'now').mockImplementation(() => (time += step));
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-  const transformOf = (container: HTMLElement) => (container.lastElementChild as HTMLElement).style.transform;
-  /** The tape: its last drawn thing, which is another one when the tape is drawn anew. */
-  const tape = (container: HTMLElement) => container.children[1].querySelector('svg > g')!;
-  const notes = (container: HTMLElement) => tape(container).children.length;
-  const firstNote = (container: HTMLElement) => tape(container).lastElementChild;
-
-  it('is stretched at once to a size told by itself, where drawing anew takes longer than a frame, and drawn anew when it has come to rest', () => {
-    const size = { width: 800, height: 300 };
-    const { staff, container } = drawStaff(ode(), size);
-    const before = firstNote(container);
-    size.height = 200;
-    staff.resize();
-    expect(firstNote(container)).toBe(before);
-    expect(transformOf(container)).toMatch(/^translate\(0px, [\d.-]+px\) scale\(0\.\d+\)$/);
-    // Smaller, the tape is boxed as it will be: it reaches the view's edges, faded there and cut.
-    const box = (container.children[1] as HTMLElement).style;
-    expect(parseFloat(box.right)).toBeLessThan(0);
-    expect(parseFloat(box.bottom)).toBeLessThan(0);
-    vi.advanceTimersByTime(200);
-    expect(firstNote(container)).not.toBe(before);
-    expect(transformOf(container)).toBe('');
-    expect([box.right, box.bottom]).toEqual(['0px', '0px']);
-  });
-
-  it('is stretched through sizes told one after another, where drawing anew takes longer than a frame, and drawn anew when they stop', () => {
-    const size = { width: 800, height: 300 };
-    const { staff, container } = drawStaff(ode(), size);
-    time += 1000;
-    size.height = 290;
-    staff.resize();
-    const drawn = firstNote(container);
-
-    // A window dragged by its edge: a new size at every frame.
-    for (const height of [270, 240, 210, 200]) {
-      size.height = height;
-      staff.resize();
-      expect(firstNote(container)).toBe(drawn);
-    }
-    // Smaller, as the staff would be at that height, and in the middle of it.
-    expect(transformOf(container)).toMatch(/^translate\(0px, [\d.-]+px\) scale\(0\.\d+\)$/);
-
-    vi.advanceTimersByTime(200);
-    expect(transformOf(container)).toBe('');
-    expect(firstNote(container)).not.toBe(drawn);
-    expect(notes(container)).toBeGreaterThan(0);
-  });
-
-  it('is drawn anew at every size where that is quick', () => {
-    step = 1;
-    const size = { width: 800, height: 300 };
-    const { staff, container } = drawStaff(ode(), size);
-    for (const height of [290, 270, 240]) {
-      const before = firstNote(container);
-      size.height = height;
-      staff.resize();
-      expect(firstNote(container)).not.toBe(before);
-      expect(transformOf(container)).toBe('');
-    }
-  });
-});
-
-
-describe('a piece many screens long', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  const signs = (container: HTMLElement) =>
-    [...container.children[1].querySelectorAll('text')]
-      .map((text) => ({ x: Number(text.getAttribute('x')), shown: !text.closest('[style*="display: none"]') }))
-      .sort((a, b) => a.x - b.x);
-
-  it('shows the tape near the view only, and more of it as the music moves on', () => {
-    const score = showcase();
-    const { staff, container } = drawStaff(score, { width: 800, height: 300 });
-    /** The signs within the first 400 pixels of the view. */
-    const inView = () => {
-      const left = -Number(/translateX\(([-\d.]+)/.exec(container.children[1].querySelector('svg')!.style.transform)![1]);
-      return signs(container).filter((sign) => sign.x >= left && sign.x < left + 400);
-    };
-    expect(inView().length).toBeGreaterThan(0);
-    expect(inView().every((sign) => sign.shown)).toBe(true);
-    expect(signs(container).at(-1)!.shown).toBe(false);
-
-    // Halfway through. (A leap so far is glided over: a second of frames, on a clock set by hand.)
-    let time = performance.now();
-    vi.spyOn(performance, 'now').mockImplementation(() => (time += 100));
-    for (let frame = 0; frame < 10; frame++) staff.render(score.duration / 2);
-    expect(inView().length).toBeGreaterThan(0);
-    expect(inView().every((sign) => sign.shown)).toBe(true);
-    expect(signs(container).filter((sign) => sign.x < 400).some((sign) => sign.shown)).toBe(false);
-  });
-});
-
-describe('the tape dragged by hand', () => {
-  /** A frame a tenth of a second after the last, on a clock set by hand. */
-  let time: number;
-  beforeEach(() => {
-    time = performance.now();
-    vi.spyOn(performance, 'now').mockImplementation(() => time);
-  });
-  afterEach(() => vi.restoreAllMocks());
-  const frame = (staff: ReturnType<typeof drawStaff>['staff'], position: number) => {
-    time += 100;
-    staff.render(position, undefined, true);
-  };
-  const offset = (container: HTMLElement) => Number(/translateX\(([-\d.]+)px\)/.exec(container.children[1].querySelector('svg')!.style.transform)![1]);
-  /** Where the tape stands for the music at `position`, on a staff nobody has touched. */
-  const following = (position: number) => {
-    const { staff, container } = drawStaff(ode());
-    for (let i = 0; i < 20; i++) frame(staff, position);
-    return offset(container);
-  };
-
-  it('stays where it was put while the music plays on, and goes back to it after a while', () => {
-    const { staff, container } = drawStaff(ode());
-    frame(staff, 1);
-    staff.dragBy(-150);
-    let position = 1;
-    frame(staff, position);
-    const put = offset(container);
-    for (; position < 3.5; position += 0.1) frame(staff, position);
-    expect(offset(container)).toBe(put);
-    for (; position < 5.5; position += 0.1) frame(staff, position);
-    expect(offset(container)).toBeCloseTo(following(position - 0.1), 0);
-  });
-
-  it('goes back at once when the music is sent elsewhere', () => {
-    const { staff, container } = drawStaff(ode());
-    frame(staff, 1);
-    staff.dragBy(-150);
-    frame(staff, 1.1);
-    for (let i = 0; i < 20; i++) frame(staff, 8);
-    expect(offset(container)).toBeCloseTo(following(8), 0);
   });
 });
