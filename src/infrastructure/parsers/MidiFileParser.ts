@@ -1,5 +1,5 @@
 import { ScoreLoadError, type ScoreLoadErrorCode, type ScoreParser } from '../../application/ports/ScoreParser';
-import { handBySplitPoint, type Hand, type Note } from '../../domain/note';
+import { handsByLine, type Note } from '../../domain/note';
 import { transcribed, writePedalMarks, writeTempoMarks } from '../../domain/notation/transcription';
 import { pedalSpans, type PedalKind, type PedalSpan } from '../../domain/pedal';
 import { barStarts, createScore, type Score } from '../../domain/score';
@@ -124,12 +124,13 @@ export class MidiFileParser implements ScoreParser {
   parse(data: ArrayBuffer, title: string): Score {
     const midi = readMidi(new ByteReader(new Uint8Array(data)));
     const toSeconds = tickToSecondsConverter(midi.tempos, midi.ticksPerQuarter);
-    const handOf = handAssigner(midi.notes);
+    // (A track may be a hand, or both: which, is the domain's guess.)
+    const hands = handsByLine(midi.notes.map((raw) => ({ pitch: raw.pitch, line: raw.track })));
 
     // Ticks count in fractions of a quarter note, so musical time is a plain division.
     const toBeats = (tick: number) => tick / midi.ticksPerQuarter;
 
-    const notes: Note[] = midi.notes.map((raw) => {
+    const notes: Note[] = midi.notes.map((raw, i) => {
       const start = toSeconds(raw.startTick);
       return {
         pitch: raw.pitch,
@@ -138,7 +139,7 @@ export class MidiFileParser implements ScoreParser {
         beat: toBeats(raw.startTick),
         beats: toBeats(raw.endTick - raw.startTick),
         velocity: raw.velocity / 127,
-        hand: handOf(raw),
+        hand: hands[i]!,
       };
     });
 
@@ -326,27 +327,6 @@ function tickToSecondsConverter(tempos: TempoEvent[], ticksPerQuarter: number): 
     const segment = segments[Math.max(0, lastAtOrBefore(segments, tick, (s) => s.tick))]!;
     return segment.seconds + (tick - segment.tick) * segment.secondsPerTick;
   };
-}
-
-/**
- * Piano MIDI files usually keep each hand in its own track; the higher one is the right hand.
- * With any other layout we fall back to splitting by pitch.
- */
-function handAssigner(notes: RawNote[]): (note: RawNote) => Hand {
-  const pitchSums = new Map<number, { sum: number; count: number }>();
-  for (const note of notes) {
-    const entry = pitchSums.get(note.track) ?? { sum: 0, count: 0 };
-    entry.sum += note.pitch;
-    entry.count++;
-    pitchSums.set(note.track, entry);
-  }
-  const [first, second, ...others] = [...pitchSums];
-  if (first && second && others.length === 0) {
-    const [[trackA, a], [trackB, b]] = [first, second];
-    const rightTrack = a.sum / a.count >= b.sum / b.count ? trackA : trackB;
-    return (note) => (note.track === rightTrack ? 'right' : 'left');
-  }
-  return (note) => handBySplitPoint(note.pitch);
 }
 
 /**

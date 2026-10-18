@@ -14,8 +14,9 @@ copy of something written a month before.
   shows, and calls use cases. Imports go one way: `domain` ← `application` ← `infrastructure`, `ui`;
   `ui` never imports `infrastructure` (the linter holds this).
 - **Theory lives in the domain.** How long a note sounds, which finger takes it, where a bar line
-  falls: a rule of music is written once, in `domain`, and tested there. A parser only reads what a
-  file says; a renderer only draws what it is given.
+  falls, which hand plays a line: a rule of music is written once, in `domain`, and tested there. A
+  parser only reads what a file says (how it groups the notes, such as a MIDI file's tracks, is the
+  file's; whose hand a group is, the domain's); a renderer only draws what it is given.
 - **A renderer never decides what is shown.** It is handed the thing to draw, whole. (The staff once
   worked out fingering hints itself, behind a switch on its port: a decision of the interface had
   moved into a drawing class.) If a port grows a method like `setShowX(on)`, the choice belongs a
