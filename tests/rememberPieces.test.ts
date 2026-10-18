@@ -7,6 +7,7 @@ import { LoadScore } from '../src/application/use-cases/LoadScore';
 import { OpenScore } from '../src/application/use-cases/OpenScore';
 import { Playback } from '../src/application/use-cases/Playback';
 import { rememberPieces } from '../src/application/use-cases/rememberPieces';
+import { TempoTrainer } from '../src/application/use-cases/TempoTrainer';
 import { contentId } from '../src/domain/contentId';
 import { createScore, type Score } from '../src/domain/score';
 import { FakeAudio, FakePieceShelf, FakeTicker } from './fakes';
@@ -29,6 +30,7 @@ let playback: Playback;
 let barLoop: BarLoop;
 let library: Library;
 let memories: PieceMemories;
+let trainer: TempoTrainer;
 let writeDown: () => void;
 /** The app starts (again): with the shelf as it was left. */
 const start = async () => {
@@ -36,7 +38,8 @@ const start = async () => {
   barLoop = new BarLoop(playback);
   library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, [{ id: 'demo', load: () => piece('Demo') }]);
   memories = new PieceMemories(shelf);
-  writeDown = rememberPieces(library, memories, playback, barLoop);
+  trainer = new TempoTrainer(playback);
+  writeDown = rememberPieces(library, memories, playback, barLoop, trainer);
   await Promise.all([library.load(), memories.load()]);
 };
 
@@ -69,6 +72,7 @@ describe('remembering pieces', () => {
       tempo: 0.7,
       hands: { right: false, left: true },
       loop: { on: true, from: 3, to: 5 },
+      trainer: { on: false, from: 0.6, to: 1, step: 0.02, every: 1 },
       bar: 4,
       bars: 8,
     });
@@ -98,6 +102,22 @@ describe('remembering pieces', () => {
     }
   });
 
+  it('comes back to a piece with its trainer as it was left, at the tempo the training had got to', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    trainer.setPlan({ from: 0.7, step: 0.05, every: 2 });
+    trainer.setEnabled(true);
+    playback.setTempo(0.8);
+    await library.openFile('two.tune', bytes('two'));
+    expect(trainer.enabled).toBe(false);
+    expect(playback.tempo).toBe(1);
+
+    await start();
+    await library.open(ONE);
+    expect(trainer.enabled).toBe(true);
+    expect(trainer.plan).toEqual({ from: 0.7, to: 1, step: 0.05, every: 2 });
+    expect(playback.tempo).toBe(0.8);
+  });
+
   it('remembers demos as it does files', async () => {
     await library.open('demo.demo');
     playback.setTempo(0.5);
@@ -113,7 +133,7 @@ describe('remembering pieces', () => {
     playback = new Playback(audio, new FakeTicker());
     barLoop = new BarLoop(playback);
     library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
-    writeDown = rememberPieces(library, memories, playback, barLoop);
+    writeDown = rememberPieces(library, memories, playback, barLoop, new TempoTrainer(playback));
     await library.openFile('one.tune', bytes('one'));
     await playback.play();
     audio.time += 2.5;
@@ -128,7 +148,7 @@ describe('remembering pieces', () => {
     playback = new Playback(audio, new FakeTicker());
     barLoop = new BarLoop(playback);
     library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
-    rememberPieces(library, memories, playback, barLoop);
+    rememberPieces(library, memories, playback, barLoop, new TempoTrainer(playback));
     await library.openFile('one.tune', bytes('one'));
     await playback.play();
     audio.time += 2.5;
@@ -165,7 +185,7 @@ describe('remembering pieces', () => {
     barLoop = new BarLoop(playback);
     library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
     memories = new PieceMemories(shelf);
-    rememberPieces(library, memories, playback, barLoop);
+    rememberPieces(library, memories, playback, barLoop, new TempoTrainer(playback));
     await library.load();
     await library.open(ONE);
     expect(playback.tempo).toBe(1);

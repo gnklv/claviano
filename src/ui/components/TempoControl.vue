@@ -4,6 +4,7 @@ import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
 import { useFrameValue } from '../composables/useFrameValue';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
+import { useTrainer } from '../composables/useTrainer';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import AppButton from './AppButton.vue';
@@ -18,7 +19,10 @@ import TempoSettings from './TempoSettings.vue';
  * the means of setting it: in a small panel over the button, or in a sheet on a phone.
  */
 
-const { playback } = useDeps();
+const { playback, trainer } = useDeps();
+const training = useTrainer(trainer);
+/** Where the trainer is taking the tempo, in percent; null while it is off. */
+const aim = computed(() => (training.value.on ? Math.round(training.value.plan.to * 100) : null));
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const percent = computed(() => Math.round(state.value.tempo * 100));
@@ -52,7 +56,7 @@ watch(phone, () => (open.value = false));
   <div class="tempo">
     <PopOver v-model:open="open" place="above" :label="t('tempo')">
       <AppButton class="current" :label="`${t('tempo')}: ${percent}%`" :hint="t('tempo')" :aria-expanded="phone ? undefined : open" @click="toggle">
-        {{ percent }}%<span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
+        {{ percent }}%<span v-if="aim !== null" class="aim">{{ t('trainerAim', { to: aim }) }}</span><span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
       </AppButton>
       <template #panel>
         <div class="settings"><TempoSettings :mark="mark" /></div>
@@ -70,13 +74,19 @@ watch(phone, () => (open.value = false));
   white-space: nowrap;
 }
 
-.mark {
+.mark,
+.aim {
   color: var(--muted);
 }
 
-/* Where the bar is tight, the percent alone: what it makes is in the panel. */
+.aim {
+  margin-left: var(--space-1);
+}
+
+/* Where the bar is tight, the percent alone: what it makes, and where the trainer takes it, are in the panel. */
 @media (max-width: 599px) {
-  .mark {
+  .mark,
+  .aim {
     display: none;
   }
 }

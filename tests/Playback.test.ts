@@ -82,6 +82,45 @@ describe('Playback', () => {
     expect(playback.position).toBeLessThan(2);
   });
 
+  it('plays the loop’s next pass at the tempo set for it, from its first note, and tells when the loop comes round', async () => {
+    const { audio, playback, advance } = setup();
+    playback.setLoop({ start: 0, end: 2 });
+    await playback.play();
+    let told = 0;
+    playback.onChange(() => told++);
+    playback.setTempoAtLoop(0.5);
+    advance(1.9);
+    // The first pass is played as it began; the second, handed over a moment ahead, at its own tempo.
+    expect(playback.tempo).toBe(1);
+    expect(told).toBe(0);
+    expect(audio.played.map((n) => [n.pitch, n.at, n.duration])).toEqual([
+      [60, 0, 0.5],
+      [62, 1, 0.5],
+      [60, 2, 1],
+    ]);
+    advance(2.2);
+    await Promise.resolve();
+    expect(playback.loopRounds).toBe(1);
+    expect(told).toBe(1);
+    expect(playback.tempo).toBe(0.5);
+    // The second pass, at half the tempo: its notes twice as far apart and twice as long.
+    expect(audio.played.slice(2).map((n) => [n.pitch, n.at, n.duration])).toEqual([
+      [60, 2, 1],
+      [62, 4, 1],
+    ]);
+    expect(playback.position).toBeCloseTo((audio.time - 2) * 0.5, 5);
+  });
+
+  it('keeps a tempo set by hand for the passes to come', async () => {
+    const { playback, advance } = setup();
+    playback.setLoop({ start: 0, end: 2 });
+    await playback.play();
+    playback.setTempoAtLoop(0.5);
+    playback.setTempo(0.8);
+    advance(3);
+    expect(playback.tempo).toBe(0.8);
+  });
+
   it('stops at the end of the score', async () => {
     const { playback, advance } = setup();
     await playback.play();

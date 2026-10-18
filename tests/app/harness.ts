@@ -13,6 +13,7 @@ import { LoadScore } from '../../src/application/use-cases/LoadScore';
 import { OpenScore } from '../../src/application/use-cases/OpenScore';
 import { Playback } from '../../src/application/use-cases/Playback';
 import { Recorder } from '../../src/application/use-cases/Recorder';
+import { TempoTrainer } from '../../src/application/use-cases/TempoTrainer';
 import { rememberPieces } from '../../src/application/use-cases/rememberPieces';
 import { Volume } from '../../src/application/use-cases/Volume';
 import { odeToJoy } from '../../src/demo/odeToJoy';
@@ -135,13 +136,15 @@ export function useApp(): void {
     const memories = new PieceMemories(shelf);
     void memories.load();
     const barLoop = new BarLoop(playback);
-    rememberPieces(library, memories, playback, barLoop);
+    const trainer = new TempoTrainer(playback);
+    rememberPieces(library, memories, playback, barLoop, trainer);
     const freePlay = new FreePlay(audio);
     keepInstrumentPrepared(playback, freePlay, instrument);
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
     app = createApp(App).provide(depsKey, {
       playback,
       barLoop,
+      trainer,
       volume,
       instrument,
       openScore,

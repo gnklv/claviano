@@ -24,6 +24,11 @@ interface Anchor {
   readonly score: number;
 }
 
+/** The loop come round: where, and at what tempo its next pass is played. */
+interface Wrap extends Anchor {
+  readonly tempo: number;
+}
+
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
@@ -56,9 +61,14 @@ export class Playback {
   /** What the listener hears right now. When paused, `score` is the paused position. */
   private anchor: Anchor = { audio: 0, score: 0 };
   /** Loop restarts already scheduled but not yet reached by the audio clock. */
-  private pendingWraps: Anchor[] = [];
-  /** Where the scheduler is; can be one loop iteration ahead of `anchor`. */
+  private pendingWraps: Wrap[] = [];
+  /** Where the scheduler is, and at what tempo; can be one loop iteration ahead of `anchor`. */
   private scheduleAnchor: Anchor = this.anchor;
+  private scheduleTempo = 1;
+  /** The tempo the loop's next pass is to be played at (see setTempoAtLoop); null: as this one. */
+  private loopTempo: number | null = null;
+  /** How many times the loop has come round since playing began. */
+  private rounds = 0;
   private nextNoteIndex = 0;
 
   private stopTicker: (() => void) | null = null;
@@ -115,16 +125,18 @@ export class Playback {
     return this.clicks.lastClick;
   }
 
+  /** How many times the loop has come round since playing began: each time, a change is told. */
+  get loopRounds(): number {
+    return this.rounds;
+  }
+
   /** Current position in score seconds. Cheap enough to read every animation frame. */
   get position(): number {
     if (!this.isPlaying) return this.anchor.score;
     const now = this.audio.now();
     // Counting in: the music waits at its start.
     if (now < this.anchor.audio) return this.anchor.score;
-    for (let next = this.pendingWraps[0]; next && now >= next.audio; next = this.pendingWraps[0]) {
-      this.anchor = next;
-      this.pendingWraps.shift();
-    }
+    this.reachWraps(now);
     const position = this.anchor.score + (now - this.anchor.audio) * this.currentTempo;
     return Math.min(position, this.currentScore?.duration ?? 0);
   }
@@ -163,6 +175,7 @@ export class Playback {
     const range = this.playRange(score);
     const from = this.anchor.score;
     this.isPlaying = true;
+    this.rounds = 0;
     this.restartFrom(from >= range.start && from < range.end ? from : range.start, this.clicks.countingIn);
     this.stopTicker = handAhead(this.ticker, this.audio, (until) => this.tick(until));
     this.emit();
@@ -208,6 +221,8 @@ export class Playback {
 
   setTempo(tempo: number): void {
     const next = clamp(tempo, MIN_TEMPO, MAX_TEMPO);
+    // (A tempo set by hand stands for the passes to come too.)
+    this.loopTempo = null;
     if (next === this.currentTempo) return;
     if (this.isPlaying) {
       const position = this.position;
@@ -252,6 +267,14 @@ export class Playback {
     this.emit();
   }
 
+  /**
+   * The tempo the loop's next pass is played at, from its first note (null: as the one before). It
+   * is taken when the loop comes round next, unless that is already on its way to the output.
+   */
+  setTempoAtLoop(tempo: number | null): void {
+    this.loopTempo = tempo === null ? null : clamp(tempo, MIN_TEMPO, MAX_TEMPO);
+  }
+
   setLoop(range: TimeRange | null): void {
     const score = this.currentScore;
     if (!score) return;
@@ -285,6 +308,7 @@ export class Playback {
     this.anchor = { audio: now + lead, score: position };
     this.pendingWraps = [];
     this.scheduleAnchor = this.anchor;
+    this.scheduleTempo = this.currentTempo;
     this.nextNoteIndex = firstNoteAtOrAfter(score, position);
     this.clicks.from(position);
     this.nextPedalIndex = firstAtOrAfter(this.pedalMoves, position, (move) => move.time);
@@ -310,9 +334,9 @@ export class Playback {
         pitch: note.pitch,
         velocity,
         at: this.toAudio(position),
-        duration: left / this.currentTempo,
+        duration: left / this.scheduleTempo,
         soft,
-        held: held / this.currentTempo,
+        held: held / this.scheduleTempo,
       });
     }
   }
@@ -320,6 +344,7 @@ export class Playback {
   private tick(until: number): void {
     const score = this.currentScore;
     if (!score || !this.isPlaying) return;
+    this.reachWraps(this.audio.now());
     if (!this.currentLoop && this.position >= score.duration) {
       this.halt(false);
       return;
@@ -348,9 +373,9 @@ export class Playback {
           pitch: note.pitch,
           velocity,
           at: this.toAudio(note.start),
-          duration: duration / this.currentTempo,
+          duration: duration / this.scheduleTempo,
           soft,
-          held: held / this.currentTempo,
+          held: held / this.scheduleTempo,
         });
       }
       // As with the clicks: the index moves on even with the pedal off. The pedal coming up at the
@@ -361,13 +386,15 @@ export class Playback {
         const move = this.pedalMoves[this.nextPedalIndex++]!;
         if (this.pedalOn) this.audio.playPedal(this.toAudio(move.time), move.down);
       }
-      this.clicks.due(horizon, this.scheduleAnchor, this.currentTempo);
+      this.clicks.due(horizon, this.scheduleAnchor, this.scheduleTempo);
       if (!this.currentLoop || horizon < segmentEnd) return;
 
       // The horizon crosses the loop end: continue scheduling from the loop start seamlessly.
-      const wrap = { audio: this.toAudio(segmentEnd), score: this.currentLoop.start };
+      const wrap = { audio: this.toAudio(segmentEnd), score: this.currentLoop.start, tempo: this.loopTempo ?? this.scheduleTempo };
+      this.loopTempo = null;
       this.pendingWraps.push(wrap);
       this.scheduleAnchor = wrap;
+      this.scheduleTempo = wrap.tempo;
       this.nextNoteIndex = firstNoteAtOrAfter(score, wrap.score);
       this.clicks.from(wrap.score);
       this.nextPedalIndex = firstAtOrAfter(this.pedalMoves, wrap.score, (move) => move.time);
@@ -375,11 +402,27 @@ export class Playback {
   }
 
   private toAudio(scoreTime: number): number {
-    return this.scheduleAnchor.audio + (scoreTime - this.scheduleAnchor.score) / this.currentTempo;
+    return this.scheduleAnchor.audio + (scoreTime - this.scheduleAnchor.score) / this.scheduleTempo;
   }
 
   private toScore(audioTime: number): number {
-    return this.scheduleAnchor.score + (audioTime - this.scheduleAnchor.audio) * this.currentTempo;
+    return this.scheduleAnchor.score + (audioTime - this.scheduleAnchor.audio) * this.scheduleTempo;
+  }
+
+  /**
+   * The audio clock has reached the loop's restarts scheduled before `now`: what is heard goes on
+   * from there, at the tempo of the pass. Told as a change, after what reads the position has done.
+   */
+  private reachWraps(now: number): void {
+    let reached = false;
+    for (let next = this.pendingWraps[0]; next && now >= next.audio; next = this.pendingWraps[0]) {
+      this.anchor = next;
+      this.currentTempo = next.tempo;
+      this.pendingWraps.shift();
+      this.rounds++;
+      reached = true;
+    }
+    if (reached) queueMicrotask(() => this.emit());
   }
 
   private emit(): void {

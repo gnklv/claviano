@@ -10,6 +10,7 @@ import type { PieceMemories } from '../application/use-cases/PieceMemories';
 import type { DemoPiece, OpenScore } from '../application/use-cases/OpenScore';
 import type { Playback } from '../application/use-cases/Playback';
 import type { Recorder } from '../application/use-cases/Recorder';
+import type { TempoTrainer } from '../application/use-cases/TempoTrainer';
 import type { Volume } from '../application/use-cases/Volume';
 import type { MessageKey } from './i18n/en';
 
@@ -22,6 +23,8 @@ export interface Demo extends DemoPiece {
 export interface AppDeps {
   readonly playback: Playback;
   readonly barLoop: BarLoop;
+  /** The loop that quickens by itself. */
+  readonly trainer: TempoTrainer;
   /** How loud the notes and the metronome are. */
   readonly volume: Volume;
   /** The piano's sound: whether it has loaded. */

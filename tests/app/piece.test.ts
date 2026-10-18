@@ -192,7 +192,7 @@ describe('the transport bar', () => {
     it('is set by a step slower or faster, or straight to one of the tempos pieces are learned at', async () => {
       button(/^Tempo: 100%$/).click();
       await settled();
-      const presets = () => [...tempoPanel()!.querySelectorAll('button[aria-pressed]')];
+      const presets = () => [...tempoPanel()!.querySelectorAll('.presets button[aria-pressed]')];
       expect(presets().map((element) => element.textContent?.trim())).toEqual(['50', '60', '70', '80', '90', '100']);
 
       button(/^Slower$/).click();
@@ -217,7 +217,34 @@ describe('the transport bar', () => {
       button(/^Tempo: 100%$/).click();
       await settled();
       expect(sheet.open).toBe(true);
-      expect(sheet.querySelectorAll('button[aria-pressed]')).toHaveLength(6);
+      expect(sheet.querySelectorAll('.presets button[aria-pressed]')).toHaveLength(6);
+    });
+
+    it('has a trainer: on, it begins at its first tempo, says where it is taking the tempo, and asks for the loop', async () => {
+      button(/^Tempo: 100%$/).click();
+      await settled();
+      const group = (name: string) => tempoPanel()!.querySelector<HTMLElement>(`[role=group][aria-label="${name}"]`);
+      const choose = (name: string, label: string) => [...group(name)!.querySelectorAll('button')].find((choice) => choice.textContent?.trim() === label)!.click();
+      expect(group('From')).toBeNull();
+
+      choose('Tempo trainer', 'On');
+      await settled();
+      expect(playback.tempo).toBe(0.6);
+      expect(button(/^Tempo: 60%$/).textContent).toContain('to 100%');
+      expect(tempoPanel()!.textContent).toContain('switch the loop on');
+
+      choose('From', '70%');
+      choose('A step', '5%');
+      await settled();
+      expect(playback.tempo).toBe(0.7);
+      playback.setLoop({ start: 0, end: 2 });
+      await settled();
+      expect(tempoPanel()!.textContent).not.toContain('switch the loop on');
+
+      choose('Tempo trainer', 'Off');
+      await settled();
+      expect(group('From')).toBeNull();
+      expect(button(/^Tempo: 70%$/).textContent).not.toContain('to 100%');
     });
   });
 });

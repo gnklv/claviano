@@ -67,5 +67,14 @@ function asMemory(stored: unknown): PieceMemory | null {
   const { right, left } = hands as Record<string, unknown>;
   const { on, from, to } = loop as Record<string, unknown>;
   if (typeof right !== 'boolean' || typeof left !== 'boolean' || typeof on !== 'boolean' || typeof from !== 'number' || typeof to !== 'number') return null;
-  return stored as PieceMemory;
+  // (A trainer that is not one is let go of, and the rest kept.)
+  const memory = stored as PieceMemory;
+  const { trainer, ...rest } = memory;
+  return trainer === undefined || asTrainer(trainer) ? memory : rest;
+}
+
+function asTrainer(stored: unknown): boolean {
+  if (typeof stored !== 'object' || stored === null) return false;
+  const { on, from, to, step, every } = stored as Record<string, unknown>;
+  return typeof on === 'boolean' && [from, to, step, every].every((value) => typeof value === 'number' && Number.isFinite(value));
 }

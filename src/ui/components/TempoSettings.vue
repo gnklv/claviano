@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import AppButton from './AppButton.vue';
+import AppNotice from './AppNotice.vue';
+import SegmentedControl from './SegmentedControl.vue';
+import SettingRow from './SettingRow.vue';
 import ToggleChip from './ToggleChip.vue';
 import type { TempoReading } from '../tempoReading';
 import TempoMark from './TempoMark.vue';
 import { computed } from 'vue';
 import { PRACTICE_TEMPO, stepTempo } from '../../application/use-cases/stepTempo';
+import { TRAINER_PASSES, TRAINER_STEPS } from '../../application/use-cases/TempoTrainer';
+import { useTrainer } from '../composables/useTrainer';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -12,7 +17,8 @@ import { useI18n } from '../i18n/useI18n';
 /*
  * Setting the tempo, the way a video player sets its speed: the tempo in large figures between a
  * "slower" and a "faster" button (a step each, to land on a tempo without aiming), a slider for
- * going far, and the tempos pieces are most often learned at, a touch away.
+ * going far, and the tempos pieces are most often learned at, a touch away. Under it, the tempo
+ * trainer: the loop quickening by itself, from one tempo to another.
  */
 
 /** `mark`: the tempo this makes, as the page would write it (a quarter = 96); none where the piece has no tempo mark. */
@@ -23,9 +29,27 @@ const PRESETS = [50, 60, 70, 80, 90, 100];
 const percentOf = (tempo: number) => Math.round(tempo * 100);
 const RANGE = { min: percentOf(PRACTICE_TEMPO.min), max: percentOf(PRACTICE_TEMPO.max), step: percentOf(PRACTICE_TEMPO.step) };
 
-const { playback } = useDeps();
+const { playback, trainer } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
+const training = useTrainer(trainer);
+
+// --- The trainer: where it begins and ends, by how much a step, after how many passes. ---
+
+/** Where it begins and where it ends, in percent: from slow enough to read, to a little past the piece's own. */
+const FROM = [40, 50, 60, 70, 80];
+const TO = [90, 100, 110, 120];
+const percents = (values: readonly number[]) => values.map((value) => ({ value: String(value), label: `${value}%` }));
+const plan = (key: 'from' | 'to' | 'step') =>
+  computed({
+    get: () => String(Math.round(training.value.plan[key] * 100)),
+    set: (value: string) => trainer.setPlan({ [key]: Number(value) / 100 }),
+  });
+const from = plan('from');
+const to = plan('to');
+const step = plan('step');
+const every = computed({ get: () => String(training.value.plan.every), set: (value: string) => trainer.setPlan({ every: Number(value) }) });
+const on = computed({ get: () => (training.value.on ? 'on' : 'off'), set: (value: string) => trainer.setEnabled(value === 'on') });
 const percent = computed({
   get: () => percentOf(state.value.tempo),
   set: (value: number) => playback.setTempo(value / 100),
@@ -57,6 +81,20 @@ const percent = computed({
         {{ preset }}
       </ToggleChip>
     </div>
+    <div class="trainer">
+      <SettingRow :label="t('trainer')">
+        <SegmentedControl v-model="on" :label="t('trainer')" :options="[{ value: 'off', label: t('off') }, { value: 'on', label: t('on') }]" />
+      </SettingRow>
+      <template v-if="training.on">
+        <SettingRow :label="t('trainerFrom')"><SegmentedControl v-model="from" :label="t('trainerFrom')" :options="percents(FROM)" /></SettingRow>
+        <SettingRow :label="t('trainerTo')"><SegmentedControl v-model="to" :label="t('trainerTo')" :options="percents(TO)" /></SettingRow>
+        <SettingRow :label="t('trainerStep')"><SegmentedControl v-model="step" :label="t('trainerStep')" :options="percents(TRAINER_STEPS.map((s) => Math.round(s * 100)))" /></SettingRow>
+        <SettingRow :label="t('trainerEvery')">
+          <SegmentedControl v-model="every" :label="t('trainerEvery')" :options="TRAINER_PASSES.map((n) => ({ value: String(n), label: String(n) }))" />
+        </SettingRow>
+        <AppNotice v-if="!state.loop">{{ t('trainerNeedsLoop') }}</AppNotice>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -64,6 +102,13 @@ const percent = computed({
 .tempo-settings {
   display: grid;
   gap: var(--space-3);
+}
+
+.trainer {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 .now {

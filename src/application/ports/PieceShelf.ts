@@ -18,6 +18,8 @@ export interface PieceMemory {
   readonly hands: { readonly right: boolean; readonly left: boolean };
   /** The bar loop: printed bar numbers, and whether it was on. */
   readonly loop: { readonly on: boolean; readonly from: number; readonly to: number };
+  /** The tempo trainer: whether it was on, and how it goes (tempos as shares). Not in what older versions kept. */
+  readonly trainer?: { readonly on: boolean; readonly from: number; readonly to: number; readonly step: number; readonly every: number };
   /** For the shelf to say without opening the piece: the bar it was left at, and its last bar (as numbered on the page). */
   readonly bar: number;
   readonly bars: number;

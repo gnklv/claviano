@@ -159,8 +159,11 @@ flatter); a fingering is ink that bar numbers and words clear; a tempo line step
 it would run into; room under the lower staff for the pedal and dynamics, so that nothing is cut off.
 Left: a slur under a run that goes down to the lower staff can still touch a stem there.
 
-8. [ ] A tempo trainer: a loop that quickens by itself, a little each time round, from the tempo it
-       is begun at to the piece's own
+8. [x] A tempo trainer: a loop that quickens by itself, a little each time round, from the tempo it
+       is begun at to the one aimed at (`TempoTrainer`): from 40–80% to 90–120%, by 1, 2 or 5% a
+       step, after 1, 2 or 3 passes. Playback plays each pass of the loop at the tempo set for it,
+       from its first note; a count-in only before the first. Set in the tempo panel, the button
+       says where it is going ("60% to 100%"), and it is kept with the piece.
 9. [ ] One's own fingering over the hints: a finger set by hand at a note stands as the notes'
        own do, is kept with the piece, and the hints are fitted round it
 10. [ ] Bookmarks in a piece: named places ("the reprise", "the hard bars") to go to at a press,
