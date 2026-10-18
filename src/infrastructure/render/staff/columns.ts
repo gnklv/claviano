@@ -1,10 +1,10 @@
-import type { NotationLayout, StaffChord } from '../../../domain/notation/engraving';
+import type { NotationLayout, StaffChord, StaffGrace } from '../../../domain/notation/engraving';
 import type { Column } from '../../../domain/notation/spacing';
 import { barAtBeat, barLength, writtenBarStart, type Score } from '../../../domain/score';
 import { ACCIDENTAL_COLUMN } from './chords';
 import { HEAD_WIDTH } from './glyphs';
 import { graceWidth } from './graces';
-import { SAME_MOMENT } from '../../../domain/moment';
+import { SAME_MOMENT, sameMoment } from '../../../domain/moment';
 
 /*
  * What stands at each moment of each printed bar, and the room it takes as it is drawn here (see
@@ -71,4 +71,30 @@ function roomAfter(chord: StaffChord): number {
   const movedOver = (chord.stemUp && chord.notes.some((note) => note.displaced) ? head : 0) + (chord.voiceShift || chord.dotsPastVoice ? head : 0);
   const flag = chord.beam === null && chord.stemUp && FLAGGED.has(chord.duration.value) ? FLAG : 0;
   return head + movedOver + Math.max(chord.duration.dots * DOT, flag);
+}
+
+/** The room grace notes and a change of clef need at the start of printed bars (before the first note), and grace notes at their end (after the last). */
+export function graceRoom(
+  score: Score | null,
+  graces: readonly StaffGrace[],
+  chords: readonly StaffChord[],
+): { lead: Map<number, number>; tail: Map<number, number> } {
+  const lead = new Map<number, number>();
+  const tail = new Map<number, number>();
+  if (!score) return { lead, tail };
+  for (const grace of graces) {
+    const principal = grace.principal === null ? null : chords[grace.principal];
+    const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
+    if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
+    else if (sameMoment(principal.beat, writtenBarStart(score, principal.bar))) {
+      lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
+    }
+  }
+  // A change of clef at a bar's first beat: the small clef stands there too, after the bar line.
+  for (const change of score.notation.clefs) {
+    if (change.beat <= SAME_MOMENT) continue;
+    const bar = barAtBeat(score, change.beat);
+    if (sameMoment(change.beat, writtenBarStart(score, bar))) lead.set(bar, Math.max(lead.get(bar) ?? 0, CLEF_CHANGE));
+  }
+  return { lead, tail };
 }

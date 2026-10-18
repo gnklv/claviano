@@ -52,3 +52,6 @@ export function inkedPolyline(attributes: Record<string, string | number>): SVGP
   line.style.setProperty('stroke', COLORS.note);
   return line;
 }
+
+/** To a tenth of a pixel: what moves less is the noise of arithmetic, not a move to show. */
+export const tenth = (px: number): number => Math.round(px * 10) / 10;

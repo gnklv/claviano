@@ -2,7 +2,6 @@ import type { StaffView } from '../../application/ports/StaffView';
 import {
   barAtBeat,
   clefSignAt,
-  writtenBarStart,
   writtenBarAt,
   writtenBeatAt,
   keySignatureAt,
@@ -10,34 +9,17 @@ import {
   type Score,
   type TimeRange,
 } from '../../domain/score';
-import { firstAtOrAfter, lastAtOrBefore } from '../../domain/search';
+import { lastAtOrBefore } from '../../domain/search';
 import type { Hand } from '../../domain/note';
-import { approach, HandHold, SeekWatch } from './following';
-import {
-  engrave,
-  reachOf,
-  type Beam,
-  type StaffArpeggio,
-  type StaffChord,
-  type StaffFingering,
-  type StaffGrace,
-  type StaffMark,
-  type StaffOctaveShift,
-  type StaffOrnament,
-  type StaffRest,
-  type StaffSlur,
-  type StaffTremolo,
-  type Tie,
-  type Tuplet,
-} from '../../domain/notation/engraving';
+import { engrave, reachOf, type NotationLayout, type StaffChord } from '../../domain/notation/engraving';
 import type { ClefSign } from '../../domain/notation/written';
 import { barPosition, tapeBars } from './staffLayout';
 import { drawBeam, drawChord, drawFingering, drawMark, drawRest, drawSlur, drawTie, drawTuplet } from './staff/chords';
-import { CLEF_CHANGE, columnsOf } from './staff/columns';
+import { columnsOf, graceRoom } from './staff/columns';
 import type { StaffContext } from './staff/context';
 import { drawDynamics } from './staff/dynamics';
 import { StaffGeometry } from './staff/geometry';
-import { drawGrace, graceWidth } from './staff/graces';
+import { drawGrace } from './staff/graces';
 import { drawGutter, type GutterContent } from './staff/gutter';
 import { StaffInk } from './staff/ink';
 import {
@@ -52,25 +34,25 @@ import {
 } from './staff/markings';
 import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
-import { COLORS, svg } from './staff/svg';
+import { ChordLights } from './staff/chordLights';
+import { barsShade, loopShade } from './staff/shades';
+import { COLORS, svg, tenth } from './staff/svg';
+import { TapeMotion } from './staff/tapeMotion';
+import { TapeStretch } from './staff/tapeStretch';
 import { TapeWindow } from './staff/tapeWindow';
-import { SAME_MOMENT, sameMoment } from '../../domain/moment';
+import { SAME_MOMENT } from '../../domain/moment';
 
 /*
- * The staff's parts live in ./staff: where things go (geometry), where the notes reach (ink), and
- * the drawing of chords, markings, dynamics, pedals and the left column. This class holds the
- * page together: the layers, the tape's movement, and the chords lighting up as they sound.
+ * The staff's parts live in ./staff: where things go (geometry), where the notes reach (ink), the
+ * drawing of chords, markings, dynamics, pedals and the left column, where the tape stands
+ * (tapeMotion), its stretch through sizes on the move (tapeStretch), the chords lit as they sound
+ * (chordLights) and the stretch of tape shown (tapeWindow). This class holds the page together: the
+ * layers, and the tape drawn on them.
  */
 
 /** Share of the tape's width over which each edge fades out. */
 const FADE = 0.12;
 
-/*
- * When the tape leaps (back on a repeat, over the room of a key or time change, after a seek or a
- * drag), it glides there rather than jumps: this is the glide's time constant in seconds (about
- * three of them to arrive). Ordinary playback is followed exactly, however fast (see render).
- */
-const TAPE_GLIDE_SECONDS = 0.1;
 /** The tape fades out at both its ends. */
 const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
 /**
@@ -78,8 +60,6 @@ const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%,
  * screen that shows 120 of them a second. Done at a step of a size on the move, the step is seen.
  */
 const FRAME_MS = 8;
-/** A size not told again for this long, in milliseconds, has come to rest. */
-const RESIZING_MS = 120;
 
 /** A click within this many staff spaces of a notehead's centre means that note. */
 const NOTE_SNAP = 1.2;
@@ -96,24 +76,20 @@ export class SvgStaff implements StaffView {
   private readonly background: SVGSVGElement;
   private readonly tape: HTMLDivElement;
   private readonly tapeSvg: SVGSVGElement;
-  /** Over the tape, moving with it: the sounding chords, lit (see highlight). */
-  private readonly litSvg: SVGSVGElement;
   private readonly strip: SVGGElement;
   private readonly cursor: HTMLDivElement;
 
   private readonly geometry = new StaffGeometry();
   private readonly ink = new StaffInk(this.geometry);
   private readonly nearView = new TapeWindow();
+  private readonly motion = new TapeMotion();
+  private readonly lights = new ChordLights();
+  private readonly stretch: TapeStretch;
 
   private score: Score | null = null;
   private loop: TimeRange | null = null;
+  /** The tape's offset as last drawn (NaN: to be drawn afresh). */
   private lastOffset = Number.NaN;
-  /** Where the tape is drawn (it trails the target while gliding back on a repeat). */
-  private shownOffset = Number.NaN;
-  /** How far the tape trails the music while gliding to it (pixels); 0 when following exactly. */
-  private lag = 0;
-  /** The printed bar the music was in at the last frame, to tell playing on from a leap. */
-  private lastBar = 0;
   private lastFrameAt = 0;
   /** Beat under the cursor; the left column shows the signatures in force there. */
   private currentBeat = 0;
@@ -121,31 +97,8 @@ export class SvgStaff implements StaffView {
   private gutterChanges: number[] = [];
   /** The last of them the left column was drawn after (−1: none, the piece's start). */
   private shownGutter = -1;
-  /** The piece's drawn groups; their chord indices point into the ink's chords. */
-  private beams: Beam[] = [];
-  private tuplets: Tuplet[] = [];
-  private rests: StaffRest[] = [];
-  private ties: Tie[] = [];
-  private marks: StaffMark[] = [];
-  private slurs: StaffSlur[] = [];
-  private octaveShifts: StaffOctaveShift[] = [];
-  private graces: StaffGrace[] = [];
-  private ornaments: StaffOrnament[] = [];
-  private tremolos: StaffTremolo[] = [];
-  private arpeggios: StaffArpeggio[] = [];
-  private fingerings: StaffFingering[] = [];
-  private chordElements: SVGGElement[] = [];
-  private graceElements: SVGGElement[] = [];
-  /** Grace notes currently highlighted (their copies lie over them). */
-  private readonly litGraces = new Set<number>();
-  private longestChord = 0;
-  /** Chords currently highlighted in their hand's color (their copies lie over them), in the order of the page. */
-  private lit: number[] = [];
-  /** The chords sounding at this frame, in the order of the page. (Two lists kept and swapped: nothing is made anew at every frame.) */
-  private sounding: number[] = [];
-  /** Lit copies made so far, kept to be laid over again: a chord is lit again on every pass, a grace note too. */
-  private chordCopies: SVGElement[] = [];
-  private graceCopies: SVGElement[] = [];
+  /** The piece as laid out to be drawn; its chord indices point into the ink's chords. */
+  private layout: NotationLayout = NO_LAYOUT;
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   private handLabels: Record<Hand, string> = { right: 'R.H.', left: 'L.H.' };
   /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
@@ -155,17 +108,6 @@ export class SvgStaff implements StaffView {
   private hoverBar: number | null = null;
   /** Whether the last drawing anew took longer than a frame (see resize). */
   private costly = false;
-  /** What is drawn is stretched to a size on the move, to be drawn anew when that comes to rest. */
-  private stretched = false;
-  /** While stretched: how far the music is moved along the tape, in what is drawn, to stand under the cursor where it will be drawn anew. */
-  private stretchShift = 0;
-  /** While stretched: how much larger than drawn it is shown, and how wide the tape in sight is, in what is drawn. */
-  private stretchBy = 1;
-  private stretchedTape = 0;
-  private settling: ReturnType<typeof setTimeout> | undefined;
-  /** Where the tape was dragged to by hand (see dragBy, and following.ts for when it lets go). */
-  private readonly dragged = new HandHold<number>();
-  private readonly seeks = new SeekWatch();
   private lastCursorLeft = Number.NaN;
   private selection: { from: number; to: number } | null = null;
 
@@ -186,37 +128,22 @@ export class SvgStaff implements StaffView {
     Object.assign(this.tapeSvg.style, { display: 'block', width: '100%', height: '100%', overflow: 'visible', willChange: 'transform' });
     this.strip = svg('g');
     this.tapeSvg.append(this.strip);
-    this.litSvg = svg('svg');
-    Object.assign(this.litSvg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', overflow: 'visible', willChange: 'transform' });
-    this.tape.append(this.tapeSvg, this.litSvg);
+    this.tape.append(this.tapeSvg, this.lights.layer);
 
     this.cursor = document.createElement('div');
     Object.assign(this.cursor.style, { position: 'absolute', width: '2px', background: COLORS.cursor, borderRadius: '1px' });
 
     container.append(this.background, this.tape, this.cursor);
+    this.stretch = new TapeStretch(this.geometry, { background: this.background, tape: this.tape, cursor: this.cursor }, () => this.rested());
     this.geometry.resize(container.clientWidth, container.clientHeight);
     this.redraw();
   }
 
   setScore(score: Score | null): void {
     this.score = score;
-    const layout = score
-      ? engrave(score)
-      : { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
+    const layout = score ? engrave(score) : NO_LAYOUT;
+    this.layout = layout;
     this.ink.setChords([...layout.chords], layout.marks);
-    this.beams = [...layout.beams];
-    this.tuplets = [...layout.tuplets];
-    this.rests = [...layout.rests];
-    this.ties = [...layout.ties];
-    this.marks = [...layout.marks];
-    this.slurs = [...layout.slurs];
-    this.octaveShifts = [...layout.octaveShifts];
-    this.graces = [...layout.graces];
-    this.ornaments = [...layout.ornaments];
-    this.tremolos = [...layout.tremolos];
-    this.arpeggios = [...layout.arpeggios];
-    this.fingerings = [...layout.fingerings];
-    this.longestChord = layout.chords.reduce((max, chord) => Math.max(max, chord.beats), 0);
     this.geometry.setScore(score, {
       graceRoom: graceRoom(score, layout.graces, layout.chords),
       columns: score ? columnsOf(score, layout) : [],
@@ -254,7 +181,7 @@ export class SvgStaff implements StaffView {
     const { geometry, ink } = this;
     const offset = Number.isNaN(this.lastOffset) ? 0 : this.lastOffset;
     // (The tape's box, stretched, is shown larger or smaller than what is drawn in it.)
-    const px = (clientX - this.tape.getBoundingClientRect().left) / this.stretchBy - offset;
+    const px = (clientX - this.tape.getBoundingClientRect().left) / this.stretch.by - offset;
     const place = geometry.pageAt(px);
     if (!place) return null;
     const snap = NOTE_SNAP * geometry.space;
@@ -283,14 +210,11 @@ export class SvgStaff implements StaffView {
   /** Call when the container's size changes. */
   resize(): void {
     const { clientWidth: width, clientHeight: height } = this.container;
-    if (this.stretched || (this.costly && (width !== this.geometry.width || height !== this.geometry.height))) {
-      // Drawing the whole piece anew takes longer than a frame, and a size is seldom told alone (a
-      // window dragged by its edge, a browser's bars sliding away on a phone): drawn anew at its first step,
-      // the steps after it would be missed. What is drawn is stretched to each new size, which costs
-      // nothing, and drawn anew once the size has come to rest.
-      this.stretch(width, height);
-      clearTimeout(this.settling);
-      this.settling = setTimeout(() => this.settle(), RESIZING_MS);
+    if (this.stretch.on || (this.costly && (width !== this.geometry.width || height !== this.geometry.height))) {
+      // Drawing the whole piece anew takes longer than a frame: stretched through the sizes on the move (see tapeStretch).
+      this.stretch.to(width, height);
+      this.lastOffset = Number.NaN;
+      this.lastCursorLeft = Number.NaN;
       return;
     }
     // Browsers report a size when watching begins, changed or not: nothing to draw anew then.
@@ -299,55 +223,10 @@ export class SvgStaff implements StaffView {
     this.redraw();
   }
 
-  /**
-   * Shows what is drawn as it would stand in a view of another size, near enough: larger or smaller
-   * as the staff would be, in the middle of the height, the music under the cursor where that will
-   * stand, and the tape faded at what will be its ends. (Near enough: the bars would be laid out a
-   * little wider or narrower. Drawn anew, they are.)
-   */
-  private stretch(width: number, height: number): void {
-    const { geometry } = this;
-    const by = geometry.spaceFor(width, height) / geometry.space;
-    const down = tenth(height / 2 - (by * geometry.height) / 2);
-    // The tape is boxed as it will be, in what is drawn: from the left column (stretched with the
-    // rest) to the view's edges. Its fade, and the edge that cuts it, go with the box.
-    const tape = (width - by * geometry.gutterWidth()) / by;
-    this.stretchShift = tenth(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())));
-    this.stretchBy = by;
-    this.stretchedTape = tape;
-    this.tape.style.right = `${width - geometry.gutterWidth() - tape}px`;
-    this.tape.style.bottom = `${height - height / by}px`;
+  /** The size has come to rest, the stretch undone: drawn anew for it, exactly. */
+  private rested(): void {
     this.lastOffset = Number.NaN;
     this.lastCursorLeft = Number.NaN;
-    if (!this.stretched) {
-      this.stretched = true;
-      // The left column reaches past its box while that is smaller than the view: nothing cuts it there.
-      this.background.style.overflow = 'visible';
-    }
-    for (const part of [this.background, this.tape, this.cursor]) {
-      // (Each about the view's own corner, wherever in the view it stands.)
-      const left = part instanceof HTMLElement ? part.offsetLeft : 0;
-      const top = part instanceof HTMLElement ? part.offsetTop : 0;
-      part.style.transformOrigin = `${-left}px ${-top}px`;
-      part.style.transform = `translate(0px, ${down}px) scale(${by})`;
-    }
-  }
-
-  /** The size has come to rest: drawn anew for it, exactly. */
-  private settle(): void {
-    this.stretched = false;
-    for (const part of [this.background, this.tape, this.cursor]) {
-      part.style.transform = '';
-      part.style.transformOrigin = '';
-    }
-    this.stretchShift = 0;
-    this.stretchBy = 1;
-    this.stretchedTape = 0;
-    this.tape.style.right = '0';
-    this.tape.style.bottom = '0';
-    this.lastOffset = Number.NaN;
-    this.lastCursorLeft = Number.NaN;
-    this.background.style.overflow = '';
     const { clientWidth: width, clientHeight: height } = this.container;
     if (width === this.geometry.width && height === this.geometry.height) return;
     this.geometry.resize(width, height);
@@ -366,66 +245,37 @@ export class SvgStaff implements StaffView {
    * or a chord starts or stops sounding. Chords of muted hands are not highlighted.
    */
   render(position: number, isHandEnabled: (hand: Hand) => boolean = () => true, playing = false): void {
-    const { geometry } = this;
-    if (this.score) {
-      this.currentBeat = writtenBeatAt(this.score, position);
+    const { geometry, score } = this;
+    if (score) {
+      this.currentBeat = writtenBeatAt(score, position);
       if (this.gutterAt(this.currentBeat) !== this.shownGutter) this.drawBackground();
-      this.highlight(this.currentBeat, isHandEnabled);
+      this.lights.light(this.currentBeat, isHandEnabled);
     }
-    const x = this.score ? geometry.px(barPosition(this.score, position)) : 0;
-    const target = geometry.cursorX() - x;
-
+    const x = score ? geometry.px(barPosition(score, position)) : 0;
     const now = performance.now();
     const dt = this.lastFrameAt ? Math.min(0.1, (now - this.lastFrameAt) / 1000) : 0;
     this.lastFrameAt = now;
-    if (Number.isNaN(this.shownOffset)) this.shownOffset = target;
-
-    // Dragged by hand: the tape stays where it was put; after a while of playing it goes back to the
-    // music. A seek (a click, the arrows) goes back at once.
-    const seeked = this.seeks.seeked(position);
-    const letGo = this.dragged.pass(dt, playing, seeked) !== null;
-    const held = this.dragged.value;
-
-    // Where the music went on the page since the last frame: to the next printed bar is playing on;
-    // anything else (a repeat, a D.S., a seek) is a leap, and so is stepping over the room kept at
-    // a bar line for a key, time or repeat sign.
-    const bar = this.score ? writtenBarAt(this.score, position) : 0;
-    const previous = this.lastBar;
-    this.lastBar = bar;
-    const nextBar = bar === previous + 1;
-    const leap =
-      seeked ||
-      letGo ||
-      (bar !== previous && !nextBar) ||
-      (nextBar && ((geometry.lead[bar] ?? 0) > 0 || (geometry.tail[previous] ?? 0) > 0));
-
-    if (held !== null) {
-      this.shownOffset = held;
-      this.lag = 0;
-    } else {
-      // Follow the music exactly; but on a leap, glide to it. The glide shrinks the distance to the
-      // music rather than chasing it: the music keeps moving, and a glide towards a moving target
-      // would never quite arrive.
-      if (leap) this.lag = this.shownOffset - target;
-      this.lag = approach(this.lag, 0, dt, TAPE_GLIDE_SECONDS);
-      this.shownOffset = target + this.lag;
-    }
+    const shown = this.motion.frame({ position, target: geometry.cursorX() - x, bar: score ? writtenBarAt(score, position) : 0, overRoom: this.overRoom }, dt, playing);
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
-    const cursorX = (held !== null ? x + this.shownOffset : geometry.cursorX()) + this.stretchShift;
+    const { shift } = this.stretch;
+    const cursorX = (this.motion.held !== null ? x + shown : geometry.cursorX()) + shift;
     const cursorLeft = tenth(geometry.gutterWidth() + cursorX - 1);
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
       this.cursor.style.left = `${cursorLeft}px`;
-      this.cursor.style.visibility = cursorX < 0 || cursorX > this.tapeInSight() ? 'hidden' : 'visible';
+      this.cursor.style.visibility = cursorX < 0 || cursorX > this.stretch.tapeInSight ? 'hidden' : 'visible';
     }
 
-    const offset = tenth(this.shownOffset + this.stretchShift);
+    const offset = tenth(shown + shift);
     if (offset === this.lastOffset) return;
     this.showAround(offset);
     this.lastOffset = offset;
-    this.tapeSvg.style.transform = this.litSvg.style.transform = `translateX(${offset}px)`;
+    this.tapeSvg.style.transform = this.lights.layer.style.transform = `translateX(${offset}px)`;
   }
+
+  /** Whether going on from printed bar `previous` to `bar` steps over the room kept at the bar line for a key, a time or a repeat sign. */
+  private readonly overRoom = (previous: number, bar: number): boolean => (this.geometry.lead[bar] ?? 0) > 0 || (this.geometry.tail[previous] ?? 0) > 0;
 
   /**
    * Moves the tape by `dx` pixels by hand (to the right: back in the music). The music plays on;
@@ -435,12 +285,8 @@ export class SvgStaff implements StaffView {
     const score = this.score;
     if (!score || score.notes.length === 0) return 0;
     const { geometry } = this;
-    const current = this.dragged.value ?? this.shownOffset;
     // Keep some of the music in sight: the cursor's place stays between the first and the last bar.
-    const lowest = geometry.cursorX() - geometry.px(tapeBars(score).end);
-    const offset = Math.min(geometry.cursorX(), Math.max(lowest, current + dx));
-    this.dragged.hold(offset);
-    return offset - current;
+    return this.motion.dragBy(dx, geometry.cursorX() - geometry.px(tapeBars(score).end), geometry.cursorX());
   }
 
   setCursorPlace(share: number): void {
@@ -449,7 +295,7 @@ export class SvgStaff implements StaffView {
 
   /** Back to following the music (after a jump): the tape glides to it. */
   followMusic(): void {
-    this.dragged.release();
+    this.motion.follow();
   }
 
   /** What the left column shows under the cursor: the clefs, and the key and time signatures. */
@@ -491,57 +337,24 @@ export class SvgStaff implements StaffView {
 
   /** The hovered bar (faint) and the bars being selected (in the loop colour), behind the music. */
   private drawOverlay(): void {
-    this.overlay.replaceChildren();
     const score = this.score;
-    if (!score || score.notes.length === 0) return;
-    const { geometry } = this;
-    const { space } = geometry;
-    const tape = tapeBars(score);
-    const top = geometry.trebleTop() - 3 * space;
-    const height = geometry.systemBottom() - geometry.trebleTop() + 6 * space;
-    const shade = (from: number, to: number, fill: string, opacity: number) => {
-      const x = geometry.barLineX(from);
-      const end = geometry.barLineX(to + 1);
-      const rect = svg('rect', { x, y: top, width: end - x, height, fill });
-      rect.style.opacity = String(opacity);
-      this.overlay.append(rect);
-    };
-    if (this.selection) {
-      const { from, to } = this.selection;
-      shade(Math.min(from, to), Math.max(from, to), COLORS.loop, 1);
-    } else if (this.hoverBar !== null && this.hoverBar < tape.starts.length) {
-      shade(this.hoverBar, this.hoverBar, COLORS.loop, 0.5);
-    }
+    const selection = this.selection;
+    if (!score || score.notes.length === 0) this.overlay.replaceChildren();
+    else if (selection) this.overlay.replaceChildren(barsShade(this.geometry, Math.min(selection.from, selection.to), Math.max(selection.from, selection.to), 1));
+    else if (this.hoverBar !== null && this.hoverBar < tapeBars(score).starts.length) this.overlay.replaceChildren(barsShade(this.geometry, this.hoverBar, this.hoverBar, 0.5));
+    else this.overlay.replaceChildren();
   }
 
-  /** The loop's bars, behind the music: a wash over them, and a line at each end. */
+  /** The loop's bars, behind the music. */
   private drawLoop(): void {
-    this.loopLayer.replaceChildren();
-    const { score, loop, geometry } = this;
-    if (!score || score.notes.length === 0 || !loop) return;
-    const { space } = geometry;
-    const top = geometry.trebleTop();
-    const start = geometry.edgeX(barPosition(score, loop.start));
-    // The end of the loop's last bar: the next bar played may be printed earlier (a repeat).
-    const end = geometry.edgeX(barPosition(score, Math.max(loop.start, loop.end - SAME_MOMENT)));
-    const y = top - 3 * space;
-    const height = geometry.systemBottom() - top + 6 * space;
-    this.loopLayer.append(
-      svg('rect', { x: start, y, width: Math.max(0, end - start), height, fill: COLORS.loop }),
-      ...[start, end].map((x) => svg('path', { d: `M${x} ${y}V${y + height}`, stroke: COLORS.loopEdge, 'stroke-width': 1 })),
-    );
+    const { score, loop } = this;
+    this.loopLayer.replaceChildren(...(score && score.notes.length > 0 && loop ? loopShade(this.geometry, score, loop) : []));
   }
 
   private drawStrip(): void {
     this.ink.reset();
     this.strip.replaceChildren();
-    this.lit.length = 0;
-    this.litGraces.clear();
-    this.chordCopies = [];
-    this.graceCopies = [];
-    this.litSvg.replaceChildren();
-    this.chordElements = [];
-    this.graceElements = [];
+    this.lights.drawn([], [], [], []);
     // (Nothing of the last piece is kept to be shown: it would stay, and be shown again.)
     this.nearView.measure([]);
     const score = this.score;
@@ -560,35 +373,35 @@ export class SvgStaff implements StaffView {
     // Beams first: they decide how long the stems of their chords are.
     const beamLayer = svg('g');
     beamLayer.style.color = COLORS.note;
-    for (const beam of this.beams) beamLayer.append(...drawBeam(context, beam));
-    for (const tuplet of this.tuplets) {
+    for (const beam of this.layout.beams) beamLayer.append(...drawBeam(context, beam));
+    for (const tuplet of this.layout.tuplets) {
       if (tuplet.showNumber || tuplet.bracket) beamLayer.append(...drawTuplet(context, tuplet));
     }
 
-    this.chordElements = ink.chords.map((_, index) => drawChord(context, index, this.handLabels));
+    const chordShapes = ink.chords.map((_, index) => drawChord(context, index, this.handLabels));
     // A tie belongs to the chord it starts from, so it lights up with it; so do the chord's marks.
-    for (const tie of this.ties) this.chordElements[tie.from]?.append(drawTie(context, tie));
-    for (const mark of this.marks) this.chordElements[mark.chord]?.append(drawMark(context, mark));
+    for (const tie of this.layout.ties) chordShapes[tie.from]?.append(drawTie(context, tie));
+    for (const mark of this.layout.marks) chordShapes[mark.chord]?.append(drawMark(context, mark));
     // A slur spans a phrase, so it stays in the ink colour with the beams.
-    for (const phrase of this.slurs) beamLayer.append(drawSlur(context, phrase));
+    for (const phrase of this.layout.slurs) beamLayer.append(drawSlur(context, phrase));
 
     // Grace notes and ornaments before what goes around the notes: bar numbers, brackets and
     // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
-    this.graceElements = this.graces.map((grace) => drawGrace(context, grace));
-    for (const ornament of this.ornaments) this.chordElements[ornament.chord]?.append(...drawOrnament(context, ornament));
-    for (const fingering of this.fingerings) this.chordElements[fingering.chord]?.append(drawFingering(context, fingering));
-    for (const tremolo of this.tremolos) this.chordElements[tremolo.chord]?.append(...drawTremolo(context, tremolo));
-    for (const arpeggio of this.arpeggios) this.chordElements[arpeggio.chords[0] ?? -1]?.append(...drawArpeggio(context, arpeggio));
+    const graceShapes = this.layout.graces.map((grace) => drawGrace(context, grace));
+    for (const ornament of this.layout.ornaments) chordShapes[ornament.chord]?.append(...drawOrnament(context, ornament));
+    for (const fingering of this.layout.fingerings) chordShapes[fingering.chord]?.append(drawFingering(context, fingering));
+    for (const tremolo of this.layout.tremolos) chordShapes[tremolo.chord]?.append(...drawTremolo(context, tremolo));
+    for (const arpeggio of this.layout.arpeggios) chordShapes[arpeggio.chords[0] ?? -1]?.append(...drawArpeggio(context, arpeggio));
 
     const restLayer = svg('g');
     restLayer.style.color = COLORS.note;
-    for (const rest of this.rests) restLayer.append(...drawRest(context, rest));
+    for (const rest of this.layout.rests) restLayer.append(...drawRest(context, rest));
     // Bar numbers clear the notes, and volta brackets clear the bar numbers.
     const barNumbers = drawBarNumbers(context);
     restLayer.append(...barNumbers.shapes, ...drawNavigation(context, barNumbers.y));
     // Octave brackets first: the tempo marks go over the 8va ones, the pedal under the 8vb ones.
     const brackets: OctaveBracket[] = [];
-    for (const shift of this.octaveShifts) {
+    for (const shift of this.layout.octaveShifts) {
       const drawn = drawOctaveShift(context, shift);
       restLayer.append(...drawn.shapes);
       brackets.push(drawn.bracket);
@@ -598,103 +411,23 @@ export class SvgStaff implements StaffView {
     restLayer.append(...drawPedal(context, { brackets, dynamics: dynamics.below }), ...dynamics.shapes);
     restLayer.append(...drawTempoMarks(context, brackets, barNumbers.y));
 
-    this.strip.append(restLayer, ...this.chordElements, ...this.graceElements, beamLayer);
+    this.strip.append(restLayer, ...chordShapes, ...graceShapes, beamLayer);
+    this.lights.drawn(ink.chords, chordShapes, this.layout.graces, graceShapes);
     // The shades behind the music are few, and always shown; the layers are shown shape by shape.
     const always = new Set<Element>([this.overlay, this.loopLayer, restLayer, beamLayer]);
     this.nearView.measure([...this.strip.children, ...restLayer.children, ...beamLayer.children].filter((shape) => !always.has(shape)) as SVGElement[]);
     // Hidden before the browser first lays them out: around where the tape will stand for the music.
-    const target = geometry.cursorX() - geometry.px(barPosition(score, this.seeks.position));
-    this.showAround(this.dragged.value ?? target + this.lag);
+    this.showAround(this.motion.offset(geometry.cursorX() - geometry.px(barPosition(score, this.motion.position))));
     this.lastOffset = Number.NaN;
   }
 
   /** Shows the tape near the view, the strip drawn `offset` pixels along. */
   private showAround(offset: number): void {
-    this.nearView.view(-offset, this.tapeInSight());
-  }
-
-  /** How wide the tape in sight is, in what is drawn: wider while stretched smaller. */
-  private tapeInSight(): number {
-    return this.stretched ? this.stretchedTape : this.geometry.width - this.geometry.gutterWidth();
-  }
-
-  /**
-   * Colors the chords sounding at `beat` (along the page) in their hand's color, like the keys on
-   * the keyboard. Working along the page means a repeated bar lights up again on every pass.
-   *
-   * A lit chord is a copy of it, laid over it in a layer of its own: the tape itself is not touched
-   * while the music plays. (A browser that draws the tape in tiles, as Safari does, would draw a
-   * whole tile of it again at every note that starts or stops, and the tape would stumble.)
-   */
-  private highlight(beat: number, isHandEnabled: (hand: Hand) => boolean): void {
-    const { chords } = this.ink;
-    const { sounding, lit } = this;
-    sounding.length = 0;
-    for (let i = firstAtOrAfter(chords, beat - this.longestChord, beatOf); i < chords.length; i++) {
-      const chord = chords[i]!;
-      if (chord.beat > beat + SAME_MOMENT) break;
-      if (chord.beat + chord.beats > beat + SAME_MOMENT && isHandEnabled(chord.hand)) sounding.push(i);
-    }
-    // (A few chords at a time: looked through, not looked up.)
-    for (const index of lit) if (!sounding.includes(index)) this.chordCopies[index]!.remove();
-    for (const index of sounding) {
-      if (lit.includes(index)) continue;
-      this.litSvg.append((this.chordCopies[index] ??= litCopy(this.chordElements[index]!, COLORS.hand[this.ink.chord(index).hand])));
-    }
-    this.sounding = lit;
-    this.lit = sounding;
-
-    // Grace notes: few, and each sounds for a moment.
-    for (let index = 0; index < this.graces.length; index++) {
-      const grace = this.graces[index]!;
-      const on = grace.beat <= beat + SAME_MOMENT && grace.beat + grace.beats > beat + SAME_MOMENT && isHandEnabled(grace.hand);
-      if (on === this.litGraces.has(index)) continue;
-      if (on) {
-        this.litSvg.append((this.graceCopies[index] ??= litCopy(this.graceElements[index]!, COLORS.hand[grace.hand])));
-        this.litGraces.add(index);
-      } else {
-        this.graceCopies[index]!.remove();
-        this.litGraces.delete(index);
-      }
-    }
+    this.nearView.view(-offset, this.stretch.tapeInSight);
   }
 }
 
-/** A copy of what is drawn, in a hand's colour, to lay over it. */
-function litCopy(drawn: SVGElement, color: string): SVGElement {
-  const copy = drawn.cloneNode(true) as SVGElement;
-  copy.style.display = '';
-  copy.style.color = color;
-  return copy;
-}
-
-/** To a tenth of a pixel: what moves less is the noise of arithmetic, not a move to show. */
-const tenth = (px: number): number => Math.round(px * 10) / 10;
 const itself = (value: number): number => value;
-const beatOf = (chord: StaffChord): number => chord.beat;
 
-/** The room grace notes and a change of clef need at the start of printed bars (before the first note), and grace notes at their end (after the last). */
-function graceRoom(
-  score: Score | null,
-  graces: readonly StaffGrace[],
-  chords: readonly StaffChord[],
-): { lead: Map<number, number>; tail: Map<number, number> } {
-  const lead = new Map<number, number>();
-  const tail = new Map<number, number>();
-  if (!score) return { lead, tail };
-  for (const grace of graces) {
-    const principal = grace.principal === null ? null : chords[grace.principal];
-    const width = graceWidth(grace, principal?.notes.some((note) => note.accidental) ?? false);
-    if (!principal) tail.set(grace.bar, Math.max(tail.get(grace.bar) ?? 0, width));
-    else if (sameMoment(principal.beat, writtenBarStart(score, principal.bar))) {
-      lead.set(principal.bar, Math.max(lead.get(principal.bar) ?? 0, width));
-    }
-  }
-  // A change of clef at a bar's first beat: the small clef stands there too, after the bar line.
-  for (const change of score.notation.clefs) {
-    if (change.beat <= SAME_MOMENT) continue;
-    const bar = barAtBeat(score, change.beat);
-    if (sameMoment(change.beat, writtenBarStart(score, bar))) lead.set(bar, Math.max(lead.get(bar) ?? 0, CLEF_CHANGE));
-  }
-  return { lead, tail };
-}
+/** Nothing to draw: a staff without a piece. */
+const NO_LAYOUT: NotationLayout = { chords: [], octaveShifts: [], beams: [], tuplets: [], rests: [], ties: [], marks: [], slurs: [], graces: [], ornaments: [], tremolos: [], arpeggios: [], fingerings: [] };
