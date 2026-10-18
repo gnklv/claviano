@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFrameValue } from '../composables/useFrameValue';
 import { useDeps } from '../deps';
 
 /** The count-in beat, big over the music: "1", "2", "3", "4", then the music starts. */
 const { playback } = useDeps();
-const beat = ref<number | null>(null);
-
-useAnimationFrame(() => {
-  const now = playback.countInBeat;
-  if (now !== beat.value) beat.value = now;
-});
+const beat = useFrameValue(() => playback.countInBeat);
 </script>
 
 <template>

@@ -7,6 +7,7 @@ import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useFingerHints } from '../composables/useFingerHints';
 import { usePlaybackState } from '../composables/usePlaybackState';
+import type { Hand } from '../../domain/note';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
@@ -44,7 +45,8 @@ watch(
 watch(locale, () => staff?.setHandLabels(handLabels()));
 
 // …and only slides during playback, outside Vue's reactivity.
-useAnimationFrame(() => staff?.render(playback.position, (hand) => playback.isHandEnabled(hand), playback.playing));
+const handOn = (hand: Hand) => playback.isHandEnabled(hand);
+useAnimationFrame(() => staff?.render(playback.position, handOn, playback.playing));
 
 // --- Click to jump there; drag to look through the tape; Shift+drag (or a long press) to loop bars ---
 

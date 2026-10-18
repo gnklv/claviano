@@ -244,6 +244,19 @@ describe('SvgStaff', () => {
     expect(after.every((element, i) => element === before[i])).toBe(true);
   });
 
+  it('shows in the left column the clefs and signatures in force where the music is', () => {
+    const score = showcase();
+    const { staff, container } = drawStaff(score);
+    const column = () => container.children[0].innerHTML;
+    const change = score.notation.keySignatures.find((key) => key.beat > 0)!;
+    const at = (beat: number) => secondsAtBeat(score, beat);
+    const opening = column();
+    staff.render(at(change.beat) + 0.01);
+    expect(column()).not.toBe(opening);
+    staff.render(at(change.beat / 2));
+    expect(column()).toBe(opening);
+  });
+
   it('draws small notes smaller: heads, stems and beams', () => {
     const { container } = drawStaff(showcase());
     const noteheads = [...container.querySelectorAll('text')].filter((text) => text.getAttribute('font-family') === 'Bravura' && /^[-]$/.test(text.textContent));

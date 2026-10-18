@@ -1,4 +1,4 @@
-import { barLength, barLengthInBeats, timeSignatureAt, writtenBarStart, writtenPositionAt, type Score } from '../../domain/score';
+import { barLength, barLengthInBeats, fractionOfBarAt, timeSignatureAt, writtenBarAt, writtenBarStart, type Score } from '../../domain/score';
 
 /** Where each bar starts on the tape and how wide it is, in "bar units" (a full bar is 1 wide). */
 export interface TapeBars {
@@ -44,9 +44,9 @@ const MIN_BAR_SHARE = 0.25;
  */
 export function barPosition(score: Score, time: number): number {
   // Played bars map to printed ones: on a repeat the position jumps back along the tape.
-  const { bar, fraction } = writtenPositionAt(score, time);
+  const bar = writtenBarAt(score, time);
   const bars = tapeBars(score);
-  return (bars.starts[bar] ?? 0) + fraction * (bars.widths[bar] ?? 0);
+  return (bars.starts[bar] ?? 0) + fractionOfBarAt(score, time) * (bars.widths[bar] ?? 0);
 }
 
 /** Where a musical position (bar index and beat) falls on the tape, in bar units. */

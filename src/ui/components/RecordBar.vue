@@ -2,9 +2,9 @@
 import AppButton from './AppButton.vue';
 import ToggleChip from './ToggleChip.vue';
 import TempoMark from './TempoMark.vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { METERS, RECORDING_TEMPO, type Meter } from '../../application/use-cases/Recorder';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFrameValue } from '../composables/useFrameValue';
 import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { useRecorder } from '../composables/useRecorder';
 import { useDeps } from '../deps';
@@ -26,11 +26,7 @@ const meter = computed<Meter>({ get: () => state.value.meter, set: (value) => re
 const meters = (Object.keys(METERS) as Meter[]).map((value) => ({ value, label: value }));
 
 /** The bar the take is in, counted as it goes. */
-const bar = ref<number | null>(null);
-useAnimationFrame(() => {
-  const now = recorder.bar;
-  if (now !== bar.value) bar.value = now;
-});
+const bar = useFrameValue(() => recorder.bar);
 
 /** A take is kept under the day and the hour it was played: a name to tell it by, until it is given one. */
 function keep(): void {

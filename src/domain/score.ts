@@ -387,19 +387,26 @@ export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
 export const keySignatureAt = (score: Score, beat: number): KeySignature =>
   score.notation.keySignatures[Math.max(0, lastAtOrBefore(score.notation.keySignatures, beat, (s) => s.beat))]!;
 
-/** Where `time` (seconds, as played) falls on the page: the printed bar and how far through it. */
-export function writtenPositionAt(score: Score, time: number): { bar: number; fraction: number } {
-  const index = barAt(score, time);
+/** How far through played bar `index` `time` is, from 0 to 1. */
+function throughBar(score: Score, index: number, time: number): number {
   const start = score.bars[index] ?? 0;
   const end = score.bars[index + 1] ?? score.duration;
-  const fraction = end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
-  return { bar: score.barWritten[index] ?? index, fraction };
+  return end > start ? Math.min(1, Math.max(0, (time - start) / (end - start))) : 0;
 }
+
+/** The printed bar sounding at `time` (seconds, as played). */
+export function writtenBarAt(score: Score, time: number): number {
+  const index = barAt(score, time);
+  return score.barWritten[index] ?? index;
+}
+
+/** How far through its bar `time` is, from 0 to 1: the same on the page as in playing. */
+export const fractionOfBarAt = (score: Score, time: number): number => throughBar(score, barAt(score, time), time);
 
 /** The beat along the page (quarter notes) that is sounding at `time`. */
 export function writtenBeatAt(score: Score, time: number): number {
-  const { bar, fraction } = writtenPositionAt(score, time);
-  return writtenBarStart(score, bar) + fraction * barLength(score, bar);
+  const bar = writtenBarAt(score, time);
+  return writtenBarStart(score, bar) + fractionOfBarAt(score, time) * barLength(score, bar);
 }
 
 /**

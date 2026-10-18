@@ -3,14 +3,14 @@ import {
   barAtBeat,
   clefSignAt,
   writtenBarStart,
-  writtenPositionAt,
+  writtenBarAt,
   writtenBeatAt,
   keySignatureAt,
   timeSignatureAt,
   type Score,
   type TimeRange,
 } from '../../domain/score';
-import { firstAtOrAfter } from '../../domain/search';
+import { firstAtOrAfter, lastAtOrBefore } from '../../domain/search';
 import type { Hand } from '../../domain/note';
 import { approach } from './keyboardCamera';
 import {
@@ -123,8 +123,10 @@ export class SvgStaff implements StaffView {
   private lastFrameAt = 0;
   /** Beat under the cursor; the left column shows the signatures in force there. */
   private currentBeat = 0;
-  /** Which signatures the left column shows now; it is redrawn when they change. */
-  private shownSignatures = '';
+  /** Where along the page (beats) a clef, key or time changes: the left column is drawn anew past one. */
+  private gutterChanges: number[] = [];
+  /** The last of them the left column was drawn after (−1: none, the piece's start). */
+  private shownGutter = -1;
   /** The piece's drawn groups; their chord indices point into the ink's chords. */
   private beams: Beam[] = [];
   private tuplets: Tuplet[] = [];
@@ -140,11 +142,16 @@ export class SvgStaff implements StaffView {
   private fingerings: StaffFingering[] = [];
   private chordElements: SVGGElement[] = [];
   private graceElements: SVGGElement[] = [];
-  /** Grace notes currently highlighted, and their lit copies. */
-  private readonly litGraces = new Map<number, SVGElement>();
+  /** Grace notes currently highlighted (their copies lie over them). */
+  private readonly litGraces = new Set<number>();
   private longestChord = 0;
-  /** Chords currently highlighted in their hand's color, and their lit copies. */
-  private readonly lit = new Map<number, SVGElement>();
+  /** Chords currently highlighted in their hand's color (their copies lie over them), in the order of the page. */
+  private lit: number[] = [];
+  /** The chords sounding at this frame, in the order of the page. (Two lists kept and swapped: nothing is made anew at every frame.) */
+  private sounding: number[] = [];
+  /** Lit copies made so far, kept to be laid over again: a chord is lit again on every pass, a grace note too. */
+  private chordCopies: SVGElement[] = [];
+  private graceCopies: SVGElement[] = [];
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   private handLabels: Record<Hand, string> = { right: 'R.H.', left: 'L.H.' };
   /** Behind the music on the tape: the printed bar under the pointer, and bars being selected by dragging. */
@@ -224,6 +231,7 @@ export class SvgStaff implements StaffView {
           })
         : undefined,
     });
+    this.gutterChanges = score ? [...score.notation.clefs, ...score.notation.keySignatures, ...score.notation.timeSignatures].map((change) => change.beat).sort((a, b) => a - b) : [];
     this.currentBeat = 0;
     this.redraw();
   }
@@ -360,7 +368,7 @@ export class SvgStaff implements StaffView {
     const { geometry } = this;
     if (this.score) {
       this.currentBeat = writtenBeatAt(this.score, position);
-      if (this.signaturesKey() !== this.shownSignatures) this.drawBackground();
+      if (this.gutterAt(this.currentBeat) !== this.shownGutter) this.drawBackground();
       this.highlight(this.currentBeat, isHandEnabled);
     }
     const x = this.score ? geometry.px(barPosition(this.score, position)) : 0;
@@ -381,7 +389,7 @@ export class SvgStaff implements StaffView {
     // Where the music went on the page since the last frame: to the next printed bar is playing on;
     // anything else (a repeat, a D.S., a seek) is a leap, and so is stepping over the room kept at
     // a bar line for a key, time or repeat sign.
-    const bar = this.score ? writtenPositionAt(this.score, position).bar : 0;
+    const bar = this.score ? writtenBarAt(this.score, position) : 0;
     const previous = this.lastBar;
     this.lastBar = bar;
     const nextBar = bar === previous + 1;
@@ -456,10 +464,9 @@ export class SvgStaff implements StaffView {
     return { clefs, signatures: { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) } };
   }
 
-  private signaturesKey(): string {
-    const { clefs, signatures } = this.gutterContent();
-    const key = clefs.map((sign) => `${sign.clef}${sign.octaves}`).join('/');
-    return signatures ? `${key} ${signatures.key.fifths} ${signatures.time.numerator}/${signatures.time.denominator}` : key;
+  /** The last change of clef, key or time at or before `beat` (as the domain finds what is in force there). */
+  private gutterAt(beat: number): number {
+    return lastAtOrBefore(this.gutterChanges, beat + 1e-9, itself);
   }
 
   // --- Drawing ---
@@ -469,7 +476,7 @@ export class SvgStaff implements StaffView {
     const { space } = geometry;
     const gutter = geometry.gutterWidth();
     this.background.replaceChildren(...drawGutter(geometry, this.gutterContent()));
-    this.shownSignatures = this.signaturesKey();
+    this.shownGutter = this.gutterAt(this.currentBeat);
 
     this.tape.style.left = `${gutter}px`;
     // Its left is set by render(): it moves with the tape when the tape is dragged away.
@@ -528,8 +535,10 @@ export class SvgStaff implements StaffView {
   private drawStrip(): void {
     this.ink.reset();
     this.strip.replaceChildren();
-    this.lit.clear();
+    this.lit.length = 0;
     this.litGraces.clear();
+    this.chordCopies = [];
+    this.graceCopies = [];
     this.litSvg.replaceChildren();
     this.chordElements = [];
     this.graceElements = [];
@@ -613,42 +622,48 @@ export class SvgStaff implements StaffView {
    */
   private highlight(beat: number, isHandEnabled: (hand: Hand) => boolean): void {
     const { chords } = this.ink;
-    const active = new Set<number>();
-    for (let i = firstAtOrAfter(chords, beat - this.longestChord, (chord) => chord.beat); i < chords.length; i++) {
+    const { sounding, lit } = this;
+    sounding.length = 0;
+    for (let i = firstAtOrAfter(chords, beat - this.longestChord, beatOf); i < chords.length; i++) {
       const chord = chords[i]!;
       if (chord.beat > beat + 1e-9) break;
-      if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) active.add(i);
+      if (chord.beat + chord.beats > beat + 1e-9 && isHandEnabled(chord.hand)) sounding.push(i);
     }
-    for (const [index, copy] of this.lit) {
-      if (active.has(index)) continue;
-      copy.remove();
-      this.lit.delete(index);
+    // (A few chords at a time: looked through, not looked up.)
+    for (const index of lit) if (!sounding.includes(index)) this.chordCopies[index]!.remove();
+    for (const index of sounding) {
+      if (lit.includes(index)) continue;
+      this.litSvg.append((this.chordCopies[index] ??= litCopy(this.chordElements[index]!, COLORS.hand[this.ink.chord(index).hand])));
     }
-    for (const index of active) {
-      if (!this.lit.has(index)) this.lit.set(index, this.litCopy(this.chordElements[index]!, COLORS.hand[this.ink.chord(index).hand]));
-    }
+    this.sounding = lit;
+    this.lit = sounding;
 
     // Grace notes: few, and each sounds for a moment.
-    this.graces.forEach((grace, index) => {
-      const sounding = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
-      if (sounding === this.litGraces.has(index)) return;
-      if (sounding) this.litGraces.set(index, this.litCopy(this.graceElements[index]!, COLORS.hand[grace.hand]));
-      else {
-        this.litGraces.get(index)!.remove();
+    for (let index = 0; index < this.graces.length; index++) {
+      const grace = this.graces[index]!;
+      const on = grace.beat <= beat + 1e-9 && grace.beat + grace.beats > beat + 1e-9 && isHandEnabled(grace.hand);
+      if (on === this.litGraces.has(index)) continue;
+      if (on) {
+        this.litSvg.append((this.graceCopies[index] ??= litCopy(this.graceElements[index]!, COLORS.hand[grace.hand])));
+        this.litGraces.add(index);
+      } else {
+        this.graceCopies[index]!.remove();
         this.litGraces.delete(index);
       }
-    });
-  }
-
-  /** A copy of what is drawn, in a hand's colour, over it. */
-  private litCopy(drawn: SVGElement, color: string): SVGElement {
-    const copy = drawn.cloneNode(true) as SVGElement;
-    copy.style.display = '';
-    copy.style.color = color;
-    this.litSvg.append(copy);
-    return copy;
+    }
   }
 }
+
+/** A copy of what is drawn, in a hand's colour, to lay over it. */
+function litCopy(drawn: SVGElement, color: string): SVGElement {
+  const copy = drawn.cloneNode(true) as SVGElement;
+  copy.style.display = '';
+  copy.style.color = color;
+  return copy;
+}
+
+const itself = (value: number): number => value;
+const beatOf = (chord: StaffChord): number => chord.beat;
 
 /** The room grace notes and a change of clef need at the start of printed bars (before the first note), and grace notes at their end (after the last). */
 function graceRoom(

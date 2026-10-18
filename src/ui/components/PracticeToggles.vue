@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ToggleChip from './ToggleChip.vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFrameValue } from '../composables/useFrameValue';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
@@ -35,12 +35,9 @@ const switches = computed((): { label: MessageKey; on: boolean; set: (on: boolea
 ]);
 
 /** The metronome's icon flashes with each click it plays (or the count-in plays). */
-const pulse = ref<'none' | 'beat' | 'accent'>('none');
-
-useAnimationFrame(() => {
+const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
   const click = playback.playing ? playback.lastClick : null;
-  const now = click && click.age < PULSE_SECONDS ? (click.accent ? 'accent' : 'beat') : 'none';
-  if (now !== pulse.value) pulse.value = now;
+  return click && click.age < PULSE_SECONDS ? (click.accent ? 'accent' : 'beat') : 'none';
 });
 </script>
 

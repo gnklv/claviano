@@ -2,9 +2,10 @@
 import AppButton from './AppButton.vue';
 import TextField from './TextField.vue';
 import ToggleChip from './ToggleChip.vue';
-import { computed, ref, useTemplateRef } from 'vue';
+import { computed, useTemplateRef } from 'vue';
 import { barAt, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFrameValue } from '../composables/useFrameValue';
 import { useBarLoop } from '../composables/useBarLoop';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
@@ -29,7 +30,7 @@ const lastBar = computed(() => (state.value.score ? barNumber(state.value.score,
 // --- Position readouts: updated from the animation frame, only when they actually change. ---
 
 /** Current bar, zero-based; null until a score is loaded. */
-const currentBar = ref<number | null>(null);
+const currentBar = useFrameValue(() => (playback.score ? barAt(playback.score, playback.position) : null));
 const barLabel = computed(() =>
   currentBar.value === null
     ? t('barPositionEmpty')
@@ -38,20 +39,19 @@ const barLabel = computed(() =>
 const seekInput = useTemplateRef<HTMLInputElement>('seek');
 let seeking = false;
 
+/** The step of the slider shown now: the slider is set when the music reaches another, not at every frame. */
+let shownStep = -1;
+
 useAnimationFrame(() => {
   const score = playback.score;
-  if (!score) return;
-  const position = playback.position;
-  const bar = barAt(score, position);
-  if (bar !== currentBar.value) currentBar.value = bar;
-  if (!seeking && seekInput.value && score.duration > 0) {
-    seekInput.value.value = String(Math.round((position / score.duration) * SEEK_STEPS));
-  }
+  const input = seekInput.value;
+  if (!score || !input || score.duration <= 0) return;
+  const step = Math.round((playback.position / score.duration) * SEEK_STEPS);
+  if (step === shownStep) return;
+  shownStep = step;
+  if (!seeking) input.value = String(step);
   // (The slider is inked as far as the music has got: see the slider's styles.)
-  if (seekInput.value && score.duration > 0) {
-    const inked = `${Math.round((position / score.duration) * 1000) / 10}%`;
-    if (inked !== seekInput.value.style.getPropertyValue('--fill')) seekInput.value.style.setProperty('--fill', inked);
-  }
+  input.style.setProperty('--fill', `${(step / SEEK_STEPS) * 100}%`);
 });
 
 function onSeek(event: Event): void {

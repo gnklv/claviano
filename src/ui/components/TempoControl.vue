@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useFrameValue } from '../composables/useFrameValue';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
@@ -24,15 +24,15 @@ const state = usePlaybackState(playback);
 const percent = computed(() => Math.round(state.value.tempo * 100));
 const phone = useMediaQuery(SMALL_SCREEN);
 
-/** The tempo the music is played at now, the setting applied: 45 at 50% of a written 90. None without a tempo mark. */
-const mark = ref<TempoReading | null>(null);
-
-useAnimationFrame(() => {
+/** The tempo mark in force where the music is. */
+const written = useFrameValue(() => {
   const score = playback.score;
-  const written = score && tempoMarkAt(score, writtenBeatAt(score, playback.position));
-  const now = written ? { unit: written.unit.value, dotted: written.unit.dots > 0, perMinute: Math.round(written.perMinute * playback.tempo) } : null;
-  const shown = mark.value;
-  if (now?.unit !== shown?.unit || now?.dotted !== shown?.dotted || now?.perMinute !== shown?.perMinute) mark.value = now;
+  return score && tempoMarkAt(score, writtenBeatAt(score, playback.position));
+});
+/** The tempo the music is played at now, the setting applied: 45 at 50% of a written 90. None without a tempo mark. */
+const mark = computed<TempoReading | null>(() => {
+  const at = written.value;
+  return at ? { unit: at.unit.value, dotted: at.unit.dots > 0, perMinute: Math.round(at.perMinute * state.value.tempo) } : null;
 });
 
 // --- The means of setting it: a small panel over the button; on a phone, a sheet. ---
