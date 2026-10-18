@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useGlide } from '../composables/useGlide';
-import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
+import { useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
-import type { RollView } from '../../application/ports/RollView';
+import type { PedalMove, RollView } from '../../application/ports/RollView';
+import type { Hand } from '../../domain/note';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useDrawnView } from '../composables/useDrawnView';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import { readRollColors } from '../theme/readRollColors';
@@ -20,43 +22,44 @@ const PEDAL_LABELS = {
 const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
-let roll: RollView | null = null;
 /*
  * Resizing a canvas wipes it, and the browser tells of a new size after the frame's drawing is
  * done: drawn again at once, or the frame goes out blank (a blink at every step while the stage
  * grows or shrinks).
  */
-const resizeObserver = new ResizeObserver(() => {
-  roll?.resize();
-  draw();
-});
-
-onMounted(() => {
-  roll = createRoll(canvas.value!);
-  roll.setColors(readRollColors());
-  resizeObserver.observe(canvas.value!);
-});
+const roll = useDrawnView(
+  canvas,
+  (element): RollView => {
+    const made = createRoll(element);
+    made.setColors(readRollColors());
+    return made;
+  },
+  () => draw(),
+);
 
 // Canvas can't follow CSS variables by itself; re-read them once the new theme is applied.
-watch(theme, () => roll?.setColors(readRollColors()), { flush: 'post' });
-onUnmounted(() => resizeObserver.disconnect());
+watch(theme, () => roll.view?.setColors(readRollColors()), { flush: 'post' });
 
 // Drawn outside Vue's reactivity: 60 fps straight from Playback to the canvas.
 useAnimationFrame(draw);
 
+const isHandEnabled = (hand: Hand) => playback.isHandEnabled(hand);
+const pedalLabel = (move: PedalMove) => t(PEDAL_LABELS[move.pedal][move.kind]);
+
 function draw(): void {
-  if (!roll) return;
-  roll.render({
+  const view = roll.view;
+  if (!view) return;
+  view.render({
     score: playback.score ?? EMPTY_SCORE,
     position: playback.position,
     playing: playback.playing,
     loop: playback.loop,
-    isHandEnabled: (hand) => playback.isHandEnabled(hand),
+    isHandEnabled,
     pedalEnabled: playback.pedalEnabled,
     noteLabel,
-    pedalLabel: (move) => t(PEDAL_LABELS[move.pedal][move.kind]),
+    pedalLabel,
   });
-  canvas.value?.classList.toggle('scrollable', roll.scrollable);
+  canvas.value?.classList.toggle('scrollable', view.scrollable);
 }
 
 // --- A tap jumps to that moment; a drag looks around: up and down through the music, sideways
@@ -71,11 +74,12 @@ const DRAG_PX = 6;
  */
 const glides = {
   time: useGlide((by) => {
-    const secondsPerPixel = roll?.secondsPerPixel;
-    return roll && secondsPerPixel ? roll.browseBy(by * secondsPerPixel) / secondsPerPixel : 0;
+    const view = roll.view;
+    const secondsPerPixel = view?.secondsPerPixel;
+    return view && secondsPerPixel ? view.browseBy(by * secondsPerPixel) / secondsPerPixel : 0;
   }),
   // (The keyboard is scrolled against the pointer: drawn to the left, it shows what is to the right.)
-  keys: useGlide((by) => -(roll?.scrollBy(-by) ?? 0)),
+  keys: useGlide((by) => -(roll.view?.scrollBy(-by) ?? 0)),
 };
 
 /**
@@ -103,13 +107,13 @@ function onPointerMove(event: PointerEvent): void {
     if (Math.max(dx, dy) > DRAG_PX) press.drag = dy >= dx ? 'time' : 'keys';
   }
   if (press.drag === 'keys') {
-    roll?.scrollBy(press.x - x);
+    roll.view?.scrollBy(press.x - x);
     glides.keys.follow(x);
   }
   if (press.drag === 'time') {
     // Pulling the notes down brings later music into view.
-    const secondsPerPixel = roll?.secondsPerPixel;
-    if (secondsPerPixel) roll?.browseBy((y - press.y) * secondsPerPixel);
+    const secondsPerPixel = roll.view?.secondsPerPixel;
+    if (secondsPerPixel) roll.view?.browseBy((y - press.y) * secondsPerPixel);
     glides.time.follow(y);
   }
   press.x = x;
@@ -125,10 +129,10 @@ function onPointerUp(event: PointerEvent): void {
     return;
   }
   if (caught) return;
-  const time = roll?.timeAt(event.clientY);
+  const time = roll.view?.timeAt(event.clientY);
   if (time === null || time === undefined) return;
   loop.jumpTo(time);
-  roll?.followMusic();
+  roll.view?.followMusic();
 }
 
 function onPointerCancel(event: PointerEvent): void {
@@ -138,9 +142,10 @@ function onPointerCancel(event: PointerEvent): void {
 /** Trackpads scroll sideways directly; with a mouse wheel, hold Shift. */
 function onWheel(event: WheelEvent): void {
   const dx = event.deltaX || (event.shiftKey ? event.deltaY : 0);
-  if (!dx || !roll?.scrollable) return;
+  const view = roll.view;
+  if (!dx || !view?.scrollable) return;
   event.preventDefault();
-  roll.scrollBy(dx);
+  view.scrollBy(dx);
 }
 </script>
 

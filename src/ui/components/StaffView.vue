@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useGlide } from '../composables/useGlide';
-import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import { withFingerHints } from '../../domain/fingering/hints';
 import { timeAtPage, writtenBarNumber } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useDrawnView } from '../composables/useDrawnView';
 import { useFingerHints } from '../composables/useFingerHints';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import type { Hand } from '../../domain/note';
@@ -23,35 +24,31 @@ const page = computed(() => (state.value.score && fingerHints.value ? withFinger
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
-let staff: StaffView | null = null;
-const resizeObserver = new ResizeObserver(() => staff?.resize());
-
-onMounted(() => {
-  staff = createStaff(container.value!);
-  staff.setHandLabels(handLabels());
-  staff.setScore(page.value);
-  staff.setLoop(state.value.loop);
-  resizeObserver.observe(container.value!);
+const staff = useDrawnView(container, (element): StaffView => {
+  const made = createStaff(element);
+  made.setHandLabels(handLabels());
+  made.setScore(page.value);
+  made.setLoop(state.value.loop);
+  return made;
 });
-onUnmounted(() => resizeObserver.disconnect());
 
 // The tape is rebuilt only when the score or the loop changes…
-watch(page, (score) => staff?.setScore(score));
+watch(page, (score) => staff.view?.setScore(score));
 watch(
   () => state.value.loop,
-  (loop) => staff?.setLoop(loop),
+  (loop) => staff.view?.setLoop(loop),
 );
 
-watch(locale, () => staff?.setHandLabels(handLabels()));
+watch(locale, () => staff.view?.setHandLabels(handLabels()));
 
 // …and only slides during playback, outside Vue's reactivity.
 const handOn = (hand: Hand) => playback.isHandEnabled(hand);
-useAnimationFrame(() => staff?.render(playback.position, handOn, playback.playing));
+useAnimationFrame(() => staff.view?.render(playback.position, handOn, playback.playing));
 
 // --- Click to jump there; drag to look through the tape; Shift+drag (or a long press) to loop bars ---
 
 /** Let go on the move, the tape goes on and slows to rest (see ui/motion/glide.ts). */
-const glide = useGlide((by) => staff?.dragBy(by) ?? 0);
+const glide = useGlide((by) => staff.view?.dragBy(by) ?? 0);
 
 /** A pointer moves this many pixels before it counts as dragging rather than clicking. */
 const DRAG_PX = 6;
@@ -78,12 +75,12 @@ function endPress(): void {
   if (press) clearTimeout(press.timer);
   press = null;
   grabbing.value = false;
-  staff?.setSelection(null);
+  staff.view?.setSelection(null);
 }
 
 function onPointerDown(event: PointerEvent): void {
   if (press || event.button !== 0) return;
-  const place = staff?.pageAt(event.clientX);
+  const place = staff.view?.pageAt(event.clientX);
   if (!place) return;
   const current = {
     pointerId: event.pointerId,
@@ -101,7 +98,7 @@ function onPointerDown(event: PointerEvent): void {
       if (press !== current || press.mode !== 'pending') return;
       press.mode = 'select';
       press.selecting = true;
-      staff?.setSelection({ from: place.bar, to: place.bar });
+      staff.view?.setSelection({ from: place.bar, to: place.bar });
       navigator.vibrate?.(10);
     }, LONG_PRESS_MS);
   }
@@ -112,7 +109,7 @@ function onPointerDown(event: PointerEvent): void {
 
 function onPointerMove(event: PointerEvent): void {
   if (!press) {
-    if (event.pointerType === 'mouse') staff?.setHover(staff.pageAt(event.clientX)?.bar ?? null);
+    if (event.pointerType === 'mouse') staff.view?.setHover(staff.view.pageAt(event.clientX)?.bar ?? null);
     return;
   }
   if (event.pointerId !== press.pointerId) return;
@@ -120,14 +117,14 @@ function onPointerMove(event: PointerEvent): void {
     clearTimeout(press.timer);
     press.mode = press.selecting ? 'select' : 'drag';
     grabbing.value = press.mode === 'drag';
-    staff?.setHover(null);
+    staff.view?.setHover(null);
   }
   if (press.mode === 'drag') {
-    staff?.dragBy(event.clientX - press.x);
+    staff.view?.dragBy(event.clientX - press.x);
     glide.follow(event.clientX);
   } else if (press.mode === 'select') {
-    press.toBar = staff?.pageAt(event.clientX)?.bar ?? press.toBar;
-    staff?.setSelection({ from: press.place.bar, to: press.toBar });
+    press.toBar = staff.view?.pageAt(event.clientX)?.bar ?? press.toBar;
+    staff.view?.setSelection({ from: press.place.bar, to: press.toBar });
   }
   press.x = event.clientX;
 }
@@ -145,12 +142,12 @@ function onPointerUp(event: PointerEvent): void {
     loop.select(writtenBarNumber(score, place.bar), writtenBarNumber(score, toBar), time);
   } else {
     loop.jumpTo(time);
-    staff?.followMusic();
+    staff.view?.followMusic();
   }
 }
 
 function onPointerLeave(): void {
-  staff?.setHover(null);
+  staff.view?.setHover(null);
 }
 
 function onPointerCancel(event: PointerEvent): void {

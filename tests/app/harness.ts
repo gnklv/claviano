@@ -24,6 +24,8 @@ import { MidiFileWriter } from '../../src/infrastructure/writers/MidiFileWriter'
 import App from '../../src/ui/App.vue';
 import { depsKey } from '../../src/ui/deps';
 import { rereadPreferences } from '../../src/ui/preferences';
+import { listenForInstall } from '../../src/ui/install/useInstall';
+import { startTheme } from '../../src/ui/theme/useTheme';
 import { FakeAudio, FakePieceShelf, FakeTicker } from '../fakes';
 
 /*
@@ -49,6 +51,7 @@ export let tilesShown: readonly PlayedTile[];
 /** Starts the app, as a page loaded at the address that stands: with the shelf as it was left. */
 export let start: () => void;
 export let root: HTMLElement;
+let stopListeningForInstall: () => void;
 /** The window's width, as the app asks about it: a phone or not. */
 export const screen = { phone: false, short: false, touch: false, listeners: new Set<() => void>() };
 export const turnIntoPhone = async () => {
@@ -112,6 +115,9 @@ export function useApp(): void {
     };
     return media as unknown as MediaQueryList;
   });
+  // (The theme and the browser's word on installing: afresh, as on a page just loaded.)
+  startTheme();
+  stopListeningForInstall = listenForInstall();
   shelf = new FakePieceShelf();
   start = () => {
     audio = new FakeAudio();
@@ -159,6 +165,7 @@ export function useApp(): void {
 afterEach(() => {
   app.unmount();
   root.remove();
+  stopListeningForInstall();
   vi.restoreAllMocks();
   location.hash = '';
 });

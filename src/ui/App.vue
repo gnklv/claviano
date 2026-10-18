@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
+import { defineAsyncComponent, onUnmounted, ref, watch } from 'vue';
+import { useWindowListener } from './composables/useWindowListener';
 import { demoPieceId } from '../application/use-cases/Library';
 import { stepBar } from '../application/use-cases/stepBar';
 import { stepTempo } from '../application/use-cases/stepTempo';
@@ -91,14 +92,8 @@ function onKeyUp(event: KeyboardEvent): void {
   if (screen.value === 'piece' && event.code === 'Space') event.preventDefault();
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
-});
-onUnmounted(() => {
-  window.removeEventListener('keydown', onKeyDown);
-  window.removeEventListener('keyup', onKeyUp);
-});
+useWindowListener('keydown', onKeyDown);
+useWindowListener('keyup', onKeyUp);
 </script>
 
 <template>

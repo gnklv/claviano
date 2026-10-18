@@ -31,6 +31,8 @@ import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
 import { MidiFileWriter } from './infrastructure/writers/MidiFileWriter';
 import App from './ui/App.vue';
 import { depsKey, type Demo } from './ui/deps';
+import { listenForInstall } from './ui/install/useInstall';
+import { startTheme } from './ui/theme/useTheme';
 import './ui/styles.css';
 
 // The piano's samples load in the background; until they are in (or if they never are), the synth plays.
@@ -73,6 +75,10 @@ keepInstrumentPrepared(playback, freePlay, piano);
 const recorder = new Recorder(freePlay, piano, new IntervalTicker());
 const rest = restWhenPutAway(playback, recorder);
 const midiWriter = new MidiFileWriter();
+
+// The interface's own: the theme followed from the start, and the browser's offer to install heard when it comes.
+startTheme();
+listenForInstall();
 
 createApp(App)
   .provide(depsKey, {

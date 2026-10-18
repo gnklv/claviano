@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useGlide } from '../composables/useGlide';
-import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
+import { onMounted, useTemplateRef, watch } from 'vue';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useDrawnView } from '../composables/useDrawnView';
 import { useRecorder } from '../composables/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -16,34 +17,31 @@ const { t, locale } = useI18n();
 const state = useRecorder(recorder);
 const container = useTemplateRef<HTMLElement>('container');
 
-let staff: StaffView | null = null;
-const resizeObserver = new ResizeObserver(() => staff?.resize());
+const staff = useDrawnView(container, (element): StaffView => {
+  const made = createStaff(element);
+  // (What is written is behind the cursor: it stands near the right, with a bar's room for the last note.)
+  made.setCursorPlace(0.8);
+  made.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') });
+  return made;
+});
 
 /** The take is written down anew whenever a note is added to it or ends. */
 function write(): void {
-  staff?.setScore(recorder.score(t('freePlay')));
-  staff?.followMusic();
+  staff.view?.setScore(recorder.score(t('freePlay')));
+  staff.view?.followMusic();
 }
 
-onMounted(() => {
-  staff = createStaff(container.value!);
-  // (What is written is behind the cursor: it stands near the right, with a bar's room for the last note.)
-  staff.setCursorPlace(0.8);
-  staff.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') });
-  resizeObserver.observe(container.value!);
-  write();
-});
-onUnmounted(() => resizeObserver.disconnect());
+onMounted(write);
 watch(() => [state.value.state, state.value.notes, state.value.ends, state.value.listening], write);
-watch(locale, () => staff?.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') }));
+watch(locale, () => staff.view?.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') }));
 
-useAnimationFrame(() => staff?.render(recorder.position, undefined, state.value.state === 'recording' || state.value.listening));
+useAnimationFrame(() => staff.view?.render(recorder.position, undefined, state.value.state === 'recording' || state.value.listening));
 
 // --- Drawn along by hand, to read what was written. ---
 
 let dragged: { pointer: number; x: number } | null = null;
 /** Let go on the move, the staff goes on and slows to rest (see ui/motion/glide.ts). */
-const glide = useGlide((by) => staff?.dragBy(by) ?? 0);
+const glide = useGlide((by) => staff.view?.dragBy(by) ?? 0);
 
 function onPointerDown(event: PointerEvent): void {
   dragged = { pointer: event.pointerId, x: event.clientX };
@@ -53,7 +51,7 @@ function onPointerDown(event: PointerEvent): void {
 
 function onPointerMove(event: PointerEvent): void {
   if (dragged?.pointer !== event.pointerId) return;
-  staff?.dragBy(event.clientX - dragged.x);
+  staff.view?.dragBy(event.clientX - dragged.x);
   glide.follow(event.clientX);
   dragged.x = event.clientX;
 }

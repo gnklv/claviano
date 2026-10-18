@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
+import { computed, useTemplateRef } from 'vue';
+import { useResize } from '../composables/useResize';
+import { useWindowListener } from '../composables/useWindowListener';
 import { handBySplitPoint } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
 import { BLACK_KEY_WIDTH, keyPlace } from '../../domain/keyboard';
@@ -127,23 +129,14 @@ function onPointerUp(event: PointerEvent): void {
 
 // --- How many white keys there is room for. ---
 
-const resizeObserver = new ResizeObserver(() => {
+useResize(board, () => {
   const width = board.value?.clientWidth ?? 0;
   if (width > 0) emit('room', Math.floor(width / MIN_WHITE_PX));
 });
 
-onMounted(() => {
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
-  window.addEventListener('blur', onBlur);
-  if (board.value) resizeObserver.observe(board.value);
-});
-onUnmounted(() => {
-  window.removeEventListener('keydown', onKeyDown);
-  window.removeEventListener('keyup', onKeyUp);
-  window.removeEventListener('blur', onBlur);
-  resizeObserver.disconnect();
-});
+useWindowListener('keydown', onKeyDown);
+useWindowListener('keyup', onKeyUp);
+useWindowListener('blur', onBlur);
 </script>
 
 <template>

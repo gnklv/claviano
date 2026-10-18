@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue';
+import { onUnmounted, useTemplateRef, watch } from 'vue';
 import type { PlayedTile, TilesView } from '../../application/ports/TilesView';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
+import { useDrawnView } from '../composables/useDrawnView';
+import { readRollColors } from '../theme/readRollColors';
 import { useDeps } from '../deps';
 import { useTheme } from '../theme/useTheme';
 
@@ -15,45 +17,38 @@ const { freePlay, createTiles } = useDeps();
 const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
-let view: TilesView | null = null;
-let tiles: PlayedTile[] = [];
+let played: PlayedTile[] = [];
 const stopListening = freePlay.onKey((pitch, down, at) => {
-  if (down) tiles.push({ pitch, start: at, end: null });
+  if (down) played.push({ pitch, start: at, end: null });
   // (Every open tile of the key: one, unless a key-up was missed.)
-  else tiles = tiles.map((tile) => (tile.pitch === pitch && tile.end === null ? { ...tile, end: at } : tile));
+  else played = played.map((tile) => (tile.pitch === pitch && tile.end === null ? { ...tile, end: at } : tile));
 });
 
 /** The hands' colours, from the theme: a canvas cannot follow CSS variables by itself. */
-function colors() {
-  const style = getComputedStyle(document.documentElement);
-  return { right: style.getPropertyValue('--right').trim(), left: style.getPropertyValue('--left').trim() };
-}
+const colors = () => readRollColors().hand;
 
 function draw(): void {
+  const view = tiles.view;
   if (!view) return;
   const now = freePlay.now();
   // What has floated off the top is forgotten.
   const inSight = view.secondsInSight;
-  tiles = tiles.filter((tile) => tile.end === null || now - tile.end < inSight);
-  view.render({ tiles, now, lowest: props.lowest, keys: props.keys });
+  played = played.filter((tile) => tile.end === null || now - tile.end < inSight);
+  view.render({ tiles: played, now, lowest: props.lowest, keys: props.keys });
 }
 
 // (Resizing a canvas wipes it: drawn again at once, or the frame goes out blank.)
-const resizeObserver = new ResizeObserver(() => {
-  view?.resize();
-  draw();
-});
-
-onMounted(() => {
-  view = createTiles(canvas.value!);
-  view.setColors(colors());
-  resizeObserver.observe(canvas.value!);
-});
-onUnmounted(() => {
-  resizeObserver.disconnect();
-  stopListening();
-});
-watch(theme, () => view?.setColors(colors()), { flush: 'post' });
+const tiles = useDrawnView(
+  canvas,
+  (element): TilesView => {
+    const made = createTiles(element);
+    made.setColors(colors());
+    return made;
+  },
+  () => draw(),
+);
+onUnmounted(stopListening);
+watch(theme, () => tiles.view?.setColors(colors()), { flush: 'post' });
 useAnimationFrame(draw);
 </script>
 

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { button, root, settled, useApp } from './harness';
 
-/* Installing the app: the word about it in the settings. (By itself: once installed, it stays so for the page.) */
+/* Installing the app: the word about it in the settings. */
 
 useApp();
 

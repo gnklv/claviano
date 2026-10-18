@@ -49,8 +49,10 @@ copy of something written a month before.
   file is imported lives through every test after it. State is made where it is used, or the
   module gives a way to start it afresh.
 - **The browser is touched in few places.** A choice of the interface kept between visits is a
-  `preference` (`ui/preferences.ts`); the width of the screen is asked through `useMediaQuery`.
-  `localStorage`, `matchMedia` and listeners on `window` are not used straight from a component.
+  `preference` (`ui/preferences.ts`); the width of the screen is asked through `useMediaQuery`; a
+  listener on the window is `useWindowListener`, an element's size `useResize`, and a view drawn
+  into an element (a staff, a canvas) `useDrawnView`. `localStorage`, `matchMedia`, `ResizeObserver`
+  and listeners on `window` are not used straight from a component.
 
 ## The look
 
