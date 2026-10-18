@@ -10,11 +10,16 @@ const MIN_HEIGHT_PX = 3;
 /** The tiles of what has been played, on a canvas: time runs upwards from the canvas's lower edge, which is now. */
 export class CanvasPlayedTiles implements TilesView {
   private readonly context: CanvasRenderingContext2D | null;
-  private colors: TilesColors = { right: '#000', left: '#000' };
+  private colors: TilesColors;
   private width = 0;
   private height = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    colors: TilesColors,
+  ) {
+    this.colors = colors;
     this.context = canvas.getContext('2d');
     this.resize();
   }

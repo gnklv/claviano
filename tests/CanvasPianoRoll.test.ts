@@ -46,6 +46,8 @@ const DARKER: RollColors = {
   cursor: '#f00',
   hand: { right: '#00f', left: '#0f0' },
 };
+/** The colours it is made with: a light theme's, as far as these tests care. */
+const PAPER: RollColors = { ...DARKER, background: '#fff', whiteKey: '#fff' };
 const frame = (position: number, more: Partial<RollFrame> = {}): RollFrame => ({
   score,
   position,
@@ -61,7 +63,7 @@ const frame = (position: number, more: Partial<RollFrame> = {}): RollFrame => ({
 describe('the falling notes', () => {
   it('draw a frame, and do not draw it again while it would show the same', () => {
     const { canvas, drawn } = countedCanvas();
-    const roll = new CanvasPianoRoll(canvas);
+    const roll = new CanvasPianoRoll(canvas, PAPER);
     roll.render(frame(1));
     const once = drawn();
     expect(once).toBeGreaterThan(0);
@@ -72,7 +74,7 @@ describe('the falling notes', () => {
 
   it('draw anew when the music moves, a hand is muted, or the canvas changes size or colours', () => {
     const { canvas, drawn } = countedCanvas();
-    const roll = new CanvasPianoRoll(canvas);
+    const roll = new CanvasPianoRoll(canvas, PAPER);
     roll.render(frame(1));
     const steps = [
       () => roll.render(frame(1.5)),
@@ -89,7 +91,7 @@ describe('the falling notes', () => {
 
   it('tell the note under a press: the tiles sounding at that height, and none over the keyboard', () => {
     const { canvas } = countedCanvas();
-    const roll = new CanvasPianoRoll(canvas);
+    const roll = new CanvasPianoRoll(canvas, PAPER);
     roll.render(frame(0));
     let rollHeight = 0;
     while (roll.timeAt(rollHeight + 1) !== null) rollHeight++;
@@ -105,7 +107,7 @@ describe('the falling notes', () => {
 
   it('ring the note being fingered without thickening the keys drawn after it', () => {
     const { canvas, outlines } = countedCanvas();
-    const roll = new CanvasPianoRoll(canvas);
+    const roll = new CanvasPianoRoll(canvas, PAPER);
     roll.render(frame(0));
     const plain = [...outlines];
     outlines.length = 0;

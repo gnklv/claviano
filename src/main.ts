@@ -101,9 +101,9 @@ createApp(App)
     freePlay,
     recorder,
     keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),
-    createRoll: (canvas) => new CanvasPianoRoll(canvas),
+    createRoll: (canvas, colors) => new CanvasPianoRoll(canvas, colors),
     createStaff: (container) => new SvgStaff(container),
-    createTiles: (canvas) => new CanvasPlayedTiles(canvas),
+    createTiles: (canvas, colors) => new CanvasPlayedTiles(canvas, colors),
     demos,
   })
   .mount('#app');

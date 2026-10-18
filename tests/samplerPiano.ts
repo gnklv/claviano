@@ -133,6 +133,14 @@ export class FakeNetwork {
   }
 }
 
+/**
+ * Lets whatever the piano has begun run its course (a fetch, a decode), to see that something did
+ * not happen: turns of the event loop, not time (no timer is waited out).
+ */
+export async function allDone(): Promise<void> {
+  for (let turn = 0; turn < 10; turn++) await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export const toPrepare = (pitch: number, velocity = 0.8, seconds = 1): NoteToPrepare => ({ pitch, velocity, seconds });
 export const toPlay = (pitch: number, velocity = 0.8): NoteToPlay => ({ pitch, velocity, at: 0, duration: 1, soft: false, held: 1 });
 

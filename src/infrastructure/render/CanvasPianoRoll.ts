@@ -16,22 +16,6 @@ interface KeyRect {
 }
 
 /** Used until the UI supplies the theme's colors. */
-const DEFAULT_COLORS: RollColors = {
-  background: '#14161c',
-  barLine: 'rgba(255, 255, 255, 0.08)',
-  barNumber: 'rgba(255, 255, 255, 0.35)',
-  loop: 'rgba(255, 250, 240, 0.06)',
-  loopEdge: 'rgba(255, 250, 240, 0.4)',
-  nowLine: 'rgba(255, 255, 255, 0.5)',
-  whiteKey: '#f4f1ea',
-  blackKey: '#1d1f24',
-  keyBorder: '#9a978f',
-  keyLabel: '#8a877f',
-  pedal: '#ece7de',
-  cursor: 'rgba(79, 157, 255, 0.9)',
-  hand: { right: '#8fa9c0', left: '#8f7a5c' },
-};
-
 const MUTED_ALPHA = 0.25;
 /** A click within this many pixels of a note's start (its bottom edge) means that note. */
 const NOTE_SNAP_PX = 10;
@@ -107,7 +91,7 @@ export class CanvasPianoRoll implements RollView {
   private layoutScore: Score | null = null;
   private layoutWidth = -1;
   private layoutHeight = -1;
-  private colors: RollColors = DEFAULT_COLORS;
+  private colors: RollColors;
   private longestNote = 0;
   /** Where each pedal moves in the current score, in time order; and all of them together. */
   private pedalMoves: Record<PedalKind, PedalEvent[]> = { sustain: [], sostenuto: [], soft: [] };
@@ -133,9 +117,12 @@ export class CanvasPianoRoll implements RollView {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
+    /** The theme's colours, as the interface reads them (and gives anew on a switch: setColors). */
+    colors: RollColors,
     /** How far ahead the falling notes reach, when there is enough height for it. */
     private readonly maxSecondsVisible = 4,
   ) {
+    this.colors = colors;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D is not supported');
     this.ctx = ctx;

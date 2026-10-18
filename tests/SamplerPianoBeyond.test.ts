@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SamplerPiano } from '../src/infrastructure/audio/SamplerPiano';
-import { DECODED_FOR_ONE_NOTE, FakeContext, ctx, fallback, network, node, param, piano, ready, toPlay, toPrepare, useSamplerPiano } from './samplerPiano';
+import { allDone, ctx, DECODED_FOR_ONE_NOTE, FakeContext, fallback, network, node, param, piano, ready, toPlay, toPrepare, useSamplerPiano } from './samplerPiano';
 
 /* The sampled piano switched off, without its samples, at another volume, and as the metronome. */
 
@@ -12,7 +12,7 @@ describe('SamplerPiano', () => {
       piano.setEnabled(false);
       piano.prepare([toPrepare(60)]);
       piano.start('/piano/');
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await allDone();
       expect(network.requests).toEqual([]);
 
       piano.setEnabled(true);

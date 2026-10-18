@@ -38,8 +38,6 @@ import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from 
  * button, drop a file).
  */
 
-const instrument = new FakeInstrument();
-
 export let playback: Playback;
 export let bookmarks: Bookmarks;
 export let fingering: OwnFingering;
@@ -156,6 +154,7 @@ export function useApp(): void {
     fingering = new OwnFingering(playback);
     rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering });
     const freePlay = new FreePlay(audio);
+    const instrument = new FakeInstrument();
     keepInstrumentPrepared(playback, freePlay, instrument);
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
     app = createApp(App).provide(depsKey, {

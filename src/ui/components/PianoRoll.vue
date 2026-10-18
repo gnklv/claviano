@@ -36,11 +36,7 @@ const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
  */
 const roll = useDrawnView(
   canvas,
-  (element): RollView => {
-    const made = createRoll(element);
-    made.setColors(readRollColors());
-    return made;
-  },
+  (element): RollView => createRoll(element, readRollColors()),
   () => draw(),
 );
 

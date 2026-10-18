@@ -40,11 +40,7 @@ function draw(): void {
 // (Resizing a canvas wipes it: drawn again at once, or the frame goes out blank.)
 const tiles = useDrawnView(
   canvas,
-  (element): TilesView => {
-    const made = createTiles(element);
-    made.setColors(colors());
-    return made;
-  },
+  (element): TilesView => createTiles(element, colors()),
   () => draw(),
 );
 onUnmounted(stopListening);

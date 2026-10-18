@@ -1,6 +1,7 @@
 import type { AudioOutput, NoteToPlay, SoundPart } from '../src/application/ports/AudioOutput';
 import type { Instrument } from '../src/application/ports/Instrument';
 import type { PieceMemory, PieceShelf, ShelvedPiece } from '../src/application/ports/PieceShelf';
+import type { SettingsStore } from '../src/application/ports/SettingsStore';
 import type { Ticker } from '../src/application/ports/Ticker';
 
 /* Stand-ins for the ports, shared by the tests. */
@@ -93,15 +94,31 @@ export class FakePieceShelf implements PieceShelf {
   }
 }
 
-/** An instrument whose sound is in already: it readies nothing, and never changes. */
+/** An instrument whose sound is in already: it readies nothing, and is switched on and off as told. */
 export class FakeInstrument implements Instrument {
-  readonly enabled = true;
+  enabled = true;
   readonly status = 'ready';
-  setEnabled(): void {}
-  onChange(): () => void {
-    return () => {};
+  private readonly listeners = new Set<() => void>();
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    for (const listener of this.listeners) listener();
+  }
+  onChange(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
   prepare(): void {}
+}
+
+/** A store of the choices kept between visits: holds what it is given, and counts the times. */
+export class FakeSettingsStore implements SettingsStore {
+  saves: unknown[] = [];
+  constructor(private held: unknown = null) {}
+  load = () => this.held;
+  save = (settings: unknown) => {
+    this.held = settings;
+    this.saves.push(settings);
+  };
 }
 
 /**

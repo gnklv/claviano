@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ALL_FILES, DECODED_FOR_ONE_NOTE, PITCHES, SAMPLE_SECONDS, ctx, fallback, network, piano, ready, settled, toPlay, toPrepare, useSamplerPiano } from './samplerPiano';
+import { ALL_FILES, allDone, ctx, DECODED_FOR_ONE_NOTE, fallback, network, piano, PITCHES, ready, SAMPLE_SECONDS, settled, toPlay, toPrepare, useSamplerPiano } from './samplerPiano';
 
 /*
  * The sampled piano getting its sound: what it fetches and in what order, what it decodes and how
@@ -20,7 +20,7 @@ describe('SamplerPiano', () => {
 
     it('fetches nothing before it is told where the samples are', async () => {
       piano.prepare([toPrepare(60)]);
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await allDone();
       expect(network.requests).toEqual([]);
     });
   });
@@ -154,7 +154,7 @@ describe('SamplerPiano', () => {
       // Faster (the notes get shorter), then as it was.
       for (const seconds of [2, 2.5]) {
         piano.prepare([toPrepare(60, 0.8, seconds)]);
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await allDone();
         expect(piano.status).toBe('ready');
       }
       expect(ctx.decodes).toBe(DECODED_FOR_ONE_NOTE);

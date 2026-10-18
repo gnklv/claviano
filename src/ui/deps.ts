@@ -1,8 +1,8 @@
 import { inject, type InjectionKey } from 'vue';
 import type { Instrument } from '../application/ports/Instrument';
-import type { RollView } from '../application/ports/RollView';
+import type { RollColors, RollView } from '../application/ports/RollView';
 import type { StaffView } from '../application/ports/StaffView';
-import type { TilesView } from '../application/ports/TilesView';
+import type { TilesColors, TilesView } from '../application/ports/TilesView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { Bookmarks } from '../application/use-cases/Bookmarks';
 import type { OwnFingering } from '../application/use-cases/OwnFingering';
@@ -46,9 +46,9 @@ export interface AppDeps {
   readonly recorder: Recorder;
   /** Keeps the take as a piece on the shelf, under `title`, and opens it. */
   readonly keepTake: (title: string, fileName: string) => Promise<void>;
-  readonly createRoll: (canvas: HTMLCanvasElement) => RollView;
+  readonly createRoll: (canvas: HTMLCanvasElement, colors: RollColors) => RollView;
   readonly createStaff: (container: HTMLElement) => StaffView;
-  readonly createTiles: (canvas: HTMLCanvasElement) => TilesView;
+  readonly createTiles: (canvas: HTMLCanvasElement, colors: TilesColors) => TilesView;
   readonly demos: readonly Demo[];
 }
 
