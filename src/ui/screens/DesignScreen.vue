@@ -5,6 +5,7 @@ import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
 import MenuList from '../components/MenuList.vue';
+import PanelControl from '../components/PanelControl.vue';
 import PieceCard from '../components/PieceCard.vue';
 import PieceTile from '../components/PieceTile.vue';
 import PopOver from '../components/PopOver.vue';
@@ -182,6 +183,11 @@ const chosen = ref('');
           </template>
         </PopOver>
         <span class="caption">{{ chosen && `chosen: ${chosen}` }}</span>
+      </div>
+      <p class="about">A button in a bar with what it sets behind it: a panel over it, a sheet on a phone (the tempo, the bookmarks). Quiet, it reads as what it says.</p>
+      <div class="row">
+        <PanelControl title="Tempo" label="Tempo: 80%">80%<template #panel><p class="panel-words">What the button sets stands here.</p></template></PanelControl>
+        <PanelControl title="Bookmarks" label="Bar 12 / 64 · Bookmarks" variant="quiet" icon="bookmark">Bar 12 / 64<template #panel><p class="panel-words">The piece’s bookmarks stand here.</p></template></PanelControl>
       </div>
 
       <SectionHeading>A row of settings</SectionHeading>

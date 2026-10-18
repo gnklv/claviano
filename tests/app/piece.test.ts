@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { button, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
+import { bookmarks, button, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
 
 /* The piece's screen: getting to it and back, the keys of the computer, the view, the transport bar, a phone on its side. */
 
@@ -163,7 +163,63 @@ describe('the transport bar', () => {
 
   it('has no button for going back to the start: Home does that', () => {
     const plain = [...bar().querySelectorAll('button')].filter((element) => !element.hasAttribute('aria-pressed'));
-    expect(plain.map((element) => element.getAttribute('aria-label'))).toEqual(['Play', 'Tempo: 100%']);
+    expect(plain.map((element) => element.getAttribute('aria-label'))).toEqual(['Play', 'Bar 1 / 8 · Bookmarks', 'Tempo: 100%']);
+  });
+
+  describe('the bookmarks', () => {
+    const panel = () => bar().querySelector<HTMLElement>('[role=group][aria-label=Bookmarks]');
+    const field = (label: RegExp) => [...panel()!.querySelectorAll<HTMLInputElement>('input')].find((input) => label.test(input.getAttribute('aria-label') ?? ''))!;
+    const type = (input: HTMLInputElement, text: string) => {
+      input.value = text;
+      input.dispatchEvent(new Event('input'));
+    };
+    const names = () => [...panel()!.querySelectorAll('.go')].map((row) => [...row.querySelectorAll('span')].map((part) => part.textContent).join(' · '));
+
+    it('are added at the bar the music is in, named as the bar unless given a name, and gone to at a press', async () => {
+      playback.seek(playback.score!.bars[2] + 0.1);
+      await settled();
+      button(/Bookmarks$/).click();
+      await settled();
+      expect(panel()!.textContent).toContain('No bookmarks yet');
+      button(/^A bookmark at bar 3$/).click();
+      await settled();
+      type(field(/^A bookmark at bar 3$/), 'The climb');
+      button(/^A bookmark at bar 3$/).click();
+      await settled();
+      expect(names()).toEqual(['Bar 3 · bar 3', 'The climb · bar 3']);
+
+      playback.seek(0);
+      await settled();
+      panel()!.querySelector<HTMLElement>('.go')!.click();
+      await settled();
+      expect(playback.position).toBeCloseTo(playback.score!.bars[2]);
+      // (Gone to: the panel is done with; it fades out first.)
+      await vi.waitFor(() => expect(panel()).toBeNull());
+    });
+
+    it('are renamed and taken away in place', async () => {
+      bookmarks.add('Theme', 1);
+      bookmarks.add('Reprise', 5);
+      button(/Bookmarks$/).click();
+      await settled();
+      button(/^Change: Theme$/).click();
+      await settled();
+      type(field(/^Bookmark’s name$/), 'Opening');
+      button(/^Done$/).click();
+      await settled();
+      button(/^Change: Reprise$/).click();
+      await settled();
+      button(/^Remove$/).click();
+      await settled();
+      expect(names()).toEqual(['Opening · bar 1']);
+    });
+
+    it('are gone to by the keys 1 to 9, in order', () => {
+      bookmarks.add('Theme', 1);
+      bookmarks.add('Reprise', 5);
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2', bubbles: true }));
+      expect(playback.position).toBeCloseTo(playback.score!.bars[4]);
+    });
   });
 
   describe('the tempo', () => {

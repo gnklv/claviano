@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import AppButton from './AppButton.vue';
+import BookmarksPanel from './BookmarksPanel.vue';
+import PanelControl from './PanelControl.vue';
 import TextField from './TextField.vue';
 import ToggleChip from './ToggleChip.vue';
 import { computed, useTemplateRef } from 'vue';
-import { barAt, barNumber } from '../../domain/score';
+import { barAt, barIndexNear, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
 import { useFrameValue } from '../composables/useFrameValue';
 import { useBarLoop } from '../composables/useBarLoop';
+import { useBookmarks } from '../composables/useBookmarks';
 import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
@@ -16,7 +19,7 @@ import SheetDialog from './SheetDialog.vue';
 import TempoControl from './TempoControl.vue';
 
 const SEEK_STEPS = 1000;
-const { playback, barLoop } = useDeps();
+const { playback, barLoop, bookmarks } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
@@ -31,6 +34,16 @@ const lastBar = computed(() => (state.value.score ? barNumber(state.value.score,
 
 /** Current bar, zero-based; null until a score is loaded. */
 const currentBar = useFrameValue(() => (playback.score ? barAt(playback.score, playback.position) : null));
+/** Where in the piece the bookmarks are, as shares of its length (the first time their bar is played). */
+const marked = useBookmarks(bookmarks);
+const marks = computed(() => {
+  const score = state.value.score;
+  if (!score || score.duration <= 0) return [];
+  return marked.value.map((bookmark) => (score.bars[barIndexNear(score, bookmark.bar, 0)] ?? 0) / score.duration);
+});
+
+/** The bar the music is in, as numbered on the page (1 before a piece is open). */
+const currentBarNumber = computed(() => (currentBar.value === null || !state.value.score ? 1 : barNumber(state.value.score, currentBar.value)));
 const barLabel = computed(() =>
   currentBar.value === null
     ? t('barPositionEmpty')
@@ -94,9 +107,12 @@ function togglePlay(): void {
         :hint="`${t(state.playing ? 'pause' : 'play')} (${t('playHint')})`"
         @click="togglePlay"
       />
+      <div class="seek">
+        <!-- The bookmarks, where they are in the piece. -->
+        <span v-for="(share, index) in marks" :key="index" class="mark" :style="{ '--at': share }" aria-hidden="true" />
       <input
         ref="seek"
-        class="seek"
+        class="slider"
         type="range"
         min="0"
         :max="SEEK_STEPS"
@@ -106,7 +122,11 @@ function togglePlay(): void {
         @input="onSeek"
         @change="onSeekEnd"
       />
-      <span class="readout">{{ barLabel }}</span>
+      </div>
+      <PanelControl class="readout" variant="quiet" icon="bookmark" :title="t('bookmarks')" :label="`${barLabel} · ${t('bookmarks')}`" :disabled="!loaded">
+        {{ barLabel }}
+        <template #panel="{ close }"><BookmarksPanel :bar="currentBarNumber" @done="close" /></template>
+      </PanelControl>
     </div>
 
     <TempoControl class="tempo" />
@@ -205,14 +225,34 @@ function togglePlay(): void {
 
 /* (No shorter than can be aimed at.) */
 .seek {
+  position: relative;
   flex: 1;
   min-width: 80px;
+  display: grid;
 }
 
+.slider {
+  /* (Over the bookmarks' strokes: the thumb passes over them.) */
+  position: relative;
+  width: 100%;
+}
+
+/* A bookmark: a short stroke across the track, under the thumb's travel (centred where the thumb would stand). */
+.mark {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--slider-thumb) / 2 + var(--at) * (100% - var(--slider-thumb)));
+  width: 2px;
+  height: var(--space-3);
+  translate: -50% -50%;
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+  pointer-events: none;
+}
+
+/* (Nothing set here is inherited: the bookmarks' sheet stands inside, and the button keeps to one line itself.) */
 .readout {
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  white-space: nowrap;
+  flex: none;
 }
 
 .number {

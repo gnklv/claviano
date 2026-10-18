@@ -24,7 +24,7 @@ const sheet = useTemplateRef<HTMLElement>('sheet');
 /** Sliding away: still open, and no longer to be touched. */
 const closing = ref(false);
 
-defineExpose({ open: () => panel.value?.showModal() });
+defineExpose({ open: () => panel.value?.showModal(), close });
 
 function close(): void {
   const dialog = panel.value;

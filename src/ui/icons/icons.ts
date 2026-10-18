@@ -42,6 +42,8 @@ export const ICONS = {
   // The system's own choice: half a day, half a night.
   auto: [line(circle(12, 12, 8)), solid('M12 4a8 8 0 0 1 0 16z')],
   metronome: [line('M9.5 4h5L19 20H5zM12 16l5-9.5')],
+  // A ribbon, as is kept between the pages of a book: a place to come back to.
+  bookmark: [line('M7 4h10v16l-5-3.5L7 20z')],
 } satisfies Record<string, IconPart[]>;
 
 export type IconName = keyof typeof ICONS;

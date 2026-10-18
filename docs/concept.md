@@ -40,9 +40,9 @@ A shelf of one's pieces: a file opened once stays on it until it is taken off.
 last opened; the latest come first. Beside the cards, two actions: "Open file" and "Free play".
 
 **What is remembered of a piece.** The file itself, as it was given; the place one stopped at; and
-the practice settings for this piece: tempo, loop, which hands are on, the tempo trainer. So coming
-back to a piece is coming back to where it was left, at 70% on bars 25–28, the trainer taking it
-on to 100%.
+the practice settings for this piece: tempo, loop, which hands are on, the tempo trainer, the
+bookmarks. So coming back to a piece is coming back to where it was left, at 70% on bars 25–28,
+the trainer taking it on to 100%, "the reprise" a press away.
 
 **The same file opened again is the same card,** told by its content, not its name. A file that
 has changed (a corrected version under the same name) is a new card beside the old one: no
@@ -102,8 +102,8 @@ One rule: the first row never hides, the third never takes room on the stage.
 - **A phone on its side:** the best way to see a keyboard. The header and the bar shrink to thin
   strips and hide while the music plays; a touch brings them back. The falling notes take the room
   they leave; the staff keeps its size, in the middle of it (laid out anew, it would jolt).
-- **The computer's keyboard** stays (Space, the arrows by bars), with keys for tempo and the loop
-  to add.
+- **The computer's keyboard** stays (Space, the arrows by bars, − and + for the tempo, 1–9 for the
+  bookmarks), with keys for the loop to add.
 
 ## What it takes in the code
 

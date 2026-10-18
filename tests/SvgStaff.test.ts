@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Hand } from '../src/domain/note';
 import { engrave } from '../src/domain/notation/engraving';
 import { transcribed } from '../src/domain/notation/transcription';
@@ -13,6 +13,8 @@ import { lit, ode, shaded, showcase, sounding } from './staffPieces';
  * dragged is in SvgStaffTape.test.ts; what exactly it draws for a piece is kept in the reference
  * copies (snapshot.test.ts).
  */
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('SvgStaff', () => {
   it('draws nothing but the staves without a piece, and does not mind being asked about it', () => {
@@ -199,6 +201,8 @@ describe('SvgStaff', () => {
   });
 
   it('draws to its container’s size when that changes', () => {
+    // (Drawn anew at once where that is quick: on a clock that stands, it takes no time at all.)
+    vi.spyOn(performance, 'now').mockReturnValue(0);
     const size = { width: 1024, height: 300 };
     const { staff, container } = drawStaff(ode(), size);
     const staffLine = () => container.querySelector('line')!;

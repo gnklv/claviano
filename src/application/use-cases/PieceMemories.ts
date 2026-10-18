@@ -67,13 +67,16 @@ function asMemory(stored: unknown): PieceMemory | null {
   const { right, left } = hands as Record<string, unknown>;
   const { on, from, to } = loop as Record<string, unknown>;
   if (typeof right !== 'boolean' || typeof left !== 'boolean' || typeof on !== 'boolean' || typeof from !== 'number' || typeof to !== 'number') return null;
-  // (A trainer that is not one is let go of, and the rest kept.)
-  const memory = stored as PieceMemory;
-  const { trainer, ...rest } = memory;
-  return trainer === undefined || asTrainer(trainer) ? memory : rest;
+  // (A trainer or bookmarks that are not such are let go of, and the rest kept.)
+  const { trainer, bookmarks, ...rest } = stored as PieceMemory;
+  return { ...rest, ...(asTrainer(trainer) ? { trainer } : {}), ...(asBookmarks(bookmarks) ? { bookmarks } : {}) };
 }
 
-function asTrainer(stored: unknown): boolean {
+function asBookmarks(stored: unknown): stored is PieceMemory['bookmarks'] {
+  return Array.isArray(stored) && stored.every((each: unknown) => typeof each === 'object' && each !== null && typeof (each as Record<string, unknown>).name === 'string' && Number.isFinite((each as Record<string, unknown>).bar));
+}
+
+function asTrainer(stored: unknown): stored is PieceMemory['trainer'] {
   if (typeof stored !== 'object' || stored === null) return false;
   const { on, from, to, step, every } = stored as Record<string, unknown>;
   return typeof on === 'boolean' && [from, to, step, every].every((value) => typeof value === 'number' && Number.isFinite(value));

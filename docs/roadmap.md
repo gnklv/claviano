@@ -166,8 +166,11 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
        says where it is going ("60% to 100%"), and it is kept with the piece.
 9. [ ] One's own fingering over the hints: a finger set by hand at a note stands as the notes'
        own do, is kept with the piece, and the hints are fitted round it
-10. [ ] Bookmarks in a piece: named places ("the reprise", "the hard bars") to go to at a press,
-        kept with the piece
+10. [x] Bookmarks in a piece: named places ("the reprise", "the hard bars") to go to at a press,
+        kept with the piece (`Bookmarks`). A printed bar each, the pass nearest to the music with
+        repeats; the bar readout opens them (`PanelControl`, as the tempo), one is added at the bar
+        the music is in, renamed or taken away in place; the keys 1–9 go to them; strokes on the
+        position slider show where they are
 11. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)

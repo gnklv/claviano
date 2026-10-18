@@ -4,6 +4,7 @@ import type { RollView } from '../application/ports/RollView';
 import type { StaffView } from '../application/ports/StaffView';
 import type { TilesView } from '../application/ports/TilesView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
+import type { Bookmarks } from '../application/use-cases/Bookmarks';
 import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
 import type { PieceMemories } from '../application/use-cases/PieceMemories';
@@ -25,6 +26,8 @@ export interface AppDeps {
   readonly barLoop: BarLoop;
   /** The loop that quickens by itself. */
   readonly trainer: TempoTrainer;
+  /** The open piece's named places. */
+  readonly bookmarks: Bookmarks;
   /** How loud the notes and the metronome are. */
   readonly volume: Volume;
   /** The piano's sound: whether it has loaded. */

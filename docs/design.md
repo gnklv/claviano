@@ -121,6 +121,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `SettingRow` | what is set, and the control that sets it | the rows of a sheet |
 | `SheetDialog` | a panel from the side (from below on a phone) | what is set once in a while, and what a phone's bar has no room for |
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
+| `PanelControl` | a button with what it sets behind it: a `PopOver`, a sheet on a phone | the tempo, the bookmarks |
 | `MenuList` | the choices of a menu | inside a `PopOver` |
 | `AppIcon` | an icon of the set | |
 | `TempoMark` | a tempo as the page writes it | |

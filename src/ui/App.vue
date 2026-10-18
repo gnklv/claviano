@@ -21,7 +21,7 @@ import PieceScreen from './screens/PieceScreen.vue';
 /** The page of the design system: in development only, and not a part of what is built for use. */
 const DesignScreen = import.meta.env.DEV ? defineAsyncComponent(() => import('./screens/DesignScreen.vue')) : null;
 
-const { playback, library } = useDeps();
+const { playback, library, bookmarks } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const dragging = ref(false);
@@ -64,14 +64,18 @@ function onKeyDown(event: KeyboardEvent): void {
   // The keys play the piece: in the library there is nothing for them to do.
   if (screen.value !== 'piece') return;
   const input = event.target instanceof HTMLInputElement ? event.target : null;
-  // Typing a bar number is left alone; so are the arrows and Home on a slider (tempo, position), which move it.
-  if (input?.type === 'number') return;
+  // Typing (a bar number, a bookmark's name) is left alone; so are the arrows and Home on a slider (tempo, position), which move it.
+  if (input?.type === 'number' || input?.type === 'text') return;
   const arrow = event.code === 'ArrowLeft' || event.code === 'ArrowRight';
   if ((arrow || event.code === 'Home') && input) return;
   if (event.code === 'Space') {
     event.preventDefault();
     if (playback.playing) playback.pause();
     else void playback.play();
+  } else if (/^Digit[1-9]$/.test(event.code) && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    // The bookmarks, in order.
+    event.preventDefault();
+    bookmarks.goTo(Number(event.code.slice(5)) - 1);
   } else if (arrow) {
     event.preventDefault();
     stepBar(playback, event.code === 'ArrowLeft' ? -1 : 1);

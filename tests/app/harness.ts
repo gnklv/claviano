@@ -4,6 +4,7 @@ import type { RollView } from '../../src/application/ports/RollView';
 import type { StaffView } from '../../src/application/ports/StaffView';
 import type { PlayedTile, TilesView } from '../../src/application/ports/TilesView';
 import { BarLoop } from '../../src/application/use-cases/BarLoop';
+import { Bookmarks } from '../../src/application/use-cases/Bookmarks';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
 import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
@@ -38,6 +39,7 @@ import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from 
 const instrument = new FakeInstrument();
 
 export let playback: Playback;
+export let bookmarks: Bookmarks;
 export let volume: Volume;
 export let app: VueApp;
 export let shelf: FakePieceShelf;
@@ -137,7 +139,8 @@ export function useApp(): void {
     void memories.load();
     const barLoop = new BarLoop(playback);
     const trainer = new TempoTrainer(playback);
-    rememberPieces(library, memories, playback, barLoop, trainer);
+    bookmarks = new Bookmarks(playback, barLoop);
+    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks });
     const freePlay = new FreePlay(audio);
     keepInstrumentPrepared(playback, freePlay, instrument);
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
@@ -145,6 +148,7 @@ export function useApp(): void {
       playback,
       barLoop,
       trainer,
+      bookmarks,
       volume,
       instrument,
       openScore,

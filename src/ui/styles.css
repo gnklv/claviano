@@ -113,6 +113,8 @@
 
   /* Under a finger nothing pressable is smaller. */
   --touch: 44px;
+  /* A slider's thumb: something to take hold of, larger under a finger (see the sliders below). */
+  --slider-thumb: 16px;
 
   /* An icon beside words, and a smaller one inside a line of them. */
   --icon: 20px;
@@ -427,10 +429,10 @@ input[type='range']::-moz-range-track {
 
 input[type='range']::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
   /* (Centred on the track: half the thumb less half the track.) */
-  margin-top: -6px;
+  margin-top: calc((4px - var(--slider-thumb)) / 2);
   border: 2px solid var(--panel);
   border-radius: 50%;
   background: var(--text);
@@ -438,8 +440,8 @@ input[type='range']::-webkit-slider-thumb {
 
 input[type='range']::-moz-range-thumb {
   box-sizing: border-box;
-  width: 16px;
-  height: 16px;
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
   border: 2px solid var(--panel);
   border-radius: 50%;
   background: var(--text);
@@ -458,19 +460,12 @@ input[type='range']:disabled {
 
 /* Under a finger: a thumb to take hold of, in a row a fingertip tall. */
 @media (pointer: coarse) {
+  :root {
+    --slider-thumb: 24px;
+  }
+
   input[type='range'] {
     height: var(--touch);
-  }
-
-  input[type='range']::-webkit-slider-thumb {
-    width: 24px;
-    height: 24px;
-    margin-top: -10px;
-  }
-
-  input[type='range']::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
   }
 }
 
