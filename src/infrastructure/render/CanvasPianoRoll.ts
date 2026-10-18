@@ -1,68 +1,17 @@
 import { keyReleasesOf } from '../../domain/keys';
-import type { Fingering } from '../../domain/fingering/own';
 import { noteEnd, type Hand } from '../../domain/note';
-import { pedalDownAt, pedalEvents, type PedalEvent, type PedalKind, type PedalSpan } from '../../domain/pedal';
-import { isBlackKey } from '../../domain/pitch';
 import { barNumber, firstNoteAtOrAfter, type Score } from '../../domain/score';
-import type { PedalMove, RollColors, RollFrame, RollView } from '../../application/ports/RollView';
+import type { RollColors, RollFrame, RollView } from '../../application/ports/RollView';
 import { approach, HandHold, SeekWatch } from './following';
 import { clampOffset, followTarget, pickSpan, type CameraView, type Span } from './keyboardCamera';
-import { MAX_WHITE_KEY_PX, keyboardRange, whiteKeyCount, type KeyRange } from './keyboardRange';
+import { drawKeyboard, layoutKeyboard, MIN_KEYBOARD_PX, type KeyRect } from './roll/keyboard';
+import { RollPedals } from './roll/pedals';
+import { drawTiles, fingerSize, tileAt } from './roll/tiles';
 
-interface KeyRect {
-  readonly x: number;
-  readonly width: number;
-  readonly black: boolean;
-}
-
-/** Used until the UI supplies the theme's colors. */
-const MUTED_ALPHA = 0.25;
 /** A click within this many pixels of a note's start (its bottom edge) means that note. */
 const NOTE_SNAP_PX = 10;
-/** A press this near a tile, beside it or past its end, is on it: a fingertip is wider than a black key's tile (pixels). */
-const TILE_SNAP_PX = 6;
-/** The ring round a picked tile, and how far out from it (pixels). */
-const PICKED_RING_PX = 2;
-/*
- * The pedals. Where a foot moves, a plain label falls with the notes near the right edge
- * ("Pedal ↓", "Pedal ↑", "Pedal ↑↓" for a change, "Left pedal ↓"…; the staff keeps the sheet-music
- * signs). It lands beside three piano pedals in the corner over the keyboard; each lights up and
- * sinks while held, and comes up for a moment at a change.
- */
-const PEDAL_LABEL = {
-  size: 13,
-  /** An edge of the background's colour round the letters, for them to read over a tile. */
-  halo: 3,
-  /** Kept this far from the pedals in the corner, and from a label stacked over it. */
-  gap: 8,
-  leading: 3,
-};
-/** MIDI players lift and press again in a flash; a gap this short (seconds) is one change. */
-const PEDAL_CHANGE_GAP_SECONDS = 0.15;
-/** How long (seconds of music) the pedal in the corner stays up at a change, so the change is seen. */
-const PEDAL_CHANGE_FLASH_SECONDS = 0.15;
-/** The pedals in the corner (pixels): each, the gap between them, from the corner, how far one sinks, its top's corners. */
-const PEDAL_ICON = { width: 11, height: 26, gap: 5, margin: 10, travel: 4, corner: 2 };
-/** The pedals in the corner, left to right, as on a piano. */
-const PEDAL_ORDER: readonly PedalKind[] = ['soft', 'sostenuto', 'sustain'];
 /** On short screens, look less far ahead rather than squashing notes flat. */
 const MIN_PX_PER_SECOND = 40;
-/*
- * Keyboard proportions. A white key looks right when it is about four times as long as it is wide
- * and turns into a square below ~2.5. The keyboard takes at most this share of the canvas height;
- * when that is too short, more octaves are shown so the keys get narrower instead of squarer.
- */
-const KEY_LENGTH_RATIO = 4;
-const MIN_KEY_LENGTH_RATIO = 2.5;
-const MAX_KEYBOARD_SHARE = 0.45;
-const MIN_KEYBOARD_PX = 40;
-const MAX_KEYBOARD_PX = 140;
-/*
- * Scrolling. When the piece's range would make white keys narrower than SCROLL_BELOW_PX,
- * keys get SCROLL_KEY_PX instead and the keyboard becomes wider than the screen.
- */
-const SCROLL_BELOW_PX = 16;
-const SCROLL_KEY_PX = 20;
 /**
  * The camera keeps the notes of the next few seconds in view; when they don't fit together,
  * it narrows down to the nearer ones (see pickSpan)…
@@ -70,31 +19,10 @@ const SCROLL_KEY_PX = 20;
 const FOLLOW_LOOKAHEADS_SECONDS = [2, 1, 0.5];
 /** …with this many white keys to spare at the edge, unless it was scrolled by hand (see following.ts). */
 const FOLLOW_MARGIN_KEYS = 1;
-/*
- * A black key beside a white one: as wide and as long as these shares of it (a piano's are near
- * 13.5 of 23.5 mm across, and 95 of 150 mm long).
- */
-const BLACK_KEY = { width: 0.6, length: 0.62 };
-/**
- * A note's tile (pixels, by eye): its corners, how far in from its key's edges it stands (neighbours
- * kept apart; a black key's tile less, it is narrow), and how short it gets (the shortest note seen).
- */
-const TILE = { radius: 4, inset: { white: 2, black: 1 }, shortest: 2 };
-/** A finger printed on a tile: this tall, as large as reads from the bench, and not printed where a tile is too narrow for a figure this small (pixels). */
-const FINGER_PX = 18;
-const MIN_FINGER_PX = 9;
-/** The figures' face, as wide as each system draws it (measured there: see layoutKeyboard). */
-const fingerFont = (size: number): string => `600 ${size}px system-ui, sans-serif`;
-/** How pale a fingering hint is printed, as on the staff. */
-const HINT_ALPHA = 0.6;
-/** A figure stands this far up from its tile's end, and has this much room to spare across it (pixels). */
-const FINGER_CLEARANCE_PX = 2;
 /** The line where the music is, across the roll (pixels). */
 const NOW_LINE_PX = 2;
 /** A bar's number, at the left over its line: its size, and how far in and up from there (pixels). */
 const BAR_NUMBER = { size: 11, left: 6, above: 2 };
-/** Every Do's name on its key: a size between these, after the width of the screen, so far up from the key's end (pixels). */
-const DO_LABEL = { smallest: 7, largest: 11, perWidth: 110, above: 4 };
 
 /**
  * Falling notes above a piano keyboard, drawn from scratch on a 2D canvas.
@@ -106,9 +34,9 @@ export class CanvasPianoRoll implements RollView {
   private readonly ctx: CanvasRenderingContext2D;
   private width = 0;
   private height = 0;
-  private keys = new Map<number, KeyRect>();
-  /** One size for every finger: the largest whose figure fits across the narrowest tile (a black key's). */
-  private fingerSize = FINGER_PX;
+  private keys: ReadonlyMap<number, KeyRect> = new Map();
+  /** One size for every finger (see roll/tiles.ts). */
+  private fingerSize = 0;
   private keyboardHeight = MIN_KEYBOARD_PX;
   private keyWidth = 0;
   /** Width of the whole keyboard; more than the canvas width when it scrolls. */
@@ -119,9 +47,8 @@ export class CanvasPianoRoll implements RollView {
   private layoutHeight = -1;
   private colors: RollColors;
   private longestNote = 0;
-  /** Where each pedal moves in the current score, in time order; and all of them together. */
-  private pedalMoves: Record<PedalKind, PedalEvent[]> = { sustain: [], sostenuto: [], soft: [] };
-  private pedalMoments: PedalMove[] = [];
+  /** The current score's pedals. */
+  private pedals: RollPedals | null = null;
 
   // Camera state
   private scrollX = 0;
@@ -160,38 +87,21 @@ export class CanvasPianoRoll implements RollView {
     this.drawn = null;
   }
 
-  /**
-   * The moment of the music at height `clientY` over the falling notes, or null over the keyboard.
-   * A click on or just beside the bottom of a note means that note: it snaps to the note's start.
-   */
+  /** The note (its place in `score.notes`) whose tile is under the pointer, or null. */
   noteAt(clientX: number, clientY: number): number | null {
     const frame = this.lastFrame;
     if (!frame) return null;
     const { score, position, rollHeight, pxPerSecond } = frame;
     const rect = this.canvas.getBoundingClientRect();
-    const x = clientX - rect.left + this.scrollX;
     const y = clientY - rect.top;
     if (y < 0 || y > rollHeight) return null;
-    const time = position + (rollHeight - y) / pxPerSecond;
-    const snap = TILE_SNAP_PX / pxPerSecond;
-    // The tile nearest across, of those the press is on: a black key's tile stands over its neighbours'.
-    let best: number | null = null;
-    let bestDistance = Infinity;
-    for (let i = firstNoteAtOrAfter(score, time - snap - this.longestNote); i < score.notes.length; i++) {
-      const note = score.notes[i]!;
-      if (note.start > time + snap) break;
-      const key = this.keys.get(note.pitch);
-      if (!key || noteEnd(note) < time - snap) continue;
-      const distance = Math.abs(x - (key.x + key.width / 2));
-      if (distance > key.width / 2 + TILE_SNAP_PX) continue;
-      if (distance < bestDistance || (distance === bestDistance && key.black)) {
-        best = i;
-        bestDistance = distance;
-      }
-    }
-    return best;
+    return tileAt(score, this.keys, this.longestNote, clientX - rect.left + this.scrollX, position + (rollHeight - y) / pxPerSecond, pxPerSecond);
   }
 
+  /**
+   * The moment of the music at height `clientY` over the falling notes, or null over the keyboard.
+   * A click on or just beside the bottom of a note means that note: it snaps to the note's start.
+   */
   timeAt(clientY: number): number | null {
     const frame = this.lastFrame;
     if (!frame || frame.score.notes.length === 0) return null;
@@ -288,6 +198,7 @@ export class CanvasPianoRoll implements RollView {
     if (this.drawn && what.every((value, i) => value === this.drawn![i])) return;
     this.drawn = what;
 
+    const pen = { ctx, colors: this.colors };
     ctx.fillStyle = this.colors.background;
     ctx.fillRect(0, 0, width, height);
 
@@ -296,9 +207,10 @@ export class CanvasPianoRoll implements RollView {
     this.drawBars(shown, yOf, rollHeight);
     ctx.save();
     ctx.translate(-this.scrollX, 0);
-    this.drawNotes(shown, yOf, rollHeight);
+    const until = shown.position + this.secondsVisible;
+    drawTiles(pen, shown, { keys: this.keys, yOf, rollHeight, until, longestNote: this.longestNote, fingerSize: this.fingerSize });
     // The keys show what sounds now, even while the notes above are dragged elsewhere.
-    this.drawKeyboard(rollHeight, keyboardHeight, this.soundingAt(frame), frame.noteLabel);
+    drawKeyboard(pen, this.keys, rollHeight, keyboardHeight, this.soundingAt(frame), frame.noteLabel, width);
     ctx.restore();
 
     ctx.fillStyle = this.colors.nowLine;
@@ -309,9 +221,9 @@ export class CanvasPianoRoll implements RollView {
       ctx.fillStyle = this.colors.cursor;
       ctx.fillRect(0, playing - NOW_LINE_PX / 2, width, NOW_LINE_PX);
     }
-    if (this.pedalMoments.length > 0) {
-      this.drawPedalMoments(shown, yOf, rollHeight);
-      this.drawPedals(frame, rollHeight);
+    if (this.pedals?.any) {
+      this.pedals.drawLabels(pen, shown, yOf, rollHeight, until, width);
+      this.pedals.drawPedals(pen, frame, rollHeight, width);
     }
   }
 
@@ -367,103 +279,17 @@ export class CanvasPianoRoll implements RollView {
     return active;
   }
 
-  /** A label wherever a foot moves, falling with the notes near the right edge; over them, with a halo to stay legible. */
-  private drawPedalMoments(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {
-    const { ctx, width } = this;
-    const until = frame.position + this.secondsVisible;
-    // Labels land just left of the pedals in the corner, rather than on top of them.
-    const { width: w, gap, margin } = PEDAL_ICON;
-    const labelRight = width - margin - 3 * w - 2 * gap - PEDAL_LABEL.gap;
-    ctx.save();
-    ctx.globalAlpha = frame.pedalEnabled ? 1 : MUTED_ALPHA;
-    ctx.fillStyle = this.colors.pedal;
-    ctx.strokeStyle = this.colors.background;
-    ctx.lineWidth = PEDAL_LABEL.halo;
-    ctx.lineJoin = 'round';
-    ctx.font = `600 ${PEDAL_LABEL.size}px system-ui, sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'alphabetic';
-    let stacked = 0; // labels of several pedals at one moment stack upwards
-    let previous = Number.NaN;
-    for (const moment of this.pedalMoments) {
-      if (moment.time < frame.position) continue;
-      if (moment.time > until) break;
-      stacked = moment.time === previous ? stacked + 1 : 0;
-      previous = moment.time;
-      const y = yOf(moment.time);
-      if (y > rollHeight) continue;
-      const label = frame.pedalLabel(moment);
-      const labelY = y - PEDAL_LABEL.leading - stacked * (PEDAL_LABEL.size + PEDAL_LABEL.leading);
-      ctx.strokeText(label, labelRight, labelY);
-      ctx.fillText(label, labelRight, labelY);
-    }
-    ctx.restore();
-  }
-
-  /** Whether a pedal is being changed at `time`: lifted and pressed again at once, shown as briefly up. */
-  private changingAt(pedal: PedalKind, time: number): boolean {
-    // The last move at or before `time` (moves are in time order).
-    const moments = this.pedalMoves[pedal];
-    let lo = 0;
-    let hi = moments.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (moments[mid]!.time <= time) lo = mid + 1;
-      else hi = mid;
-    }
-    const latest = moments[lo - 1];
-    return latest?.kind === 'change' && time - latest.time < PEDAL_CHANGE_FLASH_SECONDS;
-  }
-
-  /** Three piano pedals in the corner over the keyboard, each lit and sunk while held. */
-  private drawPedals(frame: RollFrame, rollHeight: number): void {
-    const { ctx } = this;
-    const { width: w, height: h, gap, margin, travel, corner } = PEDAL_ICON;
-    const spans: Record<PedalKind, readonly PedalSpan[]> = {
-      sustain: frame.score.pedal,
-      sostenuto: frame.score.sostenutoPedal,
-      soft: frame.score.softPedal,
-    };
-    const left = this.width - margin - 3 * w - 2 * gap;
-    const top = rollHeight - margin - h - travel;
-    ctx.save();
-    ctx.globalAlpha = frame.pedalEnabled ? 1 : MUTED_ALPHA;
-    PEDAL_ORDER.forEach((pedal, i) => {
-      const down = frame.pedalEnabled && pedalDownAt(spans[pedal], frame.position) && !this.changingAt(pedal, frame.position);
-      ctx.fillStyle = down ? this.colors.pedal : this.colors.keyBorder;
-      ctx.beginPath();
-      ctx.roundRect(left + i * (w + gap), top + (down ? travel : 0), w, h, [corner, corner, w / 2, w / 2]);
-      ctx.fill();
-    });
-    ctx.restore();
-  }
-
-  /** Picks the keyboard's range and height together, so keys keep piano-like proportions. */
+  /** Lays the keyboard out for the piece and the canvas's size (see roll/keyboard.ts). */
   private layoutKeyboard(score: Score): void {
     const { width, height } = this;
-    const tallest = Math.max(MIN_KEYBOARD_PX, Math.min(MAX_KEYBOARD_PX, height * MAX_KEYBOARD_SHARE));
-    const maxKeyWidth = Math.min(MAX_WHITE_KEY_PX, tallest / MIN_KEY_LENGTH_RATIO);
-    const range = keyboardRange(score, width, maxKeyWidth);
-    const whiteKeys = whiteKeyCount(range);
-    const fitWidth = width / whiteKeys;
-    const keyWidth = fitWidth >= SCROLL_BELOW_PX ? fitWidth : Math.min(SCROLL_KEY_PX, maxKeyWidth);
-
-    this.keys = layoutKeys(keyWidth, range);
-    this.fingerSize = Math.min(FINGER_PX, (Math.min(...[...this.keys.values()].map((key) => key.width)) - FINGER_CLEARANCE_PX) / this.digitWidth());
-    this.keyWidth = keyWidth;
-    this.contentWidth = whiteKeys * keyWidth;
-    this.keyboardHeight = Math.min(tallest, Math.max(MIN_KEYBOARD_PX, keyWidth * KEY_LENGTH_RATIO));
+    const layout = layoutKeyboard(score, width, height);
+    this.keys = layout.keys;
+    this.fingerSize = fingerSize(this.ctx, layout.keys);
+    this.keyWidth = layout.keyWidth;
+    this.contentWidth = layout.contentWidth;
+    this.keyboardHeight = layout.height;
     this.longestNote = score.notes.reduce((max, n) => Math.max(max, n.duration), 0);
-    if (score !== this.layoutScore) {
-      this.pedalMoves = {
-        sustain: pedalEvents(score.pedal, PEDAL_CHANGE_GAP_SECONDS),
-        sostenuto: pedalEvents(score.sostenutoPedal),
-        soft: pedalEvents(score.softPedal),
-      };
-      this.pedalMoments = PEDAL_ORDER.flatMap((pedal) => this.pedalMoves[pedal].map((move) => ({ ...move, pedal }))).sort(
-        (a, b) => a.time - b.time,
-      );
-    }
+    if (score !== this.layoutScore) this.pedals = new RollPedals(score);
     if (score !== this.layoutScore) this.scrolled.release();
     this.snapCamera = true;
     this.layoutScore = score;
@@ -541,124 +367,4 @@ export class CanvasPianoRoll implements RollView {
     });
   }
 
-  /** Draws the notes in view. */
-  private drawNotes(frame: RollFrame, yOf: (t: number) => number, rollHeight: number): void {
-    const { ctx } = this;
-    const { score, position } = frame;
-    const until = position + this.secondsVisible;
-    const { notes } = score;
-    // A tile is as long as its note is written: a repeated note's tiles touch. (That the finger
-    // leaves the key between them is shown on the keyboard: see soundingAt.)
-    for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < notes.length; i++) {
-      const note = notes[i]!;
-      if (note.start > until) break;
-      const end = noteEnd(note);
-      if (end < position) continue;
-      const key = this.keys.get(note.pitch);
-      if (!key) continue;
-
-      const enabled = frame.isHandEnabled(note.hand);
-
-      const top = yOf(end);
-      const bottom = Math.min(rollHeight, yOf(note.start));
-      const inset = key.black ? TILE.inset.black : TILE.inset.white;
-      if (frame.picked?.includes(i)) this.drawPicked(key.x + inset, top, key.width - inset * 2, bottom - top);
-      ctx.globalAlpha = enabled ? 1 : MUTED_ALPHA;
-      ctx.fillStyle = this.colors.hand[note.hand];
-      ctx.beginPath();
-      ctx.roundRect(key.x + inset, top, key.width - inset * 2, Math.max(TILE.shortest, bottom - top), TILE.radius);
-      ctx.fill();
-      const finger = frame.fingers?.[i];
-      if (finger) this.drawFinger(finger, key, top, bottom, enabled);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  /** How wide the widest figure of a finger is, for its height, in the face this system draws. */
-  private digitWidth(): number {
-    const { ctx } = this;
-    ctx.font = fingerFont(100);
-    return Math.max(...['1', '2', '3', '4', '5'].map((figure) => ctx.measureText(figure).width)) / 100;
-  }
-
-  /** The note being given a finger: a ring round its tile, as the staff rings its head. */
-  private drawPicked(x: number, top: number, width: number, height: number): void {
-    const { ctx } = this;
-    // (Its pen is its own: the keys' borders are drawn after, with the pen as it is left.)
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = this.colors.loopEdge;
-    ctx.lineWidth = PICKED_RING_PX;
-    ctx.beginPath();
-    ctx.roundRect(x - PICKED_RING_PX, top - PICKED_RING_PX, width + PICKED_RING_PX * 2, Math.max(TILE.shortest, height) + PICKED_RING_PX * 2, TILE.radius + PICKED_RING_PX);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  /** A finger on its tile, at the end that comes to the key first; a hint paler, as on the staff. */
-  private drawFinger(finger: Fingering, key: KeyRect, top: number, bottom: number, enabled: boolean): void {
-    const { ctx } = this;
-    const size = this.fingerSize;
-    // (Only where it can be read: on keys wide enough for a figure, on a tile long enough for it.)
-    if (size < MIN_FINGER_PX || bottom - top < size + 2 * FINGER_CLEARANCE_PX) return;
-    ctx.globalAlpha = (enabled ? 1 : MUTED_ALPHA) * (finger.hint ? HINT_ALPHA : 1);
-    ctx.fillStyle = this.colors.whiteKey;
-    ctx.font = fingerFont(size);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(finger.text, key.x + key.width / 2, bottom - FINGER_CLEARANCE_PX);
-  }
-
-  private drawKeyboard(
-    top: number,
-    height: number,
-    active: Map<number, Hand>,
-    noteLabel: (midi: number) => string,
-  ): void {
-    const { ctx } = this;
-    const blackHeight = height * BLACK_KEY.length;
-    for (const black of [false, true]) {
-      for (const [pitch, key] of this.keys) {
-        if (key.black !== black) continue;
-        const hand = active.get(pitch);
-        ctx.fillStyle = hand ? this.colors.hand[hand] : black ? this.colors.blackKey : this.colors.whiteKey;
-        const keyHeight = black ? blackHeight : height;
-        ctx.fillRect(key.x, top, key.width, keyHeight);
-        if (!black) {
-          ctx.strokeStyle = this.colors.keyBorder;
-          ctx.strokeRect(key.x + 0.5, top + 0.5, key.width - 1, keyHeight - 1);
-        }
-      }
-    }
-    this.drawDoLabels(top + height, noteLabel);
-  }
-
-  /** Every Do is labelled as a landmark for finding your place on the keyboard. */
-  private drawDoLabels(bottom: number, noteLabel: (midi: number) => string): void {
-    const { ctx } = this;
-    const fontSize = Math.max(DO_LABEL.smallest, Math.min(DO_LABEL.largest, this.width / DO_LABEL.perWidth));
-    ctx.font = `${fontSize}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = this.colors.keyLabel;
-    for (const [midi, key] of this.keys) {
-      if (midi % 12 === 0) ctx.fillText(noteLabel(midi), key.x + key.width / 2, bottom - DO_LABEL.above);
-    }
-    ctx.textAlign = 'start';
-  }
-}
-
-function layoutKeys(whiteWidth: number, range: KeyRange): Map<number, KeyRect> {
-  const blackWidth = whiteWidth * BLACK_KEY.width;
-  const keys = new Map<number, KeyRect>();
-  let whiteIndex = 0;
-  for (let pitch = range.low; pitch <= range.high; pitch++) {
-    if (isBlackKey(pitch)) {
-      keys.set(pitch, { x: whiteIndex * whiteWidth - blackWidth / 2, width: blackWidth, black: true });
-    } else {
-      keys.set(pitch, { x: whiteIndex * whiteWidth, width: whiteWidth, black: false });
-      whiteIndex++;
-    }
-  }
-  return keys;
 }

@@ -154,6 +154,7 @@ src/
                        narrow, the keyboard scrolls and a lazy camera follows the music
                        (keyboardCamera); swipe or Shift+wheel to look around. Pedal moves
                        fall as plain labels ("Pedal ↓", "Left pedal ↑"…) beside three pedals.
+                       The roll/ folder holds its parts: the keyboard, the pedals, the tiles.
                        SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
                        the notation as the domain engraves it; staffLayout says how wide bars
