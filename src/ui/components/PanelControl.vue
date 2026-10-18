@@ -54,7 +54,7 @@ function close(): void {
 /* (Not "panel": a sheet's own box is called so, and a style of this component reaches the root of a child.) */
 .beside {
   box-sizing: border-box;
-  width: 300px;
+  width: var(--panel-width);
   padding: var(--space-4);
 }
 </style>

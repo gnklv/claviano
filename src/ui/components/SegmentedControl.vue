@@ -50,7 +50,7 @@ const model = defineModel<T>({ required: true });
   color: var(--muted);
   font: inherit;
   font-size: var(--text-xs);
-  padding: 5px 10px;
+  padding: var(--space-1) var(--space-3);
   cursor: pointer;
 }
 

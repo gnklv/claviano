@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSlider from './AppSlider.vue';
 import SettingRow from './SettingRow.vue';
 import type { SoundPart } from '../../application/ports/AudioOutput';
 import { useMirror } from '../composables/useMirror';
@@ -18,14 +19,14 @@ const { volume } = useDeps();
 const percent = (part: SoundPart) => Math.round(volume.of(part) * 100);
 const levels = useMirror(volume, () => ({ instrument: percent('instrument'), metronome: percent('metronome') }));
 
-function set(part: SoundPart, event: Event): void {
-  volume.set(part, Number((event.target as HTMLInputElement).value) / 100);
+function set(part: SoundPart, percent: number): void {
+  volume.set(part, percent / 100);
 }
 </script>
 
 <template>
   <SettingRow v-for="{ part, label } in PARTS" :key="part" tag="label" :label="t(label)">
-    <input class="slider" type="range" min="0" max="100" step="5" :value="levels[part]" :style="{ '--fill': `${levels[part]}%` }" @input="set(part, $event)" />
+    <AppSlider :step="5" :model-value="levels[part]" @update:model-value="set(part, $event)" />
     <output class="value">{{ levels[part] }}%</output>
   </SettingRow>
 </template>

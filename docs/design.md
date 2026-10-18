@@ -51,7 +51,9 @@ component names the token; it never writes a colour.
 - **Everything else in the system's own face** (`--font-text`): buttons, labels, numbers. A control
   is not a title, however large.
 - **Five sizes**, `--text-xs` to `--text-xl`; `--text-m` is the size of the page. A field under a
-  finger is never under 16px (`--text-field`): an iPhone zooms the page into a smaller one.
+  finger is never under 16px (`--text-field`): an iPhone zooms the page into a smaller one. Two
+  more for their one place: the captions on the keys (`--text-key`) and the beats counted in before
+  the music (`--text-count`, as large as the screen allows).
 - Numbers that change in place (a bar, a tempo, a percentage) are tabular, so that nothing shifts.
 - A note that stands for a tempo ("a quarter = 90") is of the music font, as on the staff
   (`TempoMark`).
@@ -111,7 +113,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `AppButton` | an icon, words, or both | something is done. `primary`: the screen's one main action. `quiet`: it stands over something else |
 | `ToggleChip` | on or off | what is switched while playing; one of a few values |
 | `SegmentedControl` | one of a few, all in sight | a view, a theme, a time signature |
-| slider (`input[type=range]`) | a level, or a place | volume, tempo, the place in the piece. Whoever sets its value sets `--fill` beside it |
+| `AppSlider` | a level | volume, tempo. (The place in the piece is the same slider by hand: it is set at every frame, past Vue, and sets its own `--fill`) |
 | `TextField` | a name, a number | |
 | `PieceTile` | a piece on a shelf | one's own pieces and the demos |
 | `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main` |
@@ -121,7 +123,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `SettingRow` | what is set, and the control that sets it | the rows of a sheet |
 | `SheetDialog` | a panel from the side (from below on a phone) | what is set once in a while, and what a phone's bar has no room for |
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
-| `PanelControl` | a button with what it sets behind it: a `PopOver`, a sheet on a phone | the tempo, the bookmarks |
+| `PanelControl` | a button with what it sets behind it: a `PopOver`, a sheet on a phone | the tempo, the bookmarks. As wide as a sheet (`--panel-width`) |
 | `MenuList` | the choices of a menu | inside a `PopOver` |
 | `AppIcon` | an icon of the set | |
 | `TempoMark` | a tempo as the page writes it | |

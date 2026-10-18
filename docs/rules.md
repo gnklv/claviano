@@ -68,9 +68,9 @@ are in [design.md](design.md); these are the ones most easily broken:
   icon is drawn in the manner of the others and shows itself on the design page.
 - **Under a finger, everything pressable is 44 px at the least.**
 - **The interface is built of the components** (`AppButton`, `ToggleChip`, `SegmentedControl`,
-  `TextField`, `PieceTile`, `ActionTile`, `ScreenHeader`, `SectionHeading`, `AppNotice`,
-  `SettingRow`, `SheetDialog`, `PopOver`, `PanelControl`, `MenuList`, `AppIcon`): a screen does not write a button or a field of
-  its own.
+  `AppSlider`, `TextField`, `PieceTile`, `ActionTile`, `ScreenHeader`, `SectionHeading`,
+  `AppNotice`, `SettingRow`, `SheetDialog`, `PopOver`, `PanelControl`, `MenuList`, `AppIcon`): a
+  screen does not write a button, a field or a slider of its own.
 - **What moves takes its time from the tokens**: three durations and one curve, said in
   `ui/styles.css`. Less motion, where a person asks for it, is honoured there, once.
 - **A new component is added to the design page** (`#/design`) in the commit that adds it.

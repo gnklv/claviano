@@ -17,7 +17,7 @@ const beat = useFrameValue(() => playback.countInBeat);
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: clamp(72px, 20vmin, 180px);
+  font-size: var(--text-count);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);

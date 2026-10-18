@@ -4,6 +4,7 @@ import ActionTile from '../components/ActionTile.vue';
 import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
+import AppSlider from '../components/AppSlider.vue';
 import FingerBar from '../components/FingerBar.vue';
 import MenuList from '../components/MenuList.vue';
 import PanelControl from '../components/PanelControl.vue';
@@ -127,8 +128,8 @@ const finger = ref('');
 
       <SectionHeading>Slider</SectionHeading>
       <div class="row start">
-        <input v-model.number="level" class="slider" type="range" min="0" max="100" aria-label="An example" :style="{ '--fill': `${level}%` }" />
-        <input class="slider" type="range" min="0" max="100" value="30" disabled aria-label="Disabled" style="--fill: 30%" />
+        <AppSlider v-model="level" class="slider" label="An example" />
+        <AppSlider :model-value="30" class="slider" label="Disabled" disabled />
         <span class="caption">{{ level }}%</span>
       </div>
 
@@ -206,7 +207,7 @@ const finger = ref('');
       <div class="rows">
         <SettingRow label="A choice"><SegmentedControl v-model="view" :options="VIEWS" label="A choice" /></SettingRow>
         <SettingRow tag="label" label="A level">
-          <input v-model.number="level" class="slider" type="range" min="0" max="100" :style="{ '--fill': `${level}%` }" />
+          <AppSlider v-model="level" class="slider" />
         </SettingRow>
       </div>
 
@@ -217,7 +218,7 @@ const finger = ref('');
         <SheetDialog ref="sheet" title="A sheet">
           <SettingRow label="A choice"><SegmentedControl v-model="view" :options="VIEWS" label="A choice" /></SettingRow>
           <SettingRow tag="label" label="A level">
-            <input v-model.number="level" class="slider" type="range" min="0" max="100" :style="{ '--fill': `${level}%` }" />
+            <AppSlider v-model="level" class="slider" />
           </SettingRow>
         </SheetDialog>
       </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppButton from './AppButton.vue';
+import AppSlider from './AppSlider.vue';
 import AppNotice from './AppNotice.vue';
 import SegmentedControl from './SegmentedControl.vue';
 import SettingRow from './SettingRow.vue';
@@ -66,16 +67,7 @@ const percent = computed({
       </output>
       <AppButton class="step" icon="plus" :disabled="percent >= RANGE.max" :label="t('tempoFaster')" @click="stepTempo(playback, 1)" />
     </div>
-    <input
-      v-model.number="percent"
-      class="slider"
-      type="range"
-      :min="RANGE.min"
-      :max="RANGE.max"
-      :step="RANGE.step"
-      :aria-label="t('tempo')"
-      :style="{ '--fill': `${((percent - RANGE.min) / (RANGE.max - RANGE.min)) * 100}%` }"
-    />
+    <AppSlider v-model="percent" class="slider" :min="RANGE.min" :max="RANGE.max" :step="RANGE.step" :label="t('tempo')" />
     <div class="presets">
       <ToggleChip v-for="preset in PRESETS" :key="preset" class="preset" :pressed="percent === preset" @update:pressed="percent = preset">
         {{ preset }}

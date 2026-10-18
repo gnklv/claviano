@@ -126,7 +126,7 @@ useWindowListener('keyup', onKeyUp);
 .app.dragging::after {
   content: attr(data-drop-hint);
   position: absolute;
-  inset: 12px;
+  inset: var(--space-3);
   z-index: 10;
   display: grid;
   place-items: center;

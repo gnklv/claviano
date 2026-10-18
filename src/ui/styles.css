@@ -60,7 +60,7 @@
  * whenever the theme changes.
  */
 :root {
-  /* Type: five sizes, and two for special places. */
+  /* Type: five sizes, and three for special places. */
   --text-xs: 12px;
   --text-s: 13px;
   --text-m: 14px;
@@ -75,6 +75,8 @@
   --text-field: 16px;
   /* (The captions on the keys of a keyboard: a key is narrow.) */
   --text-key: 11px;
+  /* (The beats counted in before the music: read from the bench, as large as the screen allows.) */
+  --text-count: clamp(72px, 20vmin, 180px);
 
   /* Corners: fields and small things; buttons, cards and panels; pills. */
   --radius-s: 6px;
@@ -115,6 +117,9 @@
   --touch: 44px;
   /* A slider's thumb: something to take hold of, larger under a finger (see the sliders below). */
   --slider-thumb: 16px;
+
+  /* A panel, by its button or at the side of the screen: a row of settings fits (a word, and a choice of three). */
+  --panel-width: 340px;
 
   /* An icon beside words, and a smaller one inside a line of them. */
   --icon: 20px;
@@ -404,7 +409,8 @@ input,
  * to the system, which paints it in its own blue (and each system in its own way).
  *
  * How far it is inked is told by --fill (a percentage): the browser gives a track no way to know
- * its own value, so whoever sets the value sets that beside it.
+ * its own value, so whoever sets the value sets that beside it (AppSlider does; the transport's
+ * slider, set at every frame, does it by hand).
  */
 input[type='range'] {
   --fill: 0%;

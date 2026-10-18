@@ -124,7 +124,7 @@ function onCancel(event: Event): void {
   /* (One column no wider than the sheet: what is in it wraps or is cut short, and the sheet scrolls one way only.) */
   grid-template-columns: minmax(0, 1fr);
   /* As wide inside as on any screen: the notch of a phone on its side takes its room outside of that. */
-  width: min(calc(340px + env(safe-area-inset-right, 0px)), 100%);
+  width: min(calc(var(--panel-width) + env(safe-area-inset-right, 0px)), 100%);
   padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) var(--space-4);
   overflow: hidden auto;
   border-left: 1px solid var(--border);
