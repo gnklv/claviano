@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import SettingRow from './SettingRow.vue';
+import SettingRow from '../components/SettingRow.vue';
 import { computed } from 'vue';
 import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import SegmentedControl from './SegmentedControl.vue';
+import SegmentedControl from '../components/SegmentedControl.vue';
 
 /* What plays the notes: the sampled piano, or the plain synth that needs nothing fetched. */
 type Sound = 'piano' | 'synth';

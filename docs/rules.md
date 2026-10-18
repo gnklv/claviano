@@ -41,6 +41,14 @@ copy of something written a month before.
 
 ## The interface
 
+- **Two kinds of component, in two folders.** A building component (`ui/components`) does not
+  reach the app: it asks for no `deps`, itself or through a composable or a component it uses. It
+  is given what it shows through props (words, numbers, choices; a value of music where it draws
+  music, as `TempoMark` does) and says what was done through emits; the browser's helpers and the
+  kept choices (`preference`) it may use. A part of a screen (`ui/parts`) reaches the app: a use
+  case, a view drawn through a port. A component goes where it belongs as it changes: one that comes
+  to ask for the deps moves to the parts, in that commit, and back. Being used on two screens does
+  not make a part a building component. (A test holds this: `tests/uiParts.test.ts`.)
 - **A use case is mirrored into a component by one helper** (a snapshot, refreshed on its
   `onChange`), not by a composable written anew for each.
 - **Behaviour that appears twice becomes a component or a composable** before the second copy is
@@ -74,7 +82,9 @@ are in [design.md](design.md); these are the ones most easily broken:
   screen does not write a button, a field or a slider of its own.
 - **What moves takes its time from the tokens**: three durations and one curve, said in
   `ui/styles.css`. Less motion, where a person asks for it, is honoured there, once.
-- **A new component is added to the design page** (`#/design`) in the commit that adds it.
+- **Every building component stands on the design page** (`#/design`), in each state its props
+  switch (a variant, pressed, disabled), from the commit that adds it. The parts of screens do not:
+  the screens' tests show them. (The same test holds this.)
 
 ## Code
 

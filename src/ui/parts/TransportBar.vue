@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import AppButton from './AppButton.vue';
-import BookmarksPanel from './BookmarksPanel.vue';
-import PanelControl from './PanelControl.vue';
-import TextField from './TextField.vue';
-import ToggleChip from './ToggleChip.vue';
+import AppButton from '../components/AppButton.vue';
+import BookmarksPanel from '../parts/BookmarksPanel.vue';
+import PanelControl from '../components/PanelControl.vue';
+import TextField from '../components/TextField.vue';
+import ToggleChip from '../components/ToggleChip.vue';
 import { computed, useTemplateRef } from 'vue';
 import { barAt, barIndexNear, barNumber } from '../../domain/score';
 import { useAnimationFrame } from '../composables/useAnimationFrame';
@@ -14,9 +14,9 @@ import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { usePlaybackState } from '../composables/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import PracticeToggles from './PracticeToggles.vue';
-import SheetDialog from './SheetDialog.vue';
-import TempoControl from './TempoControl.vue';
+import PracticeToggles from '../parts/PracticeToggles.vue';
+import SheetDialog from '../components/SheetDialog.vue';
+import TempoControl from '../parts/TempoControl.vue';
 
 const SEEK_STEPS = 1000;
 const { playback, barLoop, bookmarks } = useDeps();

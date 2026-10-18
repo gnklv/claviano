@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ToggleChip from './ToggleChip.vue';
+import ToggleChip from '../components/ToggleChip.vue';
 import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
 import { useFrameValue } from '../composables/useFrameValue';

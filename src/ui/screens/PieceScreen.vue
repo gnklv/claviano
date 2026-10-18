@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import ScreenHeader from '../components/ScreenHeader.vue';
-import CountInOverlay from '../components/CountInOverlay.vue';
+import CountInOverlay from '../parts/CountInOverlay.vue';
 import FingerBar from '../components/FingerBar.vue';
 import ToggleChip from '../components/ToggleChip.vue';
-import InstrumentNotice from '../components/InstrumentNotice.vue';
-import PianoRoll from '../components/PianoRoll.vue';
-import SettingsPanel from '../components/SettingsPanel.vue';
-import StaffView from '../components/StaffView.vue';
-import TransportBar from '../components/TransportBar.vue';
+import InstrumentNotice from '../parts/InstrumentNotice.vue';
+import PianoRoll from '../parts/PianoRoll.vue';
+import SettingsPanel from '../parts/SettingsPanel.vue';
+import StaffView from '../parts/StaffView.vue';
+import TransportBar from '../parts/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { useFingeredPage } from '../composables/useFingeredPage';
 import { useFingerHints } from '../composables/useFingerHints';

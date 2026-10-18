@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AppButton from './AppButton.vue';
-import ToggleChip from './ToggleChip.vue';
-import TempoMark from './TempoMark.vue';
+import AppButton from '../components/AppButton.vue';
+import ToggleChip from '../components/ToggleChip.vue';
+import TempoMark from '../components/TempoMark.vue';
 import { computed } from 'vue';
 import { METERS, RECORDING_TEMPO, type Meter } from '../../application/use-cases/Recorder';
 import { useFrameValue } from '../composables/useFrameValue';
@@ -9,7 +9,7 @@ import { SHORT_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
 import { useRecorder } from '../composables/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import SegmentedControl from './SegmentedControl.vue';
+import SegmentedControl from '../components/SegmentedControl.vue';
 
 /*
  * Recording what is played: the button that begins and ends it, and the beat it is played to (the

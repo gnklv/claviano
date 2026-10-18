@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import AppButton from './AppButton.vue';
-import AppSlider from './AppSlider.vue';
-import AppNotice from './AppNotice.vue';
-import SegmentedControl from './SegmentedControl.vue';
-import SettingRow from './SettingRow.vue';
-import ToggleChip from './ToggleChip.vue';
+import AppButton from '../components/AppButton.vue';
+import AppSlider from '../components/AppSlider.vue';
+import AppNotice from '../components/AppNotice.vue';
+import SegmentedControl from '../components/SegmentedControl.vue';
+import SettingRow from '../components/SettingRow.vue';
+import ToggleChip from '../components/ToggleChip.vue';
 import type { TempoReading } from '../tempoReading';
-import TempoMark from './TempoMark.vue';
+import TempoMark from '../components/TempoMark.vue';
 import { computed } from 'vue';
 import { PRACTICE_TEMPO, stepTempo } from '../../application/use-cases/stepTempo';
 import { TRAINER_PASSES, TRAINER_STEPS } from '../../application/use-cases/TempoTrainer';

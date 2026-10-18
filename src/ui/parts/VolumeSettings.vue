@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import AppSlider from './AppSlider.vue';
-import SettingRow from './SettingRow.vue';
+import AppSlider from '../components/AppSlider.vue';
+import SettingRow from '../components/SettingRow.vue';
 import type { SoundPart } from '../../application/ports/AudioOutput';
 import { useMirror } from '../composables/useMirror';
 import { useDeps } from '../deps';

@@ -6,8 +6,10 @@ import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
 import AppSlider from '../components/AppSlider.vue';
 import FingerBar from '../components/FingerBar.vue';
+import LanguageSwitch from '../components/LanguageSwitch.vue';
 import MenuList from '../components/MenuList.vue';
 import PanelControl from '../components/PanelControl.vue';
+import PianoKeys from '../components/PianoKeys.vue';
 import PieceCard from '../components/PieceCard.vue';
 import PieceTile from '../components/PieceTile.vue';
 import PopOver from '../components/PopOver.vue';
@@ -20,6 +22,7 @@ import TempoMark from '../components/TempoMark.vue';
 import TextField from '../components/TextField.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
 import ToggleChip from '../components/ToggleChip.vue';
+import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { ICON_NAMES } from '../icons/icons';
 
 /*
@@ -64,6 +67,14 @@ const MENU = [
   { id: 'gone', label: 'What cannot be undone', danger: true },
 ];
 const chosen = ref('');
+/** The keys held on the keyboard to play (it sounds nothing here). */
+const held = ref(new Set<number>());
+const hold = (pitch: number, down: boolean) => {
+  const next = new Set(held.value);
+  if (down) next.add(pitch);
+  else next.delete(pitch);
+  held.value = next;
+};
 /** The finger last chosen in the bar of fingers (it sets nothing here). */
 const finger = ref('');
 </script>
@@ -124,6 +135,11 @@ const finger = ref('');
         <SegmentedControl v-model="view" :options="VIEWS" label="An example" />
         <ThemeSwitch />
         <SegmentedControl v-model="view" :options="VIEWS" label="Held as it is" disabled />
+      </div>
+      <p class="about">Made up already, of a choice kept between visits: the view of a piece, the language. (They set the app's own.)</p>
+      <div class="row start">
+        <ViewModeSwitch />
+        <LanguageSwitch />
       </div>
 
       <SectionHeading>Slider</SectionHeading>
@@ -201,6 +217,12 @@ const finger = ref('');
         <FingerBar :page="null" :picked="{ beat: 0, pitch: 64, hand: 'right' }" @set="finger = $event === null ? 'none' : String($event)" />
       </div>
       <span class="caption">{{ finger && `set: ${finger}` }}</span>
+
+      <SectionHeading>Keys to play</SectionHeading>
+      <p class="about">A keyboard to play on, with fingers, the mouse or the computer's letters: it says what is pressed, and lights what it is told is held.</p>
+      <div class="keys">
+        <PianoKeys :lowest="60" :keys="13" :pressed="held" @press="hold($event, true)" @release="hold($event, false)" />
+      </div>
 
       <SectionHeading>A row of settings</SectionHeading>
       <p class="about">What is set, and the control that sets it. Sheets are made of these.</p>
@@ -333,6 +355,11 @@ const finger = ref('');
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   max-width: 640px;
+}
+
+.keys {
+  /* (As tall as three fingertips: what free play gives it on a phone, near enough.) */
+  height: calc(var(--touch) * 3);
 }
 
 .bars {

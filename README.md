@@ -162,7 +162,8 @@ src/
                        SVG, beams.ts and curves.ts into beam lines and slurs; sounding notes
                        light up. CanvasPlayedTiles — the keys played in free play, as tiles.
   ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
-                     components/ (the building blocks are shown on #/design), composables/.
+                     components/ (the building blocks, all shown on #/design), parts/ (the
+                     parts of screens, which reach the app), composables/.
                      Calls use cases, mirrored by useMirror; per-frame work (canvas, position
                      readout) bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them

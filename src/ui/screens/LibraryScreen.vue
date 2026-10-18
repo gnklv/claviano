@@ -7,7 +7,7 @@ import SectionHeading from '../components/SectionHeading.vue';
 import PieceTile from '../components/PieceTile.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
 import PieceCard from '../components/PieceCard.vue';
-import SettingsPanel from '../components/SettingsPanel.vue';
+import SettingsPanel from '../parts/SettingsPanel.vue';
 import { useLibrary } from '../composables/useLibrary';
 import { usePieceText } from '../composables/usePieceText';
 import { demoPieceId } from '../../application/use-cases/Library';

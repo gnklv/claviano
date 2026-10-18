@@ -3,9 +3,9 @@ import { nextTick, ref, useTemplateRef } from 'vue';
 import { useBookmarks } from '../composables/useBookmarks';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import AppButton from './AppButton.vue';
-import AppNotice from './AppNotice.vue';
-import TextField from './TextField.vue';
+import AppButton from '../components/AppButton.vue';
+import AppNotice from '../components/AppNotice.vue';
+import TextField from '../components/TextField.vue';
 
 /*
  * The piece's bookmarks: a press goes to one (and the panel is done with); one is changed in place

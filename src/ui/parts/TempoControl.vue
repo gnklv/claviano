@@ -6,10 +6,10 @@ import { usePlaybackState } from '../composables/usePlaybackState';
 import { useTrainer } from '../composables/useTrainer';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import PanelControl from './PanelControl.vue';
+import PanelControl from '../components/PanelControl.vue';
 import type { TempoReading } from '../tempoReading';
-import TempoMark from './TempoMark.vue';
-import TempoSettings from './TempoSettings.vue';
+import TempoMark from '../components/TempoMark.vue';
+import TempoSettings from '../parts/TempoSettings.vue';
 
 /*
  * The tempo in the transport bar: a button that says what it is (80%, and a quarter = 96), and behind it

@@ -135,7 +135,8 @@ A screen is built of these, and does not write a button or a field of its own.
   and for what is long. The tempo is both: the same controls, in whichever fits.
 - **A chip or segments?** Segments when the choices exclude one another and are few; chips when
   each is on or off by itself.
-- A new component is added to the design page in the commit that adds it.
+- Every building component (`ui/components`) stands on the design page, from the commit that adds
+  it; the parts of screens (`ui/parts`) do not (see the rules).
 
 ## Screens of different sizes
 
