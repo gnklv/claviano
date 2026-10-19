@@ -2,16 +2,16 @@
 import SettingRow from '../components/SettingRow.vue';
 import AppButton from '../components/AppButton.vue';
 import { computed, useTemplateRef } from 'vue';
-import { useFingerHints } from '../composables/useFingerHints';
+import { useFingerHints } from '../kept/useFingerHints';
 import { useI18n } from '../i18n/useI18n';
-import { useInstall } from '../install/useInstall';
+import { useInstall } from '../browser/useInstall';
 import LanguageSwitch from '../components/LanguageSwitch.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import SheetDialog from '../components/SheetDialog.vue';
-import SoundSettings from '../parts/SoundSettings.vue';
+import SoundSettings from './SoundSettings.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
-import VolumeSettings from '../parts/VolumeSettings.vue';
+import VolumeSettings from './VolumeSettings.vue';
 
 /* What is seldom changed: the sound and how loud it is, the theme, the language. A panel over any screen. */
 

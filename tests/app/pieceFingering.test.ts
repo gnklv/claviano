@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
-import { rereadPreferences } from '../../src/ui/preferences';
+import { rereadPreferences } from '../../src/ui/kept/preferences';
 import { button, fingering, playback, rollFrames, rollPointer, root, settled, staffPointer, staffScores, useApp } from './harness';
 
 /* The piece's screen: one's own fingering, set on the staff or on the falling notes. */

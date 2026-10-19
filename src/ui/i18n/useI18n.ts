@@ -1,6 +1,6 @@
 import { watchEffect } from 'vue';
 import type { MessageKey } from './en';
-import { preference } from '../preferences';
+import { preference } from '../kept/preferences';
 import { noteLabel } from './notes';
 import { LOCALES, translate, type Locale, type Params } from './translate';
 

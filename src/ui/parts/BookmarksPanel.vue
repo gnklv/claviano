@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, useTemplateRef } from 'vue';
-import { useBookmarks } from '../composables/useBookmarks';
+import { useBookmarks } from '../app/useBookmarks';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import AppButton from '../components/AppButton.vue';

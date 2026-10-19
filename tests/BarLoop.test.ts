@@ -8,7 +8,7 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { barRange, EMPTY_SCORE, writtenBarNumber, type Score } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { stepBar } from '../src/application/use-cases/stepBar';
-import { useBarLoop } from '../src/ui/composables/useBarLoop';
+import { useBarLoop } from '../src/ui/app/useBarLoop';
 import { FakeAudio, FakeTicker } from './fakes';
 
 /*

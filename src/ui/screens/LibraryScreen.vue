@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useMirror } from '../composables/useMirror';
-import { TOUCH_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
+import { useMirror } from '../app/useMirror';
+import { TOUCH_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import ActionTile from '../components/ActionTile.vue';
 import AppNotice from '../components/AppNotice.vue';
 import SectionHeading from '../components/SectionHeading.vue';
@@ -8,13 +8,13 @@ import PieceTile from '../components/PieceTile.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
 import PieceCard from '../components/PieceCard.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
-import { useLibrary } from '../composables/useLibrary';
-import { usePieceText } from '../composables/usePieceText';
+import { useLibrary } from '../app/useLibrary';
+import { usePieceText } from '../app/usePieceText';
 import { demoPieceId } from '../../application/use-cases/Library';
 import { useDeps, type Demo } from '../deps';
 import { relativeDay } from '../i18n/relativeDay';
 import { useI18n } from '../i18n/useI18n';
-import { saveFile } from '../saveFile';
+import { saveFile } from '../browser/saveFile';
 
 /*
  * Where the app starts. On top, what can be begun: opening a file, playing something of one's

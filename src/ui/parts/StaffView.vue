@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useGlide } from '../composables/useGlide';
+import { useGlide } from '../motion/useGlide';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import type { NoteOnPage } from '../../domain/fingering/own';
 import { timeAtPage, writtenBarNumber, type Score } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useDrawnView } from '../composables/useDrawnView';
-import { usePlaybackState } from '../composables/usePlaybackState';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useDrawnView } from '../browser/useDrawnView';
+import { usePlaybackState } from '../app/usePlaybackState';
 import type { Hand } from '../../domain/note';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';

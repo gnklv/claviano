@@ -5,13 +5,13 @@ import AppNotice from '../components/AppNotice.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import SettingRow from '../components/SettingRow.vue';
 import ToggleChip from '../components/ToggleChip.vue';
-import type { TempoReading } from '../tempoReading';
+import type { TempoReading } from '../components/tempoReading';
 import TempoMark from '../components/TempoMark.vue';
 import { computed } from 'vue';
 import { PRACTICE_TEMPO, stepTempo } from '../../application/use-cases/stepTempo';
 import { TRAINER_PASSES, TRAINER_STEPS } from '../../application/use-cases/TempoTrainer';
-import { useTrainer } from '../composables/useTrainer';
-import { usePlaybackState } from '../composables/usePlaybackState';
+import { useTrainer } from '../app/useTrainer';
+import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 

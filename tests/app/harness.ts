@@ -26,8 +26,8 @@ import { MusicXmlParser } from '../../src/infrastructure/parsers/MusicXmlParser'
 import { MidiFileWriter } from '../../src/infrastructure/writers/MidiFileWriter';
 import App from '../../src/ui/App.vue';
 import { depsKey } from '../../src/ui/deps';
-import { rereadPreferences } from '../../src/ui/preferences';
-import { listenForInstall } from '../../src/ui/install/useInstall';
+import { rereadPreferences } from '../../src/ui/kept/preferences';
+import { listenForInstall } from '../../src/ui/browser/useInstall';
 import { startTheme } from '../../src/ui/theme/useTheme';
 import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from '../fakes';
 

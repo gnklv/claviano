@@ -34,7 +34,7 @@ import { IntervalTicker } from './infrastructure/timing/IntervalTicker';
 import { MidiFileWriter } from './infrastructure/writers/MidiFileWriter';
 import App from './ui/App.vue';
 import { depsKey, type Demo } from './ui/deps';
-import { listenForInstall } from './ui/install/useInstall';
+import { listenForInstall } from './ui/browser/useInstall';
 import { startTheme } from './ui/theme/useTheme';
 import './ui/styles.css';
 

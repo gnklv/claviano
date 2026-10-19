@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NoteValue } from '../../domain/notation/noteValue';
-import type { TempoReading } from '../tempoReading';
+import type { TempoReading } from './tempoReading';
 
 /*
  * A tempo written as in the music (a quarter = 90): the note is of the music font, the same that draws it

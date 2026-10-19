@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import AppButton from '../components/AppButton.vue';
-import BookmarksPanel from '../parts/BookmarksPanel.vue';
+import BookmarksPanel from './BookmarksPanel.vue';
 import PanelControl from '../components/PanelControl.vue';
 import TextField from '../components/TextField.vue';
 import ToggleChip from '../components/ToggleChip.vue';
 import { computed, useTemplateRef } from 'vue';
 import { barAt, barIndexNear, barNumber } from '../../domain/score';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useFrameValue } from '../composables/useFrameValue';
-import { useBarLoop } from '../composables/useBarLoop';
-import { useBookmarks } from '../composables/useBookmarks';
-import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
-import { usePlaybackState } from '../composables/usePlaybackState';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useFrameValue } from '../browser/useFrameValue';
+import { useBarLoop } from '../app/useBarLoop';
+import { useBookmarks } from '../app/useBookmarks';
+import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
-import PracticeToggles from '../parts/PracticeToggles.vue';
+import PracticeToggles from './PracticeToggles.vue';
 import SheetDialog from '../components/SheetDialog.vue';
-import TempoControl from '../parts/TempoControl.vue';
+import TempoControl from './TempoControl.vue';
 
 const SEEK_STEPS = 1000;
 const { playback, barLoop, bookmarks } = useDeps();

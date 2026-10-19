@@ -57,11 +57,14 @@ copy of something written a month before.
 - **No state at the top of a module that a test cannot reset.** A listener or a ref made when a
   file is imported lives through every test after it. State is made where it is used, or the
   module gives a way to start it afresh.
-- **The browser is touched in few places.** A choice of the interface kept between visits is a
-  `preference` (`ui/preferences.ts`); the width of the screen is asked through `useMediaQuery`; a
-  listener on the window is `useWindowListener`, an element's size `useResize`, and a view drawn
-  into an element (a staff, a canvas) `useDrawnView`. `localStorage`, `matchMedia`, `ResizeObserver`
-  and listeners on `window` are not used straight from a component.
+- **The browser is touched in few places**, and they stand in `ui/browser`: the width of the screen
+  is asked through `useMediaQuery`; a listener on the window is `useWindowListener`, an element's
+  size `useResize`, and a view drawn into an element (a staff, a canvas) `useDrawnView`. A choice of
+  the interface kept between visits is a `preference` (`ui/kept`). `localStorage`, `matchMedia`,
+  `ResizeObserver` and listeners on `window` are not used straight from a component.
+- **The rest of `ui` by what it is**: `app/` mirrors the use cases (`useMirror` and the snapshots made
+  with it), `motion/` the glides and what goes away by itself, `navigation/` the screens' addresses
+  and the keys of the computer, `theme/` the theme and the canvases' colours, `i18n/` and `icons/`.
 
 ## The look
 

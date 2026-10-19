@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted, useTemplateRef, watch } from 'vue';
+import { onUnmounted, useTemplateRef } from 'vue';
 import type { PlayedTile, TilesView } from '../../application/ports/TilesView';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useDrawnView } from '../composables/useDrawnView';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useDrawnView } from '../browser/useDrawnView';
 import { readRollColors } from '../theme/readRollColors';
 import { useDeps } from '../deps';
-import { useTheme } from '../theme/useTheme';
+import { useCanvasColors } from '../theme/useCanvasColors';
 
 /*
  * What has just been played, over the keyboard: tiles that rise from the keys (see TilesView).
@@ -14,7 +14,6 @@ import { useTheme } from '../theme/useTheme';
 const props = defineProps<{ lowest: number; keys: number }>();
 
 const { freePlay, createTiles } = useDeps();
-const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
 let played: PlayedTile[] = [];
@@ -24,8 +23,8 @@ const stopListening = freePlay.onKey((pitch, down, at) => {
   else played = played.map((tile) => (tile.pitch === pitch && tile.end === null ? { ...tile, end: at } : tile));
 });
 
-/** The hands' colours, from the theme: a canvas cannot follow CSS variables by itself. */
-const colors = () => readRollColors().hand;
+/** The hands' colours, from the theme. */
+const colors = useCanvasColors(() => readRollColors().hand, () => tiles.view);
 
 function draw(): void {
   const view = tiles.view;
@@ -44,7 +43,6 @@ const tiles = useDrawnView(
   () => draw(),
 );
 onUnmounted(stopListening);
-watch(theme, () => tiles.view?.setColors(colors()), { flush: 'post' });
 useAnimationFrame(draw);
 </script>
 

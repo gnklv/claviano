@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useGlide } from '../composables/useGlide';
-import { useTemplateRef, watch } from 'vue';
+import { useTemplateRef } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { PedalMove, RollView } from '../../application/ports/RollView';
 import type { Fingering } from '../../domain/fingering/own';
 import type { Hand } from '../../domain/note';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useDrawnView } from '../composables/useDrawnView';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useDrawnView } from '../browser/useDrawnView';
 import { useDeps } from '../deps';
+import { useGlide } from '../motion/useGlide';
 import { useI18n } from '../i18n/useI18n';
 import { readRollColors } from '../theme/readRollColors';
-import { useTheme } from '../theme/useTheme';
+import { useCanvasColors } from '../theme/useCanvasColors';
 
 /**
  * `fingers`: the finger for each of the piece's notes, printed on its tile; `picked`: the notes
@@ -26,9 +26,9 @@ const PEDAL_LABELS = {
   soft: { press: 'softPedalPress', release: 'softPedalRelease', change: 'softPedalChange' },
   sostenuto: { press: 'sostenutoPedalPress', release: 'sostenutoPedalRelease', change: 'sostenutoPedalChange' },
 } as const;
-const { theme } = useTheme();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 
+const colors = useCanvasColors(readRollColors, () => roll.view);
 /*
  * Resizing a canvas wipes it, and the browser tells of a new size after the frame's drawing is
  * done: drawn again at once, or the frame goes out blank (a blink at every step while the stage
@@ -36,12 +36,9 @@ const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
  */
 const roll = useDrawnView(
   canvas,
-  (element): RollView => createRoll(element, readRollColors()),
+  (element): RollView => createRoll(element, colors()),
   () => draw(),
 );
-
-// Canvas can't follow CSS variables by itself; re-read them once the new theme is applied.
-watch(theme, () => roll.view?.setColors(readRollColors()), { flush: 'post' });
 
 // Drawn outside Vue's reactivity: 60 fps straight from Playback to the canvas.
 useAnimationFrame(draw);

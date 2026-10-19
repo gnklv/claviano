@@ -102,7 +102,7 @@ Before the next steps, in this order (agreed after a review of the code and of t
   - [x] the tiles of free play are drawn in `infrastructure/render`, behind a port, as the
     falling notes are (and the linter holds it: no canvas is drawn in `ui`);
   - [x] the app's tests by screen (`tests/app`), on one harness, with nothing left over from one
-    test to the next; and with it one way of keeping the interface's choices (`ui/preferences.ts`:
+    test to the next; and with it one way of keeping the interface's choices (`ui/kept/preferences.ts`:
     the view, the theme, the language, the hints), read afresh for each test.
 - [x] A design system, each step looked at before the next:
   - the character: a pianist's notebook. Paper and ink; titles in a serif, as words in sheet music

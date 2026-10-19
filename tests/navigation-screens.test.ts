@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createNavigation, pieceAt, screenAt, type Navigation } from '../src/ui/navigation/useScreen';
+import { createNavigation, pieceAt, screenAt, type Navigation } from '../src/ui/navigation/navigation';
 
 /* Which screen is shown, and how the browser's Back and Forward move between them. */
 

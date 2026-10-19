@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { tempoMarkAt, writtenBeatAt } from '../../domain/score';
-import { useFrameValue } from '../composables/useFrameValue';
-import { usePlaybackState } from '../composables/usePlaybackState';
-import { useTrainer } from '../composables/useTrainer';
+import { useFrameValue } from '../browser/useFrameValue';
+import { usePlaybackState } from '../app/usePlaybackState';
+import { useTrainer } from '../app/useTrainer';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import PanelControl from '../components/PanelControl.vue';
-import type { TempoReading } from '../tempoReading';
+import type { TempoReading } from '../components/tempoReading';
 import TempoMark from '../components/TempoMark.vue';
-import TempoSettings from '../parts/TempoSettings.vue';
+import TempoSettings from './TempoSettings.vue';
 
 /*
  * The tempo in the transport bar: a button that says what it is (80%, and a quarter = 96), and behind it

@@ -7,8 +7,8 @@ import PlayedRoll from '../parts/PlayedRoll.vue';
 import RecordBar from '../parts/RecordBar.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
 import TakeStaff from '../parts/TakeStaff.vue';
-import { useFreePlay } from '../composables/useFreePlay';
-import { useRecorder } from '../composables/useRecorder';
+import { useFreePlay } from '../app/useFreePlay';
+import { useRecorder } from '../app/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 

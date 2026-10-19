@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useOfferedViewModes, useShownViewMode, type ViewMode } from '../composables/useViewMode';
+import { useOfferedViewModes, useShownViewMode, type ViewMode } from '../kept/useViewMode';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
 import SegmentedControl from './SegmentedControl.vue';

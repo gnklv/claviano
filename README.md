@@ -163,9 +163,11 @@ src/
                        light up. CanvasPlayedTiles — the keys played in free play, as tiles.
   ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
                      components/ (the building blocks, all shown on #/design), parts/ (the
-                     parts of screens, which reach the app), composables/.
-                     Calls use cases, mirrored by useMirror; per-frame work (canvas, position
-                     readout) bypasses reactivity.
+                     parts of screens, which reach the app). app/ mirrors the use cases
+                     (useMirror); kept/ the choices kept between visits; browser/ the few
+                     places that touch the browser; motion/, navigation/ (the addresses and the
+                     keys of the computer), theme/. Per-frame work (canvas, position readout)
+                     bypasses reactivity.
     i18n/              Own tiny i18n: en.ts defines the keys, ru.ts must provide all of them
                        (checked by TypeScript). Plurals via Intl.PluralRules. Note labels:
                        C4 in English, До1 in Russian (Russian octave numbering).

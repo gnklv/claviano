@@ -2,7 +2,7 @@
 import AppSlider from '../components/AppSlider.vue';
 import SettingRow from '../components/SettingRow.vue';
 import type { SoundPart } from '../../application/ports/AudioOutput';
-import { useMirror } from '../composables/useMirror';
+import { useMirror } from '../app/useMirror';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';

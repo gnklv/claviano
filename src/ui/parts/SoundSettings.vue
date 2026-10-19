@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SettingRow from '../components/SettingRow.vue';
 import { computed } from 'vue';
-import { useMirror } from '../composables/useMirror';
+import { useMirror } from '../app/useMirror';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import SegmentedControl from '../components/SegmentedControl.vue';

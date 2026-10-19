@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { effectScope } from 'vue';
-import { useMirror } from '../src/ui/composables/useMirror';
+import { useMirror } from '../src/ui/app/useMirror';
 
 /* A use case mirrored into a component: a stand-in that counts, and tells when it has. */
 

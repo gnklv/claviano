@@ -140,7 +140,7 @@ A screen is built of these, and does not write a button or a field of its own.
 
 ## Screens of different sizes
 
-Three kinds of screen are told apart, by name (`ui/composables/useMediaQuery.ts`):
+Three kinds of screen are told apart, by name (`ui/browser/useMediaQuery.ts`):
 
 - **narrow** (under 600px wide): a phone held upright. One column; what is set once a session goes
   into a sheet.

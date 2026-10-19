@@ -1,6 +1,6 @@
 import { computed, type ComputedRef, type WritableComputedRef } from 'vue';
-import { preference } from '../preferences';
-import { SMALL_SCREEN, useMediaQuery } from './useMediaQuery';
+import { preference } from './preferences';
+import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 
 export type ViewMode = 'staff' | 'keys' | 'both';
 

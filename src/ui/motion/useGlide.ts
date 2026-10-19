@@ -1,6 +1,6 @@
 import { onScopeDispose } from 'vue';
-import { Glide } from '../motion/glide';
-import { useMediaQuery } from './useMediaQuery';
+import { Glide } from './glide';
+import { useMediaQuery } from '../browser/useMediaQuery';
 
 /**
  * A glide for something a component lets be drawn along by hand (see ui/motion/glide.ts): `move`

@@ -2,8 +2,8 @@
 import ToggleChip from '../components/ToggleChip.vue';
 import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
-import { useFrameValue } from '../composables/useFrameValue';
-import { usePlaybackState } from '../composables/usePlaybackState';
+import { useFrameValue } from '../browser/useFrameValue';
+import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';

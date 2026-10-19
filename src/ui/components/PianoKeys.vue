@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue';
-import { useResize } from '../composables/useResize';
-import { useWindowListener } from '../composables/useWindowListener';
+import { useResize } from '../browser/useResize';
+import { useWindowListener } from '../browser/useWindowListener';
 import { handBySplitPoint } from '../../domain/note';
 import { isBlackKey } from '../../domain/pitch';
 import { BLACK_KEY_WIDTH, keyPlace } from '../../domain/keyboard';

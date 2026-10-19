@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, useTemplateRef, watch } from 'vue';
-import { SMALL_SCREEN, useMediaQuery } from '../composables/useMediaQuery';
+import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import type { IconName } from '../icons/icons';
 import AppButton from './AppButton.vue';
 import PopOver from './PopOver.vue';

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useGlide } from '../composables/useGlide';
+import { useGlide } from '../motion/useGlide';
 import { onMounted, useTemplateRef, watch } from 'vue';
 import type { StaffView } from '../../application/ports/StaffView';
-import { useAnimationFrame } from '../composables/useAnimationFrame';
-import { useDrawnView } from '../composables/useDrawnView';
-import { useRecorder } from '../composables/useRecorder';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useDrawnView } from '../browser/useDrawnView';
+import { useRecorder } from '../app/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 

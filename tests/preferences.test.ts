@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { preference, rereadPreferences } from '../src/ui/preferences';
+import { preference, rereadPreferences } from '../src/ui/kept/preferences';
 
 /* The interface's choices, kept in the browser's storage. (Each test has a key of its own: a choice is one for the whole page.) */
 

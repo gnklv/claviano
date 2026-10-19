@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useFrameValue } from '../composables/useFrameValue';
+import { useFrameValue } from '../browser/useFrameValue';
 import { useDeps } from '../deps';
 
 /** The count-in beat, big over the music: "1", "2", "3", "4", then the music starts. */

@@ -1,6 +1,6 @@
 import { computed, effectScope, readonly, ref, watch, type EffectScope, type Ref } from 'vue';
-import { useMediaQuery } from '../composables/useMediaQuery';
-import { preference } from '../preferences';
+import { useMediaQuery } from '../browser/useMediaQuery';
+import { preference } from '../kept/preferences';
 import { DEFAULT_THEME_SETTING, THEME_SETTINGS, resolveTheme, type Theme, type ThemeSetting } from './resolveTheme';
 
 /** Also read by the inline script in index.html, which sets the theme before the first paint. */
