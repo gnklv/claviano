@@ -301,6 +301,11 @@ the research for steps 16, 18 and 19; checks on real devices and on GitHub Pages
 
 Small things noticed, to fix between the steps:
 
+- [ ] A double tap zooms the page on an iPhone, though the page asks it not to (`touch-action:
+      manipulation` on `html`, styles.css): Safari only takes it as a wish. The keys of free play
+      are kept from it by refusing the touches their default too (PianoKeys.vue). Nowhere is it
+      wanted: the same for the whole app (the staff and the falling notes, the transport, the
+      empty room around), pinching to zoom left as it is; checked on the iPhone
 - [ ] To think over: a long press on a note (of the staff, or its falling tile) to set its finger at
       once, without "Fingers" first. Quicker, but a gesture one has to know of: beside the button,
       not in place of it
