@@ -8,6 +8,8 @@ import { BarLoop } from '../../src/application/use-cases/BarLoop';
 import { Bookmarks } from '../../src/application/use-cases/Bookmarks';
 import { OwnFingering } from '../../src/application/use-cases/OwnFingering';
 import { PieceWay } from '../../src/application/use-cases/PieceWay';
+import { PracticePlan } from '../../src/application/use-cases/PracticePlan';
+import { followPlan } from '../../src/application/use-cases/followPlan';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
 import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
@@ -43,6 +45,7 @@ export let playback: Playback;
 export let bookmarks: Bookmarks;
 export let fingering: OwnFingering;
 export let way: PieceWay;
+export let plan: PracticePlan;
 export let volume: Volume;
 export let app: VueApp;
 export let shelf: FakePieceShelf;
@@ -157,7 +160,9 @@ export function useApp(): void {
     bookmarks = new Bookmarks(playback, barLoop);
     fingering = new OwnFingering(playback);
     way = new PieceWay(playback, barLoop, trainer);
-    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way });
+    plan = new PracticePlan(playback);
+    followPlan(plan, { playback, barLoop, trainer, way });
+    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way, plan });
     const freePlay = new FreePlay(audio);
     const instrument = new FakeInstrument();
     keepInstrumentPrepared(playback, freePlay, instrument);
@@ -169,6 +174,7 @@ export function useApp(): void {
       bookmarks,
       fingering,
       way,
+      plan,
       volume,
       instrument,
       openScore,

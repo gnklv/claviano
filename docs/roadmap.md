@@ -222,7 +222,8 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         metronome, the view), learning has the plan, the loop, the hands, the trainer and the
         editing of one's own fingers (the fingering is shown in both, where it is shown at all);
         what learning had set comes back with it, and a step of the plan touched by hand pauses.
-        In order (done so far: the trainer's steps back, the two ways, `PieceWay`): the trainer's
+        In order (done so far: the trainer's steps back, the two ways, `PieceWay`; the parts and steps,
+        `domain/practice`; the plan followed and kept, `PracticePlan` and `followPlan`): the trainer's
         steps back; the two ways; the parts and steps (the slow ones at
         60%, a part joined to the one before it, and the whole piece at the end); the plan kept
         with the piece; the bar of the step and the list of steps, in "Learn". Why: what predicts how a passage is played the next day is

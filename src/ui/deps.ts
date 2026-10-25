@@ -7,6 +7,7 @@ import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { Bookmarks } from '../application/use-cases/Bookmarks';
 import type { OwnFingering } from '../application/use-cases/OwnFingering';
 import type { PieceWay } from '../application/use-cases/PieceWay';
+import type { PracticePlan } from '../application/use-cases/PracticePlan';
 import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
 import type { PieceMemories } from '../application/use-cases/PieceMemories';
@@ -34,6 +35,8 @@ export interface AppDeps {
   readonly fingering: OwnFingering;
   /** Whether the open piece is listened to or learnt. */
   readonly way: PieceWay;
+  /** The plan for learning the open piece, and how far one has come in it. */
+  readonly plan: PracticePlan;
   /** How loud the notes and the metronome are. */
   readonly volume: Volume;
   /** The piano's sound: whether it has loaded. */

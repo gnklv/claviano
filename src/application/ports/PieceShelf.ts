@@ -24,6 +24,8 @@ export interface PieceMemory {
   readonly bookmarks?: readonly { readonly name: string; readonly bar: number }[];
   /** One's own fingers: a finger at a note of the page (its beat and its pitch). Not in what older versions kept. */
   readonly fingers?: readonly { readonly beat: number; readonly pitch: number; readonly finger: 1 | 2 | 3 | 4 | 5 }[];
+  /** How far one had come in the plan for learning it: the steps done, by their places. Not in what older versions kept. */
+  readonly plan?: { readonly done: readonly number[] };
   /** The way it was had: listened to, or learnt (what learning had set is what is kept above). Not in what older versions kept: learnt. */
   readonly way?: 'learn' | 'listen';
   /** For the shelf to say without opening the piece: the bar it was left at, and its last bar (as numbered on the page). */

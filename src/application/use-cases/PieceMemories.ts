@@ -68,20 +68,26 @@ function asMemory(stored: unknown): PieceMemory | null {
   const { right, left } = hands as Record<string, unknown>;
   const { on, from, to } = loop as Record<string, unknown>;
   if (typeof right !== 'boolean' || typeof left !== 'boolean' || typeof on !== 'boolean' || typeof from !== 'number' || typeof to !== 'number') return null;
-  // (A trainer, bookmarks, fingers or a way that are not such are let go of, and the rest kept.)
-  const { trainer, bookmarks, fingers, way, ...rest } = stored as PieceMemory;
+  // (A trainer, bookmarks, fingers, a way or a plan that are not such are let go of, and the rest kept.)
+  const { trainer, bookmarks, fingers, way, plan, ...rest } = stored as PieceMemory;
   return {
     ...rest,
     ...(asTrainer(trainer) ? { trainer } : {}),
     ...(asBookmarks(bookmarks) ? { bookmarks } : {}),
     ...(asFingers(fingers) ? { fingers } : {}),
     ...(way === 'learn' || way === 'listen' ? { way } : {}),
+    ...(asPlan(plan) ? { plan } : {}),
   };
 }
 
 function asFingers(stored: unknown): stored is PieceMemory['fingers'] {
   const field = (each: unknown, name: string) => (each as Record<string, unknown>)[name];
   return Array.isArray(stored) && stored.every((each: unknown) => typeof each === 'object' && each !== null && Number.isFinite(field(each, 'beat')) && Number.isFinite(field(each, 'pitch')) && [1, 2, 3, 4, 5].includes(field(each, 'finger') as number));
+}
+
+function asPlan(stored: unknown): stored is PieceMemory['plan'] {
+  const done = (stored as { done?: unknown } | null)?.done;
+  return Array.isArray(done) && done.every((index: unknown) => Number.isInteger(index));
 }
 
 function asBookmarks(stored: unknown): stored is PieceMemory['bookmarks'] {

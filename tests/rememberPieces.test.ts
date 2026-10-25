@@ -11,6 +11,7 @@ import { TempoTrainer } from '../src/application/use-cases/TempoTrainer';
 import { Bookmarks } from '../src/application/use-cases/Bookmarks';
 import { OwnFingering } from '../src/application/use-cases/OwnFingering';
 import { PieceWay } from '../src/application/use-cases/PieceWay';
+import { PracticePlan } from '../src/application/use-cases/PracticePlan';
 import { contentId } from '../src/domain/contentId';
 import { transcribed } from '../src/domain/notation/transcription';
 import { createScore, type Score } from '../src/domain/score';
@@ -40,10 +41,11 @@ let trainer: TempoTrainer;
 let bookmarks: Bookmarks;
 let fingering: OwnFingering;
 let way: PieceWay;
+let plan: PracticePlan;
 /** Practice made anew on the playback and the loop there are now (for a page loaded again). */
 const practice = () => {
   const trainer = new TempoTrainer(playback);
-  return { trainer, bookmarks: new Bookmarks(playback, barLoop), fingering: new OwnFingering(playback), way: new PieceWay(playback, barLoop, trainer) };
+  return { trainer, bookmarks: new Bookmarks(playback, barLoop), fingering: new OwnFingering(playback), way: new PieceWay(playback, barLoop, trainer), plan: new PracticePlan(playback) };
 };
 let writeDown: () => void;
 /** The app starts (again): with the shelf as it was left. */
@@ -56,7 +58,8 @@ const start = async () => {
   bookmarks = new Bookmarks(playback, barLoop);
   fingering = new OwnFingering(playback);
   way = new PieceWay(playback, barLoop, trainer);
-  writeDown = rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way });
+  plan = new PracticePlan(playback);
+  writeDown = rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way, plan });
   await Promise.all([library.load(), memories.load()]);
 };
 
@@ -92,6 +95,7 @@ describe('remembering pieces', () => {
       trainer: { on: false, from: 0.6, to: 1, step: 0.02, every: 1, back: false },
       bookmarks: [],
       fingers: [],
+      plan: { done: [] },
       way: 'learn',
       bar: 4,
       bars: 8,
@@ -173,6 +177,17 @@ describe('remembering pieces', () => {
     expect([playback.tempo, barLoop.enabled]).toEqual([1, false]);
     way.set('learn');
     expect([playback.tempo, barLoop.enabled, barLoop.from, barLoop.to, playback.isHandEnabled('left')]).toEqual([0.7, true, 3, 5, false]);
+  });
+
+  it('comes back to a piece with the steps of its plan done, and opens another with none', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    plan.set([0, 1]);
+    expect(memories.memory(ONE)).toMatchObject({ plan: { done: [0, 1] } });
+    await library.openFile('two.tune', bytes('two'));
+    expect(plan.doneSteps).toEqual([]);
+    await start();
+    await library.open(ONE);
+    expect(plan.doneSteps).toEqual([0, 1]);
   });
 
   it('lets go of fingers at notes the piece no longer has, and of fingers that are not such', async () => {

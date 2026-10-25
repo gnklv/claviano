@@ -4,6 +4,7 @@ import type { BarLoop } from './BarLoop';
 import type { Bookmarks } from './Bookmarks';
 import type { OwnFingering } from './OwnFingering';
 import type { PieceWay } from './PieceWay';
+import type { PracticePlan } from './PracticePlan';
 import type { Library } from './Library';
 import type { PieceMemories } from './PieceMemories';
 import type { Playback } from './Playback';
@@ -14,7 +15,7 @@ const AT_THE_END = 0.5;
 
 /**
  * Coming back to a piece is coming back to where it was left: its place, tempo, loop, hands, tempo
- * trainer, bookmarks, one's own fingering and the way it was had (listened to, or learnt) are kept
+ * trainer, bookmarks, one's own fingering, the steps of its plan done and the way it was had (listened to, or learnt) are kept
  * with it, and set again when it is opened. Listened to, it is kept as learning had set it. A piece
  * opened for the first time starts plain: learnt, from the beginning, at full tempo, both hands, no
  * loop, no trainer, no bookmarks, no fingers of one's own.
@@ -32,9 +33,10 @@ export interface Practice {
   readonly bookmarks: Bookmarks;
   readonly fingering: OwnFingering;
   readonly way: PieceWay;
+  readonly plan: PracticePlan;
 }
 
-export function rememberPieces(library: Library, memories: PieceMemories, { playback, barLoop, trainer, bookmarks, fingering, way }: Practice): () => void {
+export function rememberPieces(library: Library, memories: PieceMemories, { playback, barLoop, trainer, bookmarks, fingering, way, plan }: Practice): () => void {
   let current = library.current;
   /** The piece whose memory has been set since it opened (none, while what was kept is still being read). */
   let restored: string | null = null;
@@ -62,6 +64,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
       trainer: { on: learning.trainer.on, ...learning.trainer.plan },
       bookmarks: bookmarks.all,
       fingers: fingering.all,
+      plan: { done: [...plan.doneSteps] },
       way: way.way,
       bar: barNumber(score, barAt(score, position)),
       bars: barNumber(score, score.bars.length - 1),
@@ -98,6 +101,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     trainer.restore(kept ? { on: kept.on, plan: { from: kept.from, to: kept.to, step: kept.step, every: kept.every, back: kept.back ?? false } } : { on: false, plan: DEFAULT_PLAN });
     bookmarks.set(memory?.bookmarks ?? []);
     fingering.set(memory?.fingers ?? []);
+    plan.set(memory?.plan?.done ?? []);
     // Last: listening keeps aside what was just set, to come back to it.
     way.set(memory?.way ?? 'learn');
     restoring = false;
@@ -129,5 +133,6 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
   bookmarks.onChange(save);
   fingering.onChange(save);
   way.onChange(save);
+  plan.onChange(save);
   return save;
 }
