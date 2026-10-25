@@ -84,6 +84,6 @@ function asBookmarks(stored: unknown): stored is PieceMemory['bookmarks'] {
 
 function asTrainer(stored: unknown): stored is PieceMemory['trainer'] {
   if (typeof stored !== 'object' || stored === null) return false;
-  const { on, from, to, step, every } = stored as Record<string, unknown>;
-  return typeof on === 'boolean' && [from, to, step, every].every((value) => typeof value === 'number' && Number.isFinite(value));
+  const { on, from, to, step, every, back } = stored as Record<string, unknown>;
+  return typeof on === 'boolean' && (back === undefined || typeof back === 'boolean') && [from, to, step, every].every((value) => typeof value === 'number' && Number.isFinite(value));
 }

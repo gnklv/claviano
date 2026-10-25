@@ -84,7 +84,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     }
     barLoop.setEnabled(memory?.loop.on ?? false);
     const kept = memory?.trainer;
-    trainer.restore(kept ? { on: kept.on, plan: { from: kept.from, to: kept.to, step: kept.step, every: kept.every } } : { on: false, plan: DEFAULT_PLAN });
+    trainer.restore(kept ? { on: kept.on, plan: { from: kept.from, to: kept.to, step: kept.step, every: kept.every, back: kept.back ?? false } } : { on: false, plan: DEFAULT_PLAN });
     bookmarks.set(memory?.bookmarks ?? []);
     fingering.set(memory?.fingers ?? []);
     restoring = false;

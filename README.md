@@ -58,7 +58,7 @@ metronome is a synth's blip.)
 | Tempo | 25–150%, pitch is unaffected; the tempo it makes is shown beside it (♩ = 45). The button opens a panel: − and + by a step, a slider, and 50–100% a touch away |
 | Right / Left | mute a hand (it is still shown, dimmed) |
 | Bar loop | repeat bars *from–to* seamlessly |
-| Tempo → Tempo trainer | the loop quickens by itself, a step every few passes, from one tempo to another |
+| Tempo → Tempo trainer | the loop quickens by itself, a step every few passes, from one tempo to another; or two steps up and one back, in turn |
 | Bar readout → Bookmarks | named places in the piece, to go to at a press; 1–9 go to the first nine |
 | Click on the staff or the notes | jump there (a click outside the loop turns the loop off) |
 | Drag the staff or the notes | look ahead or back while the music plays on; the view returns after 3 s of playing |

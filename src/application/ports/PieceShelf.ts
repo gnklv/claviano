@@ -18,8 +18,8 @@ export interface PieceMemory {
   readonly hands: { readonly right: boolean; readonly left: boolean };
   /** The bar loop: printed bar numbers, and whether it was on. */
   readonly loop: { readonly on: boolean; readonly from: number; readonly to: number };
-  /** The tempo trainer: whether it was on, and how it goes (tempos as shares). Not in what older versions kept. */
-  readonly trainer?: { readonly on: boolean; readonly from: number; readonly to: number; readonly step: number; readonly every: number };
+  /** The tempo trainer: whether it was on, and how it goes (tempos as shares). Not in what older versions kept, nor its steps back. */
+  readonly trainer?: { readonly on: boolean; readonly from: number; readonly to: number; readonly step: number; readonly every: number; readonly back?: boolean };
   /** Bookmarks: a name and a printed bar each. Not in what older versions kept. */
   readonly bookmarks?: readonly { readonly name: string; readonly bar: number }[];
   /** One's own fingers: a finger at a note of the page (its beat and its pitch). Not in what older versions kept. */

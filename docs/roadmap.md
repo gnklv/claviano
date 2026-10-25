@@ -206,23 +206,50 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)
-13. [ ] A plan for learning a piece, out of what is there already. The piece in parts, by its
-        phrases and repeats (four to eight bars), and for each part the steps a teacher sets: each
-        hand alone and slow, both hands slow, up to tempo with the trainer, then joined to the part
-        before it. Each step sets what it needs (the loop, a hand muted, the tempo, the trainer);
-        one marks it done oneself, until the microphone can tell (step 16). Kept with the piece.
-        Seen elsewhere: a song taught in parts and then whole (Piano with Jonny); flowkey's learn
-        mode (slow, a loop, one hand, a wait for the right note)
-14. [ ] Warm-ups and technique: exercises made, not stored. Five-finger positions, scales (one to
-        four octaves, hands apart, together, in contrary motion), arpeggios, broken chords, the
-        chromatic scale, thirds and sixths, trills, and patterns in the manner of Hanon (in the
-        public domain, and made of a figure moved up and down the keys); in any key, fingered by
-        the domain (the scales of every school are there already, `domain/fingering/scales.ts`),
-        at a level: the key, how many octaves, the hands, the tempo, the note values. A warm-up of
-        five, ten or fifteen minutes is a few of them made into one piece, which opens in the
-        player as any other: the staff with its fingers, the falling notes, the metronome, the
-        tempo trainer. Seen elsewhere: Piano Marvel's scales by level (from tetrachords to
-        harmonised minor scales), learnt first without a tempo, then to one
+13. [ ] A plan for learning a piece, out of what is there already: a list of steps, each with its
+        own tempo. The piece in parts, by its form (repeats, voltas, changes of key and time) and
+        within that by phrases of four to eight bars, taken in order; for each part the steps a
+        teacher sets: each hand alone and slow, both hands slow, up to tempo with the trainer,
+        then joined to the parts before it. Each step sets what it needs (the loop on its bars, a
+        hand muted, its tempo, the trainer). A step is done after three clean passes in a row:
+        after each pass one marks it clean or not (a slip starts the count again), or closes the
+        step by hand; the microphone will mark the passes itself (step 16). Kept with the piece.
+        The trainer gets steps that go two up and one back (60, 64, 62, 66…), a choice beside its
+        others: a tempo is not only climbed to, it is come back to. The piece's screen in two ways,
+        "Listen" and "Learn", switched in its header and kept with the piece: listening is the
+        player (play, the place, the bar and the bookmarks, the tempo at 100% to begin with, the
+        metronome, the view), learning has the plan, the loop, the hands, the trainer and the
+        editing of one's own fingers (the fingering is shown in both, where it is shown at all);
+        what learning had set comes back with it, and a step of the plan touched by hand pauses.
+        In order: the trainer's steps back; the two ways; the parts and steps (the slow ones at
+        60%, a part joined to the one before it, and the whole piece at the end); the plan kept
+        with the piece; the bar of the step and the list of steps, in "Learn". Why: what predicts how a passage is played the next day is
+        not the time spent nor the repetitions, but how many of the tries were right, a slip
+        stopped at and mended at once (Duke, Simmons and Cash, 2009); experts practise in the parts
+        of a piece's form, and remember it by them (Chaffin, 2002); the hard places first, hands
+        apart, the last pass slow (Chang, Fundamentals of Piano Practice). Seen elsewhere: a song
+        taught in parts and then whole (Piano with Jonny); flowkey's learn mode
+14. [ ] Warm-ups and technique: exercises made, not stored, in any key, fingered by the domain (the
+        scales of every school are there already, `domain/fingering/scales.ts`), in legato, non
+        legato or staccato. By stages:
+        - A, the ground (levels 1–2): five-finger positions, triads and their inversions, scales
+          of one and two octaves, broken chords;
+        - B, growing (levels 2–4): arpeggios, scales in contrary motion, the chromatic scale,
+          cadences (I–IV–V–I);
+        - C, further (levels 3–5): thirds and sixths, trills, patterns in the manner of Hanon (a
+          figure moved up the keys, briefly: they are much criticised as drill without music),
+          dominant and diminished sevenths.
+        Five levels, after the examining boards' (RCM, ABRSM) without copying them: the keys (the
+        white ones first, then up to three, five sharps or flats, then all 24), the hands (apart,
+        together, in contrary motion), the octaves (one to four), the note values (quarters to
+        sixteenths) and the tempo grow with the level; any of them can be set by hand over it. A
+        warm-up of five, ten or fifteen minutes is a few of them, made into one piece that opens
+        in the player as any other (the staff with its fingers, the falling notes, the metronome,
+        the trainer). Its shape, as teachers give it: slow, triads first, five-finger positions a
+        hand at a time and then together, scales, then arpeggios and broken chords (Pianist,
+        Spanswick, MTNA); the kinds of technique and the white keys first (Frances Clark Center,
+        Alfred). Seen elsewhere: Piano Marvel's scales by level (AIM), learnt first without a tempo,
+        then to one
 15. [ ] A piece in layers, from its bones to the whole: the melody (the right hand's top voice),
         then the bass under it (the left hand's lowest note on the strong beats), then the left
         hand's chords on the strong beats, then the right hand whole over a simple left hand, then

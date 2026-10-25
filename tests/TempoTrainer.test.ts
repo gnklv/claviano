@@ -56,6 +56,20 @@ describe('the tempo trainer', () => {
     expect(trainer.reached).toBe(true);
   });
 
+  it('goes two steps up and one back, in turn, when told to, and stops at the tempo aimed at', async () => {
+    const { tempos } = await training({ from: 0.6, to: 0.7, step: 0.02, every: 1, back: true });
+    expect(await tempos(9)).toEqual([0.6, 0.64, 0.62, 0.66, 0.64, 0.68, 0.66, 0.7, 0.7]);
+  });
+
+  it('begins its two up and one back again from a tempo set by hand', async () => {
+    const { playback, tempos } = await training({ from: 0.6, to: 1, step: 0.02, every: 1, back: true });
+    await tempos(3);
+    playback.setTempo(0.8);
+    // (From the tempo set: two up first, as at the start.)
+    const after = await tempos(3);
+    expect(after).toEqual([0.8, 0.84, 0.82]);
+  });
+
   it('goes on from a tempo set by hand', async () => {
     const { playback, tempos } = await training({ from: 0.6, to: 1, step: 0.02, every: 1 });
     await tempos(2);

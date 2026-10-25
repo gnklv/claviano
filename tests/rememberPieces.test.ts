@@ -81,7 +81,7 @@ describe('remembering pieces', () => {
       tempo: 0.7,
       hands: { right: false, left: true },
       loop: { on: true, from: 3, to: 5 },
-      trainer: { on: false, from: 0.6, to: 1, step: 0.02, every: 1 },
+      trainer: { on: false, from: 0.6, to: 1, step: 0.02, every: 1, back: false },
       bookmarks: [],
       fingers: [],
       bar: 4,
@@ -115,7 +115,7 @@ describe('remembering pieces', () => {
 
   it('comes back to a piece with its trainer as it was left, at the tempo the training had got to', async () => {
     await library.openFile('one.tune', bytes('one'));
-    trainer.setPlan({ from: 0.7, step: 0.05, every: 2 });
+    trainer.setPlan({ from: 0.7, step: 0.05, every: 2, back: true });
     trainer.setEnabled(true);
     playback.setTempo(0.8);
     await library.openFile('two.tune', bytes('two'));
@@ -125,7 +125,7 @@ describe('remembering pieces', () => {
     await start();
     await library.open(ONE);
     expect(trainer.enabled).toBe(true);
-    expect(trainer.plan).toEqual({ from: 0.7, to: 1, step: 0.05, every: 2 });
+    expect(trainer.plan).toEqual({ from: 0.7, to: 1, step: 0.05, every: 2, back: true });
     expect(playback.tempo).toBe(0.8);
   });
 

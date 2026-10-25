@@ -50,6 +50,7 @@ const from = plan('from');
 const to = plan('to');
 const step = plan('step');
 const every = computed({ get: () => String(training.value.plan.every), set: (value: string) => trainer.setPlan({ every: Number(value) }) });
+const way = computed({ get: () => (training.value.plan.back ? 'back' : 'up'), set: (value: string) => trainer.setPlan({ back: value === 'back' }) });
 const on = computed({ get: () => (training.value.on ? 'on' : 'off'), set: (value: string) => trainer.setEnabled(value === 'on') });
 const percent = computed({
   get: () => percentOf(state.value.tempo),
@@ -83,6 +84,9 @@ const percent = computed({
         <SettingRow :label="t('trainerStep')"><SegmentedControl v-model="step" :label="t('trainerStep')" :options="percents(TRAINER_STEPS.map((s) => Math.round(s * 100)))" /></SettingRow>
         <SettingRow :label="t('trainerEvery')">
           <SegmentedControl v-model="every" :label="t('trainerEvery')" :options="TRAINER_PASSES.map((n) => ({ value: String(n), label: String(n) }))" />
+        </SettingRow>
+        <SettingRow :label="t('trainerWay')">
+          <SegmentedControl v-model="way" :label="t('trainerWay')" :options="[{ value: 'up', label: t('trainerUp') }, { value: 'back', label: t('trainerBack') }]" />
         </SettingRow>
         <AppNotice v-if="!state.loop">{{ t('trainerNeedsLoop') }}</AppNotice>
       </template>
