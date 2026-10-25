@@ -174,6 +174,26 @@ describe('remembering pieces', () => {
     expect(bookmarks.all).toEqual([{ name: 'The hard bars', bar: 5 }]);
   });
 
+  it('sets a piece as it was left when it is opened again, the same piece, and keeps its place meanwhile', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
+    playback.setTempo(0.7);
+    playback.seek(3.5);
+    await library.open(ONE);
+    // (Loaded anew, at its beginning, it is set again as it was left; nothing is written down before.)
+    expect([playback.position, playback.tempo]).toEqual([3.5, 0.7]);
+    expect(memories.memory(ONE)).toMatchObject({ position: 3.5, tempo: 0.7, bar: 4 });
+  });
+
+  it('sets a demo opened again as it was left, as a file', async () => {
+    await library.open('demo.demo');
+    way.set('learn');
+    playback.seek(4);
+    await library.open('demo.demo');
+    expect(playback.position).toBe(4);
+    expect(memories.memory('demo.demo')?.position).toBe(4);
+  });
+
   it('comes back to a piece with its own fingering', async () => {
     await library.openFile('one.tune', bytes('one'));
     fingering.setFinger({ beat: 4, pitch: 61, hand: 'right' }, 2);

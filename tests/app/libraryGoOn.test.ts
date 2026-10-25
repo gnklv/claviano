@@ -22,11 +22,26 @@ describe('going on', () => {
     await back();
     expect(goOn()?.querySelector('.note')?.textContent).toBe('First · bar 1 of 1');
     expect(main()).toBe('Continue');
-    // (On another visit: the piece open this visit is not set as it was left when opened again, as from its card.)
-    await restart();
+    // (The piece open this visit, opened again: set as it was left, as on another visit.)
     goOn()!.click();
     await settled();
     expect(root.querySelector('.piece .title')?.textContent).toBe('First');
+    expect(playback.position).toBeCloseTo(0.2);
+  });
+
+  it('opens the piece where it was left from its card too, this visit and the next', async () => {
+    await drop('first.musicxml', xml('First'));
+    playback.seek(0.2);
+    await back();
+    button(/^First/).click();
+    await settled();
+    expect(playback.position).toBeCloseTo(0.2);
+    await back();
+    // (Opened again and left: its place is still its own, not the beginning.)
+    expect(button(/^First/).querySelector('.note')?.textContent).toBe('bar 1 of 1 · today');
+    await restart();
+    goOn()!.click();
+    await settled();
     expect(playback.position).toBeCloseTo(0.2);
   });
 
