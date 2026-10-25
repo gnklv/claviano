@@ -239,9 +239,19 @@ body,
   background: var(--bg);
 }
 
-html {
-  /* No zoom on a quick double tap (e.g. pause then play); pinch zoom still works. */
+/*
+ * No zoom on a quick double tap (pause, then play at once), anywhere; pinching to zoom still works.
+ * On every element, not on the page alone: touch-action is not inherited, and Safari heeds it only
+ * where the touch lands. What asks for less (the keys, the staff) says so on itself, and a browser
+ * takes the narrower of an element's and its ancestors'.
+ */
+*,
+*::before,
+*::after {
   touch-action: manipulation;
+}
+
+html {
   /*
    * The page itself never scrolls (its screens fill the window, and scroll inside where they
    * need to): pulled past its edge it does not bounce, and on Android does not reload.
