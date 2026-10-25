@@ -187,13 +187,15 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         in some fifty places, of seven kinds that a canvas draws as they are (glyphs of Bravura as
         text, lines, polygons, rectangles, an ellipse; paths as they are written, through Path2D).
         In stages, each looked at on the phone:
-        - the shapes as data: the staff draws into a list of shapes, which SvgStaff turns into SVG
-          as before (nothing seen changes; its tests read the list instead of the DOM);
-        - a canvas renderer of the same list, behind the StaffView port: tiles of a few bars drawn
+        - [x] the shapes as data: the staff draws into a list of shapes (`staff/shapes.ts`), which
+          SvgStaff turns into SVG as before (`toSvg`). Nothing seen changes: the staff's reference
+          drawings came out the same, line for line (their paint read in a sorted order, which is
+          no change in what is drawn);
+        - [ ] a canvas renderer of the same list, behind the StaffView port: tiles of a few bars drawn
           ahead, when there is time, and a frame that only lays the tiles that are in sight; what
           is lit, the selection and the note being fingered on a thin layer over them; the theme's
           colours given (useCanvasColors), Bravura waited for, drawn at the screen's density;
-        - both kept, to compare: which draws the staff is a choice in development (in the address,
+        - [ ] both kept, to compare: which draws the staff is a choice in development (in the address,
           and on window.claviano), timed on the same piece on the phone; the canvas the default
           once it is the smoother one. The SVG renderer stays as long as it is worth comparing
           against, and goes then, in a commit of its own

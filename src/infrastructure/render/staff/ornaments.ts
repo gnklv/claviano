@@ -4,7 +4,7 @@ import { ACCIDENTAL_COLUMN } from './chords';
 import type { StaffContext } from './context';
 import { BAR_LINE_GAP } from './geometry';
 import { ACCIDENTAL_GLYPH, MUSIC_FONT, ORNAMENT_GLYPHS } from './glyphs';
-import { noteGlyph, svg } from './svg';
+import { noteGlyph, type PathShape, type PolygonShape, type Shape, type TextShape } from './shapes';
 
 /*
  * Ornaments and the like, painted with `currentColor` so they light up with their chord: the
@@ -31,10 +31,10 @@ const STROKE_SLANT = 0.35;
 const ARPEGGIO_GAP = 0.7;
 const ARPEGGIO_PAST_ACCIDENTAL = 1.5;
 
-const wave = (space: number, path: string) => svg('path', { d: path, fill: 'none', stroke: 'currentColor', 'stroke-width': WAVE_THICKNESS * space, 'stroke-linecap': 'round' });
+const wave = (space: number, path: string): PathShape => ({ kind: 'path', d: path, fill: 'none', stroke: 'currentColor', width: WAVE_THICKNESS * space, round: true });
 
 /** An ornament sign with its accidentals and, for a trill, its wavy line. */
-export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrnament): SVGElement[] {
+export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrnament): Shape[] {
   const { space } = geometry;
   const chord = ink.chord(ornament.chord);
   const at = ink.of(chord);
@@ -43,15 +43,18 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
   // `step` is the edge nearest the notes: the sign's baseline above them, its top below them.
   const edge = geometry.staffTop(chord.staff) + (ornament.step * space) / 2;
   const baseline = ornament.above ? edge : edge + SIGN_HEIGHT * space;
-  const sign = noteGlyph(space, ORNAMENT_GLYPHS[ornament.kind], x, baseline);
-  sign.setAttribute('text-anchor', 'middle');
-  const shapes: SVGElement[] = [sign];
+  const shapes: Shape[] = [noteGlyph(space, ORNAMENT_GLYPHS[ornament.kind], x, baseline, 'currentColor', 'middle')];
 
-  const accidental = (name: NonNullable<StaffOrnament['accidentalAbove']>, y: number) => {
-    const text = svg('text', { x, y, fill: 'currentColor', 'font-size': space * 4 * ACCIDENTAL_SCALE, 'font-family': MUSIC_FONT, 'text-anchor': 'middle' });
-    text.textContent = ACCIDENTAL_GLYPH[name];
-    return text;
-  };
+  const accidental = (name: NonNullable<StaffOrnament['accidentalAbove']>, y: number): TextShape => ({
+    kind: 'text',
+    x,
+    y,
+    text: ACCIDENTAL_GLYPH[name],
+    size: space * 4 * ACCIDENTAL_SCALE,
+    font: MUSIC_FONT,
+    fill: 'currentColor',
+    anchor: 'middle',
+  });
   if (ornament.accidentalAbove) shapes.push(accidental(ornament.accidentalAbove, baseline - (SIGN_HEIGHT + ACCIDENTAL_GAP) * space));
   if (ornament.accidentalBelow) shapes.push(accidental(ornament.accidentalBelow, baseline + ACCIDENTAL_GAP * space));
 
@@ -73,17 +76,17 @@ export function drawOrnament({ geometry, ink }: StaffContext, ornament: StaffOrn
 }
 
 /** Tremolo strokes: slanted bars across a chord's stem, or between the stems of two chords. */
-export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremolo): SVGElement[] {
+export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremolo): Shape[] {
   const { space } = geometry;
   const chord = ink.chord(tremolo.chord);
   const at = ink.of(chord);
   const stemmed = chord.duration.value !== 'whole';
-  const stroke = (x1: number, y1: number, x2: number, y2: number) => {
+  const stroke = (x1: number, y1: number, x2: number, y2: number): PolygonShape => {
     const t = STROKE_THICKNESS * space;
-    return svg('polygon', { points: `${x1},${y1} ${x2},${y2} ${x2},${y2 + t} ${x1},${y1 + t}`, fill: 'currentColor' });
+    return { kind: 'polygon', points: [x1, y1, x2, y2, x2, y2 + t, x1, y1 + t], fill: 'currentColor' };
   };
-  const shapes: SVGElement[] = [];
-  const stack = (place: (offset: number) => SVGElement) => {
+  const shapes: Shape[] = [];
+  const stack = (place: (offset: number) => Shape) => {
     const spread = (tremolo.strokes - 1) * STROKE_SPACING * space;
     for (let i = 0; i < tremolo.strokes; i++) shapes.push(place(i * STROKE_SPACING * space - spread / 2 - (STROKE_THICKNESS * space) / 2));
   };
@@ -115,7 +118,7 @@ export function drawTremolo({ geometry, ink }: StaffContext, tremolo: StaffTremo
 }
 
 /** The wavy line before a rolled chord, from its top note to its bottom one (through both staves if need be). */
-export function drawArpeggio({ geometry, ink }: StaffContext, arpeggio: StaffArpeggio): SVGElement[] {
+export function drawArpeggio({ geometry, ink }: StaffContext, arpeggio: StaffArpeggio): Shape[] {
   const { space } = geometry;
   const chords = arpeggio.chords.map((index) => ink.chord(index));
   const places = chords.map((chord) => ink.of(chord));
@@ -129,10 +132,10 @@ export function drawArpeggio({ geometry, ink }: StaffContext, arpeggio: StaffArp
   const x = Math.max(Math.min(...lefts) - ARPEGGIO_GAP * space, geometry.barLineX(chords[0]?.bar ?? 0) + (BAR_LINE_GAP / 4) * space);
   const top = Math.min(...places.map((place) => place.highest)) - 0.6 * space;
   const bottom = Math.max(...places.map((place) => place.lowest)) + 0.6 * space;
-  const shapes: SVGElement[] = [wave(space, wavyLine(x, top, x, bottom, WAVE * space, SWING * space))];
+  const shapes: Shape[] = [wave(space, wavyLine(x, top, x, bottom, WAVE * space, SWING * space))];
   if (arpeggio.down) {
     const tip = bottom + 0.5 * space;
-    shapes.push(svg('polygon', { points: `${x - 0.35 * space},${bottom - 0.1 * space} ${x + 0.35 * space},${bottom - 0.1 * space} ${x},${tip}`, fill: 'currentColor' }));
+    shapes.push({ kind: 'polygon', points: [x - 0.35 * space, bottom - 0.1 * space, x + 0.35 * space, bottom - 0.1 * space, x, tip], fill: 'currentColor' });
   }
   return shapes;
 }

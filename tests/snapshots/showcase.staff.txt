@@ -1,5 +1,5 @@
-DIV style="position: relative; overflow: hidden; background: var(--surface);"
-  svg style="position: absolute; inset: 0; width: 100%; height: 100%;"
+DIV style="background: var(--surface); overflow: hidden; position: relative;"
+  svg style="height: 100%; inset: 0; position: absolute; width: 100%;"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="4.35" x2="2048" y1="78.26" y2="78.26"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="4.35" x2="2048" y1="86.96" y2="86.96"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="4.35" x2="2048" y1="95.65" y2="95.65"
@@ -17,8 +17,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
     text font-family="Bravura" font-size="34.78" style="fill: var(--ink);" text-anchor="middle" x="44.35" y="104.35" U+E084
     text font-family="Bravura" font-size="34.78" style="fill: var(--ink);" text-anchor="middle" x="44.35" y="173.91" U+E084
     text font-family="Bravura" font-size="34.78" style="fill: var(--ink);" text-anchor="middle" x="44.35" y="191.3" U+E084
-  DIV style="position: absolute; top: 0px; bottom: 0px; right: 0px; mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%); left: 93.91px;"
-    svg style="display: block; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(279px);"
+  DIV style="bottom: 0px; left: 93.91px; mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%); position: absolute; right: 0px; top: 0px;"
+    svg style="display: block; height: 100%; overflow: visible; transform: translateX(279px); width: 100%; will-change: transform;"
       g
         g
         g
@@ -1073,12 +1073,12 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="29.57" style="fill: currentColor;" text-anchor="middle" x="1527.25" y="46.52" U+E883
           text font-family="Bravura" font-size="29.57" style="fill: currentColor;" text-anchor="middle" x="1706.96" y="40" U+E885
           text font-family="Bravura" font-size="29.57" style="fill: currentColor;" text-anchor="middle" x="1556.23" y="150.87" U+E883
-          polyline points="1493.13,151.3 1493.13,144.35 1546.67,144.35" stroke-width="1.04" style="stroke: currentColor; fill: none;"
-          polyline points="1565.8,144.35 1619.33,144.35 1619.33,151.3" stroke-width="1.04" style="stroke: currentColor; fill: none;"
+          polyline points="1493.13,151.3 1493.13,144.35 1546.67,144.35" stroke-width="1.04" style="fill: none; stroke: currentColor;"
+          polyline points="1565.8,144.35 1619.33,144.35 1619.33,151.3" stroke-width="1.04" style="fill: none; stroke: currentColor;"
           path d="M 5175.3 76.52 C 5207.91 48.04 5273.13 32.83 5305.74 46.09 C 5273.13 35.38 5207.91 50.59 5175.3 76.52 Z" style="fill: currentColor;"
           path d="M 5175.3 210.43 C 5262.26 255.72 5436.17 253.55 5523.13 206.09 C 5436.17 251 5262.26 253.17 5175.3 210.43 Z" style="fill: currentColor;"
-    svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(279px);"
+    svg style="height: 100%; inset: 0; overflow: visible; position: absolute; transform: translateX(279px); width: 100%; will-change: transform;"
       g style="color: var(--right);"
         text font-family="Bravura" font-size="34.78" style="fill: currentColor;" x="-5.13" y="104.35" U+E0A4
         line stroke-width="1.04" style="stroke: currentColor;" x1="4.61" x2="4.61" y1="102.87" y2="73.91"
-  DIV style="position: absolute; width: 2px; background: var(--cursor); border-radius: 1px; left: 371.9px; top: 60.87px; height: 156.52px; visibility: visible;"
+  DIV style="background: var(--cursor); border-radius: 1px; height: 156.52px; left: 371.9px; position: absolute; top: 60.87px; visibility: visible; width: 2px;"

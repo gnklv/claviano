@@ -20,7 +20,7 @@ import {
   tupletDigits,
 } from './glyphs';
 import { STEM_LENGTH, STEM_LENGTH_32ND, type ChordGeometry } from './ink';
-import { COLORS, noteGlyph, svg } from './svg';
+import { COLORS, group, noteGlyph, type GroupShape, type PathShape, type PolygonShape, type Shape, type TextShape } from './shapes';
 
 const LEDGER_EXTENSION = 0.4;
 const ACCIDENTAL_OFFSET = 1.3;
@@ -58,10 +58,10 @@ const TIE_OFFSET = 0.6;
 
 /**
  * One chord as a group whose parts all paint with `currentColor`, so highlighting it
- * is a single style change on the group. A beamed chord gets its stem end from the beam
+ * is a single change of the group's colour. A beamed chord gets its stem end from the beam
  * and no flags.
  */
-export function drawChord({ geometry, ink }: StaffContext, index: number, handLabels: Record<Hand, string>): SVGGElement {
+export function drawChord({ geometry, ink }: StaffContext, index: number, handLabels: Record<Hand, string>): GroupShape {
   const { space } = geometry;
   const chord = ink.chord(index);
   const beamEnd = ink.stemEnds.get(index);
@@ -70,8 +70,7 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
   const { size, yOf, headWidth, left, stemWidth, stemX, highest, lowest } = ink.of(chord);
   const glyph = (codepoint: string, x: number, y: number) => noteGlyph(size, codepoint, x, y);
 
-  const group = svg('g');
-  group.style.color = COLORS.note;
+  const shapes: Shape[] = [];
 
   // A head moved over for a second sits a head's width away, sharing the stem's edge
   // (to the right of an up-stem, to the left of a down-stem).
@@ -83,16 +82,7 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
   for (const step of chord.ledgerSteps) {
     const y = yOf(step);
     const extension = LEDGER_EXTENSION * size;
-    group.append(
-      svg('line', {
-        x1: headsLeft - extension,
-        x2: headsRight + extension,
-        y1: y,
-        y2: y,
-        stroke: 'currentColor',
-        'stroke-width': size * 0.16,
-      }),
-    );
+    shapes.push({ kind: 'line', x1: headsLeft - extension, x2: headsRight + extension, y1: y, y2: y, stroke: 'currentColor', width: size * 0.16 });
   }
 
   for (const note of chord.notes) {
@@ -100,22 +90,20 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     if (note.headless) continue;
     const y = yOf(note.step);
     const headLeft = note.displaced ? left + shift : left;
-    group.append(glyph(NOTEHEAD[value], headLeft, y));
+    shapes.push(glyph(NOTEHEAD[value], headLeft, y));
     if (note.parenthesized) {
-      const left = glyph(NOTEHEAD_BRACKETS.left, headLeft - BRACKET_GAP * size, y);
-      left.setAttribute('text-anchor', 'end');
-      group.append(left, glyph(NOTEHEAD_BRACKETS.right, headLeft + headWidth + BRACKET_GAP * size, y));
+      shapes.push(noteGlyph(size, NOTEHEAD_BRACKETS.left, headLeft - BRACKET_GAP * size, y, 'currentColor', 'end'), glyph(NOTEHEAD_BRACKETS.right, headLeft + headWidth + BRACKET_GAP * size, y));
     }
     // Accidentals keep clear of every head (a voice moved aside for a second keeps them left of the
     // other voice's head too); dots follow the rightmost head.
     if (note.accidental) {
       const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0) - (note.parenthesized ? BRACKET_ROOM * size : 0);
-      group.append(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - (ACCIDENTAL_OFFSET + (note.accidentalColumn ?? 0) * ACCIDENTAL_COLUMN) * size, y));
+      shapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - (ACCIDENTAL_OFFSET + (note.accidentalColumn ?? 0) * ACCIDENTAL_COLUMN) * size, y));
     }
     // A dot goes in a space: for a note on a line, in the space just above (or where the engraving put it, clear of another's).
     if (dots) {
       const dotStep = note.dotStep ?? (note.step % 2 === 0 ? note.step - 1 : note.step);
-      group.append(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
+      shapes.push(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
     }
   }
 
@@ -123,17 +111,7 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
   // right-hand note on the bass staff.
   if (chord.handMark) {
     const y = chord.staff === 'treble' ? geometry.trebleTop() + 6.4 * space : geometry.bassTop() - 1.4 * space;
-    const mark = svg('text', {
-      x: left + headWidth / 2,
-      y,
-      fill: 'currentColor',
-      'font-size': space * 1.3,
-      'font-family': TEXT_FONT,
-      'font-style': 'italic',
-      'text-anchor': 'middle',
-    });
-    mark.textContent = handLabels[chord.hand];
-    group.append(mark);
+    shapes.push({ kind: 'text', x: left + headWidth / 2, y, text: handLabels[chord.hand], size: space * 1.3, font: TEXT_FONT, fill: 'currentColor', italic: true, anchor: 'middle' });
   }
 
   if (value !== 'whole') {
@@ -142,19 +120,19 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     // Up: from the lowest head past the highest one. Down: the mirror image.
     const from = chord.stemUp ? lowest - size * 0.17 : highest + size * 0.17;
     const to = beamEnd ?? (chord.stemUp ? highest - length : lowest + length);
-    group.append(svg('line', { x1: stemX, x2: stemX, y1: from, y2: to, stroke: 'currentColor', 'stroke-width': stemWidth }));
+    shapes.push({ kind: 'line', x1: stemX, x2: stemX, y1: from, y2: to, stroke: 'currentColor', width: stemWidth });
     if (flags > 0 && beamEnd === undefined) {
-      group.append(glyph((chord.stemUp ? FLAG_UP : FLAG_DOWN)[flags] ?? '', stemX - stemWidth / 2, to));
+      shapes.push(glyph((chord.stemUp ? FLAG_UP : FLAG_DOWN)[flags] ?? '', stemX - stemWidth / 2, to));
     }
   }
-  return group;
+  return group(shapes, COLORS.note);
 }
 
 /**
  * A beam and its extra levels (a second beam for sixteenths, a third for thirty-seconds).
  * Records where each of its chords' stems must end.
  */
-export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[] {
+export function drawBeam(context: StaffContext, beam: Beam): PolygonShape[] {
   const { ink } = context;
   const { space } = context.geometry;
   const chords = beam.chords.map((index) => ink.chord(index));
@@ -202,18 +180,15 @@ export function drawBeam(context: StaffContext, beam: Beam): SVGPolygonElement[]
   const inward = beam.stemUp ? 1 : -1;
   const thickness = BEAM_THICKNESS * size;
   const halfStem = geometry[0]!.stemWidth / 2;
-  const bar = (fromX: number, toX: number, level: number) => {
+  const bar = (fromX: number, toX: number, level: number): PolygonShape => {
     const shift = inward * level * BEAM_SPACING * size;
     const y1 = beamY(line, fromX) + shift;
     const y2 = beamY(line, toX) + shift;
     const t = inward * thickness;
-    return svg('polygon', {
-      points: `${fromX},${y1} ${toX},${y2} ${toX},${y2 + t} ${fromX},${y1 + t}`,
-      fill: 'currentColor',
-    });
+    return { kind: 'polygon', points: [fromX, y1, toX, y2, toX, y2 + t, fromX, y1 + t], fill: 'currentColor' };
   };
 
-  const shapes: SVGPolygonElement[] = [];
+  const shapes: PolygonShape[] = [];
   const xs = geometry.map((g) => g.stemX);
   const x = (i: number) => xs[i] ?? 0;
   for (let level = 0; level < levels; level++) {
@@ -260,7 +235,7 @@ function otherVoiceHeads({ geometry: { space }, ink }: StaffContext, beam: Beam,
  * A tuplet's number (and bracket, if it has one) beyond the stems on their side: over a beam,
  * or over the notes of an unbeamed group.
  */
-export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: Tuplet): SVGElement[] {
+export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: Tuplet): Shape[] {
   const chords = tuplet.chords.map((index) => ink.chord(index));
   const geometry = chords.map((chord) => ink.of(chord));
   // The outermost point of each chord on the tuplet's side: its stem end, or the notehead.
@@ -280,33 +255,25 @@ export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: T
   // The line the number and bracket sit on, a little clear of the stems.
   const y = (tuplet.above ? Math.min(...outer) : Math.max(...outer)) + direction * 1.4 * space;
 
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   if (tuplet.showNumber) {
-    const number = svg('text', {
-      x: center,
-      y: y + space * 0.75, // tuplet digits are about a space and a half tall
-      fill: 'currentColor',
-      'font-size': space * 3.4,
-      'font-family': MUSIC_FONT,
-      'text-anchor': 'middle',
-    });
-    number.textContent = tupletDigits(tuplet.number);
-    shapes.push(number);
+    // (Tuplet digits are about a space and a half tall.)
+    shapes.push({ kind: 'text', x: center, y: y + space * 0.75, text: tupletDigits(tuplet.number), size: space * 3.4, font: MUSIC_FONT, fill: 'currentColor', anchor: 'middle' });
   }
   if (tuplet.bracket) {
     const gap = tuplet.showNumber ? space * 1.1 : 0;
     const hook = -direction * space * 0.8; // hooks point towards the notes
-    const line = { stroke: 'currentColor', 'stroke-width': space * 0.12, fill: 'none' };
+    const width = space * 0.12;
     shapes.push(
-      svg('polyline', { points: `${left},${y + hook} ${left},${y} ${center - gap},${y}`, ...line }),
-      svg('polyline', { points: `${center + gap},${y} ${right},${y} ${right},${y + hook}`, ...line }),
+      { kind: 'polyline', points: [left, y + hook, left, y, center - gap, y], stroke: 'currentColor', width },
+      { kind: 'polyline', points: [center + gap, y, right, y, right, y + hook], stroke: 'currentColor', width },
     );
   }
   return shapes;
 }
 
 /** A rest glyph (with its dot), centred on its beat. */
-export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextElement[] {
+export function drawRest({ geometry }: StaffContext, rest: StaffRest): TextShape[] {
   const { space } = geometry;
   const top = geometry.staffTop(rest.staff);
   const { value, dots } = rest.duration;
@@ -322,18 +289,16 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): SVGTextEl
 const HINT_OPACITY = 0.45;
 
 /** A fingering number, centred over (or under) its chord's noteheads. */
-export function drawFingering({ geometry: { space }, ink }: StaffContext, fingering: StaffFingering): SVGTextElement {
+export function drawFingering({ geometry: { space }, ink }: StaffContext, fingering: StaffFingering): TextShape {
   const { yOf, left, headWidth } = ink.of(ink.chord(fingering.chord));
   // Its foot stands on the step when above the chord; under it, the number hangs from the step.
   const y = yOf(fingering.step) + (fingering.above ? 0 : FINGERING_SIZE * space);
   const digit = FINGERING_GLYPHS[fingering.text];
-  const number = digit
-    ? noteGlyph(space, digit, left + headWidth / 2, y - 0.75 * space)
-    : svg('text', { x: left + headWidth / 2, y, fill: 'currentColor', 'font-size': space * FINGERING_SIZE, 'font-family': TEXT_FONT });
-  if (!digit) number.textContent = fingering.text;
-  number.setAttribute('text-anchor', 'middle');
+  const shown: TextShape = digit
+    ? noteGlyph(space, digit, left + headWidth / 2, y - 0.75 * space, 'currentColor', 'middle')
+    : { kind: 'text', x: left + headWidth / 2, y, text: fingering.text, size: space * FINGERING_SIZE, font: TEXT_FONT, fill: 'currentColor', anchor: 'middle' };
   // A hint is paler than a finger the notes themselves give.
-  if (fingering.hint) number.setAttribute('opacity', String(HINT_OPACITY));
+  const number: TextShape = fingering.hint ? { ...shown, opacity: HINT_OPACITY } : shown;
   // Ink of its staff: a bar number, a word or a dynamic set later keeps clear of it.
   const chord = ink.chord(fingering.chord);
   const width = Math.max(1, fingering.text.length) * FINGERING_WIDTH * space;
@@ -343,19 +308,17 @@ export function drawFingering({ geometry: { space }, ink }: StaffContext, finger
 }
 
 /** An articulation or fermata, centred over (or under) the notehead. */
-export function drawMark({ geometry: { space }, ink }: StaffContext, mark: StaffMark): SVGTextElement {
+export function drawMark({ geometry: { space }, ink }: StaffContext, mark: StaffMark): TextShape {
   const { yOf, left, headWidth } = ink.of(ink.chord(mark.chord));
   const [above, below] = MARK_GLYPHS[mark.kind];
-  const glyph = noteGlyph(space, mark.above ? above : below, left + headWidth / 2, yOf(mark.step));
-  glyph.setAttribute('text-anchor', 'middle');
-  return glyph;
+  return noteGlyph(space, mark.above ? above : below, left + headWidth / 2, yOf(mark.step), 'currentColor', 'middle');
 }
 
 /**
  * A phrasing slur. Each end sits just beyond its notehead, or beyond the stem end when the slur
  * is on the stem side; the curve then rises (or sinks) to clear every chord in between.
  */
-export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: StaffSlur): SVGPathElement {
+export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: StaffSlur): PathShape {
   const direction = phrase.above ? -1 : 1;
   const outerPoint = (index: number) => {
     const chord = ink.chord(index);
@@ -392,11 +355,11 @@ export function drawSlur({ geometry: { space }, ink }: StaffContext, phrase: Sta
     obstacles: phrase.between.map(outerPoint),
     limits,
   });
-  return svg('path', { d: shape.path, fill: 'currentColor' });
+  return { kind: 'path', d: shape.path, fill: 'currentColor' };
 }
 
 /** A tie: a crescent from one notehead to the next, curving away from the stems. */
-export function drawTie({ geometry: { space }, ink }: StaffContext, tie: Tie): SVGPathElement {
+export function drawTie({ geometry: { space }, ink }: StaffContext, tie: Tie): PathShape {
   const from = ink.of(ink.chord(tie.from));
   const to = ink.of(ink.chord(tie.to));
   const y = from.yOf(tie.step) + (tie.above ? -1 : 1) * TIE_OFFSET * space;
@@ -407,5 +370,5 @@ export function drawTie({ geometry: { space }, ink }: StaffContext, tie: Tie): S
     above: tie.above,
     space,
   });
-  return svg('path', { d: shape.path, fill: 'currentColor' });
+  return { kind: 'path', d: shape.path, fill: 'currentColor' };
 }

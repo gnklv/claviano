@@ -36,7 +36,8 @@ import { drawArpeggio, drawOrnament, drawTremolo } from './staff/ornaments';
 import { drawPedal } from './staff/pedal';
 import { ChordLights } from './staff/chordLights';
 import { barsShade, loopShade, noteShade } from './staff/shades';
-import { COLORS, svg, tenth } from './staff/svg';
+import { COLORS, group, type Shape } from './staff/shapes';
+import { svg, tenth, toSvg } from './staff/svg';
 import { TapeMotion } from './staff/tapeMotion';
 import { TapeStretch } from './staff/tapeStretch';
 import { TapeWindow } from './staff/tapeWindow';
@@ -359,7 +360,7 @@ export class SvgStaff implements StaffView {
     const { geometry } = this;
     const { space } = geometry;
     const gutter = geometry.gutterWidth();
-    this.background.replaceChildren(...drawGutter(geometry, this.gutterContent()));
+    this.background.replaceChildren(...drawGutter(geometry, this.gutterContent()).map(toSvg));
     this.shownGutter = this.gutterAt(this.currentBeat);
 
     this.tape.style.left = `${gutter}px`;
@@ -377,14 +378,14 @@ export class SvgStaff implements StaffView {
   private drawOverlay(): void {
     const score = this.score;
     const selection = this.selection;
-    const shades: SVGElement[] = [];
+    const shades: Shape[] = [];
     if (score && score.notes.length > 0) {
       if (selection) shades.push(barsShade(this.geometry, Math.min(selection.from, selection.to), Math.max(selection.from, selection.to), 1));
       else if (this.hoverBar !== null && this.hoverBar < tapeBars(score).starts.length) shades.push(barsShade(this.geometry, this.hoverBar, this.hoverBar, 0.5));
       const head = this.picked && this.headOf(this.picked);
       if (head) shades.push(noteShade(this.geometry, head.x, head.y));
     }
-    this.overlay.replaceChildren(...shades);
+    this.overlay.replaceChildren(...shades.map(toSvg));
   }
 
   /** Where the head of a note of the page is drawn, if it is. */
@@ -402,7 +403,7 @@ export class SvgStaff implements StaffView {
   /** The loop's bars, behind the music. */
   private drawLoop(): void {
     const { score, loop } = this;
-    this.loopLayer.replaceChildren(...(score && score.notes.length > 0 && loop ? loopShade(this.geometry, score, loop) : []));
+    this.loopLayer.replaceChildren(...(score && score.notes.length > 0 && loop ? loopShade(this.geometry, score, loop) : []).map(toSvg));
   }
 
   private drawStrip(): void {
@@ -422,49 +423,51 @@ export class SvgStaff implements StaffView {
     this.drawLoop();
 
     const barLines = drawBarLines(context);
-    this.strip.append(...barLines.lines, ...drawSignatureChanges(context), ...barLines.final, ...drawClefChanges(context));
+    this.strip.append(...[...barLines.lines, ...drawSignatureChanges(context), ...barLines.final, ...drawClefChanges(context)].map(toSvg));
 
     // Beams first: they decide how long the stems of their chords are.
-    const beamLayer = svg('g');
-    beamLayer.style.color = COLORS.note;
-    for (const beam of this.layout.beams) beamLayer.append(...drawBeam(context, beam));
+    const beams = group([], COLORS.note);
+    for (const beam of this.layout.beams) beams.children.push(...drawBeam(context, beam));
     for (const tuplet of this.layout.tuplets) {
-      if (tuplet.showNumber || tuplet.bracket) beamLayer.append(...drawTuplet(context, tuplet));
+      if (tuplet.showNumber || tuplet.bracket) beams.children.push(...drawTuplet(context, tuplet));
     }
 
-    const chordShapes = ink.chords.map((_, index) => drawChord(context, index, this.handLabels));
+    const chords = ink.chords.map((_, index) => drawChord(context, index, this.handLabels));
     // A tie belongs to the chord it starts from, so it lights up with it; so do the chord's marks.
-    for (const tie of this.layout.ties) chordShapes[tie.from]?.append(drawTie(context, tie));
-    for (const mark of this.layout.marks) chordShapes[mark.chord]?.append(drawMark(context, mark));
+    for (const tie of this.layout.ties) chords[tie.from]?.children.push(drawTie(context, tie));
+    for (const mark of this.layout.marks) chords[mark.chord]?.children.push(drawMark(context, mark));
     // A slur spans a phrase, so it stays in the ink colour with the beams.
-    for (const phrase of this.layout.slurs) beamLayer.append(drawSlur(context, phrase));
+    for (const phrase of this.layout.slurs) beams.children.push(drawSlur(context, phrase));
 
     // Grace notes and ornaments before what goes around the notes: bar numbers, brackets and
     // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
-    const graceShapes = this.layout.graces.map((grace) => drawGrace(context, grace));
-    for (const ornament of this.layout.ornaments) chordShapes[ornament.chord]?.append(...drawOrnament(context, ornament));
-    for (const fingering of this.layout.fingerings) chordShapes[fingering.chord]?.append(drawFingering(context, fingering));
-    for (const tremolo of this.layout.tremolos) chordShapes[tremolo.chord]?.append(...drawTremolo(context, tremolo));
-    for (const arpeggio of this.layout.arpeggios) chordShapes[arpeggio.chords[0] ?? -1]?.append(...drawArpeggio(context, arpeggio));
+    const graces = this.layout.graces.map((grace) => drawGrace(context, grace));
+    for (const ornament of this.layout.ornaments) chords[ornament.chord]?.children.push(...drawOrnament(context, ornament));
+    for (const fingering of this.layout.fingerings) chords[fingering.chord]?.children.push(drawFingering(context, fingering));
+    for (const tremolo of this.layout.tremolos) chords[tremolo.chord]?.children.push(...drawTremolo(context, tremolo));
+    for (const arpeggio of this.layout.arpeggios) chords[arpeggio.chords[0] ?? -1]?.children.push(...drawArpeggio(context, arpeggio));
 
-    const restLayer = svg('g');
-    restLayer.style.color = COLORS.note;
-    for (const rest of this.layout.rests) restLayer.append(...drawRest(context, rest));
+    const rests = group([], COLORS.note);
+    for (const rest of this.layout.rests) rests.children.push(...drawRest(context, rest));
     // Bar numbers clear the notes, and volta brackets clear the bar numbers.
     const barNumbers = drawBarNumbers(context);
-    restLayer.append(...barNumbers.shapes, ...drawNavigation(context, barNumbers.y));
+    rests.children.push(...barNumbers.shapes, ...drawNavigation(context, barNumbers.y));
     // Octave brackets first: the tempo marks go over the 8va ones, the pedal under the 8vb ones.
     const brackets: OctaveBracket[] = [];
     for (const shift of this.layout.octaveShifts) {
       const drawn = drawOctaveShift(context, shift);
-      restLayer.append(...drawn.shapes);
+      rests.children.push(...drawn.shapes);
       brackets.push(drawn.bracket);
     }
     // Dynamics before the pedal: those pushed under the lower staff, the pedal goes under.
     const dynamics = drawDynamics(context);
-    restLayer.append(...drawPedal(context, { brackets, dynamics: dynamics.below }), ...dynamics.shapes);
-    restLayer.append(...drawTempoMarks(context, brackets, barNumbers.y));
+    rests.children.push(...drawPedal(context, { brackets, dynamics: dynamics.below }), ...dynamics.shapes);
+    rests.children.push(...drawTempoMarks(context, brackets, barNumbers.y));
 
+    const restLayer = toSvg(rests);
+    const beamLayer = toSvg(beams);
+    const chordShapes = chords.map(toSvg);
+    const graceShapes = graces.map(toSvg);
     this.strip.append(restLayer, ...chordShapes, ...graceShapes, beamLayer);
     this.lights.drawn(ink.chords, chordShapes, this.layout.graces, graceShapes);
     // The shades behind the music are few, and always shown; the layers are shown shape by shape.

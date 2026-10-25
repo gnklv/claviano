@@ -4,7 +4,7 @@ import { DYNAMICS_BELOW_LINE, type DynamicsBelow } from './dynamics';
 import { BAR_LINE_GAP, LINES_PER_STAFF } from './geometry';
 import { PEDAL_PRESS, PEDAL_RELEASE, PEDAL_SOSTENUTO, TEXT_FONT } from './glyphs';
 import type { OctaveBracket } from './markings';
-import { COLORS, inked, inkedPolyline, svg } from './svg';
+import { COLORS, inked, inkedPolyline, type Shape } from './shapes';
 
 /**
  * How far below the bottom line of the lower staff the pedal marks sit (their baseline), and how
@@ -45,11 +45,11 @@ interface UnderLowerStaff {
  * middle one ("Sost." and a line); each sits clear of the low notes, stems and marks above it, and
  * a line keeps one height all along. The left one in words between the staves.
  */
-export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGElement[] {
+export function drawPedal(context: StaffContext, under: UnderLowerStaff): Shape[] {
   const { score, geometry } = context;
   const { space } = geometry;
   const { signs, lines, words } = engravePedal(score);
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   const baseline = (left: number, right: number) =>
     Math.max(geometry.systemBottom() + PEDAL_DROP * space, bassFloor(context, under, left, right) + PEDAL_CLEARANCE * space);
 
@@ -75,14 +75,14 @@ export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGEle
     if (line.pedal === 'sustain') sustainSpans.push([left, to]);
     else if (sustainSpans.some(([a, b]) => a < to && b > left)) y += PEDAL_ROW * space;
     if (line.afterSign) lineBaselines.set(`${line.pedal} ${line.from}`, y);
-    const points = line.afterSign ? [`${from},${y}`] : [`${from},${y - hook}`, `${from},${y}`];
+    const points = line.afterSign ? [from, y] : [from, y - hook, from, y];
     for (const change of line.changes) {
       const at = geometry.at(change);
       if (at - notch <= from || at + notch >= to) continue;
-      points.push(`${at - notch},${y}`, `${at},${y - hook}`, `${at + notch},${y}`);
+      points.push(at - notch, y, at, y - hook, at + notch, y);
     }
-    points.push(`${to},${y}`, `${to},${y - hook}`);
-    shapes.push(inkedPolyline({ points: points.join(' '), fill: 'none', 'stroke-width': space * 0.12 }));
+    points.push(to, y, to, y - hook);
+    shapes.push(inkedPolyline(points, space * 0.12));
   }
 
   for (const sign of signs) {
@@ -93,26 +93,15 @@ export function drawPedal(context: StaffContext, under: UnderLowerStaff): SVGEle
     const y =
       (!release && lineBaselines.get(`${pedal} ${sign.beat}`)) || baseline(left, left + (release ? 1.8 * space : signWidth(pedal)));
     const codepoint = release ? PEDAL_RELEASE : pedal === 'sostenuto' ? PEDAL_SOSTENUTO : PEDAL_PRESS;
-    const glyph = inked(space, codepoint, release ? releaseX : left, y);
-    if (release) glyph.setAttribute('text-anchor', 'middle');
-    shapes.push(glyph);
+    shapes.push(inked(space, codepoint, release ? releaseX : left, y, release ? 'middle' : undefined));
   }
 
   // The left pedal's words, in italics between the staves, like other playing directions.
   // Just under the upper staff, above the dynamics line.
   const wordsY = geometry.trebleTop() + (LINES_PER_STAFF - 1 + SOFT_PEDAL_DROP) * space;
   for (const { beat, text } of words) {
-    const element = svg('text', {
-      // Just past the notehead, clear of a stem hanging down from its left side.
-      x: geometry.at(beat) + SOFT_PEDAL_INSET * space,
-      y: wordsY,
-      'font-size': space * 1.3,
-      'font-family': TEXT_FONT,
-      'font-style': 'italic',
-    });
-    element.textContent = text;
-    element.style.setProperty('fill', COLORS.note);
-    shapes.push(element);
+    // Just past the notehead, clear of a stem hanging down from its left side.
+    shapes.push({ kind: 'text', x: geometry.at(beat) + SOFT_PEDAL_INSET * space, y: wordsY, text, size: space * 1.3, font: TEXT_FONT, fill: COLORS.note, italic: true });
   }
   return shapes;
 }

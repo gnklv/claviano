@@ -2,7 +2,8 @@ import type { StaffChord, StaffGrace } from '../../../domain/notation/engraving'
 import type { Hand } from '../../../domain/note';
 import { SAME_MOMENT } from '../../../domain/moment';
 import { firstAtOrAfter } from '../../../domain/search';
-import { COLORS, svg } from './svg';
+import { COLORS } from './shapes';
+import { svg } from './svg';
 
 /*
  * The chords sounding where the music is, lit in their hand's colour, like the keys on the keyboard.

@@ -3,7 +3,7 @@ import { beatPosition } from '../staffLayout';
 import type { StaffContext } from './context';
 import { LINES_PER_STAFF } from './geometry';
 import { DYNAMIC_LETTERS, TEXT_FONT } from './glyphs';
-import { COLORS, inked, inkedPolyline, svg } from './svg';
+import { COLORS, inked, inkedPolyline, type Shape } from './shapes';
 import { sameMoment } from '../../../domain/moment';
 
 /*
@@ -34,9 +34,9 @@ export interface DynamicsBelow {
  * low notes; or under the lower staff when the file puts them there. Also gives those under the
  * lower staff, for the pedal marks to go under them.
  */
-export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: SVGElement[]; below: DynamicsBelow[] } {
+export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: Shape[]; below: DynamicsBelow[] } {
   const { space } = geometry;
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   const below: DynamicsBelow[] = [];
   const x = (beat: number) => geometry.px(beatPosition(score, barAtBeat(score, beat), beat));
   // Between the staves if the notes of both leave room there (a mark is about two spaces
@@ -61,20 +61,9 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     if (mark.letters) {
       const width = mark.text.length * DYNAMIC_LETTER_WIDTH * space;
       const letters = [...mark.text].map((letter) => DYNAMIC_LETTERS[letter] ?? '').join('');
-      const glyph = inked(space, letters, at, baseline(mark.below, at - width / 2, at + width / 2));
-      glyph.setAttribute('text-anchor', 'middle');
-      shapes.push(glyph);
+      shapes.push(inked(space, letters, at, baseline(mark.below, at - width / 2, at + width / 2), 'middle'));
     } else {
-      const words = svg('text', {
-        x: at - 0.5 * space,
-        y: baseline(mark.below, at, at + 4 * space),
-        'font-size': space * 1.3,
-        'font-family': TEXT_FONT,
-        'font-style': 'italic',
-      });
-      words.textContent = mark.text;
-      words.style.setProperty('fill', COLORS.note);
-      shapes.push(words);
+      shapes.push({ kind: 'text', x: at - 0.5 * space, y: baseline(mark.below, at, at + 4 * space), text: mark.text, size: space * 1.3, font: TEXT_FONT, fill: COLORS.note, italic: true });
     }
   }
 
@@ -83,16 +72,7 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     if (!mark.below) continue;
     const beside = score.notation.dynamics.find((dynamic) => sameMoment(dynamic.beat, mark.beat));
     const left = x(mark.beat) + (beside ? (beside.text.length * (beside.letters ? DYNAMIC_LETTER_WIDTH : 0.6) + 1) * space : -0.5 * space);
-    const words = svg('text', {
-      x: left,
-      y: baseline(false, left, left + mark.text.length * 0.6 * space),
-      'font-size': space * 1.3,
-      'font-family': TEXT_FONT,
-      'font-style': 'italic',
-    });
-    words.textContent = mark.text;
-    words.style.setProperty('fill', COLORS.note);
-    shapes.push(words);
+    shapes.push({ kind: 'text', x: left, y: baseline(false, left, left + mark.text.length * 0.6 * space), text: mark.text, size: space * 1.3, font: TEXT_FONT, fill: COLORS.note, italic: true });
   }
 
   for (const hairpin of score.notation.hairpins) {
@@ -106,13 +86,7 @@ export function drawDynamics({ score, geometry, ink }: StaffContext): { shapes: 
     const middle = baseline(hairpin.below, from, to) - HAIRPIN_RISE * space;
     const open = HAIRPIN_OPENING * space;
     const [narrow, wide] = hairpin.type === 'crescendo' ? [from, to] : [to, from];
-    shapes.push(
-      inkedPolyline({
-        points: `${wide},${middle - open} ${narrow},${middle} ${wide},${middle + open}`,
-        fill: 'none',
-        'stroke-width': space * 0.12,
-      }),
-    );
+    shapes.push(inkedPolyline([wide, middle - open, narrow, middle, wide, middle + open], space * 0.12));
   }
   return { shapes, below };
 }

@@ -35,7 +35,7 @@ import {
   TEXT_FONT,
   timeDigits,
 } from './glyphs';
-import { COLORS, inked, inkedPolyline, svg } from './svg';
+import { COLORS, inked, inkedPolyline, type LineShape, type Shape, type TextShape } from './shapes';
 import { SAME_MOMENT, sameMoment } from '../../../domain/moment';
 
 /**
@@ -84,11 +84,11 @@ export interface OctaveBracket {
 }
 
 /** Bar lines through both staves, and the final bar line: a thin and a thick one. */
-export function drawBarLines({ score, geometry }: StaffContext): { lines: SVGElement[]; final: SVGElement[] } {
+export function drawBarLines({ score, geometry }: StaffContext): { lines: Shape[]; final: Shape[] } {
   const { space } = geometry;
   const top = geometry.trebleTop();
   const bottom = geometry.systemBottom();
-  const line = (x: number, width: number) => svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': width });
+  const line = (x: number, width: number): LineShape => ({ kind: 'line', x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, width });
   const end = geometry.barLineX(tapeBars(score).starts.length);
   return {
     lines: score.notation.bars.map((_, index) => line(geometry.barLineX(index), 1)),
@@ -97,24 +97,24 @@ export function drawBarLines({ score, geometry }: StaffContext): { lines: SVGEle
 }
 
 /** Clef changes in the middle of the music: a small clef just before the first note it applies to. */
-export function drawClefChanges({ score, geometry }: StaffContext): SVGElement[] {
+export function drawClefChanges({ score, geometry }: StaffContext): Shape[] {
   const { space } = geometry;
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   for (const change of score.notation.clefs) {
     if (change.beat <= SAME_MOMENT) continue; // the opening clefs live in the left column
     const bar = barAtBeat(score, change.beat);
     const staffTop = change.staff === 1 ? geometry.trebleTop() : geometry.bassTop();
     const octaveClef = octaveClefGlyph({ clef: change.clef, octaves: change.octaves ?? 0 });
-    const text = svg('text', {
+    shapes.push({
+      kind: 'text',
       x: geometry.px(beatPosition(score, bar, change.beat)) - 2.6 * space,
       y: staffTop + (CLEF_LINE_STEP[change.clef] * space) / 2,
-      fill: COLORS.clef,
+      text: octaveClef ?? CLEF_CHANGE_GLYPH[change.clef],
       // A clef with an 8 has no small glyph of its own: the full one, drawn smaller.
-      'font-size': space * 4 * (octaveClef ? CLEF_CHANGE_SCALE : 1),
-      'font-family': MUSIC_FONT,
+      size: space * 4 * (octaveClef ? CLEF_CHANGE_SCALE : 1),
+      font: MUSIC_FONT,
+      fill: COLORS.clef,
     });
-    text.textContent = octaveClef ?? CLEF_CHANGE_GLYPH[change.clef];
-    shapes.push(text);
   }
   return shapes;
 }
@@ -123,9 +123,9 @@ export function drawClefChanges({ score, geometry }: StaffContext): SVGElement[]
  * Key and time changes where they happen, as printed: a double bar line before a new key, naturals
  * cancelling what the old key had, the new key signature, the new time signature.
  */
-export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElement[] {
+export function drawSignatureChanges({ score, geometry }: StaffContext): Shape[] {
   const { space } = geometry;
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   const top = geometry.trebleTop();
   const bottom = geometry.systemBottom();
   for (const change of geometry.changes) {
@@ -134,7 +134,7 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
     // A ‖: draws its own thick line; otherwise a new key gets a double bar line.
     if (change.key && !score.notation.bars[change.bar]?.navigation.repeatStart) {
       const x = line - 0.5 * space;
-      shapes.push(svg('line', { x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, 'stroke-width': 1 }));
+      shapes.push({ kind: 'line', x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, width: 1 });
     }
     const staves: [Clef, number][] = [
       [clefAt(score, 1, beat), top],
@@ -161,11 +161,7 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
     if (change.time) {
       const center = x + (timeSignatureWidth(change.time) * space) / 2;
       for (const [, staffTop] of staves) {
-        const numerator = inked(space, timeDigits(change.time.numerator), center, staffTop + space);
-        const denominator = inked(space, timeDigits(change.time.denominator), center, staffTop + 3 * space);
-        numerator.setAttribute('text-anchor', 'middle');
-        denominator.setAttribute('text-anchor', 'middle');
-        shapes.push(numerator, denominator);
+        shapes.push(inked(space, timeDigits(change.time.numerator), center, staffTop + space, 'middle'), inked(space, timeDigits(change.time.denominator), center, staffTop + 3 * space, 'middle'));
       }
     }
   }
@@ -176,24 +172,16 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): SVGElem
  * Bar numbers over the treble staff, just after each bar line; raised over a high note or stem
  * at the start of the bar, so they never sit on it. Also gives where each one was drawn (its baseline).
  */
-export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes: SVGElement[]; y: number[] } {
+export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes: Shape[]; y: number[] } {
   const { space } = geometry;
   const top = geometry.trebleTop();
   const y: number[] = [];
-  const shapes = score.notation.bars.map((_, index) => {
+  const shapes = score.notation.bars.map((_, index): TextShape => {
     const x = geometry.barLineX(index) + BAR_NUMBER_INSET * space;
     const reach = ink.extent('treble', x, x + (BAR_NUMBER_WIDTH + BAR_NUMBER_LOOKS_AHEAD) * space);
     const numberY = Math.min(top - BAR_NUMBER_RISE * space, reach.top - BAR_NUMBER_CLEARANCE * space);
     y.push(numberY);
-    const number = svg('text', {
-      x,
-      y: numberY,
-      fill: COLORS.barNumber,
-      'font-size': space * 1.1,
-      'font-family': LABEL_FONT,
-    });
-    number.textContent = String(writtenBarNumber(score, index));
-    return number;
+    return { kind: 'text', x, y: numberY, text: String(writtenBarNumber(score, index)), size: space * 1.1, font: LABEL_FONT, fill: COLORS.barNumber };
   });
   return { shapes, y };
 }
@@ -203,23 +191,15 @@ export function drawBarNumbers({ score, geometry, ink }: StaffContext): { shapes
  * `barNumberY`), segno and coda signs, and the words of jumps ("D.C. al Fine", "To Coda") over the
  * ends of their bars.
  */
-export function drawNavigation({ score, geometry }: StaffContext, barNumberY: readonly number[]): SVGElement[] {
+export function drawNavigation({ score, geometry }: StaffContext, barNumberY: readonly number[]): Shape[] {
   const { space } = geometry;
   const navigation = score.notation.bars.map((bar) => bar.navigation);
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   const staves = [geometry.trebleTop(), geometry.bassTop()];
   const barStart = (i: number) => geometry.barLineX(i);
   const barEnd = (i: number) => geometry.barLineX(i + 1);
   const top = geometry.trebleTop();
-  const ink = (element: SVGElement) => {
-    element.style.setProperty('fill', COLORS.note);
-    return element;
-  };
-  const glyph = (codepoint: string, x: number, y: number, anchor: 'start' | 'middle' | 'end' = 'start') => {
-    const text = inked(space, codepoint, x, y);
-    text.setAttribute('text-anchor', anchor);
-    return text;
-  };
+  const glyph = (codepoint: string, x: number, y: number, anchor: 'start' | 'middle' | 'end' = 'start') => inked(space, codepoint, x, y, anchor);
 
   navigation.forEach((nav, i) => {
     // The repeat glyphs include their thick and thin lines and dots, one staff tall.
@@ -230,17 +210,7 @@ export function drawNavigation({ score, geometry }: StaffContext, barNumberY: re
     if (nav.segnoSign) shapes.push(glyph(SEGNO, barStart(i) + space, top - 2.6 * space));
     if (nav.codaSign) shapes.push(glyph(CODA, barStart(i) + space, top - 2.6 * space));
     if (nav.text) {
-      const words = svg('text', {
-        x: barEnd(i) - space * 0.5,
-        y: top - 3.4 * space,
-        'font-size': space * 1.3,
-        'font-family': TEXT_FONT,
-        'font-style': 'italic',
-        'font-weight': 'bold',
-        'text-anchor': 'end',
-      });
-      words.textContent = nav.text;
-      shapes.push(ink(words));
+      shapes.push({ kind: 'text', x: barEnd(i) - space * 0.5, y: top - 3.4 * space, text: nav.text, size: space * 1.3, font: TEXT_FONT, fill: COLORS.note, italic: true, bold: true, anchor: 'end' });
     }
 
     // A volta: a bracket from the first bar of its ending to the last, with its label.
@@ -254,20 +224,10 @@ export function drawNavigation({ score, geometry }: StaffContext, barNumberY: re
       const left = barStart(i) + 0.3 * space;
       const right = barEnd(last) - 0.3 * space;
       const closed = navigation[last]?.endingClosed;
-      const line = inkedPolyline({
-        points: `${left},${y + hook} ${left},${y} ${right},${y}${closed ? ` ${right},${y + hook}` : ''}`,
-        fill: 'none',
-        'stroke-width': space * 0.12,
-      });
-      const label = svg('text', {
-        x: left + 0.5 * space,
-        y: y + 1.4 * space,
-        'font-size': space * 1.3,
-        'font-family': LABEL_FONT,
-        'font-weight': 'bold',
-      });
-      label.textContent = nav.endingLabel;
-      shapes.push(line, ink(label));
+      shapes.push(
+        inkedPolyline([left, y + hook, left, y, right, y, ...(closed ? [right, y + hook] : [])], space * 0.12),
+        { kind: 'text', x: left + 0.5 * space, y: y + 1.4 * space, text: nav.endingLabel, size: space * 1.3, font: LABEL_FONT, fill: COLORS.note, bold: true },
+      );
     }
   });
   return shapes;
@@ -277,7 +237,7 @@ export function drawNavigation({ score, geometry }: StaffContext, barNumberY: re
  * An octave shift bracket: "8va" and a dashed line clear of the notes under it, ending with a
  * hook towards the staff just before the notes go back to their own octave.
  */
-export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOctaveShift): { shapes: SVGElement[]; bracket: OctaveBracket } {
+export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOctaveShift): { shapes: Shape[]; bracket: OctaveBracket } {
   const { space } = geometry;
   const above = shift.octaves > 0;
   const glyphs = above ? OCTAVE_GLYPH_ABOVE : OCTAVE_GLYPH_BELOW;
@@ -294,12 +254,7 @@ export function drawOctaveShift({ geometry, ink }: StaffContext, shift: StaffOct
   const lineY = y - OCTAVE_LINE_RISE * space;
   const hook = (above ? 1 : -1) * OCTAVE_HOOK * space;
   const lineStart = left + glyphWidth + 0.3 * space;
-  const line = inkedPolyline({
-    points: `${lineStart},${lineY} ${right},${lineY} ${right},${lineY + hook}`,
-    fill: 'none',
-    'stroke-width': space * 0.12,
-    'stroke-dasharray': `${space * 0.6} ${space * 0.4}`,
-  });
+  const line = inkedPolyline([lineStart, lineY, right, lineY, right, lineY + hook], space * 0.12, [space * 0.6, space * 0.4]);
   return { shapes: [inked(space, glyph, left, y), line], bracket: { staff: shift.staff, above, left, right, y } };
 }
 
@@ -320,21 +275,16 @@ const WORDS_GAP = 0.8;
  * metronome mark at the same place follows it on its line; other words ("tranquillo", "rit.") are
  * in italics, clear of the notes under them, and above anything already standing there.
  */
-export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets: readonly OctaveBracket[], barNumberY: readonly number[]): SVGElement[] {
+export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets: readonly OctaveBracket[], barNumberY: readonly number[]): Shape[] {
   const { space } = geometry;
-  const shapes: SVGElement[] = [];
+  const shapes: Shape[] = [];
   const placeOf = (beat: number) => geometry.px(beatPosition(score, barAtBeat(score, beat), beat)) - 0.5 * space;
   // Over an 8va bracket if there is one here.
   const lineY = (left: number, right: number) => {
     const bracket = brackets.find((b) => b.staff === 'treble' && b.above && left < b.right && right > b.left);
     return Math.min(geometry.trebleTop() - TEMPO_MARK_RISE * space, bracket ? bracket.y - TEMPO_OVER_OCTAVE * space : Infinity);
   };
-  const words = (text: string, x: number, y: number, bold: boolean) => {
-    const element = svg('text', { x, y, 'font-size': space * WORDS_SIZE, 'font-family': TEXT_FONT, ...(bold ? { 'font-weight': 'bold' } : { 'font-style': 'italic' }) });
-    element.textContent = text;
-    element.style.setProperty('fill', COLORS.note);
-    return element;
-  };
+  const words = (text: string, x: number, y: number, bold: boolean): TextShape => ({ kind: 'text', x, y, text, size: space * WORDS_SIZE, font: TEXT_FONT, fill: COLORS.note, bold, italic: !bold });
   /** What stands over the staff already: later words go above what they would run into. */
   const standing: { left: number; right: number; y: number }[] = [];
   /** The bar numbers, which rise over high notes as words do: words step aside, to the right of a number in their way. */
@@ -380,9 +330,7 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     if (mark) {
       // (A metronome mark at a bar's start stands after the bar's number, not on it.)
       if (here.length === 0) x = pastNumbers(x, 5 * space, y);
-      const note = svg('text', { x, y, 'font-size': space * TEMPO_NOTE_SIZE, 'font-family': MUSIC_FONT });
-      note.textContent = METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : '');
-      note.style.setProperty('fill', COLORS.note);
+      const note: TextShape = { kind: 'text', x, y, text: METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : ''), size: space * TEMPO_NOTE_SIZE, font: MUSIC_FONT, fill: COLORS.note };
       shapes.push(note, words(`= ${mark.perMinute}`, x + (TEMPO_NOTE_WIDTH + (mark.unit.dots ? TEMPO_DOT_WIDTH : 0)) * space, y, true));
     }
     standing.push({ left, right: left + width, y });

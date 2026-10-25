@@ -1,5 +1,5 @@
-DIV style="position: relative; overflow: hidden; background: var(--surface);"
-  svg style="position: absolute; inset: 0; width: 100%; height: 100%;"
+DIV style="background: var(--surface); overflow: hidden; position: relative;"
+  svg style="height: 100%; inset: 0; position: absolute; width: 100%;"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="6.25" x2="2048" y1="62.5" y2="62.5"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="6.25" x2="2048" y1="75" y2="75"
     line stroke-width="1" style="stroke: var(--staff-line);" x1="6.25" x2="2048" y1="87.5" y2="87.5"
@@ -17,8 +17,8 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
     text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="63.75" y="100" U+E084
     text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="63.75" y="200" U+E084
     text font-family="Bravura" font-size="50" style="fill: var(--ink);" text-anchor="middle" x="63.75" y="225" U+E084
-  DIV style="position: absolute; top: 0px; bottom: 0px; right: 0px; mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%); left: 90px;"
-    svg style="display: block; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(280.2px);"
+  DIV style="bottom: 0px; left: 90px; mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%); position: absolute; right: 0px; top: 0px;"
+    svg style="display: block; height: 100%; overflow: visible; transform: translateX(280.2px); width: 100%; will-change: transform;"
       g
         g
         g
@@ -171,11 +171,11 @@ DIV style="position: relative; overflow: hidden; background: var(--surface);"
           text font-family="Bravura" font-size="50" style="fill: currentColor;" x="3176.72" y="125" U+E0A3
           line stroke-width="1.5" style="stroke: currentColor;" x1="3190.72" x2="3190.72" y1="122.88" y2="81.25"
         g style="color: var(--ink);"
-    svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translateX(280.2px);"
+    svg style="height: 100%; inset: 0; overflow: visible; position: absolute; transform: translateX(280.2px); width: 100%; will-change: transform;"
       g style="color: var(--left);"
         text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="193.75" U+E0A2
         text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-10.56" y="218.75" U+E0A2
       g style="color: var(--right);"
         text font-family="Bravura" font-size="50" style="fill: currentColor;" x="-7.37" y="112.5" U+E0A4
         line stroke-width="1.5" style="stroke: currentColor;" x1="6.63" x2="6.63" y1="110.38" y2="68.75"
-  DIV style="position: absolute; width: 2px; background: var(--cursor); border-radius: 1px; left: 369.2px; top: 37.5px; height: 225px; visibility: visible;"
+  DIV style="background: var(--cursor); border-radius: 1px; height: 225px; left: 369.2px; position: absolute; top: 37.5px; visibility: visible; width: 2px;"

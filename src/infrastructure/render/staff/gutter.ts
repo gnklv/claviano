@@ -2,8 +2,8 @@ import type { KeySignature, TimeSignature } from '../../../domain/score';
 import { keySignatureSteps } from '../../../domain/notation/signatures';
 import type { Clef, ClefSign } from '../../../domain/notation/written';
 import { CLEF_AREA, FLAT_ADVANCE, LINES_PER_STAFF, SHARP_ADVANCE, keySignatureWidth, timeSignatureWidth, type StaffGeometry } from './geometry';
-import { CLEF_GLYPH, CLEF_LINE_STEP, FLAT, MUSIC_FONT, octaveClefGlyph, SHARP, timeDigits } from './glyphs';
-import { COLORS, svg } from './svg';
+import { CLEF_GLYPH, CLEF_LINE_STEP, FLAT, octaveClefGlyph, SHARP, timeDigits } from './glyphs';
+import { COLORS, noteGlyph, type Shape } from './shapes';
 
 /** What the left column shows: the clefs in force (upper, lower) and, with music, the signatures. */
 export interface GutterContent {
@@ -15,34 +15,21 @@ export interface GutterContent {
  * What never moves: the staff lines across the whole view, the line joining both staves, and the
  * left column with the clefs, the key signature and the time signature in force under the cursor.
  */
-export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: GutterContent): SVGElement[] {
+export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: GutterContent): Shape[] {
   const { space } = geometry;
-  const shapes: SVGElement[] = [];
-  const glyph = (codepoint: string, x: number, y: number, anchor: 'start' | 'middle' = 'start') => {
-    const text = svg('text', { x, y, fill: COLORS.clef, 'font-size': space * 4, 'font-family': MUSIC_FONT, 'text-anchor': anchor });
-    text.textContent = codepoint;
-    return text;
-  };
+  const shapes: Shape[] = [];
+  const glyph = (codepoint: string, x: number, y: number, anchor: 'start' | 'middle' = 'start') => noteGlyph(space, codepoint, x, y, COLORS.clef, anchor);
 
   for (const top of [geometry.trebleTop(), geometry.bassTop()]) {
     for (let line = 0; line < LINES_PER_STAFF; line++) {
       const y = top + line * space;
       // (Twice the width of the view: stretched smaller for a moment, as a view changing its size is, the lines still reach across it.)
-      shapes.push(svg('line', { x1: space * 0.5, x2: geometry.width * 2, y1: y, y2: y, stroke: COLORS.staffLine, 'stroke-width': 1 }));
+      shapes.push({ kind: 'line', x1: space * 0.5, x2: geometry.width * 2, y1: y, y2: y, stroke: COLORS.staffLine, width: 1 });
     }
   }
 
   // The line joining both staves at the start of the system.
-  shapes.push(
-    svg('line', {
-      x1: space * 0.5,
-      x2: space * 0.5,
-      y1: geometry.trebleTop(),
-      y2: geometry.systemBottom(),
-      stroke: COLORS.barLine,
-      'stroke-width': 1.5,
-    }),
-  );
+  shapes.push({ kind: 'line', x1: space * 0.5, x2: space * 0.5, y1: geometry.trebleTop(), y2: geometry.systemBottom(), stroke: COLORS.barLine, width: 1.5 });
 
   // The clefs in force under the cursor; usually treble above and bass below.
   const [upper, lower] = clefs;

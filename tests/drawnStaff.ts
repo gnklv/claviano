@@ -21,11 +21,24 @@ const rounded = (text: string): string => text.replace(/-?\d+\.\d+/g, (number) =
 /** Music glyphs are private-use characters: by their code, so the file reads in any font. */
 const spelled = (text: string): string => [...text].map((c) => (c.codePointAt(0)! >= 0xe000 ? `U+${c.codePointAt(0)!.toString(16).toUpperCase()}` : c)).join('');
 
+/**
+ * The paint of an element, as a sorted list: in what order the drawing set its colours is not a
+ * change in what is drawn. (Nor is being hidden: the tape far from the view is.)
+ */
+const paint = (style: string): string =>
+  style
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .filter((declaration) => declaration !== '' && declaration !== 'display: none')
+    .sort()
+    .map((declaration) => `${declaration};`)
+    .join(' ');
+
 /** One line for each element drawn, nested as in the drawing: its tag, attributes, paint and text. */
 export function drawing(element: Element, depth = 0): string {
   // (What is drawn, whether or not it is shown now: the tape far from the view is hidden.)
   const attributes = [...element.attributes]
-    .map((attribute) => ({ name: attribute.name, value: attribute.name === 'style' ? attribute.value.replace(/ ?display: none;/, '') : attribute.value }))
+    .map((attribute) => ({ name: attribute.name, value: attribute.name === 'style' ? paint(attribute.value) : attribute.value }))
     .filter((attribute) => attribute.value !== '')
     .map((attribute) => `${attribute.name}="${rounded(attribute.value)}"`)
     .sort()
