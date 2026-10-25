@@ -45,6 +45,14 @@ const model = defineModel<T>({ required: true });
 
 .option {
   appearance: none;
+  /*
+   * An icon in the middle of its choice (as a letter it would stand on the words' baseline, high);
+   * drawn or said, as tall as a button beside it (the group's edge, above and below, is the rest).
+   */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--control-height) - 2px);
   border: none;
   background: transparent;
   color: var(--muted);

@@ -81,9 +81,11 @@ export const settled = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await nextTick();
 };
+/** What a choice is called: its name read out, where it is drawn rather than said; else its words. */
+export const named = (element: Element) => element.getAttribute('aria-label') ?? element.textContent?.trim() ?? '';
 /** The open piece learnt: "Learn" chosen in its header, as a piece is listened to first. */
 export const learn = async () => {
-  [...root.querySelectorAll<HTMLElement>('.piece header [role=group] button')].find((choice) => choice.textContent?.trim() === 'Learn')!.click();
+  [...root.querySelectorAll<HTMLElement>('.piece header [role=group] button')].find((choice) => named(choice) === 'Learn')!.click();
   await settled();
 };
 export const drop = async (name: string, content: string) => {

@@ -115,6 +115,11 @@
 
   /* Under a finger nothing pressable is smaller. */
   --touch: 44px;
+  /*
+   * A control's height under a pointer: a button's (a line of words, or an icon, and its padding).
+   * Segments are as tall, so that a bar of the two (the piece's header) stands level.
+   */
+  --control-height: 34px;
   /* A slider's thumb: something to take hold of, larger under a finger (see the sliders below). */
   --slider-thumb: 16px;
 
@@ -294,6 +299,7 @@ input,
 
 .button {
   appearance: none;
+  min-height: var(--control-height);
   border: 1px solid var(--border);
   background: var(--control);
   color: var(--text);

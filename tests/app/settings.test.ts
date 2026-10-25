@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { button, playback, root, settled, staffScores, useApp, volume } from './harness';
+import { button, named, playback, root, settled, staffScores, useApp, volume } from './harness';
 
 /* The settings panel, on either screen. */
 
@@ -58,7 +58,7 @@ describe('the settings panel', () => {
     button(/Ode to Joy/).click();
     await settled();
     // (The staff is what shows them.)
-    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((option) => option.textContent?.trim() === 'Notes')!.click();
+    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((option) => named(option) === 'Notes')!.click();
     await settled();
     const hints = () => root.querySelector('[role=group][aria-label="Fingering"]')!;
     const chosen = () => hints().querySelector('[aria-pressed=true]')?.textContent?.trim();

@@ -122,6 +122,13 @@ const finger = ref('');
         <AppButton disabled>Disabled</AppButton>
       </div>
 
+      <SectionHeading>Header</SectionHeading>
+      <p class="about">The strip on top of a screen. Its title names a place, said quietly; or what is open there (a piece), in ink.</p>
+      <div class="bars">
+        <ScreenHeader back><template #title>A place</template></ScreenHeader>
+        <ScreenHeader back opened><template #title>Czardas, a piece that is open</template></ScreenHeader>
+      </div>
+
       <SectionHeading>Chips</SectionHeading>
       <p class="about">On or off: what is switched while playing, or one of a few values.</p>
       <div class="row start">

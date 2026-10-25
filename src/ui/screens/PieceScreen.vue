@@ -13,7 +13,7 @@ import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { useFingeredPage } from '../app/useFingeredPage';
 import { useFingerHints } from '../kept/useFingerHints';
 import { useImmersion } from '../motion/useImmersion';
-import { SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { NARROW_SCREEN, SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePieceText } from '../app/usePieceText';
 import { usePieceWay } from '../app/usePieceWay';
 import { useResize } from '../browser/useResize';
@@ -32,7 +32,7 @@ const emit = defineEmits<{ back: [] }>();
 
 const { playback, openScore, library, demos, fingering: own, way } = useDeps();
 const viewMode = useShownViewMode();
-const { title, details, error } = usePieceText(playback, openScore, library, demos);
+const { title, error } = usePieceText(playback, openScore, library, demos);
 const { t } = useI18n();
 
 // --- Listened to or learnt: listening is the player alone; the tools of learning are in "Learn". ---
@@ -40,9 +40,11 @@ const { t } = useI18n();
 const kept = usePieceWay(way);
 const learning = computed(() => kept.value === 'learn');
 const chosenWay = computed({ get: () => kept.value, set: (chosen: 'learn' | 'listen') => way.set(chosen) });
+/** A phone: the ways drawn, not said, and the piece's name has the room the words would take. */
+const narrow = useMediaQuery(NARROW_SCREEN);
 const WAYS = computed(() => [
-  { value: 'listen' as const, label: t('wayListen') },
-  { value: 'learn' as const, label: t('wayLearn') },
+  { value: 'listen' as const, label: t('wayListen'), icon: narrow.value ? ('headphones' as const) : undefined },
+  { value: 'learn' as const, label: t('wayLearn'), icon: narrow.value ? ('book' as const) : undefined },
 ]);
 
 // --- Fingering: what is shown of it, and one's own being set (on the staff, a note at a time). ---
@@ -105,13 +107,10 @@ useResize(stage, letGoWhenBack);
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
-        <ScreenHeader class="bar" back :alert="!!error" @back="emit('back')">
-          <template #title>
-            <template v-if="error">{{ error }}</template>
-            <!-- (How long the piece is: said where there is room for it.) -->
-            <template v-else>{{ title }}<span v-if="details" class="details"> · {{ details }}</span></template>
-          </template>
-          <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
+        <ScreenHeader class="bar" back opened :alert="!!error" @back="emit('back')">
+          <template #title>{{ error ?? title }}</template>
+          <!-- The way of the screen, then the view of its stage: two choices, two groups, the view drawn.
+               The view is chosen often enough to stand here; on a phone, the settings panel has it. -->
           <SegmentedControl v-model="chosenWay" class="way" :options="WAYS" :label="t('way')" />
           <ViewModeSwitch class="view-switch" />
           <SettingsPanel piece />
@@ -209,19 +208,23 @@ useResize(stage, letGoWhenBack);
   }
 }
 
-/* A phone: the name alone. */
-@media (max-width: 599px) {
-  .details {
-    display: none;
-  }
-}
-
 .view-switch {
   flex: none;
 }
 
-/* Under this width the view switch no longer fits beside the title: the settings panel has it then (see components/SettingsPanel.vue). */
-@media (max-width: 900px) {
+/*
+ * The way, the view and the settings are three choices of their own: the room between groups
+ * between each (the view is not a third way of the screen), and one room, not two. (A phone has
+ * only the way there, and its gaps are the piece's name's.)
+ */
+@media (min-width: 600px) {
+  .bar {
+    column-gap: var(--space-5);
+  }
+}
+
+/* A phone: no room for the view beside the piece's name; the settings panel has it then (see parts/SettingsPanel.vue). */
+@media (max-width: 599px) {
   .view-switch {
     display: none;
   }
@@ -258,11 +261,5 @@ useResize(stage, letGoWhenBack);
 
 .view-both .staff {
   border-bottom: 1px solid var(--border);
-}
-
-/* (How long the piece is: a note beside the title, not a part of it.) */
-.details {
-  font-family: var(--font-text);
-  font-weight: normal;
 }
 </style>

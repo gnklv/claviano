@@ -48,6 +48,17 @@ export const ICONS = {
   bookmark: [line('M7 4h10v16l-5-3.5L7 20z')],
   // A pencil, for writing in what the notes do not say: one's own fingers.
   pencil: [line('M15.5 5.5l3 3M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19z')],
+  // The views of the stage, as they look: the five lines of a staff with a note on the middle one
+  // (five lines alone read as a menu), its head slanted as in `note` and the line broken round it (a
+  // head of the lines' ink on them is lost in them); a keyboard, its black keys solid as they are;
+  // the two, a staff of three lines over a keyboard (five would not leave the keys room).
+  staff: [line('M3 5.5h18M3 8.75h18M3 12h6M18.5 12h2.5M3 15.25h18M3 18.5h18M16.15 11.1V3'), solid('M10.68 13.03a3 2.2 -20 1 0 5.64 -2.06a3 2.2 -20 1 0 -5.64 2.06z')],
+  keys: [line('M3 5h18v14H3zM9 12v7M15 12v7'), solid('M7.5 5h3v7h-3zM13.5 5h3v7h-3z')],
+  staffAndKeys: [line('M3 3.5h18M3 6.5h18M3 9.5h18M3 13h18v7.5H3zM9 17v3.5M15 17v3.5'), solid('M7.5 13h3v4h-3zM13.5 13h3v4h-3z')],
+  // The two ways of having a piece. Listened to: headphones, the band a line, the cups solid to read
+  // at a glance. Learnt: an open book, the pianist's notebook (the pencil is one's own fingers already).
+  headphones: [line('M4.5 14v-2a7.5 7.5 0 0 1 15 0v2'), solid('M3.5 14H7v6H5a1.5 1.5 0 0 1-1.5-1.5zM17 14h3.5v4.5A1.5 1.5 0 0 1 19 20h-2z')],
+  book: [line('M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5c2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13')],
 } satisfies Record<string, IconPart[]>;
 
 export type IconName = keyof typeof ICONS;

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { button, learn, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
+import { button, learn, named, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
 
 /*
  * The piece's screen: getting to it and back, the keys of the computer, the view, a phone on its side.
@@ -15,7 +15,7 @@ it('opens a demo into the piece screen, under an address of its own, with the pi
   await settled();
   expect(onPiece()).toBe(true);
   expect(location.hash).toBe('#/piece/demo.ode');
-  expect(root.querySelector('.title')?.textContent).toMatch(/^Ode to Joy · 8 bars · \d+ notes$/);
+  expect(root.querySelector('.title')?.textContent).toBe('Ode to Joy');
   // Opening files and demos is the library's business: the piece's header has neither.
   expect(root.querySelector('input[type=file]')).toBeNull();
 });
@@ -101,7 +101,7 @@ describe('the view', () => {
   });
 
   it('is the staff, the keys or both', async () => {
-    expect(views().map((view) => view.textContent?.trim())).toEqual(['Notes', 'Keys', 'Both']);
+    expect(views().map(named)).toEqual(['Notes', 'Keys', 'Both']);
     views()[2].click();
     await settled();
     expect(stage().classList.contains('view-both')).toBe(true);
@@ -111,7 +111,7 @@ describe('the view', () => {
     views()[2].click();
     await settled();
     await turnIntoPhone();
-    expect(views().map((view) => view.textContent?.trim())).toEqual(['Notes', 'Keys']);
+    expect(views().map(named)).toEqual(['Notes', 'Keys']);
     expect(stage().classList.contains('view-keys')).toBe(true);
 
     screen.phone = false;
@@ -185,7 +185,7 @@ describe('a phone on its side', () => {
     let stageHeight: number;
     /** Plays until they go, on the staff alone, 200 px tall beside them in a stage as tall. */
     const immerse = async () => {
-      [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.textContent?.trim() === 'Notes')!.click();
+      [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => named(choice) === 'Notes')!.click();
       await nextTick();
       stageHeight = 200;
       Object.defineProperty(root.querySelector('.stage')!, 'clientHeight', { get: () => stageHeight, configurable: true });

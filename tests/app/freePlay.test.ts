@@ -214,7 +214,7 @@ describe('free play', () => {
       button(/^Save as a piece$/).click();
       await settled();
       expect(onPiece()).toBe(true);
-      expect(root.querySelector('.title')?.textContent).toMatch(/^Played on .+ · 2 bars · 2 notes$/);
+      expect(root.querySelector('.title')?.textContent).toMatch(/^Played on .+$/);
       expect(playback.score?.notes.map((note) => [note.pitch, note.beat, note.hand])).toEqual([
         [48, 0, 'left'],
         [60, 4, 'right'],

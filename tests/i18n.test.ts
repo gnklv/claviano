@@ -14,17 +14,17 @@ describe('translate', () => {
   });
 
   it('picks the English plural form', () => {
-    expect(translate('en', 'barsCount', { count: 1 })).toBe('1 bar');
-    expect(translate('en', 'barsCount', { count: 8 })).toBe('8 bars');
+    expect(translate('en', 'planSteps', { count: 1 })).toBe('Plan: 1 step');
+    expect(translate('en', 'planSteps', { count: 8 })).toBe('Plan: 8 steps');
   });
 
   it('picks the Russian plural form', () => {
-    expect(translate('ru', 'barsCount', { count: 1 })).toBe('1 такт');
-    expect(translate('ru', 'barsCount', { count: 3 })).toBe('3 такта');
-    expect(translate('ru', 'barsCount', { count: 5 })).toBe('5 тактов');
-    expect(translate('ru', 'barsCount', { count: 11 })).toBe('11 тактов');
-    expect(translate('ru', 'barsCount', { count: 21 })).toBe('21 такт');
-    expect(translate('ru', 'notesCount', { count: 48 })).toBe('48 нот');
+    expect(translate('ru', 'planSteps', { count: 1 })).toBe('План: 1 шаг');
+    expect(translate('ru', 'planSteps', { count: 3 })).toBe('План: 3 шага');
+    expect(translate('ru', 'planSteps', { count: 5 })).toBe('План: 5 шагов');
+    expect(translate('ru', 'planSteps', { count: 11 })).toBe('План: 11 шагов');
+    expect(translate('ru', 'planSteps', { count: 21 })).toBe('План: 21 шаг');
+    expect(translate('ru', 'recordedNotes', { count: 48 })).toBe('Записано 48 нот');
   });
 
   it('has every key in every language', () => {

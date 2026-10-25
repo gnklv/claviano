@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { rereadPreferences } from '../../src/ui/kept/preferences';
-import { button, fingering, learn, playback, rollFrames, rollPointer, root, settled, staffPointer, staffScores, useApp } from './harness';
+import { button, fingering, learn, named, playback, rollFrames, rollPointer, root, settled, staffPointer, staffScores, useApp } from './harness';
 
 /* The piece's screen: one's own fingering, set on the staff or on the falling notes. */
 
@@ -14,7 +14,10 @@ describe('one’s own fingering', () => {
     staff.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerId: 1, clientX: 10, clientY: 10 }));
   };
   const bar = () => root.querySelector('.finger-bar');
-  const view = () => [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.getAttribute('aria-pressed') === 'true')?.textContent?.trim();
+  const view = () => {
+    const chosen = [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => choice.getAttribute('aria-pressed') === 'true');
+    return chosen && named(chosen);
+  };
   /** Fingering shown, as chosen in the settings. */
   const showFingering = async () => {
     localStorage.setItem('claviano.fingerHints', 'on');

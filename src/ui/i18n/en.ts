@@ -89,9 +89,6 @@ export const en = {
   openFormats: 'MIDI, MusicXML, MXL',
   backToLibrary: 'Back to the library',
   dropHint: 'Release to open',
-  scoreDetails: '{bars} · {notes}',
-  barsCount: { one: '{count} bar', other: '{count} bars' },
-  notesCount: { one: '{count} note', other: '{count} notes' },
 
   play: 'Play',
   pause: 'Pause',

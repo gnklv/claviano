@@ -68,6 +68,8 @@ component names the token; it never writes a colour.
   a slider's track.
 - **Under a finger, everything pressable is 44px at the least** (`--touch`), on a touch screen and
   on a narrow window alike.
+- **Under a pointer, a button and segments are one height** (`--control-height`), so that a bar
+  of both stands level.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
   depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
   `--scrim`.
@@ -112,7 +114,7 @@ A screen is built of these, and does not write a button or a field of its own.
 |---|---|---|
 | `AppButton` | an icon, words, or both | something is done. `primary`: the screen's one main action. `quiet`: it stands over something else |
 | `ToggleChip` | on or off | what is switched while playing; one of a few values |
-| `SegmentedControl` | one of a few, all in sight | a view, a theme, a time signature |
+| `SegmentedControl` | one of a few, all in sight; words, or icons that are named | a view (drawn), a theme (drawn), a time signature |
 | `AppSlider` | a level | volume, tempo. (The place in the piece is the same slider by hand: it is set at every frame, past Vue, and sets its own `--fill`) |
 | `TextField` | a name, a number | |
 | `PieceTile` | a piece on a shelf | one's own pieces and the demos |
@@ -148,4 +150,6 @@ Three kinds of screen are told apart, by name (`ui/browser/useMediaQuery.ts`):
   strips fold away while it plays, and the staff holds its size while they do.
 - **under a finger** (`pointer: coarse`, or narrow): pressable things grow to 44px.
 
-A layout that needs another width says why, beside the number.
+These are the widths the interface is laid out by: narrow and not. (The piece's header, for one,
+has its view in sight but on a phone, and there its ways drawn, not said.) A layout that needs
+another width says why, beside the number (as the transport in one row, from where all of it fits).

@@ -1,15 +1,18 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { rereadPreferences } from '../../src/ui/kept/preferences';
-import { button, playback, root, settled, useApp, way } from './harness';
+import { button, named, playback, root, settled, turnIntoPhone, useApp, way } from './harness';
 
 /* The piece's screen, listened to or learnt: the player alone, or the tools of learning too. */
 
 useApp();
 
 describe('listening and learning', () => {
-  const choose = (label: 'Listen' | 'Learn') => [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label="Listen or learn"] button')].find((choice) => choice.textContent?.trim() === label)!.click();
-  const chosen = () => root.querySelector('.piece header [role=group][aria-label="Listen or learn"] button[aria-pressed=true]')?.textContent?.trim();
+  const choose = (label: 'Listen' | 'Learn') => [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label="Listen or learn"] button')].find((choice) => named(choice) === label)!.click();
+  const chosen = () => {
+    const choice = root.querySelector('.piece header [role=group][aria-label="Listen or learn"] button[aria-pressed=true]');
+    return choice && named(choice);
+  };
   const transport = () => root.querySelector<HTMLElement>('.transport')!;
   const has = (name: RegExp) => [...transport().querySelectorAll('button')].some((each) => name.test(each.textContent?.trim() ?? ''));
 
@@ -65,5 +68,19 @@ describe('listening and learning', () => {
     await settled();
     expect(way.way).toBe('learn');
     expect([playback.tempo, playback.isHandEnabled('left')]).toEqual([0.7, false]);
+  });
+
+  it('draws the ways on a phone, each named, for the piece’s name to have the room', async () => {
+    await turnIntoPhone();
+    const ways = [...root.querySelectorAll('.piece header [role=group][aria-label="Listen or learn"] button')];
+    expect(ways.map(named)).toEqual(['Listen', 'Learn']);
+    expect(ways.map((choice) => [choice.textContent?.trim(), choice.querySelector('svg') !== null])).toEqual([
+      ['', true],
+      ['', true],
+    ]);
+    expect(root.querySelector('.piece header .title')?.textContent).toBe('Ode to Joy');
+    choose('Learn');
+    await settled();
+    expect(way.way).toBe('learn');
   });
 });

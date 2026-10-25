@@ -182,7 +182,7 @@ describe('the shelf', () => {
       await restart();
       button(/^Für Elise/).click();
       await settled();
-      expect(root.querySelector('.title')?.textContent).toMatch(/^Für Elise · /);
+      expect(root.querySelector('.title')?.textContent).toBe('Für Elise');
     });
 
     it('keeps the name as it was when the renaming is given up by Esc, or leaves it empty', async () => {

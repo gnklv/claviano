@@ -69,6 +69,12 @@ being dragged in · a file is being read · a file did not open.
 A thin header (back to the library, the title, listen or learn, the view mode, settings), the stage
 (the staff, the falling notes and keyboard, or both), and the transport bar.
 
+The header, in its order: back; the piece's name, in ink (it names what is open, not a place), and
+nothing beside it (how many bars and notes is not what one opens a piece for); the way, listen or
+learn; apart from it, as another choice, the view of the stage, drawn (a staff, a keyboard, the two);
+the settings. On a phone the name keeps the room: the ways are drawn too (headphones, a book), and
+the view goes into the settings.
+
 Two ways to have a piece, chosen in the header and kept with it. **Listen**: the player alone (play,
 the place, the bar and the bookmarks, the tempo, the metronome), the piece whole at its own tempo.
 **Learn**: the tools of learning too (the loop, the hands, the tempo trainer, setting one's own

@@ -2,7 +2,6 @@ import { computed, type ComputedRef } from 'vue';
 import type { Library } from '../../application/use-cases/Library';
 import type { OpenFailure, OpenScore } from '../../application/use-cases/OpenScore';
 import type { Playback } from '../../application/use-cases/Playback';
-import { barNumber } from '../../domain/score';
 import type { Demo } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
@@ -18,15 +17,15 @@ const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
 };
 
 /**
- * What to say about the piece: its title, the bars and notes it has, and what failed to open
- * last, if anything did. Kept as data until here, so the text follows a language switch.
+ * What to say about the piece: its title, and what failed to open last, if anything did. Kept as
+ * data until here, so the text follows a language switch.
  */
 export function usePieceText(
   playback: Playback,
   openScore: OpenScore,
   library: Library,
   demos: readonly Demo[],
-): { title: ComputedRef<string>; details: ComputedRef<string>; error: ComputedRef<string | null> } {
+): { title: ComputedRef<string>; error: ComputedRef<string | null> } {
   const { t } = useI18n();
   const state = usePlaybackState(playback);
   const opened = useOpenScore(openScore);
@@ -50,15 +49,5 @@ export function usePieceText(
     return pieces.find((piece) => piece.id === current)?.title ?? score.title;
   });
 
-  const details = computed(() => {
-    const score = state.value.score;
-    if (!score) return '';
-    return t('scoreDetails', {
-      // A pickup is not counted as a bar of its own: the count is the last bar's number.
-      bars: t('barsCount', { count: barNumber(score, score.bars.length - 1) }),
-      notes: t('notesCount', { count: score.notes.length }),
-    });
-  });
-
-  return { title, details, error };
+  return { title, error };
 }

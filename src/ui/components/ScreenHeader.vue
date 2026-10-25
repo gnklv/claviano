@@ -13,6 +13,8 @@ defineProps<{
   back?: boolean;
   /** The app's own name, on its first screen: in ink, not muted as the name of a place is. */
   home?: boolean;
+  /** The title names what is open (a piece), not a place: in ink, at the size of the page. */
+  opened?: boolean;
   /** The title is word of something gone wrong: said aloud by a screen reader. */
   alert?: boolean;
 }>();
@@ -24,7 +26,7 @@ const { t } = useI18n();
 <template>
   <header class="screen-header">
     <AppButton v-if="back" class="back" icon="back" :label="t('backToLibrary')" @click="$emit('back')" />
-    <span class="title" :class="{ home, alert }" :role="alert ? 'alert' : undefined"><slot name="title" /></span>
+    <span class="title" :class="{ home, opened, alert }" :role="alert ? 'alert' : undefined"><slot name="title" /></span>
     <slot />
   </header>
 </template>
@@ -60,6 +62,7 @@ const { t } = useI18n();
   font-size: var(--text-l);
 }
 
+.title.opened,
 .title.alert {
   color: var(--text);
 }

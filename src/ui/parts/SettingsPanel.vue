@@ -34,7 +34,7 @@ const onOrOff = computed(() => [
 <template>
   <AppButton class="gear" icon="settings" :label="t('settings')" @click="sheet?.open()" />
   <SheetDialog ref="sheet" :title="t('settings')">
-    <!-- Wide screens have the view in the piece's header already. -->
+    <!-- The view stands in the piece's header, but on a phone: there, it is chosen here. -->
     <SettingRow v-if="piece" class="view" :label="t('viewMode')"><ViewModeSwitch /></SettingRow>
     <SettingRow v-if="piece" :label="t('fingerHints')">
       <SegmentedControl v-model="hints" :options="onOrOff" :label="t('fingerHints')" />
@@ -75,10 +75,10 @@ const onOrOff = computed(() => [
 }
 
 /*
- * The view is chosen in the piece's header where that has room for it (see the same width in
- * screens/PieceScreen.vue), and here where it has not.
+ * The view stands in the piece's header, but on a phone: there, it is chosen here (the same width
+ * is in screens/PieceScreen.vue).
  */
-@media (min-width: 901px) {
+@media (min-width: 600px) {
   .view {
     display: none;
   }
