@@ -42,11 +42,18 @@ function begin(index: number): void {
 </template>
 
 <style scoped>
+/*
+ * It begins with a quiet button, whose words stand a padding in from its edge: so it begins a
+ * padding before the edge it is set against, and its words stand on that edge, over the transport's
+ * play button, and in the practice sheet in line with the chips under them (as the step being played
+ * stands, see StepBar). Its own edge, not the button's margin, nor the sheet's or the bar's room.
+ */
 .plan-start {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
+  margin-inline-start: calc(-1 * var(--space-3));
 }
 
 /* The words give way first, cut short (as a button's words are); never the button. */
