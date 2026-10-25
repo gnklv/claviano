@@ -54,6 +54,8 @@ export class TapeTiles {
    * context set to them); then draws one picture more ahead, if one is still to be drawn.
    */
   lay(ctx: CanvasRenderingContext2D, left: number, width: number): void {
+    // (Nothing to lay before the tape has a size: the staff is told its colours before its size.)
+    if (this.height <= 0 || width <= 0) return;
     const first = Math.floor(left / TILE_PX);
     const last = Math.floor((left + width) / TILE_PX);
     for (let i = first; i <= last; i++) {

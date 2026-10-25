@@ -5,6 +5,7 @@ import { paintShape } from '../src/infrastructure/render/staff/paint';
 import { group, type Shape } from '../src/infrastructure/render/staff/shapes';
 import { TapeTiles, type TapePiece } from '../src/infrastructure/render/staff/tapeTiles';
 import { secondsAtBeat } from '../src/domain/score';
+import { STAFF_COLORS } from './drawnStaff';
 import { ode, sounding } from './staffPieces';
 
 /* The staff on a canvas: its shapes drawn as SVG would draw them, its tape in pictures drawn ahead, and the music lit as it sounds. */
@@ -24,7 +25,7 @@ function recorder() {
   return { ctx, calls };
 }
 
-const colours = (paint: string) => paint.replace(/^var\(--(.+)\)$/, '#$1');
+const colours = (paint: string) => `#${paint}`;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -34,7 +35,7 @@ afterEach(() => {
 describe('the shapes on a canvas', () => {
   it('paints what is in a group in the group’s colour, and a colour given over it', () => {
     const { ctx, calls } = recorder();
-    const chord = group([{ kind: 'line', x1: 0, y1: 0, x2: 0, y2: 10, stroke: 'currentColor', width: 1 }, { kind: 'text', x: 0, y: 5, text: 'x', size: 10, font: 'Bravura', fill: 'currentColor' }], 'var(--ink)');
+    const chord = group([{ kind: 'line', x1: 0, y1: 0, x2: 0, y2: 10, stroke: 'currentColor', width: 1 }, { kind: 'text', x: 0, y: 5, text: 'x', size: 10, font: 'Bravura', fill: 'currentColor' }], 'ink');
     paintShape(ctx, chord, colours, '#other');
     expect(calls.filter((call) => call.name === 'stroke').map((call) => call.stroke)).toEqual(['#ink']);
     expect(calls.filter((call) => call.name === 'fillText').map((call) => call.fill)).toEqual(['#ink']);
@@ -56,7 +57,7 @@ describe('the shapes on a canvas', () => {
 describe('the tape in pictures', () => {
   /** Tiles over pieces one at every 100 pixels of tape, counting the pictures drawn. */
   function tiles() {
-    const pieces: TapePiece[] = Array.from({ length: 100 }, (_, i) => ({ shape: { kind: 'line', x1: i * 100, y1: 0, x2: i * 100, y2: 10, stroke: 'currentColor', width: 1 }, extent: [i * 100, i * 100], color: 'var(--ink)' }));
+    const pieces: TapePiece[] = Array.from({ length: 100 }, (_, i) => ({ shape: { kind: 'line', x1: i * 100, y1: 0, x2: i * 100, y2: 10, stroke: 'currentColor', width: 1 }, extent: [i * 100, i * 100], color: 'ink' }));
     const painted: number[] = [];
     let made = 0;
     const tape = new TapeTiles(
@@ -86,6 +87,18 @@ describe('the tape in pictures', () => {
     expect(Math.max(...painted)).toBeGreaterThanOrEqual(1536);
   });
 
+  it('lays nothing before the tape has a size (a canvas of no size cannot be laid)', () => {
+    const tape = new TapeTiles(
+      () => {},
+      () => ({ width: 0, height: 0, getContext: () => recorder().ctx }) as unknown as HTMLCanvasElement,
+    );
+    const { ctx, calls } = recorder();
+    tape.lay(ctx, 0, 600);
+    tape.set([], 0, 1);
+    tape.lay(ctx, 0, 600);
+    expect(calls.filter((call) => call.name === 'drawImage')).toEqual([]);
+  });
+
   it('draws a picture once, however many frames lay it', () => {
     const { tape, painted } = tiles();
     const { ctx } = recorder();
@@ -110,10 +123,9 @@ describe('CanvasStaff', () => {
       contexts.push(made);
       return made.ctx;
     });
-    vi.spyOn(window, 'getComputedStyle').mockImplementation(() => ({ getPropertyValue: (name: string) => `#${name.slice(2)}` }) as CSSStyleDeclaration);
     const container = document.createElement('div');
     Object.defineProperties(container, { clientWidth: { get: () => 1024 }, clientHeight: { get: () => 300 } });
-    const staff = new CanvasStaff(container);
+    const staff = new CanvasStaff(container, STAFF_COLORS);
     const score = ode();
     staff.setScore(score);
     staff.render(secondsAtBeat(score, 0) + 1e-3);
@@ -121,6 +133,5 @@ describe('CanvasStaff', () => {
     const hands = sounding(score, 0);
     expect(hands.length).toBeGreaterThan(0);
     for (const hand of new Set(hands)) expect(fills).toContain(`#${hand}`);
-    staff.dispose();
   });
 });

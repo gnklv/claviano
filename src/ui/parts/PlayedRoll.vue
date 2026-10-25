@@ -3,7 +3,7 @@ import { onUnmounted, useTemplateRef } from 'vue';
 import type { PlayedTile, TilesView } from '../../application/ports/TilesView';
 import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useDrawnView } from '../browser/useDrawnView';
-import { readRollColors } from '../theme/readRollColors';
+import { readRollColors } from '../theme/readCanvasColors';
 import { useDeps } from '../deps';
 import { useCanvasColors } from '../theme/useCanvasColors';
 

@@ -1,90 +1,90 @@
 column
-  line x1=4.35 x2=2048 y1=78.26 y2=78.26 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=86.96 y2=86.96 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=95.65 y2=95.65 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=104.35 y2=104.35 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=113.04 y2=113.04 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=165.22 y2=165.22 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=173.91 y2=173.91 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=182.61 y2=182.61 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=191.3 y2=191.3 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=2048 y1=200 y2=200 stroke=var(--staff-line) width=1
-  line x1=4.35 x2=4.35 y1=78.26 y2=200 stroke=var(--bar-line) width=1.5
-  text x=10.43 y=104.35 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E050
-  text x=10.43 y=173.91 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E062
-  text x=44.35 y=86.96 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=44.35 y=104.35 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=44.35 y=173.91 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=44.35 y=191.3 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
+  line x1=4.35 x2=2048 y1=78.26 y2=78.26 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=86.96 y2=86.96 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=95.65 y2=95.65 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=104.35 y2=104.35 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=113.04 y2=113.04 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=165.22 y2=165.22 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=173.91 y2=173.91 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=182.61 y2=182.61 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=191.3 y2=191.3 stroke=staffLine width=1
+  line x1=4.35 x2=2048 y1=200 y2=200 stroke=staffLine width=1
+  line x1=4.35 x2=4.35 y1=78.26 y2=200 stroke=barLine width=1.5
+  text x=10.43 y=104.35 size=34.78 font=Bravura fill=ink anchor=start U+E050
+  text x=10.43 y=173.91 size=34.78 font=Bravura fill=ink anchor=start U+E062
+  text x=44.35 y=86.96 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=44.35 y=104.35 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=44.35 y=173.91 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=44.35 y=191.3 size=34.78 font=Bravura fill=ink anchor=middle U+E084
 tape
-  line x1=-12.17 x2=-12.17 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=74.78 x2=74.78 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=422.61 x2=422.61 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=786.43 x2=786.43 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=1138.26 x2=1138.26 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=1486.09 x2=1486.09 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=1833.91 x2=1833.91 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=2181.74 x2=2181.74 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=2537.04 x2=2537.04 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=2884.87 x2=2884.87 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=3232.7 x2=3232.7 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=3643.13 x2=3643.13 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=4011.83 x2=4011.83 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=4380.52 x2=4380.52 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=4815.3 x2=4815.3 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=5163.13 x2=5163.13 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=5510.96 x2=5510.96 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=5858.78 x2=5858.78 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=6206.61 x2=6206.61 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=6554.43 x2=6554.43 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=6902.26 x2=6902.26 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=7265.02 x2=7265.02 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=7612.84 x2=7612.84 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=7960.67 x2=7960.67 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=8308.5 x2=8308.5 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=8677.19 x2=8677.19 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=9045.89 x2=9045.89 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=9393.71 x2=9393.71 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=9741.54 x2=9741.54 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=10103.28 x2=10103.28 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=10470.23 x2=10470.23 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=10818.06 x2=10818.06 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=11165.89 x2=11165.89 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=3228.35 x2=3228.35 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  text x=3239.65 y=95.65 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3248.35 y=82.61 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3257.04 y=100 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3239.65 y=191.3 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3248.35 y=178.26 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3257.04 y=195.65 size=34.78 font=Bravura fill=var(--ink) U+E260
-  text x=3278.78 y=86.96 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E086
-  text x=3278.78 y=104.35 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E088
-  text x=3278.78 y=173.91 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E086
-  text x=3278.78 y=191.3 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E088
-  line x1=4376.17 x2=4376.17 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  text x=4387.48 y=95.65 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4396.17 y=82.61 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4404.87 y=100 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4387.48 y=191.3 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4396.17 y=178.26 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4404.87 y=195.65 size=34.78 font=Bravura fill=var(--ink) U+E261
-  text x=4418.78 y=78.26 size=34.78 font=Bravura fill=var(--ink) U+E262
-  text x=4428.35 y=91.3 size=34.78 font=Bravura fill=var(--ink) U+E262
-  text x=4418.78 y=173.91 size=34.78 font=Bravura fill=var(--ink) U+E262
-  text x=4428.35 y=186.96 size=34.78 font=Bravura fill=var(--ink) U+E262
-  text x=4450.96 y=86.96 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=4450.96 y=104.35 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=4450.96 y=173.91 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  text x=4450.96 y=191.3 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E084
-  line x1=11508.5 x2=11508.5 y1=78.26 y2=200 stroke=var(--bar-line) width=1
-  line x1=11513.71 x2=11513.71 y1=78.26 y2=200 stroke=var(--bar-line) width=3.48
-  text x=3653.57 y=191.3 size=34.78 font=Bravura fill=var(--ink) U+E07A
-  text x=4022.26 y=173.91 size=34.78 font=Bravura fill=var(--ink) U+E07C
-  text x=8318.93 y=104.35 size=23.19 font=Bravura fill=var(--ink) U+E053
-  text x=8318.93 y=173.91 size=23.19 font=Bravura fill=var(--ink) U+E064
-  text x=8687.63 y=104.35 size=34.78 font=Bravura fill=var(--ink) U+E07A
-  text x=8687.63 y=173.91 size=34.78 font=Bravura fill=var(--ink) U+E07C
-  group color=var(--ink)
+  line x1=-12.17 x2=-12.17 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=74.78 x2=74.78 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=422.61 x2=422.61 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=786.43 x2=786.43 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=1138.26 x2=1138.26 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=1486.09 x2=1486.09 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=1833.91 x2=1833.91 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=2181.74 x2=2181.74 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=2537.04 x2=2537.04 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=2884.87 x2=2884.87 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=3232.7 x2=3232.7 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=3643.13 x2=3643.13 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=4011.83 x2=4011.83 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=4380.52 x2=4380.52 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=4815.3 x2=4815.3 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=5163.13 x2=5163.13 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=5510.96 x2=5510.96 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=5858.78 x2=5858.78 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=6206.61 x2=6206.61 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=6554.43 x2=6554.43 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=6902.26 x2=6902.26 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=7265.02 x2=7265.02 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=7612.84 x2=7612.84 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=7960.67 x2=7960.67 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=8308.5 x2=8308.5 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=8677.19 x2=8677.19 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=9045.89 x2=9045.89 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=9393.71 x2=9393.71 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=9741.54 x2=9741.54 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=10103.28 x2=10103.28 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=10470.23 x2=10470.23 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=10818.06 x2=10818.06 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=11165.89 x2=11165.89 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=3228.35 x2=3228.35 y1=78.26 y2=200 stroke=barLine width=1
+  text x=3239.65 y=95.65 size=34.78 font=Bravura fill=ink U+E260
+  text x=3248.35 y=82.61 size=34.78 font=Bravura fill=ink U+E260
+  text x=3257.04 y=100 size=34.78 font=Bravura fill=ink U+E260
+  text x=3239.65 y=191.3 size=34.78 font=Bravura fill=ink U+E260
+  text x=3248.35 y=178.26 size=34.78 font=Bravura fill=ink U+E260
+  text x=3257.04 y=195.65 size=34.78 font=Bravura fill=ink U+E260
+  text x=3278.78 y=86.96 size=34.78 font=Bravura fill=ink anchor=middle U+E086
+  text x=3278.78 y=104.35 size=34.78 font=Bravura fill=ink anchor=middle U+E088
+  text x=3278.78 y=173.91 size=34.78 font=Bravura fill=ink anchor=middle U+E086
+  text x=3278.78 y=191.3 size=34.78 font=Bravura fill=ink anchor=middle U+E088
+  line x1=4376.17 x2=4376.17 y1=78.26 y2=200 stroke=barLine width=1
+  text x=4387.48 y=95.65 size=34.78 font=Bravura fill=ink U+E261
+  text x=4396.17 y=82.61 size=34.78 font=Bravura fill=ink U+E261
+  text x=4404.87 y=100 size=34.78 font=Bravura fill=ink U+E261
+  text x=4387.48 y=191.3 size=34.78 font=Bravura fill=ink U+E261
+  text x=4396.17 y=178.26 size=34.78 font=Bravura fill=ink U+E261
+  text x=4404.87 y=195.65 size=34.78 font=Bravura fill=ink U+E261
+  text x=4418.78 y=78.26 size=34.78 font=Bravura fill=ink U+E262
+  text x=4428.35 y=91.3 size=34.78 font=Bravura fill=ink U+E262
+  text x=4418.78 y=173.91 size=34.78 font=Bravura fill=ink U+E262
+  text x=4428.35 y=186.96 size=34.78 font=Bravura fill=ink U+E262
+  text x=4450.96 y=86.96 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=4450.96 y=104.35 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=4450.96 y=173.91 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  text x=4450.96 y=191.3 size=34.78 font=Bravura fill=ink anchor=middle U+E084
+  line x1=11508.5 x2=11508.5 y1=78.26 y2=200 stroke=barLine width=1
+  line x1=11513.71 x2=11513.71 y1=78.26 y2=200 stroke=barLine width=3.48
+  text x=3653.57 y=191.3 size=34.78 font=Bravura fill=ink U+E07A
+  text x=4022.26 y=173.91 size=34.78 font=Bravura fill=ink U+E07C
+  text x=8318.93 y=104.35 size=23.19 font=Bravura fill=ink U+E053
+  text x=8318.93 y=173.91 size=23.19 font=Bravura fill=ink U+E064
+  text x=8687.63 y=104.35 size=34.78 font=Bravura fill=ink U+E07A
+  text x=8687.63 y=173.91 size=34.78 font=Bravura fill=ink U+E07C
+  group color=ink
     text x=-4.7 y=182.61 size=34.78 font=Bravura fill=currentColor U+E4E5
     text x=706.96 y=182.61 size=34.78 font=Bravura fill=currentColor U+E4E5
     text x=1928.35 y=113.04 size=34.78 font=Bravura fill=currentColor U+E4E5
@@ -101,607 +101,607 @@ tape
     text x=6214.09 y=95.65 size=34.78 font=Bravura fill=currentColor U+E4E5
     text x=6301.04 y=182.61 size=34.78 font=Bravura fill=currentColor U+E4E5
     text x=6387.78 y=182.61 size=34.78 font=Bravura fill=currentColor U+E4E4
-    text x=-8.7 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 0
-    text x=78.26 y=51.3 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 1
-    text x=426.09 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 2
-    text x=789.91 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 3
-    text x=1141.74 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 4
-    text x=1489.57 y=55.65 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 5
-    text x=1837.39 y=25.22 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 6
-    text x=2185.22 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 7
-    text x=2540.52 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 8
-    text x=2888.35 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 9
-    text x=3236.17 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 10
-    text x=3646.61 y=42.61 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 11
-    text x=4015.3 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 12
-    text x=4384 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 13
-    text x=4818.78 y=43.48 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 14
-    text x=5166.61 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 15
-    text x=5514.43 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 16
-    text x=5862.26 y=64.35 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 17
-    text x=6210.09 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 18
-    text x=6557.91 y=51.3 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 19
-    text x=6905.74 y=56.52 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 20
-    text x=7268.5 y=35.65 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 21
-    text x=7616.32 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 22
-    text x=7964.15 y=51.3 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 23
-    text x=8311.97 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 24
-    text x=8680.67 y=33.91 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 25
-    text x=9049.37 y=51.3 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 26
-    text x=9397.19 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 27
-    text x=9745.02 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 28
-    text x=10106.76 y=60 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 29
-    text x=10473.71 y=55.65 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 30
-    text x=10821.54 y=67.83 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 31
-    text x=11169.37 y=43.48 size=9.57 font=system-ui, sans-serif fill=var(--bar-number) 32
-    text x=9741.54 y=113.04 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E040
-    text x=9741.54 y=200 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E040
-    text x=9750.23 y=55.65 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E047
-    text x=10470.23 y=113.04 size=34.78 font=Bravura fill=var(--ink) anchor=end U+E041
-    text x=10470.23 y=200 size=34.78 font=Bravura fill=var(--ink) anchor=end U+E041
-    polyline points=10105.89,51.3,10105.89,37.39,10467.63,37.39,10467.63,51.3 stroke=var(--ink) width=1.04
-    text x=10110.23 y=49.57 size=11.3 font=system-ui, sans-serif fill=var(--ink) bold=true 1.
-    text x=10813.71 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) italic=true bold=true anchor=end To Coda
-    polyline points=10472.84,46.96,10472.84,33.04,10815.45,33.04 stroke=var(--ink) width=1.04
-    text x=10477.19 y=45.22 size=11.3 font=system-ui, sans-serif fill=var(--ink) bold=true 2.
-    text x=11161.54 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) italic=true bold=true anchor=end D.S. al Coda
-    text x=11174.58 y=55.65 size=34.78 font=Bravura fill=var(--ink) anchor=start U+E048
-    text x=4475.3 y=53.04 size=34.78 font=Bravura fill=var(--ink) U+E511
-    polyline points=4509.22,46.09,4815.3,46.09,4815.3,54.78 stroke=var(--ink) width=1.04 dash=5.22,3.48
-    text x=4649.22 y=256.52 size=34.78 font=Bravura fill=var(--ink) U+E51C
-    polyline points=4679.65,249.57,4815.3,249.57,4815.3,240.87 stroke=var(--ink) width=1.04 dash=5.22,3.48
-    polyline points=5866.61,222.61,5866.61,233.04,6040.52,233.04,6044.87,222.61,6049.22,233.04,6197.91,233.04,6197.91,222.61 stroke=var(--ink) width=1.04
-    polyline points=11211.97,261.74,11505.02,261.74,11505.02,251.3 stroke=var(--ink) width=1.04
-    polyline points=6255.3,240,6545.74,240,6545.74,229.57 stroke=var(--ink) width=1.04
-    text x=4475.3 y=240 size=34.78 font=Bravura fill=var(--ink) U+E650
-    text x=4808.35 y=282.61 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E655
-    text x=5518.78 y=233.04 size=34.78 font=Bravura fill=var(--ink) U+E650
-    text x=5851.83 y=233.04 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E655
-    text x=11173.71 y=261.74 size=34.78 font=Bravura fill=var(--ink) U+E650
-    text x=6214.43 y=240 size=34.78 font=Bravura fill=var(--ink) U+E659
-    text x=4051.83 y=128.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) italic=true una corda
-    text x=4486.61 y=128.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) italic=true tre corde
-    text x=4044.87 y=147.83 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E520
-    text x=4479.65 y=147.83 size=34.78 font=Bravura fill=var(--ink) anchor=middle U+E522
-    polyline points=1131.3,214.78,794.26,220,1131.3,225.22 stroke=var(--ink) width=1.04
-    polyline points=1493.91,136.52,1826.96,141.74,1493.91,146.96 stroke=var(--ink) width=1.04
-    text x=-4.35 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false Pickup
-    text x=44.66 y=35.65 size=22.61 font=Bravura fill=var(--ink) U+E1D5
-    text x=55.97 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false = 90
-    text x=3303.13 y=48.7 size=22.61 font=Bravura fill=var(--ink) U+E1D5U+E1E7
-    text x=3317.04 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false = 60
-    text x=4040.52 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false Slower, piano
-    text x=4138.59 y=48.7 size=22.61 font=Bravura fill=var(--ink) U+E1D5
-    text x=4149.9 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false = 60
-    text x=4475.3 y=25.22 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false Range, forte
-    text x=4566.37 y=25.22 size=22.61 font=Bravura fill=var(--ink) U+E1D5
-    text x=4577.67 y=25.22 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=true italic=false = 90
-    text x=82.61 y=20 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Values
-    text x=794.26 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Beams
-    text x=1146.09 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Accidentals
-    text x=1510.43 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Tuplets
-    text x=1858.26 y=21.74 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Voices
-    text x=2189.57 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Rests
-    text x=2544.87 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Ties
-    text x=3353.57 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Key and time
-    text x=3671.83 y=39.13 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Clef change
-    text x=4839.65 y=40 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Articulation
-    text x=5170.96 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Legato, fermata
-    text x=5518.78 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Pedal
-    text x=5866.61 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Pedal change
-    text x=6214.43 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Sostenuto
-    text x=6578.78 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Seconds
-    text x=6925.02 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Grace notes
-    text x=7289.37 y=32.17 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Ornaments
-    text x=7620.67 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Tremolo, arpeggio
-    text x=7985.02 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Shared notes
-    text x=8337.19 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Clefs with an 8
-    text x=8705.89 y=30.43 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Small notes
-    text x=9070.23 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Fingering
-    text x=9401.54 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Slowing down
-    text x=9479.03 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true rit.
-    text x=9783.28 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true Repeats
-    text x=9763.28 y=33.04 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=var(--ink) bold=false italic=true a tempo
-  group color=var(--ink)
+    text x=-8.7 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 0
+    text x=78.26 y=51.3 size=9.57 font=system-ui, sans-serif fill=barNumber 1
+    text x=426.09 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 2
+    text x=789.91 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 3
+    text x=1141.74 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 4
+    text x=1489.57 y=55.65 size=9.57 font=system-ui, sans-serif fill=barNumber 5
+    text x=1837.39 y=25.22 size=9.57 font=system-ui, sans-serif fill=barNumber 6
+    text x=2185.22 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 7
+    text x=2540.52 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 8
+    text x=2888.35 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 9
+    text x=3236.17 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 10
+    text x=3646.61 y=42.61 size=9.57 font=system-ui, sans-serif fill=barNumber 11
+    text x=4015.3 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 12
+    text x=4384 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 13
+    text x=4818.78 y=43.48 size=9.57 font=system-ui, sans-serif fill=barNumber 14
+    text x=5166.61 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 15
+    text x=5514.43 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 16
+    text x=5862.26 y=64.35 size=9.57 font=system-ui, sans-serif fill=barNumber 17
+    text x=6210.09 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 18
+    text x=6557.91 y=51.3 size=9.57 font=system-ui, sans-serif fill=barNumber 19
+    text x=6905.74 y=56.52 size=9.57 font=system-ui, sans-serif fill=barNumber 20
+    text x=7268.5 y=35.65 size=9.57 font=system-ui, sans-serif fill=barNumber 21
+    text x=7616.32 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 22
+    text x=7964.15 y=51.3 size=9.57 font=system-ui, sans-serif fill=barNumber 23
+    text x=8311.97 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 24
+    text x=8680.67 y=33.91 size=9.57 font=system-ui, sans-serif fill=barNumber 25
+    text x=9049.37 y=51.3 size=9.57 font=system-ui, sans-serif fill=barNumber 26
+    text x=9397.19 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 27
+    text x=9745.02 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 28
+    text x=10106.76 y=60 size=9.57 font=system-ui, sans-serif fill=barNumber 29
+    text x=10473.71 y=55.65 size=9.57 font=system-ui, sans-serif fill=barNumber 30
+    text x=10821.54 y=67.83 size=9.57 font=system-ui, sans-serif fill=barNumber 31
+    text x=11169.37 y=43.48 size=9.57 font=system-ui, sans-serif fill=barNumber 32
+    text x=9741.54 y=113.04 size=34.78 font=Bravura fill=ink anchor=start U+E040
+    text x=9741.54 y=200 size=34.78 font=Bravura fill=ink anchor=start U+E040
+    text x=9750.23 y=55.65 size=34.78 font=Bravura fill=ink anchor=start U+E047
+    text x=10470.23 y=113.04 size=34.78 font=Bravura fill=ink anchor=end U+E041
+    text x=10470.23 y=200 size=34.78 font=Bravura fill=ink anchor=end U+E041
+    polyline points=10105.89,51.3,10105.89,37.39,10467.63,37.39,10467.63,51.3 stroke=ink width=1.04
+    text x=10110.23 y=49.57 size=11.3 font=system-ui, sans-serif fill=ink bold=true 1.
+    text x=10813.71 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink italic=true bold=true anchor=end To Coda
+    polyline points=10472.84,46.96,10472.84,33.04,10815.45,33.04 stroke=ink width=1.04
+    text x=10477.19 y=45.22 size=11.3 font=system-ui, sans-serif fill=ink bold=true 2.
+    text x=11161.54 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink italic=true bold=true anchor=end D.S. al Coda
+    text x=11174.58 y=55.65 size=34.78 font=Bravura fill=ink anchor=start U+E048
+    text x=4475.3 y=53.04 size=34.78 font=Bravura fill=ink U+E511
+    polyline points=4509.22,46.09,4815.3,46.09,4815.3,54.78 stroke=ink width=1.04 dash=5.22,3.48
+    text x=4649.22 y=256.52 size=34.78 font=Bravura fill=ink U+E51C
+    polyline points=4679.65,249.57,4815.3,249.57,4815.3,240.87 stroke=ink width=1.04 dash=5.22,3.48
+    polyline points=5866.61,222.61,5866.61,233.04,6040.52,233.04,6044.87,222.61,6049.22,233.04,6197.91,233.04,6197.91,222.61 stroke=ink width=1.04
+    polyline points=11211.97,261.74,11505.02,261.74,11505.02,251.3 stroke=ink width=1.04
+    polyline points=6255.3,240,6545.74,240,6545.74,229.57 stroke=ink width=1.04
+    text x=4475.3 y=240 size=34.78 font=Bravura fill=ink U+E650
+    text x=4808.35 y=282.61 size=34.78 font=Bravura fill=ink anchor=middle U+E655
+    text x=5518.78 y=233.04 size=34.78 font=Bravura fill=ink U+E650
+    text x=5851.83 y=233.04 size=34.78 font=Bravura fill=ink anchor=middle U+E655
+    text x=11173.71 y=261.74 size=34.78 font=Bravura fill=ink U+E650
+    text x=6214.43 y=240 size=34.78 font=Bravura fill=ink U+E659
+    text x=4051.83 y=128.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink italic=true una corda
+    text x=4486.61 y=128.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink italic=true tre corde
+    text x=4044.87 y=147.83 size=34.78 font=Bravura fill=ink anchor=middle U+E520
+    text x=4479.65 y=147.83 size=34.78 font=Bravura fill=ink anchor=middle U+E522
+    polyline points=1131.3,214.78,794.26,220,1131.3,225.22 stroke=ink width=1.04
+    polyline points=1493.91,136.52,1826.96,141.74,1493.91,146.96 stroke=ink width=1.04
+    text x=-4.35 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false Pickup
+    text x=44.66 y=35.65 size=22.61 font=Bravura fill=ink U+E1D5
+    text x=55.97 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false = 90
+    text x=3303.13 y=48.7 size=22.61 font=Bravura fill=ink U+E1D5U+E1E7
+    text x=3317.04 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false = 60
+    text x=4040.52 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false Slower, piano
+    text x=4138.59 y=48.7 size=22.61 font=Bravura fill=ink U+E1D5
+    text x=4149.9 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false = 60
+    text x=4475.3 y=25.22 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false Range, forte
+    text x=4566.37 y=25.22 size=22.61 font=Bravura fill=ink U+E1D5
+    text x=4577.67 y=25.22 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=true italic=false = 90
+    text x=82.61 y=20 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Values
+    text x=794.26 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Beams
+    text x=1146.09 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Accidentals
+    text x=1510.43 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Tuplets
+    text x=1858.26 y=21.74 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Voices
+    text x=2189.57 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Rests
+    text x=2544.87 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Ties
+    text x=3353.57 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Key and time
+    text x=3671.83 y=39.13 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Clef change
+    text x=4839.65 y=40 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Articulation
+    text x=5170.96 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Legato, fermata
+    text x=5518.78 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Pedal
+    text x=5866.61 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Pedal change
+    text x=6214.43 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Sostenuto
+    text x=6578.78 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Seconds
+    text x=6925.02 y=35.65 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Grace notes
+    text x=7289.37 y=32.17 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Ornaments
+    text x=7620.67 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Tremolo, arpeggio
+    text x=7985.02 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Shared notes
+    text x=8337.19 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Clefs with an 8
+    text x=8705.89 y=30.43 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Small notes
+    text x=9070.23 y=47.83 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Fingering
+    text x=9401.54 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Slowing down
+    text x=9479.03 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true rit.
+    text x=9783.28 y=48.7 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true Repeats
+    text x=9763.28 y=33.04 size=11.3 font='Playfair Display', 'Times New Roman', Georgia, serif fill=ink bold=false italic=true a tempo
+  group color=ink
     text x=-5.13 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4.61 x2=4.61 y1=102.87 y2=73.91 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=38.35 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=48.09 x2=48.09 y1=98.52 y2=69.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=78.35 x2=95.57 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=78.35 x2=95.57 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=81.83 y=60.87 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=82.35 x2=82.35 y1=62.35 y2=91.3 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=76.13 x2=97.78 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     line x1=76.13 x2=97.78 y1=217.39 y2=217.39 stroke=currentColor width=1.39
     text x=79.61 y=217.39 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     line x1=252.26 x2=269.48 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=255.74 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=269.04 y=65.22 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=256.26 x2=256.26 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=382.7 x2=399.91 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=386.17 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=386.7 x2=386.7 y1=66.7 y2=95.65 stroke=currentColor width=1.04
     text x=386.17 y=95.65 size=34.78 font=Bravura fill=currentColor U+E241
-  group color=var(--ink)
+  group color=ink
     text x=429.65 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=430.17 x2=430.17 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=429.65 y=200 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=442.96 y=195.65 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=439.39 x2=439.39 y1=198.52 y2=169.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=451.39 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=451.91 x2=451.91 y1=79.74 y2=110.14 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=473.13 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=473.65 x2=473.65 y1=75.39 y2=107.25 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=491.39 x2=508.61 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=494.87 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=495.39 x2=495.39 y1=71.04 y2=104.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=513.13 x2=530.35 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=516.61 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=529.91 y=65.22 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=517.13 x2=517.13 y1=66.7 y2=95.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=578.35 x2=595.57 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=578.35 x2=595.57 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=581.83 y=60.87 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=582.35 x2=582.35 y1=62.35 y2=91.3 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=603.57 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=604.09 x2=604.09 y1=92.78 y2=124.3 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=616.43 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=616.96 x2=616.96 y1=88.43 y2=123.05 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=629.3 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=629.83 x2=629.83 y1=84.09 y2=121.81 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=642.17 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=642.7 x2=642.7 y1=79.74 y2=120.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=655.04 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=655.57 x2=655.57 y1=75.39 y2=119.33 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=664.43 x2=681.65 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=667.91 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=668.43 x2=668.43 y1=71.04 y2=118.08 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=677.3 x2=694.52 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=680.78 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=681.3 x2=681.3 y1=66.7 y2=116.84 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=690.17 x2=707.39 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=690.17 x2=707.39 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=693.65 y=60.87 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=694.17 x2=694.17 y1=62.35 y2=115.6 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=703.04 x2=720.26 y1=121.74 y2=121.74 stroke=currentColor width=1.39
     text x=706.52 y=121.74 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=716.26 x2=716.26 y1=120.26 y2=91.3 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=793.48 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=794 x2=794 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=793.48 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=803.22 x2=803.22 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=836.96 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=837.48 x2=837.48 y1=88.43 y2=115.94 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=858.7 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=859.22 x2=859.22 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=880.43 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=880.96 x2=880.96 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=880.43 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=880.96 x2=880.96 y1=179.74 y2=208.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=902.17 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=915.48 y=73.91 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=902.7 x2=902.7 y1=75.39 y2=104.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=963.91 x2=981.13 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=967.39 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=967.91 x2=967.91 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=967.39 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=967.91 x2=967.91 y1=171.04 y2=200 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1007.39 x2=1024.61 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=1010.87 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1011.39 x2=1011.39 y1=66.7 y2=95.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1050.87 x2=1068.09 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=1050.87 x2=1068.09 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=1054.35 y=60.87 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1054.87 x2=1054.87 y1=62.35 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1050.87 x2=1068.09 y1=156.52 y2=156.52 stroke=currentColor width=1.39
     text x=1054.35 y=156.52 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1054.87 x2=1054.87 y1=158 y2=186.96 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1063.74 x2=1080.96 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=1067.22 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1067.74 x2=1067.74 y1=66.7 y2=102.36 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1076.61 x2=1093.83 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=1080.09 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1080.61 x2=1080.61 y1=71.04 y2=104.71 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1101.83 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1102.35 x2=1102.35 y1=75.39 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1145.3 y=108.7 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1134 y=108.7 size=34.78 font=Bravura fill=currentColor U+E262
     line x1=1155.04 x2=1155.04 y1=107.22 y2=78.26 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1143.09 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=1143.09 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=1143.09 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     text x=1188.78 y=108.7 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1198.52 x2=1198.52 y1=107.22 y2=78.26 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1232.26 y=108.7 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1220.96 y=108.7 size=34.78 font=Bravura fill=currentColor U+E261
     line x1=1242 x2=1242 y1=107.22 y2=78.26 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1275.74 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1264.43 y=95.65 size=34.78 font=Bravura fill=currentColor U+E260
     line x1=1285.48 x2=1285.48 y1=94.17 y2=69.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1319.22 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1307.91 y=95.65 size=34.78 font=Bravura fill=currentColor U+E261
     line x1=1319.74 x2=1319.74 y1=97.13 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1362.7 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1351.39 y=91.3 size=34.78 font=Bravura fill=currentColor U+E263
     line x1=1363.22 x2=1363.22 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1406.17 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1394.87 y=82.61 size=34.78 font=Bravura fill=currentColor U+E264
     line x1=1406.7 x2=1406.7 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1449.65 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=1438.35 y=91.3 size=34.78 font=Bravura fill=currentColor U+E261
     line x1=1450.17 x2=1450.17 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1493.13 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1502.87 x2=1502.87 y1=89.83 y2=60.87 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1493.13 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1502.87 x2=1502.87 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1522.12 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1531.86 x2=1531.86 y1=85.48 y2=56.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1551.1 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1560.84 x2=1560.84 y1=81.13 y2=52.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1551.1 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1551.62 x2=1551.62 y1=179.74 y2=208.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1580.09 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1589.83 x2=1589.83 y1=76.78 y2=47.83 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1609.07 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1618.81 x2=1618.81 y1=81.13 y2=52.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1609.07 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1609.59 x2=1609.59 y1=171.04 y2=200 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1638.06 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1647.8 x2=1647.8 y1=85.48 y2=56.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1667.04 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1676.78 x2=1676.78 y1=89.83 y2=54.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1667.04 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=1676.78 x2=1676.78 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1684.43 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1694.17 x2=1694.17 y1=85.48 y2=52.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1701.83 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1711.57 x2=1711.57 y1=81.13 y2=50 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1719.22 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1728.96 x2=1728.96 y1=76.78 y2=47.83 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1736.61 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1746.35 x2=1746.35 y1=72.43 y2=45.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1754 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1763.74 x2=1763.74 y1=102.87 y2=73.91 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=1837.48 x2=1854.7 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=1837.48 x2=1854.7 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=1840.96 y=60.87 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=1840.96 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=1840.96 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=1850.7 x2=1850.7 y1=81.13 y2=30.43 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=1840.96 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=1841.48 x2=1841.48 y1=105.83 y2=134.78 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=2021.65 x2=2038.87 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=2025.13 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=2025.13 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=2025.13 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=2034.87 x2=2034.87 y1=85.48 y2=34.78 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=2014.87 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=2015.39 x2=2015.39 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=2354 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=2354.52 x2=2354.52 y1=88.43 y2=123.91 stroke=currentColor width=1.04
     text x=2354 y=123.91 size=34.78 font=Bravura fill=currentColor U+E245
-  group color=var(--ink)
+  group color=ink
     text x=2366.87 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=2367.39 x2=2367.39 y1=84.09 y2=113.04 stroke=currentColor width=1.04
     text x=2366.87 y=113.04 size=34.78 font=Bravura fill=currentColor U+E243
-  group color=var(--ink)
+  group color=ink
     text x=2366.87 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=2376.61 x2=2376.61 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=2519.04 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=2519.57 x2=2519.57 y1=79.74 y2=108.7 stroke=currentColor width=1.04
     text x=2519.04 y=108.7 size=34.78 font=Bravura fill=currentColor U+E243
-  group color=var(--ink)
+  group color=ink
     text x=2544.09 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=2553.83 x2=2553.83 y1=102.87 y2=73.91 stroke=currentColor width=1.04
     path d=M 2555.65 109.57 C 2595.91 130.43 2676.43 130.43 2716.7 109.57 C 2676.43 127.88 2595.91 127.88 2555.65 109.57 Z fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=2541.87 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=2541.87 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A2
     path d=M 2557.87 192.17 C 2640.5 213.04 2805.76 213.04 2888.39 192.17 C 2805.76 210.49 2640.5 210.49 2557.87 192.17 Z fill=currentColor
     path d=M 2557.87 164.35 C 2640.5 143.48 2805.76 143.48 2888.39 164.35 C 2805.76 146.03 2640.5 146.03 2557.87 164.35 Z fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=2718 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=2727.74 x2=2727.74 y1=102.87 y2=73.91 stroke=currentColor width=1.04
     path d=M 2729.57 109.57 C 2769.83 130.43 2850.35 130.43 2890.61 109.57 C 2850.35 127.88 2769.83 127.88 2729.57 109.57 Z fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=2891.91 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=2901.65 x2=2901.65 y1=102.87 y2=73.91 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=2889.7 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=2889.7 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     text x=2978.87 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=2988.61 x2=2988.61 y1=98.52 y2=69.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3065.83 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=3066.35 x2=3066.35 y1=97.13 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3302.35 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3302.87 x2=3302.87 y1=97.13 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3302.35 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=3315.65 y=178.26 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=3302.87 x2=3302.87 y1=179.74 y2=208.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3360.32 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3360.84 x2=3360.84 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3418.29 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3418.81 x2=3418.81 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3476.26 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3476.78 x2=3476.78 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3534.23 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3534.75 x2=3534.75 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3592.2 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3592.72 x2=3592.72 y1=75.39 y2=104.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=3667.57 x2=3684.78 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=3667.57 x2=3684.78 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     line x1=3667.57 x2=3684.78 y1=52.17 y2=52.17 stroke=currentColor width=1.39
     text x=3671.04 y=52.17 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=3684.35 y=47.83 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=3671.57 x2=3671.57 y1=53.65 y2=82.61 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3671.04 y=191.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3680.78 x2=3680.78 y1=189.83 y2=160.87 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3729.01 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3738.75 x2=3738.75 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3786.99 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3796.72 x2=3796.72 y1=181.13 y2=152.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3844.96 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=3858.26 y=73.91 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=3845.48 x2=3845.48 y1=75.39 y2=104.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3844.96 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3845.48 x2=3845.48 y1=179.74 y2=208.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3902.93 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3903.45 x2=3903.45 y1=175.39 y2=204.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=3960.9 y=169.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=3961.42 x2=3961.42 y1=171.04 y2=200 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=4039.74 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=4053.04 y=91.3 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=4040.26 x2=4040.26 y1=97.13 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=4036.26 x2=4053.48 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     text x=4039.74 y=208.7 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=4053.04 y=204.35 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=4049.48 x2=4049.48 y1=207.22 y2=178.26 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=4474.52 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4475.04 x2=4475.04 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=4471.04 x2=4488.26 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     text x=4474.52 y=213.04 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=4484.26 x2=4484.26 y1=211.57 y2=182.61 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=4561.48 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4562 x2=4562 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=4644.96 x2=4662.17 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=4648.43 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=4648.96 x2=4648.96 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=4644.96 x2=4662.17 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     line x1=4644.96 x2=4662.17 y1=217.39 y2=217.39 stroke=currentColor width=1.39
     line x1=4644.96 x2=4662.17 y1=226.09 y2=226.09 stroke=currentColor width=1.39
     text x=4648.43 y=226.09 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=4658.17 x2=4658.17 y1=224.61 y2=195.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=4818.87 x2=4836.09 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=4822.35 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4822.87 x2=4822.87 y1=66.7 y2=95.65 stroke=currentColor width=1.04
     text x=4827.48 y=56.52 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A2
-  group color=var(--ink)
+  group color=ink
     text x=4822.35 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4832.09 x2=4832.09 y1=194.17 y2=165.22 stroke=currentColor width=1.04
     text x=4827.48 y=204.35 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A9
-  group color=var(--ink)
+  group color=ink
     line x1=4905.83 x2=4923.04 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=4909.3 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4909.83 x2=4909.83 y1=71.04 y2=100 stroke=currentColor width=1.04
     text x=4914.43 y=60.87 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A4
-  group color=var(--ink)
+  group color=ink
     text x=4909.3 y=191.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4919.04 x2=4919.04 y1=189.83 y2=160.87 stroke=currentColor width=1.04
     text x=4914.43 y=204.35 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4B3
-  group color=var(--ink)
+  group color=ink
     text x=4996.26 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=4996.78 x2=4996.78 y1=75.39 y2=104.35 stroke=currentColor width=1.04
     text x=5001.39 y=65.22 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A0
-  group color=var(--ink)
+  group color=ink
     text x=4996.26 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5006 x2=5006 y1=185.48 y2=156.52 stroke=currentColor width=1.04
     text x=5001.39 y=195.65 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A3
     text x=5001.39 y=204.35 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A1
-  group color=var(--ink)
+  group color=ink
     text x=5083.22 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5083.74 x2=5083.74 y1=79.74 y2=108.7 stroke=currentColor width=1.04
     text x=5088.35 y=69.57 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4AC
-  group color=var(--ink)
+  group color=ink
     text x=5083.22 y=200 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5092.96 x2=5092.96 y1=198.52 y2=169.57 stroke=currentColor width=1.04
     text x=5088.35 y=208.7 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A3
-  group color=var(--ink)
+  group color=ink
     text x=5170.17 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5170.7 x2=5170.7 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5170.17 y=200 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5179.91 x2=5179.91 y1=198.52 y2=169.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5210.17 x2=5227.39 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=5213.65 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5214.17 x2=5214.17 y1=71.04 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5257.13 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5257.65 x2=5257.65 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5257.13 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5266.87 x2=5266.87 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5297.13 x2=5314.35 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=5297.13 x2=5314.35 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=5300.61 y=56.52 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5301.13 x2=5301.13 y1=58 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5340.61 x2=5357.83 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=5344.09 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=5344.61 x2=5344.61 y1=66.7 y2=95.65 stroke=currentColor width=1.04
     text x=5349.22 y=52.17 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4C0
-  group color=var(--ink)
+  group color=ink
     text x=5344.09 y=191.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5353.83 x2=5353.83 y1=189.83 y2=160.87 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5431.04 y=186.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5440.78 x2=5440.78 y1=185.48 y2=156.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5518 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5518.52 x2=5518.52 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5518 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5527.74 x2=5527.74 y1=194.17 y2=152.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5561.48 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5571.22 x2=5571.22 y1=181.13 y2=149.28 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5601.48 x2=5618.7 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=5604.96 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5605.48 x2=5605.48 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5604.96 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5614.7 x2=5614.7 y1=172.43 y2=146.38 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5648.43 y=165.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5658.17 x2=5658.17 y1=163.74 y2=143.48 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5688.43 x2=5705.65 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=5688.43 x2=5705.65 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=5691.91 y=56.52 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=5692.43 x2=5692.43 y1=58 y2=86.96 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=5688.43 x2=5705.65 y1=156.52 y2=156.52 stroke=currentColor width=1.39
     text x=5691.91 y=152.17 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5701.65 x2=5701.65 y1=150.7 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5735.39 y=165.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5745.13 x2=5745.13 y1=163.74 y2=124.64 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5778.87 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5788.61 x2=5788.61 y1=172.43 y2=127.54 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5822.35 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5832.09 x2=5832.09 y1=181.13 y2=130.43 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5865.83 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=5865.83 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=5865.83 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=5866.35 x2=5866.35 y1=75.39 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=5865.83 y=200 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=5875.57 x2=5875.57 y1=198.52 y2=169.57 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=6036.26 x2=6053.48 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=6039.74 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6039.74 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6039.74 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=6040.26 x2=6040.26 y1=71.04 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6039.74 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6049.48 x2=6049.48 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=6210.17 x2=6227.39 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     text x=6213.65 y=213.04 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6223.39 x2=6223.39 y1=211.57 y2=182.61 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6300.61 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=6300.61 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6301.13 x2=6301.13 y1=84.09 y2=130.43 stroke=currentColor width=1.04
     text x=6305.74 y=73.91 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A2
-  group color=var(--ink)
+  group color=ink
     text x=6387.57 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=6387.57 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6388.09 x2=6388.09 y1=84.09 y2=126.09 stroke=currentColor width=1.04
     text x=6392.7 y=73.91 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A2
-  group color=var(--ink)
+  group color=ink
     text x=6474.52 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=6474.52 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6475.04 x2=6475.04 y1=84.09 y2=121.74 stroke=currentColor width=1.04
     text x=6479.65 y=73.91 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4A2
-  group color=var(--ink)
+  group color=ink
     text x=6561.48 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6584 y=82.61 size=34.78 font=Bravura fill=currentColor U+E1E7
     text x=6570.7 y=95.65 size=34.78 font=Bravura fill=currentColor U+E0A3
@@ -709,193 +709,193 @@ tape
     text x=6561.48 y=100 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6584 y=100 size=34.78 font=Bravura fill=currentColor U+E1E7
     line x1=6571.22 x2=6571.22 y1=98.52 y2=56.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6561.48 y=165.22 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6570.7 y=178.26 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6561.48 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=6571.22 x2=6571.22 y1=181.13 y2=134.78 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=6722.7 x2=6749.13 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     line x1=6722.7 x2=6749.13 y1=217.39 y2=217.39 stroke=currentColor width=1.39
     text x=6735.39 y=217.39 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=6714.87 y=217.39 size=34.78 font=Bravura fill=currentColor U+E261
     text x=6726.17 y=221.74 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=6735.91 x2=6735.91 y1=218.87 y2=252.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6822.35 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=6813.13 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=6822.35 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6822.87 x2=6822.87 y1=75.39 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6924.23 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=6924.76 x2=6924.76 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=6924.23 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=6924.76 x2=6924.76 y1=184.09 y2=213.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=7007.71 x2=7024.93 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=7011.19 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7011.71 x2=7011.71 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=7098.15 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7107.89 x2=7107.89 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=7181.63 x2=7198.84 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=7185.1 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=7185.63 x2=7185.63 y1=66.7 y2=95.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=7268.58 x2=7285.8 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=7272.06 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7272.58 x2=7272.58 y1=71.04 y2=100 stroke=currentColor width=1.04
     text x=7277.19 y=56.52 size=34.78 font=Bravura fill=currentColor anchor=middle U+E566
     path d=M7287.191304347826,51.73913043478261 Q7289.142105263158,47.91304347826087 7291.09290617849,51.73913043478261 Q7293.0437070938215,55.56521739130435 7294.994508009154,51.73913043478261 Q7296.945308924485,47.91304347826087 7298.896109839817,51.73913043478261 Q7300.846910755149,55.56521739130435 7302.797711670481,51.73913043478261 Q7304.748512585813,47.91304347826087 7306.699313501144,51.73913043478261 Q7308.650114416476,55.56521739130435 7310.600915331808,51.73913043478261 Q7312.55171624714,47.91304347826087 7314.502517162472,51.73913043478261 Q7316.4533180778035,55.56521739130435 7318.404118993135,51.73913043478261 Q7320.354919908467,47.91304347826087 7322.305720823799,51.73913043478261 Q7324.256521739131,55.56521739130435 7326.207322654463,51.73913043478261 Q7328.158123569794,47.91304347826087 7330.108924485126,51.73913043478261 Q7332.059725400458,55.56521739130435 7334.010526315789,51.73913043478261 Q7335.961327231122,47.91304347826087 7337.912128146453,51.73913043478261 Q7339.8629290617855,55.56521739130435 7341.813729977117,51.73913043478261 Q7343.764530892448,47.91304347826087 7345.715331807781,51.73913043478261 Q7347.666132723112,55.56521739130435 7349.616933638445,51.73913043478261 Q7351.567734553776,47.91304347826087 7353.5185354691075,51.73913043478261 Q7355.46933638444,55.56521739130435 7357.420137299771,51.73913043478261 Q7359.370938215104,47.91304347826087 7361.321739130435,51.73913043478261 Q7363.272540045767,55.56521739130435 7365.223340961099,51.73913043478261 Q7367.17414187643,47.91304347826087 7369.124942791763,51.73913043478261 Q7371.075743707094,55.56521739130435 7373.026544622426,51.73913043478261 Q7374.977345537758,47.91304347826087 7376.9281464530895,51.73913043478261 Q7378.878947368422,55.56521739130435 7380.829748283753,51.73913043478261 Q7382.780549199085,47.91304347826087 7384.731350114417,51.73913043478261 Q7386.682151029749,55.56521739130435 7388.632951945081,51.73913043478261 Q7390.5837528604125,47.91304347826087 7392.534553775744,51.73913043478261 Q7394.485354691076,55.56521739130435 7396.436155606408,51.73913043478261 Q7398.386956521739,47.91304347826087 7400.337757437072,51.73913043478261 Q7402.288558352403,55.56521739130435 7404.239359267735,51.73913043478261 Q7406.190160183067,47.91304347826087 7408.140961098398,51.73913043478261 Q7410.091762013731,55.56521739130435 7412.042562929062,51.73913043478261 Q7413.9933638443945,47.91304347826087 7415.944164759726,51.73913043478261 Q7417.894965675057,55.56521739130435 7419.84576659039,51.73913043478261 Q7421.796567505721,47.91304347826087 7423.747368421054,51.73913043478261 Q7425.698169336385,55.56521739130435 7427.6489702517165,51.73913043478261 Q7429.599771167049,47.91304347826087 7431.55057208238,51.73913043478261 Q7433.501372997713,55.56521739130435 7435.452173913044,51.73913043478261 fill=none stroke=currentColor width=1.39 round=true
-  group color=var(--ink)
+  group color=ink
     text x=7272.06 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7272.58 x2=7272.58 y1=175.39 y2=204.35 stroke=currentColor width=1.04
     text x=7277.19 y=152.17 size=34.78 font=Bravura fill=currentColor anchor=middle U+E567
-  group color=var(--ink)
+  group color=ink
     text x=7445.97 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=7446.5 x2=7446.5 y1=79.74 y2=108.7 stroke=currentColor width=1.04
     text x=7451.1 y=65.22 size=34.78 font=Bravura fill=currentColor anchor=middle U+E56D
-  group color=var(--ink)
+  group color=ink
     text x=7445.97 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7446.5 x2=7446.5 y1=184.09 y2=213.04 stroke=currentColor width=1.04
     text x=7538.06 y=152.17 size=34.78 font=Bravura fill=currentColor anchor=middle U+E567
     text x=7538.06 y=161.74 size=20.87 font=Bravura fill=currentColor anchor=middle U+E261
-  group color=var(--ink)
+  group color=ink
     text x=7532.93 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=7533.45 x2=7533.45 y1=84.09 y2=113.04 stroke=currentColor width=1.04
     text x=7538.06 y=65.22 size=34.78 font=Bravura fill=currentColor anchor=middle U+E56C
-  group color=var(--ink)
+  group color=ink
     text x=7619.89 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7620.41 x2=7620.41 y1=88.43 y2=117.39 stroke=currentColor width=1.04
     polygon points=7614.76,97.52,7626.06,94.48,7626.06,97.26,7614.76,100.3 fill=currentColor
     polygon points=7614.76,102.3,7626.06,99.26,7626.06,102.04,7614.76,105.09 fill=currentColor
     polygon points=7614.76,107.09,7626.06,104.04,7626.06,106.83,7614.76,109.87 fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=7619.89 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7620.41 x2=7620.41 y1=184.09 y2=213.04 stroke=currentColor width=1.04
     polygon points=7624.76,200.57,7703.02,183.17,7703.02,185.96,7624.76,203.35 fill=currentColor
     polygon points=7624.76,205.35,7703.02,187.96,7703.02,190.74,7624.76,208.13 fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=7706.84 y=165.22 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7707.37 x2=7707.37 y1=166.7 y2=195.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=7793.8 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=7793.8 y=100 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=7793.8 y=108.7 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7803.54 x2=7803.54 y1=107.22 y2=56.52 stroke=currentColor width=1.04
     path d=M7787.713043478261,81.73913043478261 Q7791.539130434783,83.74680306905371 7787.713043478261,85.7544757033248 Q7783.886956521739,87.7621483375959 7787.713043478261,89.769820971867 Q7791.539130434783,91.77749360613811 7787.713043478261,93.78516624040921 Q7783.886956521739,95.7928388746803 7787.713043478261,97.8005115089514 Q7791.539130434783,99.8081841432225 7787.713043478261,101.8158567774936 Q7783.886956521739,103.8235294117647 7787.713043478261,105.8312020460358 Q7791.539130434783,107.8388746803069 7787.713043478261,109.846547314578 Q7783.886956521739,111.85421994884909 7787.713043478261,113.8618925831202 Q7791.539130434783,115.8695652173913 7787.713043478261,117.87723785166239 Q7783.886956521739,119.88491048593349 7787.713043478261,121.89258312020459 Q7791.539130434783,123.9002557544757 7787.713043478261,125.9079283887468 Q7783.886956521739,127.91560102301789 7787.713043478261,129.92327365728897 Q7791.539130434783,131.93094629156008 7787.713043478261,133.93861892583118 Q7783.886956521739,135.94629156010228 7787.713043478261,137.95396419437338 Q7791.539130434783,139.9616368286445 7787.713043478261,141.9693094629156 Q7783.886956521739,143.9769820971867 7787.713043478261,145.9846547314578 Q7791.539130434783,147.9923273657289 7787.713043478261,150 Q7783.886956521739,152.00767263427107 7787.713043478261,154.01534526854218 Q7791.539130434783,156.02301790281328 7787.713043478261,158.03069053708435 Q7783.886956521739,160.03836317135546 7787.713043478261,162.04603580562656 Q7791.539130434783,164.05370843989766 7787.713043478261,166.06138107416876 Q7783.886956521739,168.06905370843987 7787.713043478261,170.07672634271097 Q7791.539130434783,172.08439897698207 7787.713043478261,174.09207161125317 Q7783.886956521739,176.09974424552428 7787.713043478261,178.10741687979538 Q7791.539130434783,180.11508951406648 7787.713043478261,182.12276214833759 Q7783.886956521739,184.13043478260866 7787.713043478261,186.13810741687976 Q7791.539130434783,188.14578005115087 7787.713043478261,190.15345268542194 Q7783.886956521739,192.16112531969304 7787.713043478261,194.16879795396414 Q7791.539130434783,196.17647058823525 7787.713043478261,198.18414322250635 Q7783.886956521739,200.19181585677745 7787.713043478261,202.19948849104856 Q7791.539130434783,204.20716112531966 7787.713043478261,206.21483375959076 Q7783.886956521739,208.22250639386186 7787.713043478261,210.23017902813297 Q7791.539130434783,212.23785166240407 7787.713043478261,214.24552429667517 Q7783.886956521739,216.25319693094627 7787.713043478261,218.26086956521738 fill=none stroke=currentColor width=1.39 round=true
-  group color=var(--ink)
+  group color=ink
     line x1=7790.32 x2=7807.54 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     text x=7793.8 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=7793.8 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     text x=7793.8 y=213.04 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7803.54 x2=7803.54 y1=211.57 y2=143.48 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=7967.71 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=7977.45 x2=7977.45 y1=85.48 y2=56.52 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=7978.5 x2=7978.5 y1=88.43 y2=124.89 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8011.19 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8011.71 x2=8011.71 y1=101.48 y2=127.29 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8054.67 y=108.7 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8055.19 x2=8055.19 y1=110.17 y2=130.43 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8098.15 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8098.67 x2=8098.67 y1=101.48 y2=133.58 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8141.63 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=8151.37 x2=8151.37 y1=81.13 y2=52.17 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=8152.41 x2=8152.41 y1=84.09 y2=120.54 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8141.63 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=8142.15 x2=8142.15 y1=184.09 y2=213.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8185.1 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8185.63 x2=8185.63 y1=101.48 y2=122.94 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8228.58 y=104.35 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8229.1 x2=8229.1 y1=105.83 y2=126.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8272.06 y=100 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8272.58 x2=8272.58 y1=101.48 y2=129.23 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8336.41 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8336.93 x2=8336.93 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8336.41 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=8336.93 x2=8336.93 y1=184.09 y2=213.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8423.37 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8423.89 x2=8423.89 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=8506.84 x2=8524.06 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=8510.32 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8510.84 x2=8510.84 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8510.32 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=8520.06 x2=8520.06 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8597.28 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8597.8 x2=8597.8 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=8701.63 x2=8718.84 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=8705.1 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8714.84 x2=8714.84 y1=68.09 y2=39.13 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8706.64 y=86.96 size=24.35 font=Bravura fill=currentColor U+E0A4
     line x1=8707.01 x2=8707.01 y1=87.99 y2=108.26 stroke=currentColor width=0.73
-  group color=var(--ink)
+  group color=ink
     text x=8702.89 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     text x=8750.12 y=91.3 size=24.35 font=Bravura fill=currentColor U+E0A4
     line x1=8750.49 x2=8750.49 y1=92.34 y2=112.61 stroke=currentColor width=0.73
-  group color=var(--ink)
+  group color=ink
     text x=8792.06 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8801.8 x2=8801.8 y1=76.78 y2=47.83 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8793.6 y=86.96 size=24.35 font=Bravura fill=currentColor U+E0A4
     text x=8802.91 y=82.61 size=24.35 font=Bravura fill=currentColor U+E1E7
     line x1=8793.97 x2=8793.97 y1=87.99 y2=108.26 stroke=currentColor width=0.73
-  group color=var(--ink)
+  group color=ink
     line x1=8875.54 x2=8892.76 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=8879.02 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8888.76 x2=8888.76 y1=68.09 y2=39.13 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8924.03 y=104.35 size=24.35 font=Bravura fill=currentColor U+E0A4
     text x=8916.12 y=104.35 size=24.35 font=Bravura fill=currentColor U+E262
     line x1=8924.4 x2=8924.4 y1=105.38 y2=125.65 stroke=currentColor width=0.73
     text x=8924.03 y=125.65 size=24.35 font=Bravura fill=currentColor U+E241
-  group color=var(--ink)
+  group color=ink
     line x1=8962.5 x2=8979.71 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=8962.5 x2=8979.71 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=8965.97 y=56.52 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=8975.71 x2=8975.71 y1=55.04 y2=26.09 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=8967.51 y=100 size=24.35 font=Bravura fill=currentColor U+E0A4
     text x=8967.51 y=108.7 size=24.35 font=Bravura fill=currentColor U+E0A4
     line x1=8967.88 x2=8967.88 y1=101.03 y2=130 stroke=currentColor width=0.73
-  group color=var(--ink)
+  group color=ink
     text x=9052.93 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9053.45 x2=9053.45 y1=88.43 y2=117.39 stroke=currentColor width=1.04
     text x=9058.06 y=63.04 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED11
-  group color=var(--ink)
+  group color=ink
     text x=9052.93 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9053.45 x2=9053.45 y1=184.09 y2=213.04 stroke=currentColor width=1.04
     text x=9058.06 y=228.26 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED15
-  group color=var(--ink)
+  group color=ink
     text x=9139.89 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9140.41 x2=9140.41 y1=79.74 y2=108.7 stroke=currentColor width=1.04
     text x=9145.02 y=63.04 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED13
-  group color=var(--ink)
+  group color=ink
     text x=9139.89 y=165.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9140.41 x2=9140.41 y1=166.7 y2=195.65 stroke=currentColor width=1.04
     text x=9145.02 y=215.22 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED12
-  group color=var(--ink)
+  group color=ink
     line x1=9223.37 x2=9240.58 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     line x1=9223.37 x2=9240.58 y1=60.87 y2=60.87 stroke=currentColor width=1.39
     text x=9226.84 y=56.52 size=34.78 font=Bravura fill=currentColor U+E0A4
@@ -903,116 +903,116 @@ tape
     line x1=9227.37 x2=9227.37 y1=58 y2=100 stroke=currentColor width=1.04
     text x=9231.97 y=41.3 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED12
     text x=9231.97 y=28.26 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED15
-  group color=var(--ink)
+  group color=ink
     text x=9226.84 y=173.91 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=9227.37 x2=9227.37 y1=175.39 y2=204.35 stroke=currentColor width=1.04
     text x=9231.97 y=219.57 size=34.78 font=Bravura fill=currentColor anchor=middle U+ED13
-  group color=var(--ink)
+  group color=ink
     line x1=9310.32 x2=9327.54 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=9313.8 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A4
     text x=9313.1 y=65.22 size=34.78 font=Bravura fill=currentColor anchor=end U+E0F5
     text x=9324.76 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0F6
     line x1=9314.32 x2=9314.32 y1=66.7 y2=95.65 stroke=currentColor width=1.04
     text x=9318.93 y=56.52 size=13.04 font='Playfair Display', 'Times New Roman', Georgia, serif fill=currentColor anchor=middle 2-1
-  group color=var(--ink)
+  group color=ink
     text x=9400.76 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9401.28 x2=9401.28 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9400.76 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=9401.28 x2=9401.28 y1=184.09 y2=213.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9444.23 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9444.76 x2=9444.76 y1=84.09 y2=114.49 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9487.71 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9488.23 x2=9488.23 y1=79.74 y2=111.59 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9531.19 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9531.71 x2=9531.71 y1=75.39 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=9571.19 x2=9588.41 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=9574.67 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9575.19 x2=9575.19 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9574.67 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=9584.41 x2=9584.41 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9618.15 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9618.67 x2=9618.67 y1=75.39 y2=102.9 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9661.63 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9662.15 x2=9662.15 y1=79.74 y2=105.8 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9705.1 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9705.63 x2=9705.63 y1=84.09 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9762.5 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9763.02 x2=9763.02 y1=88.43 y2=117.39 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9762.5 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=9772.23 x2=9772.23 y1=194.17 y2=165.22 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9849.45 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9849.97 x2=9849.97 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9936.41 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=9936.93 x2=9936.93 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=9936.41 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=9936.93 x2=9936.93 y1=184.09 y2=213.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=10023.37 y=73.91 size=34.78 font=Bravura fill=currentColor U+E0A4
     line x1=10023.89 x2=10023.89 y1=75.39 y2=104.35 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=10106.84 x2=10124.06 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=10110.32 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10110.84 x2=10110.84 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=10108.1 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     text x=10284.23 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10284.76 x2=10284.76 y1=79.74 y2=108.7 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=10473.8 x2=10491.02 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=10477.28 y=65.22 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10477.8 x2=10477.8 y1=66.7 y2=95.65 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=10475.06 y=200 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     line x1=10647.71 x2=10664.93 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=10651.19 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10651.71 x2=10651.71 y1=71.04 y2=100 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=10825.1 y=82.61 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10825.63 x2=10825.63 y1=84.09 y2=113.04 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     text x=10822.89 y=195.65 size=34.78 font=Bravura fill=currentColor U+E0A2
-  group color=var(--ink)
+  group color=ink
     text x=10999.02 y=91.3 size=34.78 font=Bravura fill=currentColor U+E0A3
     line x1=10999.54 x2=10999.54 y1=92.78 y2=121.74 stroke=currentColor width=1.04
-  group color=var(--ink)
+  group color=ink
     line x1=11167.23 x2=11188.89 y1=69.57 y2=69.57 stroke=currentColor width=1.39
     text x=11170.71 y=69.57 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=11170.71 y=78.26 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=11170.71 y=86.96 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=11178.06 y=56.52 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4C0
-  group color=var(--ink)
+  group color=ink
     line x1=11167.23 x2=11188.89 y1=208.7 y2=208.7 stroke=currentColor width=1.39
     text x=11170.71 y=182.61 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=11170.71 y=213.04 size=34.78 font=Bravura fill=currentColor U+E0A2
     text x=11178.06 y=226.09 size=34.78 font=Bravura fill=currentColor anchor=middle U+E4C1
-  group color=var(--ink)
+  group color=ink
     text x=6908.87 y=82.61 size=22.61 font=Bravura fill=currentColor U+E0A4
     line x1=6915.1 x2=6915.1 y1=81.65 y2=61.74 stroke=currentColor width=0.87
     text x=6914.67 y=61.74 size=22.61 font=Bravura fill=currentColor U+E240
     line x1=6910.32 x2=6921.63 y1=74.78 y2=66.96 stroke=currentColor width=0.87
-  group color=var(--ink)
+  group color=ink
     line x1=6993.65 x2=7004.67 y1=69.57 y2=69.57 stroke=currentColor width=1.13
     text x=6995.83 y=65.22 size=22.61 font=Bravura fill=currentColor U+E0A4
     line x1=7002.06 x2=7002.06 y1=64.26 y2=44.35 stroke=currentColor width=0.87
     text x=7001.63 y=44.35 size=22.61 font=Bravura fill=currentColor U+E240
     path d=M 6999.16 71.3 C 7001.95 81.45 7007.53 83.19 7010.32 74.78 C 7007.53 80.64 7001.95 78.9 6999.16 71.3 Z fill=currentColor
-  group color=var(--ink)
+  group color=ink
     text x=7162.2 y=73.91 size=22.61 font=Bravura fill=currentColor U+E0A4
     text x=7155.68 y=73.91 size=22.61 font=Bravura fill=currentColor U+E262
     line x1=7168.43 x2=7168.43 y1=72.95 y2=53.04 stroke=currentColor width=0.87
@@ -1021,13 +1021,13 @@ tape
     line x1=7179.02 x2=7179.02 y1=68.6 y2=48.7 stroke=currentColor width=0.87
     polygon points=7168,53.04,7179.45,48.7,7179.45,51.48,7168,55.83 fill=currentColor
     polygon points=7168,57.39,7179.45,53.04,7179.45,55.83,7168,60.17 fill=currentColor
-  group color=var(--ink)
+  group color=ink
     line x1=6906.7 x2=6917.71 y1=208.7 y2=208.7 stroke=currentColor width=1.13
     text x=6908.87 y=213.04 size=22.61 font=Bravura fill=currentColor U+E0A4
     line x1=6915.1 x2=6915.1 y1=212.08 y2=192.17 stroke=currentColor width=0.87
     text x=6914.67 y=192.17 size=22.61 font=Bravura fill=currentColor U+E240
     line x1=6910.32 x2=6921.63 y1=205.22 y2=197.39 stroke=currentColor width=0.87
-  group color=var(--ink)
+  group color=ink
     polygon points=4.09,73.97,48.61,69.51,48.61,73.86,4.09,78.31 fill=currentColor
     polygon points=429.65,113.11,495.91,104.28,495.91,99.93,429.65,108.77 fill=currentColor
     polygon points=429.65,106.59,495.91,97.76,495.91,93.41,429.65,102.24 fill=currentColor

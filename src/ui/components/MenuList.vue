@@ -19,6 +19,7 @@ defineEmits<{ choose: [id: string] }>();
 </template>
 
 <style scoped>
+/* (No narrower than its longest usual choice, "Rename", "Remove from the shelf", by eye: a short menu is not a narrow one.) */
 .menu-list {
   display: grid;
   min-width: 180px;

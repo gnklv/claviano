@@ -1,3 +1,4 @@
+import type { StaffColors } from '../../application/ports/StaffView';
 import type { StaffChord, StaffGrace } from '../../domain/notation/engraving';
 import type { Hand } from '../../domain/note';
 import { LABEL_FONT, MUSIC_FONT, TEXT_FONT } from './staff/glyphs';
@@ -16,8 +17,8 @@ import { TapeStaff, type StaffSurface } from './TapeStaff';
  * note, and the tape stumbled on an iPhone.)
  *
  * A canvas does not follow the theme's colours by itself, nor draws in a font before it has come:
- * the colours are read from the page, anew when the theme changes, and what is drawn is drawn anew
- * once the fonts are in.
+ * it is given the colours (anew when the theme changes, as the falling notes are), and what is drawn
+ * is drawn anew once the fonts are in.
  */
 
 /** Share of the tape's width over which each of its ends fades out. */
@@ -34,16 +35,13 @@ class CanvasSurface implements StaffSurface {
     (ctx, piece) => paintShape(ctx, piece.shape, this.colours, this.colours(piece.color)),
     () => document.createElement('canvas'),
   );
-  /** What the theme's colours stand for now, read from the page once each. */
-  private readonly read = new Map<string, string>();
+  private colors: StaffColors | null = null;
+  /** What a colour of the staff is in the theme now. */
   private readonly colours: Colours = (paint) => {
-    let value = this.read.get(paint);
-    if (value === undefined) {
-      const name = /^var\((--[\w-]+)\)$/.exec(paint)?.[1];
-      value = name ? getComputedStyle(this.background).getPropertyValue(name).trim() : paint;
-      this.read.set(paint, value);
-    }
-    return value;
+    const colors = this.colors;
+    if (!colors) return 'transparent';
+    if (paint === 'right' || paint === 'left') return colors.hand[paint];
+    return paint === 'currentColor' || paint === 'none' ? 'transparent' : colors[paint];
   };
 
   private height = 0;
@@ -57,22 +55,16 @@ class CanvasSurface implements StaffSurface {
   private lit: Lit = { chords: [], graces: [] };
   private offset = 0;
   private inSight = 0;
-  private readonly stopWatching: () => void;
 
   constructor() {
     Object.assign(this.background.style, { position: 'absolute', inset: '0' });
     this.tapeCanvas.style.display = 'block';
-    // The theme changes: by the app's switch (an attribute of the page), or by the system's, in "auto".
-    const theme = new MutationObserver(() => this.themeChanged());
-    theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
-    const system = window.matchMedia?.('(prefers-color-scheme: dark)');
-    const onSystem = () => this.themeChanged();
-    system?.addEventListener('change', onSystem);
-    this.stopWatching = () => {
-      theme.disconnect();
-      system?.removeEventListener('change', onSystem);
-    };
     void Promise.allSettled(FONTS.map((font) => document.fonts?.load(font))).then(() => this.drawAnew());
+  }
+
+  setColors(colors: StaffColors): void {
+    this.colors = colors;
+    this.drawAnew();
   }
 
   sized(width: number, height: number, tapeLeft: number): void {
@@ -134,10 +126,6 @@ class CanvasSurface implements StaffSurface {
     this.paint();
   }
 
-  dispose(): void {
-    this.stopWatching();
-  }
-
   /** The tape in sight: what is behind the music, the pictures of it, what sounds over it, and its ends faded. */
   private paint(): void {
     const ctx = this.tapeCanvas.getContext('2d');
@@ -179,11 +167,6 @@ class CanvasSurface implements StaffSurface {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  private themeChanged(): void {
-    this.read.clear();
-    this.drawAnew();
-  }
-
   /** Everything drawn anew: the colours or the fonts have changed. */
   private drawAnew(): void {
     this.tiles.forget();
@@ -203,7 +186,8 @@ function fit(canvas: HTMLCanvasElement, width: number, height: number, density: 
 
 /** The staff drawn on canvases. */
 export class CanvasStaff extends TapeStaff {
-  constructor(container: HTMLElement) {
-    super(container, new CanvasSurface());
+  /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
+  constructor(container: HTMLElement, colors: StaffColors) {
+    super(container, new CanvasSurface(), colors);
   }
 }

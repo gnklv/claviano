@@ -2,11 +2,29 @@ import type { NoteOnPage } from '../../domain/fingering/own';
 import type { Hand } from '../../domain/note';
 import type { Score, TimeRange } from '../../domain/score';
 
+/** The staff's colours as plain values: the UI resolves the theme's colours and passes them in. */
+export interface StaffColors {
+  readonly background: string;
+  readonly staffLine: string;
+  readonly barLine: string;
+  readonly barNumber: string;
+  /** The notes, and what is printed with them. */
+  readonly ink: string;
+  /** The looped bars (and those under the pointer or being selected): their wash, and the line at each end. */
+  readonly loop: string;
+  readonly loopEdge: string;
+  readonly cursor: string;
+  /** What sounds is lit in its hand's colour. */
+  readonly hand: Readonly<Record<Hand, string>>;
+}
+
 /**
  * The music as printed notes on a grand staff, scrolling under a cursor. The UI tells it what to
  * show and asks it where the pointer is on the page; how it draws is its own business.
  */
 export interface StaffView {
+  /** The theme's colours anew (it changed). */
+  setColors(colors: StaffColors): void;
   setScore(score: Score | null): void;
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   setHandLabels(labels: Record<Hand, string>): void;
@@ -41,6 +59,4 @@ export interface StaffView {
   dragBy(dx: number): number;
   /** Back to following the music (after a jump). */
   followMusic(): void;
-  /** The view is gone with its element: what it listens to (the theme, on a canvas), it stops listening to. */
-  dispose?(): void;
 }

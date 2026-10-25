@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { audio, button, onPiece, playback, root, settled, shelf, staffScores, tilesShown, useApp } from './harness';
 
 /** A quarter note of the music font (SMuFL), as the tempo is written with. */
@@ -18,6 +18,7 @@ describe('free play', () => {
     button(/Free play/).click();
     await settled();
   });
+  afterEach(() => vi.useRealTimers());
 
   it('is a screen of its own, come to from the library and left by the arrow', async () => {
     expect(location.hash).toBe('#/play');
@@ -59,18 +60,24 @@ describe('free play', () => {
   });
 
   it('hands what is played to the tiles over the keyboard: each key from when it went down to when it came up', async () => {
-    const frame = () => new Promise((resolve) => setTimeout(resolve, 50));
+    // Frames on a clock set by hand: the screen made anew on it, for its frames to be its.
+    button(/Back to the library/).click();
+    await settled();
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    button(/Free play/).click();
+    await settled();
+    const frame = () => vi.advanceTimersToNextFrame();
     audio.time = 1;
     press('KeyA');
-    await frame();
+    frame();
     expect(tilesShown).toEqual([{ pitch: 48, start: 1, end: null }]);
     audio.time = 1.5;
     press('KeyA', 'keyup');
-    await frame();
+    frame();
     expect(tilesShown).toEqual([{ pitch: 48, start: 1, end: 1.5 }]);
     // Once it has floated out of sight (five seconds, says the view), it is forgotten.
     audio.time = 7;
-    await frame();
+    frame();
     expect(tilesShown).toEqual([]);
   });
 

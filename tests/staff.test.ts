@@ -141,10 +141,10 @@ describe('the staff', () => {
       staff.setLoop(barRange(score, 1, 2));
       const [loop] = shaded(shown);
       expect(shaded(shown).length).toBe(1);
-      expect(loop.fill).toBe('var(--loop)');
+      expect(loop.fill).toBe('loop');
       expect(loop.width).toBeGreaterThan(0);
       // (A line at each of its ends, in the same ink.)
-      const edges = () => shown.loop.filter((shape) => shape.kind === 'path' && shape.stroke === 'var(--loop-edge)');
+      const edges = () => shown.loop.filter((shape) => shape.kind === 'path' && shape.stroke === 'loopEdge');
       expect(edges()).toHaveLength(2);
 
       staff.setLoop(barRange(score, 1, 3));
@@ -223,6 +223,14 @@ describe('the staff', () => {
     const before = shown.tape;
     staff.resize();
     expect(shown.tape).toBe(before);
+  });
+
+  it('draws anew for a screen of another density, at the same size (a canvas is drawn for one)', () => {
+    const { staff, shown } = drawStaff(ode());
+    const before = shown.tape;
+    vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(window.devicePixelRatio + 1);
+    staff.resize();
+    expect(shown.tape).not.toBe(before);
   });
 
   it('shows in the left column the clefs and signatures in force where the music is', () => {

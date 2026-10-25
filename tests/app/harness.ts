@@ -115,13 +115,15 @@ export function useApp(): void {
   staffPointer.picked = null;
   rollPointer.note = null;
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
+    // Only what this screen changes is told of a change: the width, the height, the pointer (not the density, say).
+    const changes = /max-width|max-height|pointer/.test(query);
     const media = {
       get matches() {
         return (
           (screen.phone && query.includes('max-width: 599px')) || (screen.short && query.includes('max-height: 500px')) || (screen.touch && query.includes('pointer: coarse'))
         );
       },
-      addEventListener: (_: string, listener: () => void) => screen.listeners.add(listener),
+      addEventListener: (_: string, listener: () => void) => void (changes && screen.listeners.add(listener)),
       removeEventListener: (_: string, listener: () => void) => screen.listeners.delete(listener),
     };
     return media as unknown as MediaQueryList;

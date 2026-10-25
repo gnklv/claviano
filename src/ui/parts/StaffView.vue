@@ -10,6 +10,8 @@ import { usePlaybackState } from '../app/usePlaybackState';
 import type { Hand } from '../../domain/note';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
+import { readStaffColors } from '../theme/readCanvasColors';
+import { useCanvasColors } from '../theme/useCanvasColors';
 
 const { playback, barLoop: loop, createStaff } = useDeps();
 const state = usePlaybackState(playback);
@@ -29,8 +31,9 @@ watch(
 const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
+const colors = useCanvasColors(readStaffColors, () => staff.view);
 const staff = useDrawnView(container, (element): StaffView => {
-  const made = createStaff(element);
+  const made = createStaff(element, colors());
   made.setHandLabels(handLabels());
   made.setScore(page.value);
   made.setLoop(state.value.loop);

@@ -102,7 +102,7 @@ createApp(App)
     recorder,
     keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),
     createRoll: (canvas, colors) => new CanvasPianoRoll(canvas, colors),
-    createStaff: (container) => new CanvasStaff(container),
+    createStaff: (container, colors) => new CanvasStaff(container, colors),
     createTiles: (canvas, colors) => new CanvasPlayedTiles(canvas, colors),
     demos,
   })

@@ -7,6 +7,8 @@ import { useDrawnView } from '../browser/useDrawnView';
 import { useRecorder } from '../app/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
+import { readStaffColors } from '../theme/readCanvasColors';
+import { useCanvasColors } from '../theme/useCanvasColors';
 
 /*
  * The take as notes: written down as it is played, the staff moving on under the place the music
@@ -17,8 +19,9 @@ const { t, locale } = useI18n();
 const state = useRecorder(recorder);
 const container = useTemplateRef<HTMLElement>('container');
 
+const colors = useCanvasColors(readStaffColors, () => staff.view);
 const staff = useDrawnView(container, (element): StaffView => {
-  const made = createStaff(element);
+  const made = createStaff(element, colors());
   // (What is written is behind the cursor: it stands near the right, with a bar's room for the last note.)
   made.setCursorPlace(0.8);
   made.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') });

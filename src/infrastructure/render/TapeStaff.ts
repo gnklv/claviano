@@ -1,4 +1,4 @@
-import type { StaffView } from '../../application/ports/StaffView';
+import type { StaffColors, StaffView } from '../../application/ports/StaffView';
 import { barAtBeat, clefSignAt, writtenBarAt, writtenBeatAt, keySignatureAt, timeSignatureAt, type Score, type TimeRange } from '../../domain/score';
 import { lastAtOrBefore } from '../../domain/search';
 import type { Hand } from '../../domain/note';
@@ -12,7 +12,7 @@ import { StaffGeometry, tenth } from './staff/geometry';
 import { drawGutter, type GutterContent } from './staff/gutter';
 import { StaffInk } from './staff/ink';
 import { barsShade, loopShade, noteShade } from './staff/shades';
-import { COLORS, type Shape } from './staff/shapes';
+import type { Shape } from './staff/shapes';
 import { Sounding, type Lit } from './staff/sounding';
 import { drawTape, type TapeDrawing } from './staff/tapeDrawing';
 import { TapeMotion } from './staff/tapeMotion';
@@ -35,6 +35,8 @@ export interface StaffSurface {
   readonly background: HTMLElement;
   /** What it puts in the tape's box. */
   readonly tapeParts: readonly Element[];
+  /** The theme's colours, at first and anew when the theme changes. */
+  setColors(colors: StaffColors): void;
   /** The view's size, as the staff is drawn for it now (after a resize, before what is drawn anew). */
   sized(width: number, height: number, tapeLeft: number): void;
   /** The staff lines and the left column, anew. */
@@ -49,8 +51,6 @@ export interface StaffSurface {
   light(lit: Lit): void;
   /** The tape drawn `offset` pixels along, `inSight` of it in the view. */
   move(offset: number, inSight: number): void;
-  /** The staff is gone: what it listens to, it stops listening to. */
-  dispose?(): void;
 }
 
 /**
@@ -89,30 +89,40 @@ export class TapeStaff implements StaffView {
   private hoverBar: number | null = null;
   /** The note being fingered, marked behind its head. */
   private picked: NoteOnPage | null = null;
+  /** The screen's density the staff was last drawn at (a canvas is drawn for one). */
+  private density = 0;
   /** Whether the last drawing anew took longer than a frame (see resize). */
   private costly = false;
   private lastCursorLeft = Number.NaN;
   private selection: { from: number; to: number } | null = null;
 
+  /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
   constructor(
     private readonly container: HTMLElement,
     private readonly surface: StaffSurface,
+    colors: StaffColors,
   ) {
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
-    container.style.background = COLORS.background;
 
     this.tape = document.createElement('div');
     Object.assign(this.tape.style, { position: 'absolute', top: '0', bottom: '0', right: '0' });
     this.tape.append(...surface.tapeParts);
 
     this.cursor = document.createElement('div');
-    Object.assign(this.cursor.style, { position: 'absolute', width: '2px', background: COLORS.cursor, borderRadius: '1px' });
+    Object.assign(this.cursor.style, { position: 'absolute', width: '2px', borderRadius: '1px' });
+    this.setColors(colors);
 
     container.append(surface.background, this.tape, this.cursor);
     this.stretch = new TapeStretch(this.geometry, { background: surface.background, tape: this.tape, cursor: this.cursor }, () => this.rested());
     this.geometry.resize(container.clientWidth, container.clientHeight);
     this.redraw();
+  }
+
+  setColors(colors: StaffColors): void {
+    this.container.style.background = colors.background;
+    this.cursor.style.background = colors.cursor;
+    this.surface.setColors(colors);
   }
 
   setScore(score: Score | null): void {
@@ -228,14 +238,10 @@ export class TapeStaff implements StaffView {
       this.lastCursorLeft = Number.NaN;
       return;
     }
-    // Browsers report a size when watching begins, changed or not: nothing to draw anew then.
-    if (width === this.geometry.width && height === this.geometry.height) return;
+    // Browsers report a size when watching begins, changed or not: nothing to draw anew then (unless the density is another).
+    if (width === this.geometry.width && height === this.geometry.height && window.devicePixelRatio === this.density) return;
     this.geometry.resize(width, height);
     this.redraw();
-  }
-
-  dispose(): void {
-    this.surface.dispose?.();
   }
 
   /** The size has come to rest, the stretch undone: drawn anew for it, exactly. */
@@ -250,6 +256,7 @@ export class TapeStaff implements StaffView {
 
   private redraw(): void {
     const began = performance.now();
+    this.density = window.devicePixelRatio;
     this.surface.sized(this.geometry.width, this.geometry.height, this.geometry.gutterWidth());
     this.drawBackground();
     this.drawTape();

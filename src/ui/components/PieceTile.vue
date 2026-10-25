@@ -27,6 +27,7 @@ defineEmits<{ open: [] }>();
 </template>
 
 <style scoped>
+/* (As tall as a title of two lines and the note under it, so that the tiles of a row stand even; by eye.) */
 .piece-tile {
   position: relative;
   display: grid;
@@ -93,7 +94,7 @@ button.face {
   padding-block: var(--space-3);
 }
 
-/* A phone: lower tiles, one to a row. */
+/* A phone: lower tiles, one to a row (a title of one line and its note). */
 @media (max-width: 599px) {
   .piece-tile {
     min-height: 72px;

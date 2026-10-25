@@ -9,7 +9,7 @@ import { useDrawnView } from '../browser/useDrawnView';
 import { useDeps } from '../deps';
 import { useGlide } from '../motion/useGlide';
 import { useI18n } from '../i18n/useI18n';
-import { readRollColors } from '../theme/readRollColors';
+import { readRollColors } from '../theme/readCanvasColors';
 import { useCanvasColors } from '../theme/useCanvasColors';
 
 /**

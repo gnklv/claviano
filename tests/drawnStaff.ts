@@ -1,3 +1,4 @@
+import type { StaffColors } from '../src/application/ports/StaffView';
 import type { StaffChord, StaffGrace } from '../src/domain/notation/engraving';
 import type { Hand } from '../src/domain/note';
 import type { Score } from '../src/domain/score';
@@ -26,6 +27,7 @@ export class ShownSurface implements StaffSurface {
   /** Where the tape was moved to last (NaN: never). */
   offset = Number.NaN;
 
+  setColors(): void {}
   sized(): void {}
   showBackground(shapes: readonly Shape[]): void {
     this.column = shapes;
@@ -55,6 +57,19 @@ export class ShownSurface implements StaffSurface {
   }
 }
 
+/** Colours named for what they are, to read them back where they are used. */
+export const STAFF_COLORS: StaffColors = {
+  background: '#background',
+  staffLine: '#staffLine',
+  barLine: '#barLine',
+  barNumber: '#barNumber',
+  ink: '#ink',
+  loop: '#loop',
+  loopEdge: '#loopEdge',
+  cursor: '#cursor',
+  hand: { right: '#right', left: '#left' },
+};
+
 export function drawStaff(score: Score | null, size = { width: 1024, height: 300 }): { staff: TapeStaff; shown: ShownSurface; container: HTMLElement } {
   const container = document.createElement('div');
   Object.defineProperties(container, {
@@ -62,7 +77,7 @@ export function drawStaff(score: Score | null, size = { width: 1024, height: 300
     clientHeight: { get: () => size.height, configurable: true },
   });
   const shown = new ShownSurface();
-  const staff = new TapeStaff(container, shown);
+  const staff = new TapeStaff(container, shown, STAFF_COLORS);
   staff.setScore(score);
   staff.render(0);
   return { staff, shown, container };

@@ -8,22 +8,23 @@ import { MUSIC_FONT } from './glyphs';
  * is lit as a whole.
  */
 
-/** A colour as CSS says it: one of the theme's (see COLORS), or `currentColor`, its group's. */
-export type Paint = string;
+/**
+ * A colour of the staff, by its name in the theme (see StaffColors; `right` and `left` are the hands'),
+ * `currentColor` for its group's, or `none`.
+ */
+export type Paint = 'staffLine' | 'barLine' | 'barNumber' | 'ink' | 'loop' | 'loopEdge' | Hand | 'currentColor' | 'none';
 
-/** The theme's colours, the CSS variables of ui/styles.css: the canvas reads what they stand for, anew when the theme changes. */
+/** The theme's colours, by what they are for on the staff. */
 export const COLORS = {
-  background: 'var(--surface)',
-  staffLine: 'var(--staff-line)',
-  barLine: 'var(--bar-line)',
-  barNumber: 'var(--bar-number)',
-  clef: 'var(--ink)',
-  note: 'var(--ink)',
-  hand: { right: 'var(--right)', left: 'var(--left)' } satisfies Record<Hand, string>,
-  loop: 'var(--loop)',
-  loopEdge: 'var(--loop-edge)',
-  cursor: 'var(--cursor)',
-};
+  staffLine: 'staffLine',
+  barLine: 'barLine',
+  barNumber: 'barNumber',
+  clef: 'ink',
+  note: 'ink',
+  hand: { right: 'right', left: 'left' },
+  loop: 'loop',
+  loopEdge: 'loopEdge',
+} as const satisfies Record<string, Paint | Record<Hand, Paint>>;
 
 /** Words, or a glyph of the music font (whose reference line is at `y`). */
 export interface TextShape {
