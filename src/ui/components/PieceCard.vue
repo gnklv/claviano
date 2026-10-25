@@ -103,6 +103,6 @@ function finishRenaming(keep: boolean): void {
 }
 
 .more {
-  padding: 2px var(--space-2);
+  padding: var(--space-0) var(--space-2);
 }
 </style>

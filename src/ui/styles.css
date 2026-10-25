@@ -291,12 +291,6 @@ input,
   user-select: text;
 }
 
-.group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .button {
   appearance: none;
   min-height: var(--control-height);
@@ -304,14 +298,15 @@ input,
   background: var(--control);
   color: var(--text);
   border-radius: var(--radius-m);
-  padding: 6px 12px;
+  /* (Its height is the control height's: the padding is the words' room at the sides.) */
+  padding: var(--space-1) var(--space-3);
   font: inherit;
   cursor: pointer;
-  /* (An icon alone sits in the middle; an icon and a word stand in a row.) */
+  /* (An icon alone sits in the middle; an icon and a word stand in a row, as parts of one thing.) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 /* (Only where there is a pointer to hover with: a touch leaves "hover" on whatever stands where the finger was.) */
@@ -379,25 +374,42 @@ input,
   }
 }
 
-/* A pressable chip: on when aria-pressed is true, faded when off. */
+/*
+ * A pressable chip: on when aria-pressed is true, faded when off. On, it is ringed in ink: its fill
+ * alone (--control on --panel) differs from off by too little to be told at a glance, in either
+ * theme; a fill of ink was tried, and in the transport it argued with the play button.
+ */
 .toggle {
   appearance: none;
+  min-height: var(--control-height);
   display: inline-flex;
   white-space: nowrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
   border-radius: var(--radius-pill);
-  padding: 5px 12px;
+  padding: var(--space-1) var(--space-3);
   font: inherit;
   cursor: pointer;
 }
 
 .toggle[aria-pressed='true'] {
+  border-color: var(--text);
   background: var(--control);
   color: var(--text);
+}
+
+/* (As a button: only where there is a pointer to hover with.) */
+@media (hover: hover) {
+  .toggle:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  .toggle[aria-pressed='true']:hover:not(:disabled) {
+    background: var(--control-hover);
+  }
 }
 
 .toggle:disabled {

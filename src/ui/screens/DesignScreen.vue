@@ -130,10 +130,12 @@ const finger = ref('');
       </div>
 
       <SectionHeading>Chips</SectionHeading>
-      <p class="about">On or off: what is switched while playing, or one of a few values.</p>
+      <p class="about">On or off: what is switched while playing, or one of a few values. On, it is ringed in ink. Under the pointer, an off one's words are in ink, an on one's fill lighter (as the two last ones stand).</p>
       <div class="row start">
         <ToggleChip v-model:pressed="chipOn">On</ToggleChip>
         <ToggleChip v-model:pressed="chipOff">Off</ToggleChip>
+        <ToggleChip class="as-hovered" :pressed="false">Off, hovered</ToggleChip>
+        <ToggleChip class="as-hovered" :pressed="true">On, hovered</ToggleChip>
         <ToggleChip v-model:pressed="chipOn" icon="loop">With an icon</ToggleChip>
         <ToggleChip :pressed="false" disabled>Disabled</ToggleChip>
       </div>
@@ -291,6 +293,15 @@ const finger = ref('');
 </template>
 
 <style scoped>
+/* (A chip as under the pointer, held so to be seen: what ui/styles.css does on hover.) */
+.as-hovered {
+  color: var(--text);
+}
+
+.as-hovered[aria-pressed='true'] {
+  background: var(--control-hover);
+}
+
 .page {
   display: flex;
   flex-direction: column;
@@ -420,7 +431,7 @@ const finger = ref('');
   position: absolute;
   top: var(--space-2);
   right: var(--space-2);
-  padding: 2px var(--space-2);
+  padding: var(--space-0) var(--space-2);
 }
 
 .panel-words {

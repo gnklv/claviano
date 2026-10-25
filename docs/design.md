@@ -63,6 +63,15 @@ component names the token; it never writes a colour.
 - **Spacing from a scale**, `--space-0` (2px) to `--space-6` (32px). Between what belongs together
   as one line (a title and its note, a letter and its key's edge), 0; between the parts of one thing,
   1 or 2; between things, 3 or 4; between sections, 5 or 6.
+- **The same places, the same steps:** a control's words clear of its sides by 3 (its height is
+  `--control-height`, not its padding), an icon beside its words by 2; a bar's edge by 2 above and
+  below and 4 at the sides; the groups of the piece's header by 5. The transport is one row of
+  controls: 2 between all of them, groups or not, every one showing its edge (none quiet), every
+  button a pill as the chips are. No space is written in
+  pixels: a test holds this (`tests/uiSpacing.test.ts`), allowing a number only beside a token in a
+  `calc()` (an edge's pixel taken off).
+- **A pop-up stands inside the screen**, clear of its sides by 4: moved along its button's row as far
+  as it must.
 - **Three radii**: `--radius-s` for what is small and inside something (a field, a row of a menu),
   `--radius-m` for what stands by itself (a button, a tile, a panel), `--radius-pill` for a chip and
   a slider's track.
@@ -113,7 +122,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | Component | What it is | When |
 |---|---|---|
 | `AppButton` | an icon, words, or both | something is done. `primary`: the screen's one main action. `quiet`: it stands over something else |
-| `ToggleChip` | on or off | what is switched while playing; one of a few values |
+| `ToggleChip` | on or off; on, ringed in ink | what is switched while playing; one of a few values. Not what begins something: that is a button |
 | `SegmentedControl` | one of a few, all in sight; words, or icons that are named | a view (drawn), a theme (drawn), a time signature |
 | `AppSlider` | a level | volume, tempo. (The place in the piece is the same slider by hand: it is set at every frame, past Vue, and sets its own `--fill`) |
 | `TextField` | a name, a number | |

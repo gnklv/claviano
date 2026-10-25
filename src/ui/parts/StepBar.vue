@@ -124,6 +124,8 @@ function choose(action: string): void {
 .said {
   grid-area: said;
   min-width: 0;
+  /* (Quiet: its words stand at the bar's edge, as the transport's play button under them; the face, when it comes, reaches past.) */
+  margin-inline-start: calc(-1 * var(--space-3));
   justify-content: flex-start;
   /* (Read, not passed over: the step is what one is playing. Quiet only in that it has no face.) */
   color: var(--text);
@@ -162,7 +164,6 @@ function choose(action: string): void {
 .how {
   grid-area: how;
   margin: 0;
-  padding-inline: var(--space-3);
   overflow: hidden;
   color: var(--muted);
   font-size: var(--text-s);

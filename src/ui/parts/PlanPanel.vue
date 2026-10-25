@@ -89,6 +89,7 @@ defineExpose({ showWhereOneIs });
 
 .group {
   display: grid;
+  gap: var(--space-1);
 }
 
 .bars {

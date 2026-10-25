@@ -105,7 +105,7 @@ function togglePlay(): void {
     (What is touched seldom is in the settings panel.) How the groups are arranged depends on the
     width; see the grid areas below.
   -->
-  <footer class="transport">
+  <footer class="transport" :class="{ listening: !learning }">
     <div class="playback">
       <AppButton
         variant="primary"
@@ -131,7 +131,7 @@ function togglePlay(): void {
         @change="onSeekEnd"
       />
       </div>
-      <PanelControl class="readout" variant="quiet" icon="bookmark" :title="t('bookmarks')" :label="`${barLabel} · ${t('bookmarks')}`" :disabled="!loaded">
+      <PanelControl class="readout" icon="bookmark" :title="t('bookmarks')" :label="`${barLabel} · ${t('bookmarks')}`" :disabled="!loaded">
         {{ barLabel }}
         <template #panel="{ close }"><BookmarksPanel :bar="currentBarNumber" @done="close" /></template>
       </PanelControl>
@@ -173,7 +173,12 @@ function togglePlay(): void {
   grid-template-areas:
     'playback playback'
     'tempo loop';
-  gap: var(--space-2) var(--space-5);
+  /*
+   * One room between everything in the bar, groups or not: in one row it reads as one row of
+   * controls, and a wider room between groups read as carelessness. (So nothing in it is quiet: a
+   * face that comes only under the pointer leaves room around its words that is not seen.)
+   */
+  gap: var(--space-2);
   /* Keep clear of the home indicator and, in landscape, the notch. */
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
   background: var(--panel);
@@ -200,7 +205,6 @@ function togglePlay(): void {
   .transport {
     grid-template-columns: minmax(min-content, 1fr) auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
-    column-gap: var(--space-4);
   }
 }
 
@@ -209,8 +213,31 @@ function togglePlay(): void {
   .transport {
     grid-template-columns: 1fr auto auto;
     grid-template-areas: 'playback tempo loop';
-    column-gap: var(--space-3);
     padding-block: var(--space-1) max(var(--space-1), env(safe-area-inset-bottom));
+  }
+}
+
+/*
+ * Listened to, there is no loop: its column goes, and the room on its two sides with it, or the
+ * tempo would stand twice as far from what follows it. (On a phone its place holds "⋯": it stays.)
+ */
+@media (min-width: 600px) and (min-height: 501px) {
+  .transport.listening {
+    grid-template-columns: minmax(min-content, 1fr) auto;
+    grid-template-areas:
+      'playback tempo'
+      'practice practice';
+  }
+
+  .transport.listening .loop {
+    display: none;
+  }
+}
+
+@media (min-width: 1440px) and (min-height: 501px) {
+  .transport.listening {
+    grid-template-columns: minmax(min-content, 1fr) auto auto;
+    grid-template-areas: 'playback tempo practice';
   }
 }
 
@@ -276,6 +303,16 @@ function togglePlay(): void {
   flex: none;
 }
 
+/* Every button in the bar a pill, as its chips are: one shape in one row, read as one height. */
+.transport :deep(.button) {
+  border-radius: var(--radius-pill);
+}
+
+/* (The loop's word is never cut short: the place in the piece gives way, or the tempo says less.) */
+.loop .toggle {
+  flex: none;
+}
+
 .number {
   width: 3.5em;
 }
@@ -284,10 +321,6 @@ function togglePlay(): void {
 @media (max-width: 599px) {
   .number {
     width: 3em;
-  }
-
-  .transport {
-    column-gap: var(--space-2);
   }
 }
 </style>

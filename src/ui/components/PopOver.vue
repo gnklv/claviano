@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onUnmounted, useTemplateRef, watch } from 'vue';
+import { nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { nudgeWithinScreen } from '../browser/withinScreen';
 
 /*
  * A small panel that opens beside the button that asks for it, and is open until Esc, a press
@@ -8,8 +9,12 @@ import { onUnmounted, useTemplateRef, watch } from 'vue';
  *
  * The default slot is the button; `panel` is what opens. Whether it is open is the parent's to say
  * (v-model:open): the button is the parent's too, and presses it as it likes.
+ *
+ * It stands where its place says, moved along the button's row as far as it must to stand inside
+ * the screen, clear of its sides by the room a bar keeps from them (a button near an edge, a narrow
+ * window).
  */
-defineProps<{
+const props = defineProps<{
   /**
    * Where the panel stands: over the button, in the middle of it; under it, against its right edge;
    * or over it, against its right edge (a button at the end of a bar along the bottom).
@@ -39,6 +44,22 @@ function listen(on: boolean): void {
 }
 
 watch(open, listen, { immediate: true });
+
+const panel = useTemplateRef<HTMLElement>('panel');
+/** How far the panel is moved from its place, to be inside the screen. */
+const nudge = ref(0);
+watch(open, async (on) => {
+  nudge.value = 0;
+  if (!on) return;
+  await nextTick();
+  const button = root.value?.getBoundingClientRect();
+  const width = panel.value?.offsetWidth;
+  if (!button || !width) return;
+  // (Where it stands before it is moved: over the button's middle, or against its right edge.)
+  const left = props.place === 'above' ? button.left + button.width / 2 - width / 2 : button.right - width;
+  const edge = Number.parseFloat(getComputedStyle(root.value!).getPropertyValue('--space-4')) || 0;
+  nudge.value = nudgeWithinScreen(left, width, edge);
+});
 onUnmounted(() => listen(false));
 </script>
 
@@ -46,7 +67,7 @@ onUnmounted(() => listen(false));
   <div ref="root" class="pop-over">
     <slot />
     <Transition name="pop">
-      <div v-if="open" class="panel" :class="place" :role="role ?? 'group'" :aria-label="label">
+      <div v-if="open" ref="panel" class="panel" :class="place" :style="{ '--nudge': `${nudge}px` }" :role="role ?? 'group'" :aria-label="label">
         <slot name="panel" />
       </div>
     </Transition>
@@ -72,19 +93,21 @@ onUnmounted(() => listen(false));
 .above {
   bottom: calc(100% + var(--space-3));
   left: 50%;
-  translate: -50% 0;
+  translate: calc(-50% + var(--nudge)) 0;
   transform-origin: bottom center;
 }
 
 .below {
   top: calc(100% + var(--space-1));
   right: 0;
+  translate: var(--nudge) 0;
   transform-origin: top right;
 }
 
 .above-end {
   bottom: calc(100% + var(--space-1));
   right: 0;
+  translate: var(--nudge) 0;
   transform-origin: bottom right;
 }
 

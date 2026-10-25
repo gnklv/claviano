@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppButton from '../components/AppButton.vue';
 import ToggleChip from '../components/ToggleChip.vue';
 import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
@@ -55,7 +56,8 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
       {{ t(label) }}
     </ToggleChip>
 
-    <ToggleChip v-if="fingers" class="fingers" icon="pencil" :pressed="false" @update:pressed="emit('setFingers')">{{ t('fingers') }}</ToggleChip>
+    <!-- (Not a switch: it begins setting them, in the bar of fingers. Not quiet: a bar's controls all show their edges.) -->
+    <AppButton v-if="fingers" class="fingers" icon="pencil" @click="emit('setFingers')">{{ t('fingers') }}</AppButton>
 
     <ToggleChip
       class="metronome"
@@ -87,7 +89,8 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
  * In a sheet: rows filled from edge to edge, the hands sharing the first. A chip is never narrower
  * than its words: where three do not fit a row (a narrow sheet, a long language), one goes to the next.
  */
-.tiled .toggle {
+.tiled .toggle,
+.tiled .fingers {
   flex: 1 1 auto;
   justify-content: center;
 }
