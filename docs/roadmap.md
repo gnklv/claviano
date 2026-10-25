@@ -211,7 +211,8 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         own tempo. The piece in parts, by its form (repeats, voltas, changes of key and time) and
         within that by phrases of four to eight bars, taken in order; for each part the steps a
         teacher sets: each hand alone and slow, both hands slow, up to tempo with the trainer,
-        then joined to the parts before it. Each step sets what it needs (the loop on its bars, a
+        then joined to the parts before it; what is written out again note for note (a part, a
+        hand's line, a join) is learnt once. Each step sets what it needs (the loop on its bars, a
         hand muted, its tempo, the trainer). A step is done after three clean passes in a row:
         after each pass one marks it clean or not (a slip starts the count again), or closes the
         step by hand; the microphone will mark the passes itself (step 16). Kept with the piece.

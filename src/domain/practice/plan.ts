@@ -1,12 +1,14 @@
 import type { Hand } from '../note';
 import type { Score } from '../score';
 import { partsOf, type Part } from './parts';
+import { musicOf } from './repeats';
 
 /*
  * A plan for learning a piece: the steps a teacher sets, part by part, each with its own tempo.
  * Each hand alone and slow, both hands slow, then up to tempo, and the part joined to the one
- * before it; the whole piece at the end. The hard places first, hands apart, then together (Chang,
- * Fundamentals of Piano Practice); a step is done when it is played right several times running,
+ * before it; the whole piece at the end. Bars written out again note for note are learnt once
+ * (see repeats.ts). The hard places first, hands apart, then together (Chang, Fundamentals of
+ * Piano Practice); a step is done when it is played right several times running,
  * not when it has been played long (Duke, Simmons and Cash, 2009: see PracticePlan).
  */
 
@@ -40,16 +42,35 @@ export const AT_TEMPO = 1;
 export function planOf(score: Score): PlanStep[] {
   const parts = partsOf(score);
   const steps: PlanStep[] = [];
+  // The music of the parts and the hands' lines learnt, and of the joins played: what is written out again is not learnt again.
+  const learnt = new Set<string>();
+  const played = new Set<string>();
   parts.forEach((part, index) => {
     const hands = handsIn(score, part);
     if (hands.length === 0) return;
-    const both: StepHands = hands.length === 2 ? 'both' : hands[0]!;
-    // A hand alone only where the other plays too: otherwise it is the part itself.
-    if (hands.length === 2) for (const hand of hands) steps.push({ kind: 'alone', ...part, hands: hand, tempo: SLOW });
-    steps.push({ kind: hands.length === 2 ? 'together' : 'alone', ...part, hands: both, tempo: SLOW });
-    steps.push({ kind: 'up', ...part, hands: both, tempo: SLOW, aim: AT_TEMPO });
+    const music = musicOf(score, part);
+    if (!learnt.has(music)) {
+      learnt.add(music);
+      const both: StepHands = hands.length === 2 ? 'both' : hands[0]!;
+      // A hand alone only where the other plays too (otherwise it is the part itself), and once for a line.
+      if (hands.length === 2) {
+        for (const hand of hands) {
+          const line = `${hand} ${musicOf(score, part, hand)}`;
+          if (learnt.has(line)) continue;
+          learnt.add(line);
+          steps.push({ kind: 'alone', ...part, hands: hand, tempo: SLOW });
+        }
+      }
+      steps.push({ kind: hands.length === 2 ? 'together' : 'alone', ...part, hands: both, tempo: SLOW });
+      steps.push({ kind: 'up', ...part, hands: both, tempo: SLOW, aim: AT_TEMPO });
+    }
     const before = parts[index - 1];
-    if (before) steps.push({ kind: 'join', from: before.from, to: part.to, hands: handsOf(score, { from: before.from, to: part.to }), tempo: AT_TEMPO });
+    if (!before) return;
+    const join = { from: before.from, to: part.to };
+    const way = musicOf(score, join);
+    if (played.has(way)) return;
+    played.add(way);
+    steps.push({ kind: 'join', ...join, hands: handsOf(score, join), tempo: AT_TEMPO });
   });
   const last = score.notation.bars.length - 1;
   const joined = steps.at(-1);

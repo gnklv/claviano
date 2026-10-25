@@ -8,7 +8,9 @@ import { PracticePlan } from '../src/application/use-cases/PracticePlan';
 import { TempoTrainer } from '../src/application/use-cases/TempoTrainer';
 import { partsOf } from '../src/domain/practice/parts';
 import { AT_TEMPO, planOf, SLOW } from '../src/domain/practice/plan';
-import { writtenBarNumber } from '../src/domain/score';
+import type { Hand, Note } from '../src/domain/note';
+import { transcribed } from '../src/domain/notation/transcription';
+import { createScore, writtenBarNumber } from '../src/domain/score';
 import { FakeAudio, FakeTicker } from './fakes';
 import { ode, showcase } from './staffPieces';
 
@@ -46,6 +48,41 @@ describe('the steps for learning it', () => {
   it('ends with the whole piece where the last join is not it', () => {
     const steps = planOf(showcase());
     expect(steps.at(-1)).toMatchObject({ kind: 'whole', from: 0, to: 32, tempo: AT_TEMPO });
+  });
+});
+
+describe('what is written out again', () => {
+  /** A piece of whole notes in 4/4 at 60, a bar a note: its tune's pitches and its bass's, bar by bar. */
+  const written = (tune: number[], bass: number[]) => {
+    const line = (pitches: number[], hand: Hand): Note[] => pitches.map((pitch, bar) => ({ pitch, start: bar * 4, duration: 4, beat: bar * 4, beats: 4, velocity: 0.6, hand }));
+    const barBeats = tune.map((_, bar) => bar * 4);
+    return transcribed(createScore('Again', [...line(tune, 'right'), ...line(bass, 'left')], barBeats, { barBeats, timeSignatures: [{ beat: 0, numerator: 4, denominator: 4 }], keySignatures: [{ beat: 0, fifths: 0, minor: false }] }));
+  };
+  const kinds = (score: ReturnType<typeof written>) => planOf(score).map((step) => `${step.kind} ${step.from + 1}–${step.to + 1}${step.kind === 'alone' ? ` ${step.hands}` : ''}`);
+
+  it('learns a part written out again once, and plays the way into it', () => {
+    const tune = [64, 65, 67, 65], bass = [48, 43, 48, 43];
+    expect(kinds(written([...tune, ...tune, 60, 62, 64, 60], [...bass, ...bass, ...bass]))).toEqual([
+      'alone 1–4 right', 'alone 1–4 left', 'together 1–4', 'up 1–4',
+      // (Bars 5–8 are bars 1–4 again: only the way from the one into the other.)
+      'join 1–8',
+      'alone 9–12 right', 'together 9–12', 'up 9–12', 'join 5–12',
+      'whole 1–12',
+    ]);
+  });
+
+  it('learns a hand alone once for a line it plays again under another tune', () => {
+    expect(kinds(written([64, 65, 67, 65, 60, 62, 64, 60], [48, 43, 48, 43, 48, 43, 48, 43]))).toEqual([
+      'alone 1–4 right', 'alone 1–4 left', 'together 1–4', 'up 1–4',
+      'alone 5–8 right', 'together 5–8', 'up 5–8', 'join 1–8',
+    ]);
+  });
+
+  it('plays a join that comes again once', () => {
+    const a = [64, 65, 67, 65], b = [60, 62, 64, 60], bass = [48, 43, 48, 43];
+    const steps = kinds(written([...a, ...b, ...a, ...b], [...bass, ...bass, ...bass, ...bass]));
+    expect(steps.filter((step) => step.startsWith('join'))).toEqual(['join 1–8', 'join 5–12']);
+    expect(steps.at(-1)).toBe('whole 1–16');
   });
 });
 
