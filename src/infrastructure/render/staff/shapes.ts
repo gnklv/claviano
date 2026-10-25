@@ -129,3 +129,52 @@ export const inked = (space: number, codepoint: string, x: number, y: number, an
 
 /** A line (a bracket, a hairpin) in the ink colour. */
 export const inkedPolyline = (points: readonly number[], width: number, dash?: readonly [number, number]): PolylineShape => ({ kind: 'polyline', points, stroke: COLORS.note, width, dash });
+
+/**
+ * Where a shape, and all within it, lies along the tape (its leftmost and rightmost x), from what
+ * it is drawn with: nothing is measured. Null where that cannot be read (a path of other commands
+ * than moves, lines and curves): such a shape is taken to be everywhere.
+ */
+export function extentOf(shape: Shape): [number, number] | null {
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  const add = (xs: readonly number[]) => {
+    for (const x of xs) {
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+    }
+  };
+  const read = (each: Shape): boolean => {
+    switch (each.kind) {
+      case 'group':
+        return each.children.every(read);
+      case 'text': {
+        // A sign is no wider than its font is high, letter by letter: room enough, without measuring it.
+        const wide = each.size * each.text.length;
+        const from = each.anchor === 'middle' ? each.x - wide / 2 : each.anchor === 'end' ? each.x - wide : each.x;
+        add([from, from + wide]);
+        return true;
+      }
+      case 'line':
+        add([each.x1, each.x2]);
+        return true;
+      case 'rect':
+        add([each.x, each.x + each.width]);
+        return true;
+      case 'ellipse':
+        add([each.cx - each.rx, each.cx + each.rx]);
+        return true;
+      case 'polygon':
+      case 'polyline':
+        add(each.points.filter((_, i) => i % 2 === 0));
+        return true;
+      case 'path': {
+        // Paths of points in pairs only (moves, lines and curves, drawn in place): others are not read.
+        if (!/^[MLCQZ\d\s.,e-]*$/.test(each.d)) return false;
+        add((each.d.match(/-?[\d.]+(?:e-?\d+)?/g) ?? []).map(Number).filter((_, i) => i % 2 === 0));
+        return true;
+      }
+    }
+  };
+  return read(shape) && left <= right ? [left, right] : null;
+}

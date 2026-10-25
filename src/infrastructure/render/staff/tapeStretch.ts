@@ -13,7 +13,7 @@ const RESIZING_MS = 120;
 
 /** What of the staff is stretched: the left column, the tape, the cursor. */
 export interface StretchedParts {
-  readonly background: SVGSVGElement;
+  readonly background: HTMLElement | SVGElement;
   readonly tape: HTMLElement;
   readonly cursor: HTMLElement;
 }
