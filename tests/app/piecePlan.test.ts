@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
-import { barLoop, button, learn, plan, playback, root, settled, useApp } from './harness';
+import { barLoop, button, learn, plan, playback, root, settled, turnIntoPhone, useApp } from './harness';
 
 /* The plan on the piece's screen: the step being played over the transport, and the list of every step. */
 
@@ -103,4 +103,32 @@ describe('the plan for learning a piece', () => {
     expect(button(/^Start the step$/)).toBeUndefined();
   });
 
+
+  describe('on a phone held upright', () => {
+    beforeEach(turnIntoPhone);
+
+    it('has no bar to begin from: the plan is in the practice sheet, and a step begun there closes it', async () => {
+      expect(bar()).toBeNull();
+      button(/^Practice$/).click();
+      await settled();
+      const sheet = [...root.querySelectorAll('dialog')].find((dialog) => dialog.querySelector('.plan-start'))!;
+      expect(sheet.querySelector('.plan-start .said')?.textContent?.trim()).toBe(`Plan: ${plan.steps.length} steps`);
+      [...sheet.querySelectorAll<HTMLElement>('.plan-start button')].find((each) => each.textContent?.trim() === 'Start the step')!.click();
+      await settled();
+      expect(plan.current).toBe(0);
+      expect(sheet.open).toBe(false);
+      expect(bar()).not.toBeNull();
+    });
+
+    it('says what to do in the place of the step’s name, until a pass is marked', async () => {
+      plan.start(0);
+      await settled();
+      expect(bar()!.querySelector('.how.in-place')?.textContent).toBe('Play it, then mark it: 3 clean in a row.');
+      expect(bar()!.querySelector('.said')).toBeNull();
+      button(/^Clean$/).click();
+      await settled();
+      expect(bar()!.querySelector('.how')).toBeNull();
+      expect(said()).toBe('Bars 1–4 · Right · 60%');
+    });
+  });
 });

@@ -37,6 +37,7 @@ defineExpose({
   background: var(--control);
   color: var(--text);
   font: inherit;
+  text-align: center;
 }
 
 .text-field:focus-visible {

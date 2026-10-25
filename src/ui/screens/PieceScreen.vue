@@ -107,7 +107,7 @@ useResize(stage, letGoWhenBack);
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
-        <ScreenHeader class="bar" back opened :alert="!!error" @back="emit('back')">
+        <ScreenHeader back opened :alert="!!error" @back="emit('back')">
           <template #title>{{ error ?? title }}</template>
           <!-- The way of the screen, then the view of its stage: two choices, two groups, the view drawn.
                The view is chosen often enough to stand here; on a phone, the settings panel has it. -->
@@ -201,26 +201,8 @@ useResize(stage, letGoWhenBack);
   inset: 0;
 }
 
-/* A phone on its side: a thin header. */
-@media (max-height: 500px) {
-  .bar {
-    padding-block: max(var(--space-1), env(safe-area-inset-top)) var(--space-1);
-  }
-}
-
 .view-switch {
   flex: none;
-}
-
-/*
- * The way, the view and the settings are three choices of their own: the room between groups
- * between each (the view is not a third way of the screen), and one room, not two. (A phone has
- * only the way there, and its gaps are the piece's name's.)
- */
-@media (min-width: 600px) {
-  .bar {
-    column-gap: var(--space-5);
-  }
 }
 
 /* A phone: no room for the view beside the piece's name; the settings panel has it then (see parts/SettingsPanel.vue). */

@@ -10,11 +10,13 @@ import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useFrameValue } from '../browser/useFrameValue';
 import { useBarLoop } from '../app/useBarLoop';
 import { useBookmarks } from '../app/useBookmarks';
-import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { NARROW_SCREEN, SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePieceWay } from '../app/usePieceWay';
+import { usePracticePlan } from '../app/usePracticePlan';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
+import PlanStart from './PlanStart.vue';
 import PracticeToggles from './PracticeToggles.vue';
 import SheetDialog from '../components/SheetDialog.vue';
 import TempoControl from './TempoControl.vue';
@@ -24,7 +26,7 @@ defineProps<{ fingers?: boolean }>();
 const emit = defineEmits<{ setFingers: [] }>();
 
 const SEEK_STEPS = 1000;
-const { playback, barLoop, bookmarks, way } = useDeps();
+const { playback, barLoop, bookmarks, way, plan } = useDeps();
 const usedWay = usePieceWay(way);
 /** The loop is a tool of learning: listened to, the piece is played whole. */
 const learning = computed(() => usedWay.value === 'learn');
@@ -34,6 +36,13 @@ const loaded = computed(() => state.value.score !== null);
 /** A phone: no room in the bar for what is set once a session; it goes into a sheet behind "⋯". */
 const phone = useMediaQuery(SMALL_SCREEN);
 const practiceSheet = useTemplateRef('practiceSheet');
+/**
+ * A phone held upright: the plan before a step stands in the practice sheet, over the rest (there is
+ * no room for a bar over the transport to begin from; see StepBar). A step begun closes the sheet.
+ */
+const narrow = useMediaQuery(NARROW_SCREEN);
+const planned = usePracticePlan(plan);
+const planInSheet = computed(() => narrow.value && learning.value && planned.value.steps.length > 0 && planned.value.current === null);
 /** Bar numbers as printed: a pickup is bar 0, so the first and last numbers depend on the score. */
 const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
 const lastBar = computed(() => (state.value.score ? barNumber(state.value.score, state.value.score.bars.length - 1) : 1));
@@ -105,7 +114,7 @@ function togglePlay(): void {
     (What is touched seldom is in the settings panel.) How the groups are arranged depends on the
     width; see the grid areas below.
   -->
-  <footer class="transport" :class="{ listening: !learning }">
+  <footer class="transport bottom-bar" :class="{ listening: !learning }">
     <div class="playback">
       <AppButton
         variant="primary"
@@ -149,6 +158,7 @@ function togglePlay(): void {
       <template v-if="phone">
         <AppButton class="more" icon="more" :label="t('practice')" @click="practiceSheet?.open()" />
         <SheetDialog ref="practiceSheet" :title="t('practice')">
+          <PlanStart v-if="planInSheet" @began="practiceSheet?.close()" />
           <PracticeToggles
             tiled
             :fingers="fingers"
@@ -303,10 +313,6 @@ function togglePlay(): void {
   flex: none;
 }
 
-/* Every button in the bar a pill, as its chips are: one shape in one row, read as one height. */
-.transport :deep(.button) {
-  border-radius: var(--radius-pill);
-}
 
 /* (The loop's word is never cut short: the place in the piece gives way, or the tempo says less.) */
 .loop .toggle {

@@ -375,6 +375,15 @@ input,
 }
 
 /*
+ * A bar of controls along the bottom of a screen (the transport, the step over it): its buttons are
+ * pills, as its chips are, so that one row is of one shape and reads as of one height. (Not what
+ * stands in a sheet it opens: that is a page of its own.)
+ */
+.bottom-bar .button:not(dialog .button) {
+  border-radius: var(--radius-pill);
+}
+
+/*
  * A pressable chip: on when aria-pressed is true, faded when off. On, it is ringed in ink: its fill
  * alone (--control on --panel) differs from off by too little to be told at a glance, in either
  * theme; a fill of ink was tried, and in the transport it argued with the play button.

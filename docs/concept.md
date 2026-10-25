@@ -81,6 +81,12 @@ the place, the bar and the bookmarks, the tempo, the metronome), the piece whole
 fingers, and the plan of steps to come). Going to listen keeps what learning had set, and coming
 back to learn sets it again.
 
+The plan stands over the transport: the step being played (its passes, "A slip" and "Clean" after
+each), or, before one, where the plan is and a button to begin. On a phone held upright there is no
+room for a bar to begin from: before a step the plan is in the practice sheet behind "⋯", over the
+hands and the metronome, and a step begun there closes the sheet; the bar stands only while a step
+is played, in two rows (what to do, or the step's name; then the two words).
+
 States: standing · playing · counting in · a loop is on · the tape dragged away by hand · waiting
 for a note (once there is a microphone or a MIDI keyboard) · the piano's sound still loading · no
 network.
