@@ -160,9 +160,8 @@ src/
                        the notation as the domain engraves it; staffLayout says how wide bars
                        are on the tape, the staff/ folder turns bars and beats into pixels and
                        shapes (shapes.ts), beams.ts and curves.ts into beam lines and slurs;
-                       sounding notes light up. It is drawn by a surface: SvgStaff, or
-                       CanvasStaff in pictures drawn ahead (tapeTiles.ts); "?staff=canvas" in
-                       the address chooses the canvas while the two are compared. CanvasPlayedTiles — the keys played in free play, as tiles.
+                       sounding notes light up. CanvasStaff draws it, in pictures drawn ahead
+                       of the view (tapeTiles.ts) and laid at every frame. CanvasPlayedTiles — the keys played in free play, as tiles.
   ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
                      components/ (the building blocks, all shown on #/design), parts/ (the
                      parts of screens, which reach the app). app/ mirrors the use cases
@@ -174,7 +173,7 @@ src/
                        (checked by TypeScript). Plurals via Intl.PluralRules. Note labels:
                        C4 in English, До1 in Russian (Russian octave numbering).
     theme/             Auto / light / dark. All colors are CSS variables in styles.css;
-                       the SVG staff uses them directly, the canvas reads them on switch.
+                       the canvases (the staff, the falling notes) read them anew on a switch.
   demo/              Built-in "Ode to Joy" for trying the player without a file.
   main.ts            Composition root.
 tests/               By behaviour: use cases with the ports' stand-ins (fakes.ts), parsers with

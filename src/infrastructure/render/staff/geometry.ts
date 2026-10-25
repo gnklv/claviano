@@ -306,3 +306,6 @@ function signatureChangeWidth(change: SignatureChange): number {
 function tapeBarAt(starts: readonly number[], x: number): number {
   return Math.max(0, lastAtOrBefore(starts, x + SAME_MOMENT, (start) => start));
 }
+
+/** To a tenth of a pixel: what moves less is the noise of arithmetic, not a move to show. */
+export const tenth = (px: number): number => Math.round(px * 10) / 10;

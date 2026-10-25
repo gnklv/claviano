@@ -1,5 +1,4 @@
-import type { StaffGeometry } from './geometry';
-import { tenth } from './svg';
+import { tenth, type StaffGeometry } from './geometry';
 
 /*
  * The staff stretched through sizes on the move (a window dragged by its edge, a browser's bars
@@ -13,7 +12,7 @@ const RESIZING_MS = 120;
 
 /** What of the staff is stretched: the left column, the tape, the cursor. */
 export interface StretchedParts {
-  readonly background: HTMLElement | SVGElement;
+  readonly background: HTMLElement;
   readonly tape: HTMLElement;
   readonly cursor: HTMLElement;
 }

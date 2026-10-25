@@ -6,18 +6,22 @@ import { COLORS, extentOf, type GroupShape, type Paint, type Shape } from './sta
 import type { Lit } from './staff/sounding';
 import type { TapeDrawing } from './staff/tapeDrawing';
 import { TapeTiles, type TapePiece } from './staff/tapeTiles';
-import { FADE, TapeStaff, type StaffSurface } from './TapeStaff';
+import { TapeStaff, type StaffSurface } from './TapeStaff';
 
 /*
  * The staff drawn on canvases (see TapeStaff for what it shows and does). The tape is drawn in
  * pictures ahead of the view (TapeTiles), and a frame only lays them, with what is behind the music
- * and what sounds over it: nothing in a frame draws the whole piece, or asks the browser to.
+ * and what sounds over it: nothing in a frame draws the whole piece, or asks the browser to. (It was
+ * one SVG once, moved as a layer: Safari painted the layer anew every few bars and at every lit
+ * note, and the tape stumbled on an iPhone.)
  *
  * A canvas does not follow the theme's colours by itself, nor draws in a font before it has come:
  * the colours are read from the page, anew when the theme changes, and what is drawn is drawn anew
  * once the fonts are in.
  */
 
+/** Share of the tape's width over which each of its ends fades out. */
+const FADE = 0.12;
 /** The fonts the staff draws in: asked for at once, for the canvas cannot ask for them itself. */
 const FONTS = [`16px ${MUSIC_FONT}`, `16px ${TEXT_FONT}`, `italic 16px ${TEXT_FONT}`, `bold 16px ${TEXT_FONT}`, `italic bold 16px ${TEXT_FONT}`, `16px ${LABEL_FONT}`];
 
@@ -25,7 +29,6 @@ class CanvasSurface implements StaffSurface {
   readonly background = document.createElement('canvas');
   private readonly tapeCanvas = document.createElement('canvas');
   readonly tapeParts: readonly Element[] = [this.tapeCanvas];
-  readonly fadesItself = true;
 
   private readonly tiles = new TapeTiles(
     (ctx, piece) => paintShape(ctx, piece.shape, this.colours, this.colours(piece.color)),
@@ -150,7 +153,7 @@ class CanvasSurface implements StaffSurface {
     for (const shape of this.loop) paintShape(ctx, shape, this.colours, ink);
     for (const shape of this.overlay) paintShape(ctx, shape, this.colours, ink);
     this.tiles.lay(ctx, -offset, this.inSight);
-    // Lit: what the group holds, in its hand's colour over its own ink (as a lit copy is laid over an SVG one).
+    // Lit: what the group holds, drawn again in its hand's colour over its own ink.
     const lightUp = (group: GroupShape | undefined, hand: Hand | undefined) => {
       if (!group || !hand) return;
       const colour = this.colours(COLORS.hand[hand]);
@@ -161,7 +164,7 @@ class CanvasSurface implements StaffSurface {
     this.fade(ctx);
   }
 
-  /** The tape fades out at both its ends, as the SVG one is masked. */
+  /** The tape fades out at both its ends: the music comes into sight, and goes out of it, gently. */
   private fade(ctx: CanvasRenderingContext2D): void {
     const width = this.tapeCanvas.width;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -2,16 +2,16 @@ import type { Hand } from '../../../domain/note';
 import { MUSIC_FONT } from './glyphs';
 
 /*
- * The staff drawn as data: every part of it is a list of these shapes, which a renderer then puts
- * on its surface (SvgStaff makes SVG of them; a canvas draws them as they are). Seven kinds, all a
- * canvas draws directly, and a group, whose colour what is in it may take: a chord is a group, so
- * that it is lit as a whole.
+ * The staff drawn as data: every part of it is a list of these shapes, which a surface then draws
+ * (the canvas, see paint.ts; in the tests, they are read as they are). Seven kinds, all a canvas
+ * draws directly, and a group, whose colour what is in it may take: a chord is a group, so that it
+ * is lit as a whole.
  */
 
 /** A colour as CSS says it: one of the theme's (see COLORS), or `currentColor`, its group's. */
 export type Paint = string;
 
-/** The theme's colours, the CSS variables of ui/styles.css: SVG takes them as they are, a canvas reads what they stand for. */
+/** The theme's colours, the CSS variables of ui/styles.css: the canvas reads what they stand for, anew when the theme changes. */
 export const COLORS = {
   background: 'var(--surface)',
   staffLine: 'var(--staff-line)',
@@ -90,7 +90,7 @@ export interface EllipseShape {
   readonly width: number;
 }
 
-/** A path as SVG writes it (a canvas reads the same through Path2D): filled, stroked, or both. */
+/** A path as SVG writes it, which a canvas reads through Path2D: filled, stroked, or both. */
 export interface PathShape {
   readonly kind: 'path';
   readonly d: string;

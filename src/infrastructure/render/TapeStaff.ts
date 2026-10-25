@@ -8,13 +8,12 @@ import { SAME_MOMENT, sameMoment } from '../../domain/moment';
 import type { NoteOnPage } from '../../domain/fingering/own';
 import { barPosition, tapeBars } from './staffLayout';
 import { columnsOf, graceRoom } from './staff/columns';
-import { StaffGeometry } from './staff/geometry';
+import { StaffGeometry, tenth } from './staff/geometry';
 import { drawGutter, type GutterContent } from './staff/gutter';
 import { StaffInk } from './staff/ink';
 import { barsShade, loopShade, noteShade } from './staff/shades';
 import { COLORS, type Shape } from './staff/shapes';
 import { Sounding, type Lit } from './staff/sounding';
-import { tenth } from './staff/svg';
 import { drawTape, type TapeDrawing } from './staff/tapeDrawing';
 import { TapeMotion } from './staff/tapeMotion';
 import { TapeStretch } from './staff/tapeStretch';
@@ -26,17 +25,16 @@ import { TapeStretch } from './staff/tapeStretch';
  * slides left, and the cursor on top. The whole tape is drawn once per score, as shapes (see
  * staff/tapeDrawing.ts); during playback it is only moved. This holds what the staff knows and does
  * whatever it is drawn on: the piece laid out, where the tape stands, what sounds, where a pointer
- * is on the page. A surface (an SVG one, a canvas one) shows what this hands it.
+ * is on the page. A surface shows what this hands it: the canvas one (CanvasStaff), or one in a test
+ * that keeps what it is shown.
  */
 
 /** What shows the staff: the left column and the tape, as this hands them to it. */
 export interface StaffSurface {
   /** Behind the tape, all the view across: the staff lines, and the left column. */
-  readonly background: HTMLElement | SVGElement;
+  readonly background: HTMLElement;
   /** What it puts in the tape's box. */
   readonly tapeParts: readonly Element[];
-  /** Whether it fades the tape at its ends itself (otherwise the tape's box is faded). */
-  readonly fadesItself?: boolean;
   /** The view's size, as the staff is drawn for it now (after a resize, before what is drawn anew). */
   sized(width: number, height: number, tapeLeft: number): void;
   /** The staff lines and the left column, anew. */
@@ -55,10 +53,6 @@ export interface StaffSurface {
   dispose?(): void;
 }
 
-/** Share of the tape's width over which each edge fades out. */
-export const FADE = 0.12;
-/** The tape fades out at both its ends. */
-const TAPE_FADE = `linear-gradient(to right, transparent 0, #000 ${FADE * 100}%, #000 ${(1 - FADE) * 100}%, transparent 100%)`;
 /**
  * Drawing the piece anew took longer than this, in milliseconds: longer than a frame lasts on a
  * screen that shows 120 of them a second. Done at a step of a size on the move, the step is seen.
@@ -110,10 +104,6 @@ export class TapeStaff implements StaffView {
 
     this.tape = document.createElement('div');
     Object.assign(this.tape.style, { position: 'absolute', top: '0', bottom: '0', right: '0' });
-    if (!surface.fadesItself) {
-      this.tape.style.maskImage = TAPE_FADE;
-      this.tape.style.setProperty('-webkit-mask-image', TAPE_FADE);
-    }
     this.tape.append(...surface.tapeParts);
 
     this.cursor = document.createElement('div');

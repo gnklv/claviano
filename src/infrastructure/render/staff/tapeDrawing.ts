@@ -10,7 +10,7 @@ import { drawPedal } from './pedal';
 import { COLORS, group, type GroupShape, type Shape } from './shapes';
 
 /*
- * The whole tape of a piece, as shapes: what every surface of the staff draws (SVG, a canvas).
+ * The whole tape of a piece, as shapes: what the staff's surface draws.
  * What lights up is kept apart: each chord and each group of grace notes is a group of its own.
  */
 

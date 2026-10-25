@@ -5,7 +5,7 @@ import { odeToJoy } from '../src/demo/odeToJoy';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { engrave as layoutNotation } from '../src/domain/notation/engraving';
 import { engravePedal as layoutPedal } from '../src/domain/notation/pedalEngraving';
-import { drawing, drawStaff } from './drawnStaff';
+import { drawStaff, staffDrawing } from './drawnStaff';
 
 /*
  * Reference copies of what the showcase comes out as: its score (the notes as played and as
@@ -69,12 +69,12 @@ describe('reference copies', () => {
     await expect(readable(layoutNotation(ode))).toMatchFileSnapshot('./snapshots/ode.engraving.txt');
   });
 
-  // What the staff draws for it all, element by element (at 1024 by 300 pixels).
+  // What the staff draws for it all, shape by shape (at 1024 by 300 pixels).
   it('the showcase drawn on the staff', async () => {
-    await expect(drawing(drawStaff(showcase).container)).toMatchFileSnapshot('./snapshots/showcase.staff.txt');
+    await expect(staffDrawing(drawStaff(showcase).shown)).toMatchFileSnapshot('./snapshots/showcase.staff.txt');
   });
 
   it('the Ode to Joy drawn on the staff', async () => {
-    await expect(drawing(drawStaff(odeToJoy('Ode to Joy')).container)).toMatchFileSnapshot('./snapshots/ode.staff.txt');
+    await expect(staffDrawing(drawStaff(odeToJoy('Ode to Joy')).shown)).toMatchFileSnapshot('./snapshots/ode.staff.txt');
   });
 });

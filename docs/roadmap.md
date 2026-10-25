@@ -179,7 +179,7 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         repeats; the bar readout opens them (`PanelControl`, as the tempo), one is added at the bar
         the music is in, renamed or taken away in place; the keys 1–9 go to them; strokes on the
         position slider show where they are
-11. [ ] The staff on a canvas, for a tape that moves smoothly on a phone. The staff is one SVG of
+11. [x] The staff on a canvas, for a tape that moves smoothly on a phone. The staff was one SVG of
         thousands of shapes; it moves as one layer, cheaply, but each time the near view shows what
         it comes to and hides what it left (every few bars), and at every lit note, Safari paints
         the layer anew: the small freezes seen on an iPhone, where the falling notes, on a canvas,
@@ -199,11 +199,10 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
           those in sight, with what is behind the music and what sounds over them, and its ends
           faded on the canvas itself; the theme's colours read from the page, anew when it
           changes; the fonts asked for, and all drawn anew once they are in;
-        - [ ] both kept, to compare: the address chooses ("?staff=canvas", which
-          window.claviano.staffOn tells in development), timed on the same piece on the phone (a
-          headless Chrome, slowed, finds no long frame with either: the freezes are Safari's); the
-          canvas the default once it is the smoother one. The SVG renderer stays as long as it is
-          worth comparing against, and goes then, in a commit of its own
+        - [x] both compared on an iPhone, chosen in the address (a headless Chrome, slowed, found no
+          long frame with either: the freezes were Safari's): on the canvas the small freezes are
+          gone. The SVG renderer is gone with them; the staff's tests read the shapes it hands a
+          surface that keeps them (`tests/drawnStaff.ts`), and so do its reference drawings
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)
