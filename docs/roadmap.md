@@ -191,14 +191,19 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
           SvgStaff turns into SVG as before (`toSvg`). Nothing seen changes: the staff's reference
           drawings came out the same, line for line (their paint read in a sorted order, which is
           no change in what is drawn);
-        - [ ] a canvas renderer of the same list, behind the StaffView port: tiles of a few bars drawn
-          ahead, when there is time, and a frame that only lays the tiles that are in sight; what
-          is lit, the selection and the note being fingered on a thin layer over them; the theme's
-          colours given (useCanvasColors), Bravura waited for, drawn at the screen's density;
-        - [ ] both kept, to compare: which draws the staff is a choice in development (in the address,
-          and on window.claviano), timed on the same piece on the phone; the canvas the default
-          once it is the smoother one. The SVG renderer stays as long as it is worth comparing
-          against, and goes then, in a commit of its own
+        - [x] what the staff does apart from what it is drawn on: TapeStaff (the piece laid out,
+          the tape's motion, what sounds, where a pointer is) shows it through a StaffSurface;
+          SvgStaff is the SVG one;
+        - [x] a canvas renderer of the same list (CanvasStaff): pictures of 512 pixels of tape drawn
+          ahead of the view, one at a frame (`staff/tapeTiles.ts`), and a frame that only lays
+          those in sight, with what is behind the music and what sounds over them, and its ends
+          faded on the canvas itself; the theme's colours read from the page, anew when it
+          changes; the fonts asked for, and all drawn anew once they are in;
+        - [ ] both kept, to compare: the address chooses ("?staff=canvas", which
+          window.claviano.staffOn tells in development), timed on the same piece on the phone (a
+          headless Chrome, slowed, finds no long frame with either: the freezes are Safari's); the
+          canvas the default once it is the smoother one. The SVG renderer stays as long as it is
+          worth comparing against, and goes then, in a commit of its own
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)

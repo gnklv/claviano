@@ -155,12 +155,14 @@ src/
                        (keyboardCamera); swipe or Shift+wheel to look around. Pedal moves
                        fall as plain labels ("Pedal ↓", "Left pedal ↑"…) beside three pedals.
                        The roll/ folder holds its parts: the keyboard, the pedals, the tiles.
-                       SvgStaff — grand staff as a tape scrolling under a fixed cursor, with
+                       TapeStaff — grand staff as a tape scrolling under a fixed cursor, with
                        the key and time signatures in force at the cursor (staffLayout) and
                        the notation as the domain engraves it; staffLayout says how wide bars
                        are on the tape, the staff/ folder turns bars and beats into pixels and
-                       SVG, beams.ts and curves.ts into beam lines and slurs; sounding notes
-                       light up. CanvasPlayedTiles — the keys played in free play, as tiles.
+                       shapes (shapes.ts), beams.ts and curves.ts into beam lines and slurs;
+                       sounding notes light up. It is drawn by a surface: SvgStaff, or
+                       CanvasStaff in pictures drawn ahead (tapeTiles.ts); "?staff=canvas" in
+                       the address chooses the canvas while the two are compared. CanvasPlayedTiles — the keys played in free play, as tiles.
   ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
                      components/ (the building blocks, all shown on #/design), parts/ (the
                      parts of screens, which reach the app). app/ mirrors the use cases

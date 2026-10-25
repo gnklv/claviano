@@ -27,6 +27,7 @@ import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
 import { CanvasPlayedTiles } from './infrastructure/render/CanvasPlayedTiles';
+import { CanvasStaff } from './infrastructure/render/CanvasStaff';
 import { SvgStaff } from './infrastructure/render/SvgStaff';
 import { IndexedDbPieceShelf } from './infrastructure/storage/IndexedDbPieceShelf';
 import { LocalSettingsStore } from './infrastructure/storage/LocalSettingsStore';
@@ -74,7 +75,12 @@ document.addEventListener('visibilitychange', () => {
   rest();
   writeDownThePlace();
 });
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks, fingering } });
+/**
+ * What draws the staff: SVG, or a canvas (roadmap, step 11). Both are kept while they are compared,
+ * on the same piece on a phone; the address chooses ("?staff=canvas").
+ */
+const staffOn = new URLSearchParams(location.search).get('staff') === 'canvas' ? 'canvas' : 'svg';
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks, fingering, staffOn } });
 
 const freePlay = new FreePlay(piano);
 keepInstrumentPrepared(playback, freePlay, piano);
@@ -102,7 +108,7 @@ createApp(App)
     recorder,
     keepTake: (title, fileName) => keepTake(recorder, midiWriter, library, title, fileName),
     createRoll: (canvas, colors) => new CanvasPianoRoll(canvas, colors),
-    createStaff: (container) => new SvgStaff(container),
+    createStaff: (container) => (staffOn === 'canvas' ? new CanvasStaff(container) : new SvgStaff(container)),
     createTiles: (canvas, colors) => new CanvasPlayedTiles(canvas, colors),
     demos,
   })

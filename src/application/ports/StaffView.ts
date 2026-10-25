@@ -41,4 +41,6 @@ export interface StaffView {
   dragBy(dx: number): number;
   /** Back to following the music (after a jump). */
   followMusic(): void;
+  /** The view is gone with its element: what it listens to (the theme, on a canvas), it stops listening to. */
+  dispose?(): void;
 }

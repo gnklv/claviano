@@ -1,9 +1,10 @@
-import { onMounted, type ShallowRef } from 'vue';
+import { onMounted, onUnmounted, type ShallowRef } from 'vue';
 import { useResize } from './useResize';
 
 /** What a view drawn into an element is told by the component that owns the element (see the ports' views). */
 interface Drawn {
   resize(): void;
+  dispose?(): void;
 }
 
 /**
@@ -18,6 +19,7 @@ export function useDrawnView<E extends Element, V extends Drawn>(
 ): { readonly view: V | null } {
   const drawn: { view: V | null } = { view: null };
   onMounted(() => (drawn.view = make(element.value!)));
+  onUnmounted(() => drawn.view?.dispose?.());
   useResize(element, () => {
     drawn.view?.resize();
     resized?.();
