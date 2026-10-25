@@ -206,7 +206,35 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)
-13. [ ] Listening through the microphone. What can be heard: one note at a time, reliably (a
+13. [ ] A plan for learning a piece, out of what is there already. The piece in parts, by its
+        phrases and repeats (four to eight bars), and for each part the steps a teacher sets: each
+        hand alone and slow, both hands slow, up to tempo with the trainer, then joined to the part
+        before it. Each step sets what it needs (the loop, a hand muted, the tempo, the trainer);
+        one marks it done oneself, until the microphone can tell (step 16). Kept with the piece.
+        Seen elsewhere: a song taught in parts and then whole (Piano with Jonny); flowkey's learn
+        mode (slow, a loop, one hand, a wait for the right note)
+14. [ ] Warm-ups and technique: exercises made, not stored. Five-finger positions, scales (one to
+        four octaves, hands apart, together, in contrary motion), arpeggios, broken chords, the
+        chromatic scale, thirds and sixths, trills, and patterns in the manner of Hanon (in the
+        public domain, and made of a figure moved up and down the keys); in any key, fingered by
+        the domain (the scales of every school are there already, `domain/fingering/scales.ts`),
+        at a level: the key, how many octaves, the hands, the tempo, the note values. A warm-up of
+        five, ten or fifteen minutes is a few of them made into one piece, which opens in the
+        player as any other: the staff with its fingers, the falling notes, the metronome, the
+        tempo trainer. Seen elsewhere: Piano Marvel's scales by level (from tetrachords to
+        harmonised minor scales), learnt first without a tempo, then to one
+15. [ ] A piece in layers, from its bones to the whole: the melody (the right hand's top voice),
+        then the bass under it (the left hand's lowest note on the strong beats), then the left
+        hand's chords on the strong beats, then the right hand whole over a simple left hand, then
+        all of it; ornaments and grace notes only at the last. Worked out by rules in the domain,
+        as the fingering is: no trained network. First as a choice of what sounds and falls, the
+        staff showing all of it and what is not in the layer pale (what is around the layer stays
+        in sight); later, perhaps, a simpler piece written out (rests, voices and beams worked out
+        anew, which is harder). With step 13, a part is learnt layer by layer. Seen elsewhere:
+        arrangements by level, made by hand (flowkey: simpler chords and rhythm, the melody first,
+        fewer stretches); simplified scores worked out by statistics or networks, in research
+        only (Nakamura and Yoshii, 2018; Ramoneda and others, 2025)
+16. [ ] Listening through the microphone. What can be heard: one note at a time, reliably (a
         pitch detector written here); whether the notes that are expected sound, chords too
         (energy at their pitches and overtones); any chord by ear, not without a trained
         network, and not planned. In this order, each tried on a real instrument before the
@@ -215,11 +243,13 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         for the screen that is there); following a piece, a "wait mode" without a cable (first
         one hand's line, then chords by checking for what is expected); real devices (an
         iPhone changes its sound when the microphone is on; the microphone needs HTTPS).
-        To be heard: a digital piano through its speakers, by a phone and by a laptop
-14. [ ] How it was played, once the microphone hears a piece through: how many of the notes
+        To be heard: a digital piano through its speakers, by a phone and by a laptop. What it
+        gives the steps before it: a wait mode for the plan's steps and the warm-ups, a step
+        judged instead of marked done, the layers of a piece heard through one by one
+17. [ ] How it was played, once the microphone hears a piece through: how many of the notes
         were there, and how even the time
-15. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
-16. [ ] Pieces found from the library (to research first). Not a search of the web: the sites
+18. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
+19. [ ] Pieces found from the library (to research first). Not a search of the web: the sites
         with scores do not let a page read them (IMSLP and Mutopia send no CORS headers), most of
         IMSLP is scanned PDF, MuseScore.com has no open way in, and music under copyright cannot
         be given out. A catalogue of our own instead: piano pieces in the public domain as
@@ -228,17 +258,17 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         them), with a small index (title, composer, difficulty, length, key) searched in the
         browser at once; a piece found opens at a press. Still to settle: the sifting, the
         index's shape, where the search stands in the library; a first few hundred pieces
-17. [ ] Files with several instruments (low priority: the app is for one)
-18. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
+20. [ ] Files with several instruments (low priority: the app is for one)
+21. [ ] Web MIDI input (one more source of notes after step 6; waits for a keyboard and a cable)
 
 Looked at in other players (Synthesia, flowkey, Simply Piano, Piano Marvel, Soundslice) and left
 out: note names on the tiles and keys, showing only the bars being practised, transposing (no
 need seen for them); printing a piece or a take (no case for it yet); courses and catalogues of
-songs (other than the free pieces of step 16), streaks and points, lists of what was practised
+songs (other than the free pieces of step 19; a plan for one's own piece, step 13, is not a course), streaks and points, lists of what was practised
 (not what a pianist's notebook is for).
 
 At any time, between the steps: looking through real pieces for what is drawn or played wrong;
-the research for steps 13, 15 and 16; checks on real devices and on GitHub Pages.
+the research for steps 16, 18 and 19; checks on real devices and on GitHub Pages.
 
 Small things noticed, to fix between the steps:
 
