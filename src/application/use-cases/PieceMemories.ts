@@ -68,9 +68,15 @@ function asMemory(stored: unknown): PieceMemory | null {
   const { right, left } = hands as Record<string, unknown>;
   const { on, from, to } = loop as Record<string, unknown>;
   if (typeof right !== 'boolean' || typeof left !== 'boolean' || typeof on !== 'boolean' || typeof from !== 'number' || typeof to !== 'number') return null;
-  // (A trainer, bookmarks or fingers that are not such are let go of, and the rest kept.)
-  const { trainer, bookmarks, fingers, ...rest } = stored as PieceMemory;
-  return { ...rest, ...(asTrainer(trainer) ? { trainer } : {}), ...(asBookmarks(bookmarks) ? { bookmarks } : {}), ...(asFingers(fingers) ? { fingers } : {}) };
+  // (A trainer, bookmarks, fingers or a way that are not such are let go of, and the rest kept.)
+  const { trainer, bookmarks, fingers, way, ...rest } = stored as PieceMemory;
+  return {
+    ...rest,
+    ...(asTrainer(trainer) ? { trainer } : {}),
+    ...(asBookmarks(bookmarks) ? { bookmarks } : {}),
+    ...(asFingers(fingers) ? { fingers } : {}),
+    ...(way === 'learn' || way === 'listen' ? { way } : {}),
+  };
 }
 
 function asFingers(stored: unknown): stored is PieceMemory['fingers'] {

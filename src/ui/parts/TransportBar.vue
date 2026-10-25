@@ -11,6 +11,7 @@ import { useFrameValue } from '../browser/useFrameValue';
 import { useBarLoop } from '../app/useBarLoop';
 import { useBookmarks } from '../app/useBookmarks';
 import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { usePieceWay } from '../app/usePieceWay';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -18,8 +19,15 @@ import PracticeToggles from './PracticeToggles.vue';
 import SheetDialog from '../components/SheetDialog.vue';
 import TempoControl from './TempoControl.vue';
 
+/** `fingers`: setting one's own fingers is offered among the tools of practice (`setFingers` asks for it to begin). */
+defineProps<{ fingers?: boolean }>();
+const emit = defineEmits<{ setFingers: [] }>();
+
 const SEEK_STEPS = 1000;
-const { playback, barLoop, bookmarks } = useDeps();
+const { playback, barLoop, bookmarks, way } = useDeps();
+const usedWay = usePieceWay(way);
+/** The loop is a tool of learning: listened to, the piece is played whole. */
+const learning = computed(() => usedWay.value === 'learn');
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const loaded = computed(() => state.value.score !== null);
@@ -132,19 +140,28 @@ function togglePlay(): void {
     <TempoControl class="tempo" />
 
     <div class="loop">
-      <ToggleChip v-model:pressed="loopEnabled" icon="loop" :disabled="!loaded" :title="t('loopBars')">{{ t('loop') }}</ToggleChip>
-      <TextField v-model="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopFrom')" />
-      –
-      <TextField v-model="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopTo')" />
+      <template v-if="learning">
+        <ToggleChip v-model:pressed="loopEnabled" icon="loop" :disabled="!loaded" :title="t('loopBars')">{{ t('loop') }}</ToggleChip>
+        <TextField v-model="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopFrom')" />
+        –
+        <TextField v-model="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopTo')" />
+      </template>
       <template v-if="phone">
         <AppButton class="more" icon="more" :label="t('practice')" @click="practiceSheet?.open()" />
         <SheetDialog ref="practiceSheet" :title="t('practice')">
-          <PracticeToggles tiled />
+          <PracticeToggles
+            tiled
+            :fingers="fingers"
+            @set-fingers="
+              practiceSheet?.close();
+              emit('setFingers');
+            "
+          />
         </SheetDialog>
       </template>
     </div>
 
-    <PracticeToggles v-if="!phone" class="in-bar" />
+    <PracticeToggles v-if="!phone" class="in-bar" :fingers="fingers" @set-fingers="emit('setFingers')" />
   </footer>
 </template>
 

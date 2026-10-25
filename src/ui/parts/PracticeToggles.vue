@@ -3,24 +3,31 @@ import ToggleChip from '../components/ToggleChip.vue';
 import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
 import { useFrameValue } from '../browser/useFrameValue';
+import { usePieceWay } from '../app/usePieceWay';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/useI18n';
 
 /*
- * What is set once for a session of practice: which hands play, the metronome, the count-in
- * before playing, and the pedals (off, to hear whether the fingers alone play legato). In the
- * transport bar where there is room for it; in a sheet of its own on a phone.
+ * What is set once for a session of practice: which hands play, setting one's own fingers, the
+ * metronome, the count-in before playing, and the pedals (off, to hear whether the fingers alone
+ * play legato). In the transport bar where there is room for it; in a sheet of its own on a phone.
  */
 
-/** `tiled`: in a sheet, where they fill the width: the hands in one row, the rest in the next. */
-defineProps<{ tiled?: boolean }>();
+/**
+ * `tiled`: in a sheet, where they fill the width: the hands in one row, the rest in the next.
+ * `fingers`: setting one's own fingers is offered (`setFingers` asks for it to begin).
+ */
+defineProps<{ tiled?: boolean; fingers?: boolean }>();
+const emit = defineEmits<{ setFingers: [] }>();
 
 /** How long the metronome's icon stays lit after a click, in seconds. */
 const PULSE_SECONDS = 0.1;
 
-const { playback } = useDeps();
+const { playback, way } = useDeps();
+/** The hands are a tool of learning: listened to, the piece is played with both. */
+const usedWay = usePieceWay(way);
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 
@@ -43,10 +50,12 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
 
 <template>
   <div class="practice" :class="{ tiled }">
-    <ToggleChip v-for="{ hand, label } in hands" :key="hand" :class="`hand-${hand}`" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
+    <ToggleChip v-for="{ hand, label } in usedWay === 'learn' ? hands : []" :key="hand" :class="`hand-${hand}`" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
       <template #sign><span class="dot" aria-hidden="true" /></template>
       {{ t(label) }}
     </ToggleChip>
+
+    <ToggleChip v-if="fingers" class="fingers" icon="pencil" :pressed="false" @update:pressed="emit('setFingers')">{{ t('fingers') }}</ToggleChip>
 
     <ToggleChip
       class="metronome"

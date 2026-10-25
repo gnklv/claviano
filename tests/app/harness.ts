@@ -7,6 +7,7 @@ import type { PlayedTile, TilesView } from '../../src/application/ports/TilesVie
 import { BarLoop } from '../../src/application/use-cases/BarLoop';
 import { Bookmarks } from '../../src/application/use-cases/Bookmarks';
 import { OwnFingering } from '../../src/application/use-cases/OwnFingering';
+import { PieceWay } from '../../src/application/use-cases/PieceWay';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
 import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
@@ -41,6 +42,7 @@ import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from 
 export let playback: Playback;
 export let bookmarks: Bookmarks;
 export let fingering: OwnFingering;
+export let way: PieceWay;
 export let volume: Volume;
 export let app: VueApp;
 export let shelf: FakePieceShelf;
@@ -154,7 +156,8 @@ export function useApp(): void {
     const trainer = new TempoTrainer(playback);
     bookmarks = new Bookmarks(playback, barLoop);
     fingering = new OwnFingering(playback);
-    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering });
+    way = new PieceWay(playback, barLoop, trainer);
+    rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way });
     const freePlay = new FreePlay(audio);
     const instrument = new FakeInstrument();
     keepInstrumentPrepared(playback, freePlay, instrument);
@@ -165,6 +168,7 @@ export function useApp(): void {
       trainer,
       bookmarks,
       fingering,
+      way,
       volume,
       instrument,
       openScore,

@@ -6,6 +6,7 @@ import type { TilesColors, TilesView } from '../application/ports/TilesView';
 import type { BarLoop } from '../application/use-cases/BarLoop';
 import type { Bookmarks } from '../application/use-cases/Bookmarks';
 import type { OwnFingering } from '../application/use-cases/OwnFingering';
+import type { PieceWay } from '../application/use-cases/PieceWay';
 import type { FreePlay } from '../application/use-cases/FreePlay';
 import type { Library } from '../application/use-cases/Library';
 import type { PieceMemories } from '../application/use-cases/PieceMemories';
@@ -31,6 +32,8 @@ export interface AppDeps {
   readonly bookmarks: Bookmarks;
   /** The open piece's fingering set by hand. */
   readonly fingering: OwnFingering;
+  /** Whether the open piece is listened to or learnt. */
+  readonly way: PieceWay;
   /** How loud the notes and the metronome are. */
   readonly volume: Volume;
   /** The piano's sound: whether it has loaded. */

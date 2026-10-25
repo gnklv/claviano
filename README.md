@@ -49,6 +49,7 @@ metronome is a synth's blip.)
 
 | | |
 |---|---|
+| Listen / Learn | in the piece's header: the player alone, or with the tools of learning (the loop, the hands, the trainer, one's own fingers); what learning had set comes back with it |
 | Space | play / pause |
 | ← → | previous / next bar |
 | Home | back to the start (of the loop, when one is on) |
@@ -67,7 +68,7 @@ metronome is a synth's blip.)
 | ⚙ → Pedal | play the score's pedals or not (to hear the fingers alone) |
 | ⚙ → Count-in | count the beats leading in before playing ("1 2 3" before a pickup on 4) |
 | ⚙ → Fingering | fingering hints where the notes give none, and one's own fingers |
-| Fingers | (with Fingering on) press a note on the staff or its falling tile, and set its finger |
+| Fingers | (with Fingering on, in Learn, beside the hands) press a note on the staff or its falling tile, and set its finger |
 | Free play | play on the keys on the screen or the computer's letters; record, listen, save as a piece |
 
 What is set in a piece (its place, tempo, hands, loop, trainer, bookmarks, one's own fingers) is

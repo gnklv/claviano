@@ -2,7 +2,7 @@
 import ScreenHeader from '../components/ScreenHeader.vue';
 import CountInOverlay from '../parts/CountInOverlay.vue';
 import FingerBar from '../components/FingerBar.vue';
-import ToggleChip from '../components/ToggleChip.vue';
+import SegmentedControl from '../components/SegmentedControl.vue';
 import InstrumentNotice from '../parts/InstrumentNotice.vue';
 import PianoRoll from '../parts/PianoRoll.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
@@ -14,6 +14,7 @@ import { useFingerHints } from '../kept/useFingerHints';
 import { useImmersion } from '../motion/useImmersion';
 import { SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePieceText } from '../app/usePieceText';
+import { usePieceWay } from '../app/usePieceWay';
 import { useResize } from '../browser/useResize';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useShownViewMode } from '../kept/useViewMode';
@@ -28,10 +29,20 @@ import { useI18n } from '../i18n/useI18n';
 
 const emit = defineEmits<{ back: [] }>();
 
-const { playback, openScore, library, demos, fingering: own } = useDeps();
+const { playback, openScore, library, demos, fingering: own, way } = useDeps();
 const viewMode = useShownViewMode();
 const { title, details, error } = usePieceText(playback, openScore, library, demos);
 const { t } = useI18n();
+
+// --- Listened to or learnt: listening is the player alone; the tools of learning are in "Learn". ---
+
+const kept = usePieceWay(way);
+const learning = computed(() => kept.value === 'learn');
+const chosenWay = computed({ get: () => kept.value, set: (chosen: 'learn' | 'listen') => way.set(chosen) });
+const WAYS = computed(() => [
+  { value: 'listen' as const, label: t('wayListen') },
+  { value: 'learn' as const, label: t('wayLearn') },
+]);
 
 // --- Fingering: what is shown of it, and one's own being set (on the staff, a note at a time). ---
 
@@ -41,9 +52,9 @@ watch(fingering, () => (picked.value = null));
 /** Whether fingering is shown at all (hints, one's own): only then are one's own fingers set. */
 const shown = useFingerHints();
 const page = useFingeredPage(shown);
-// (Fingering no longer shown: there is nothing to set.)
-watch(shown, (on) => {
-  if (!on) fingering.value = false;
+// (Fingering no longer shown, or the piece listened to: there is nothing to set.)
+watch([shown, learning], ([on, learnt]) => {
+  if (!on || !learnt) fingering.value = false;
 });
 /** The falling notes are given the finger for each of their notes, as the staff prints it. */
 const fingers = computed(() => (page.value ? playedFingers(page.value) : undefined));
@@ -100,7 +111,7 @@ useResize(stage, letGoWhenBack);
             <template v-else>{{ title }}<span v-if="details" class="details"> · {{ details }}</span></template>
           </template>
           <!-- The view is chosen often enough to stand here; where there is no room for it, the settings panel has it. -->
-          <ToggleChip v-if="shown" :pressed="fingering" icon="pencil" @update:pressed="fingering = $event">{{ t('fingers') }}</ToggleChip>
+          <SegmentedControl v-model="chosenWay" class="way" :options="WAYS" :label="t('way')" />
           <ViewModeSwitch class="view-switch" />
           <SettingsPanel piece />
         </ScreenHeader>
@@ -117,6 +128,7 @@ useResize(stage, letGoWhenBack);
         :page="page"
         :fingering="fingering"
         :picked="picked"
+        :loops="learning"
         @pick="picked = $event"
       />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" :fingers="fingers" :fingering="fingering" :picked="pickedTiles" @pick="pickTile" />
@@ -129,7 +141,7 @@ useResize(stage, letGoWhenBack);
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <FingerBar v-if="fingering" :page="page" :picked="picked" @set="setFinger" @done="fingering = false" />
-        <TransportBar v-else />
+        <TransportBar v-else :fingers="shown && learning" @set-fingers="fingering = true" />
       </div>
     </div>
   </div>
@@ -148,6 +160,11 @@ useResize(stage, letGoWhenBack);
  * The header and the transport each stand in a strip that can fold to nothing (a row of 1fr going
  * to 0fr can be animated; a row of `auto` cannot), and the stage takes the room.
  */
+/* (The way is read whole: the title gives up its room first.) */
+.way {
+  flex: none;
+}
+
 .strip {
   display: grid;
   grid-template-rows: 1fr;

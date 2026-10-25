@@ -167,7 +167,8 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 9. [x] One's own fingering over the hints: a finger set by hand at a note stands as the notes'
        own do, is kept with the piece, and the hints are fitted round it (`OwnFingering`,
        `domain/fingering/own.ts`). The Fingering setting shows the hints and one's own fingers;
-       while it is on, "Fingers" is in the header: a press on a note of the staff, or on its tile
+       while it is on, "Fingers" is among the tools of practice (beside the hands, in "Learn"): a
+       press on a note of the staff, or on its tile
        among the falling notes, picks it (ringed on both, the tile on every pass), and a finger is
        set from a bar in place of the transport; each note is picked by hand (a step on by itself
        to the next note was tried, and was more in the way than a help). Fingers at notes a piece
@@ -221,7 +222,8 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         metronome, the view), learning has the plan, the loop, the hands, the trainer and the
         editing of one's own fingers (the fingering is shown in both, where it is shown at all);
         what learning had set comes back with it, and a step of the plan touched by hand pauses.
-        In order: the trainer's steps back; the two ways; the parts and steps (the slow ones at
+        In order (done so far: the trainer's steps back, the two ways, `PieceWay`): the trainer's
+        steps back; the two ways; the parts and steps (the slow ones at
         60%, a part joined to the one before it, and the whole piece at the end); the plan kept
         with the piece; the bar of the step and the list of steps, in "Learn". Why: what predicts how a passage is played the next day is
         not the time spent nor the repetitions, but how many of the tries were right, a slip
@@ -298,6 +300,10 @@ At any time, between the steps: looking through real pieces for what is drawn or
 the research for steps 16, 18 and 19; checks on real devices and on GitHub Pages.
 
 Small things noticed, to fix between the steps:
+
+- [ ] To think over: a long press on a note (of the staff, or its falling tile) to set its finger at
+      once, without "Fingers" first. Quicker, but a gesture one has to know of: beside the button,
+      not in place of it
 
 - [ ] The metronome's click is not there yet: better than the synth's blip and than a mechanical
       metronome recorded in a room (rattling, blurred next to the piano), but a little synthetic.

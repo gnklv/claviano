@@ -66,8 +66,14 @@ being dragged in · a file is being read · a file did not open.
 
 ### 2. Learning: the stage, with what matters under it
 
-A thin header (back to the library, the title, the view mode, settings), the stage (the staff, the
-falling notes and keyboard, or both), and the transport bar.
+A thin header (back to the library, the title, listen or learn, the view mode, settings), the stage
+(the staff, the falling notes and keyboard, or both), and the transport bar.
+
+Two ways to have a piece, chosen in the header and kept with it. **Listen**: the player alone (play,
+the place, the bar and the bookmarks, the tempo, the metronome), the piece whole at its own tempo.
+**Learn**: the tools of learning too (the loop, the hands, the tempo trainer, setting one's own
+fingers, and the plan of steps to come). Going to listen keeps what learning had set, and coming
+back to learn sets it again.
 
 States: standing · playing · counting in · a loop is on · the tape dragged away by hand · waiting
 for a note (once there is a microphone or a MIDI keyboard) · the piano's sound still loading · no

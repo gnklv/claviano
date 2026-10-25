@@ -19,9 +19,10 @@ const { t, locale } = useI18n();
 /**
  * `page`: what the staff is given to draw, the piece with its fingering as it is to be shown (see
  * useFingeredPage). `fingering`: a press on a note picks it (`pick`), and does not move the music;
- * `picked` is marked.
+ * `picked` is marked. `loops`: bars may be selected to loop (Shift and a drag, a long press); not
+ * while the piece is listened to.
  */
-const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null }>();
+const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null; loops?: boolean }>();
 const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
 const page = computed(() => props.page);
 watch(
@@ -98,10 +99,10 @@ function onPointerDown(event: PointerEvent): void {
     toBar: place.bar,
     mode: 'pending' as const,
     caught: glide.moving,
-    selecting: event.shiftKey,
+    selecting: props.loops !== false && event.shiftKey,
     timer: 0,
   };
-  if (event.pointerType === 'touch') {
+  if (event.pointerType === 'touch' && props.loops !== false) {
     current.timer = window.setTimeout(() => {
       if (press !== current || press.mode !== 'pending') return;
       press.mode = 'select';
