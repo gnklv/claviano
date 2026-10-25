@@ -53,6 +53,7 @@ export const en = {
   sostenutoPedalRelease: 'Middle pedal ↑',
   sostenutoPedalChange: 'Middle pedal ↑↓',
 
+  goOn: 'Continue',
   openMidi: 'Open file',
   myPieces: 'My pieces',
   freePlay: 'Free play',

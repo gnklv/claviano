@@ -48,6 +48,11 @@ bookmarks, one's own fingers. So coming back to a piece is coming back to where 
 has changed (a corrected version under the same name) is a new card beside the old one: no
 "replace?" question.
 
+**Going on.** Over everything, beside "Open file" and "Free play", one tile goes on with the piece
+played last, once it was begun: its name and where it was left ("CZARDAS · bar 34 of 134"), and it
+opens it there. It is the screen's main action then (for one who comes back, going on is the
+thing); with no piece begun, opening a file is. Three actions stand in the pieces' own columns.
+
 **What can be done with a piece.** Open it (into learning, at the same place); rename it; take it
 off the shelf; save it out as a file: the original file for an opened one, MIDI for a recorded one
 (MusicXML later: the app reads it, and does not write it yet).
@@ -61,8 +66,9 @@ safe: that is why recordings can be saved out as files.
 **What it is not.** No folders, tags or search while there are a dozen pieces or two; no catalogue
 of music from the internet (one brings one's own); no record of practice (minutes, progress).
 
-States: a first visit (only "Open file", "Free play" and the demos) · pieces are there · a file is
-being dragged in · a file is being read · a file did not open.
+States: a first visit (only "Open file", "Free play" and the demos) · pieces are there, the last
+not begun · the last begun (and "Continue" over all) · a file is being dragged in · a file is being
+read · a file did not open.
 
 ### 2. Learning: the stage, with what matters under it
 

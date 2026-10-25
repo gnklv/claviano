@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useMirror } from '../app/useMirror';
 import { TOUCH_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import ActionTile from '../components/ActionTile.vue';
@@ -17,9 +18,10 @@ import { useI18n } from '../i18n/useI18n';
 import { saveFile } from '../browser/saveFile';
 
 /*
- * Where the app starts. On top, what can be begun: opening a file, playing something of one's
- * own. Under that one's pieces (the latest first), once there are any. The demos last, apart and
- * smaller: they show what the player can do, and are nobody's pieces.
+ * Where the app starts. On top, what can be begun: going on with the piece last played, where it
+ * was left; opening a file; playing something of one's own. Under that one's pieces (the latest
+ * first), once there are any. The demos last, apart and smaller: they show what the player can do,
+ * and are nobody's pieces.
  */
 
 const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo]; play: [] }>();
@@ -46,6 +48,16 @@ function leftAt(id: string): string | null {
   return memory && memory.position > 0 ? t('leftAtBar', { bar: memory.bar, bars: memory.bars }) : null;
 }
 const noteOf = (...parts: (string | null)[]): string => parts.filter((part) => part !== null).join(' · ');
+
+/**
+ * The piece to go on with: the one played last (the first on the shelf), if it was begun; it opens
+ * where it was left, as from its card. Not a demo: those are nobody's to go on with.
+ */
+const goOn = computed(() => {
+  const piece = shelf.value.pieces[0];
+  const at = piece ? leftAt(piece.id) : null;
+  return piece && at ? { id: piece.id, note: noteOf(piece.title, at) } : null;
+});
 const { error } = usePieceText(playback, openScore, library, demos);
 
 /** Saves a piece's file out, as it was given. */
@@ -73,10 +85,15 @@ function onFileChosen(event: Event): void {
     <main class="shelf">
       <AppNotice v-if="error" class="error" alert>{{ error }}</AppNotice>
 
-      <!-- What can be begun here: two actions, apart from the pieces under them. -->
-      <div class="actions">
-        <!-- (The screen is for opening a piece: that is its main action. A file can be dropped onto the window as well, which the window says when one is held over it.) -->
-        <ActionTile tag="label" main icon="plus" :title="t('openMidi')" :note="t('openFormats')">
+      <!-- What can be begun here, apart from the pieces under them; three in the pieces' own columns. -->
+      <div class="actions" :class="{ three: goOn }">
+        <!--
+          One accent on a screen, on its main action: for one who comes back, going on; else opening
+          a piece. (A file can be dropped onto the window as well, which the window says when one is
+          held over it.)
+        -->
+        <ActionTile v-if="goOn" main icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
+        <ActionTile tag="label" :main="!goOn" icon="plus" :title="t('openMidi')" :note="t('openFormats')">
           <input type="file" :accept="touch ? undefined : FILE_KINDS" hidden @change="onFileChosen" />
         </ActionTile>
         <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
@@ -126,16 +143,17 @@ function onFileChosen(event: Event): void {
   margin-inline: auto;
 }
 
-/* The actions: side by side, apart from the pieces under them. */
+/* The actions: side by side, apart from the pieces under them; three stand in the pieces' columns, edge on edge. */
 .actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
+.actions.three,
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-width), 1fr));
   gap: var(--space-4);
 }
 
@@ -154,6 +172,7 @@ function onFileChosen(event: Event): void {
   }
 
   .actions,
+  .actions.three,
   .cards {
     grid-template-columns: 1fr;
     gap: var(--space-3);

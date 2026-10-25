@@ -125,6 +125,8 @@
 
   /* A panel, by its button or at the side of the screen: a row of settings fits (a word, and a choice of three). */
   --panel-width: 340px;
+  /* A tile on a shelf at the narrowest (a piece, an action): a title of two lines and its note under it; three across a reading column. */
+  --tile-width: 220px;
 
   /* An icon beside words, and a smaller one inside a line of them. */
   --icon: 20px;

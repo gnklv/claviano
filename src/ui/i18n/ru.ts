@@ -47,6 +47,7 @@ export const ru: Dictionary = {
   sostenutoPedalRelease: 'Средняя педаль ↑',
   sostenutoPedalChange: 'Средняя педаль ↑↓',
 
+  goOn: 'Продолжить',
   openMidi: 'Открыть файл',
   myPieces: 'Мои пьесы',
   freePlay: 'Свободная игра',

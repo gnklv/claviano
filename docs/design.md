@@ -32,7 +32,7 @@ component names the token; it never writes a colour.
 | `--right`, `--left` | the right hand (steel) and the left (sepia) |
 
 - **The accent marks one thing on a screen**: the button that does what the screen is for (play;
-  keep a take). A second red button means one of them is not the main action. It is also the colour
+  keep a take; in the library, "Continue" where there is a piece to go on with, else "Open file"). A second red button means one of them is not the main action. It is also the colour
   of danger and of recording, which are rare and never beside the main action.
 - **Steel and sepia are the hands, and nothing else.** Falling notes, lit keys, the hands' chips, a
   note under the cursor. A lit key must not pass for a white or a black one, which is why neither
