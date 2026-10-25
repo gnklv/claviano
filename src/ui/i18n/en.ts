@@ -18,6 +18,7 @@ export const en = {
   way: 'Listen or learn',
   wayListen: 'Listen',
   wayLearn: 'Learn',
+  stageSplit: 'Between the notes and the keys',
   viewStaff: 'Notes',
   viewKeys: 'Keys',
   viewBoth: 'Both',

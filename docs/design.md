@@ -80,6 +80,10 @@ component names the token; it never writes a colour.
   on a narrow window alike.
 - **Under a pointer, a button and segments are one height** (`--control-height`), so that a bar
   of both stands level.
+- **A line that shares a height** (the staff over the falling notes) is seen as an edge, 1px, and
+  taken hold of further: a little either side under a pointer, 44px under a finger (`--touch`); in
+  ink when reached for, held or reached by Tab. Where it stands is kept between visits, one for
+  the whole app (a `preference`, to the percent), and a double press puts it back.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
   depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
   `--scrim`.
@@ -137,6 +141,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
 | `PanelControl` | a button with what it sets behind it: a `PopOver`, a sheet on a phone | the tempo, the bookmarks. As wide as a sheet (`--panel-width`) |
 | `MenuList` | the choices of a menu | inside a `PopOver` |
+| `SplitHandle` | the line between two parts of a column, drawn up or down | the staff over the falling notes, in both views |
 | `AppIcon` | an icon of the set | |
 | `TempoMark` | a tempo as the page writes it | |
 

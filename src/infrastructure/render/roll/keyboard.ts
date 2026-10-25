@@ -22,7 +22,12 @@ const KEY_LENGTH_RATIO = 4;
 const MIN_KEY_LENGTH_RATIO = 2.5;
 const MAX_KEYBOARD_SHARE = 0.45;
 export const MIN_KEYBOARD_PX = 40;
-const MAX_KEYBOARD_PX = 140;
+/**
+ * No taller, however much height there is: the keys say where a note falls, the room above them
+ * is for what falls. By eye on "Ode to Joy" and the showcase at 1280×800 (140 left the falling
+ * notes short of room over a keyboard of few octaves).
+ */
+const MAX_KEYBOARD_PX = 110;
 /*
  * Scrolling. When the piece's range would make white keys narrower than SCROLL_BELOW_PX,
  * keys get SCROLL_KEY_PX instead and the keyboard becomes wider than the screen.

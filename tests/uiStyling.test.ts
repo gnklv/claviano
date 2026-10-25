@@ -31,6 +31,7 @@ const OWN_CLASSES: Record<string, string> = {
   'action-tile': 'ActionTile',
   'tempo-mark': 'TempoMark',
   'panel-control': 'PanelControl',
+  'split-handle': 'SplitHandle',
 };
 /** (A chip or a button whose `words` and `toggle` are its own: their own file names them.) */
 const OWNERS = new Set(['AppButton', 'ToggleChip', 'ActionTile', 'PieceTile', 'PanelControl']);
@@ -61,7 +62,7 @@ const parts = (file: string) => {
   const style = source.includes('<style') ? source.slice(source.indexOf('<style')) : '';
   // Rules as [selector, declarations], comments out, @media unwrapped.
   const rules = [...style.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .map((match) => [match[1]!.replace(/^[\s\S]*\{/, '').trim(), match[2]!] as const)
+    .map((match) => [match[1].replace(/^[\s\S]*\{/, '').trim(), match[2]] as const)
     .filter(([selector]) => selector && !selector.startsWith('@'));
   return { template, style, rules };
 };
@@ -91,12 +92,12 @@ describe('the look of a component', () => {
     const found = vues(UI).flatMap((file) => {
       const { template, rules } = parts(file);
       const onComponents = new Set(
-        [...template.matchAll(/<([A-Z][A-Za-z]+)\b([^>]*)>/g)].flatMap((match) => [...match[2]!.matchAll(/(?<![:\w-])class="([^"]+)"/g)].flatMap((cls) => cls[1]!.split(/\s+/))),
+        [...template.matchAll(/<([A-Z][A-Za-z]+)\b([^>]*)>/g)].flatMap((match) => [...match[2].matchAll(/(?<![:\w-])class="([^"]+)"/g)].flatMap((cls) => cls[1].split(/\s+/))),
       );
       return rules.flatMap(([selector, body]) => {
-        const styled = subjects(selector).flatMap((subject) => [...subject.matchAll(/\.([\w-]+)/g)].map((match) => match[1]!)).filter((cls) => onComponents.has(cls));
+        const styled = subjects(selector).flatMap((subject) => [...subject.matchAll(/\.([\w-]+)/g)].map((match) => match[1])).filter((cls) => onComponents.has(cls));
         if (styled.length === 0 || styled.some((cls) => ALLOWED.has(`${names(file)} .${cls}`))) return [];
-        const set = body.split(';').map((declaration) => declaration.split(':')[0]!.trim()).filter(Boolean);
+        const set = body.split(';').map((declaration) => declaration.split(':')[0].trim()).filter(Boolean);
         const beyond = set.filter((property) => !PLACE.has(property));
         return beyond.length ? [`${names(file)}: ${selector} sets ${beyond.join(', ')}`] : [];
       });

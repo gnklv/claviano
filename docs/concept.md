@@ -67,7 +67,9 @@ being dragged in · a file is being read · a file did not open.
 ### 2. Learning: the stage, with what matters under it
 
 A thin header (back to the library, the title, listen or learn, the view mode, settings), the stage
-(the staff, the falling notes and keyboard, or both), and the transport bar.
+(the staff, the falling notes and keyboard, or both), and the transport bar. In both, the line
+between the staff and the falling notes is drawn up or down: a larger staff reads better, a smaller
+one shows more bars ahead, and which is one's own (kept, one for every piece).
 
 The header, in its order: back; the piece's name, in ink (it names what is open, not a place), and
 nothing beside it (how many bars and notes is not what one opens a piece for); the way, listen or

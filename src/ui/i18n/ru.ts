@@ -12,6 +12,7 @@ export const ru: Dictionary = {
   wayListen: 'Слушать',
   wayLearn: 'Учить',
   viewMode: 'Вид',
+  stageSplit: 'Граница между нотами и клавишами',
   viewStaff: 'Ноты',
   viewKeys: 'Клавиши',
   viewBoth: 'Вместе',

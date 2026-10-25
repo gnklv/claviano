@@ -19,6 +19,7 @@ import SectionHeading from '../components/SectionHeading.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import SettingRow from '../components/SettingRow.vue';
 import SheetDialog from '../components/SheetDialog.vue';
+import SplitHandle from '../components/SplitHandle.vue';
 import TempoMark from '../components/TempoMark.vue';
 import TextField from '../components/TextField.vue';
 import ThemeSwitch from '../components/ThemeSwitch.vue';
@@ -63,6 +64,7 @@ const sheet = ref<InstanceType<typeof SheetDialog> | null>(null);
 const panelOpen = ref(false);
 const menuOpen = ref(false);
 const endMenuOpen = ref(false);
+const split = ref(45);
 const MENU = [
   { id: 'one', label: 'A choice' },
   { id: 'two', label: 'Another choice' },
@@ -259,6 +261,21 @@ const finger = ref('');
         <PassDots :count="3" :of="3" label="3 of 3 clean in a row" />
       </div>
 
+      <SectionHeading>A line to draw</SectionHeading>
+      <p class="about">Between two parts of a column, held and drawn up or down (the staff over the falling notes): the line of an edge, in ink when reached for or reached by Tab; arrows move it, a double press puts it back. The second as under the pointer.</p>
+      <div class="row">
+        <div class="split-sample" :style="{ '--upper': `${split}%` }">
+          <div class="split-part">{{ split }}%</div>
+          <SplitHandle v-model:share="split" :min="25" :max="75" label="A line to draw" @reset="split = 45" />
+          <div class="split-part" />
+        </div>
+        <div class="split-sample" style="--upper: 45%">
+          <div class="split-part" />
+          <SplitHandle class="as-hovered" :share="45" :min="25" :max="75" label="A line to draw, under the pointer" />
+          <div class="split-part" />
+        </div>
+      </div>
+
       <SectionHeading>Keys to play</SectionHeading>
       <p class="about">A keyboard to play on, with fingers, the mouse or the computer's letters: it says what is pressed, and lights what it is told is held.</p>
       <div class="keys">
@@ -303,6 +320,29 @@ const finger = ref('');
 </template>
 
 <style scoped>
+/* (A column to share: a little like the stage, the staff's part over the notes'.) */
+.split-sample {
+  display: grid;
+  grid-template-rows: var(--upper) 1px 1fr;
+  width: var(--panel-width);
+  height: calc(3 * var(--panel-width) / 4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+
+.split-part {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.as-hovered[role='separator'] {
+  background: var(--muted);
+  box-shadow: 0 0 0 1px var(--muted);
+}
+
 /* (A row of a list as wide as a sheet's.) */
 .list-sample {
   max-width: var(--panel-width);

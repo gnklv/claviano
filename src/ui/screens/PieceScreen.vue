@@ -3,6 +3,7 @@ import ScreenHeader from '../components/ScreenHeader.vue';
 import CountInOverlay from '../parts/CountInOverlay.vue';
 import FingerBar from '../components/FingerBar.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
+import SplitHandle from '../components/SplitHandle.vue';
 import InstrumentNotice from '../parts/InstrumentNotice.vue';
 import PianoRoll from '../parts/PianoRoll.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
@@ -19,6 +20,7 @@ import { usePieceWay } from '../app/usePieceWay';
 import { useResize } from '../browser/useResize';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useShownViewMode } from '../kept/useViewMode';
+import { STAFF_SHARE, useStaffShare } from '../kept/useStaffShare';
 import { computed, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue';
 import type { Finger } from '../../domain/fingering/hand';
 import type { NoteOnPage } from '../../domain/fingering/own';
@@ -99,7 +101,36 @@ function letGoWhenBack(): void {
   if (held.value && !immersed.value && (stage.value?.clientHeight ?? 0) <= held.value.stage + 0.5) held.value = null;
 }
 watch(immersed, letGoWhenBack, { flush: 'post' });
-useResize(stage, letGoWhenBack);
+
+// --- Both views: the staff over the falling notes, the height shared between them by a line held and drawn. ---
+
+/**
+ * The staff's least height: its two staves and the least room over and under them, at the least
+ * space it is drawn with (24 spaces of 6 px, see infrastructure/render/staff/geometry.ts), and a
+ * little air.
+ */
+const STAFF_LEAST_PX = 160;
+/** What is under the staff at the least: a keyboard (a little under half of it, see infrastructure/render/roll/keyboard.ts) and as much again of falling notes. */
+const ROLL_LEAST_PX = 180;
+
+const stageHeight = ref(0);
+useResize(stage, () => {
+  stageHeight.value = stage.value?.clientHeight ?? 0;
+  letGoWhenBack();
+});
+/** How far the line may go, in percent of the stage: both keep their least, and what is kept is never passed. */
+const shareRange = computed(() => {
+  const height = stageHeight.value;
+  const min = height > 0 ? Math.max(STAFF_SHARE.least, Math.ceil((STAFF_LEAST_PX / height) * 100)) : STAFF_SHARE.least;
+  const max = height > 0 ? Math.min(STAFF_SHARE.most, Math.floor(100 - (ROLL_LEAST_PX / height) * 100)) : STAFF_SHARE.most;
+  return { min, max: Math.max(min, max) };
+});
+const keptShare = useStaffShare();
+/** The share shown: as kept, within what this stage allows (a window made lower keeps the choice for when it is tall again). */
+const staffShare = computed({
+  get: () => Math.min(shareRange.value.max, Math.max(shareRange.value.min, keptShare.value)),
+  set: (share: number) => (keptShare.value = share),
+});
 </script>
 
 <template>
@@ -118,7 +149,7 @@ useResize(stage, letGoWhenBack);
       </div>
     </div>
 
-    <main ref="stage" class="stage" :class="`view-${viewMode}`">
+    <main ref="stage" class="stage" :class="`view-${viewMode}`" :style="viewMode === 'both' ? { '--staff-share': `${staffShare}%` } : undefined">
       <StaffView
         v-if="viewMode !== 'keys'"
         ref="staffView"
@@ -131,8 +162,15 @@ useResize(stage, letGoWhenBack);
         :loops="learning"
         @pick="picked = $event"
       />
-      <!-- (Between the two, a line of the stage's own.) -->
-      <div v-if="viewMode === 'both'" class="divide" />
+      <!-- (Between the two, a line of the stage's own, to be drawn up or down: how large the staff is is one's own.) -->
+      <SplitHandle
+        v-if="viewMode === 'both'"
+        v-model:share="staffShare"
+        :min="shareRange.min"
+        :max="shareRange.max"
+        :label="t('stageSplit')"
+        @reset="keptShare = STAFF_SHARE.byDefault"
+      />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" :fingers="fingers" :fingering="fingering" :picked="pickedTiles" @pick="pickTile" />
       <CountInOverlay />
       <InstrumentNotice />
@@ -226,12 +264,8 @@ useResize(stage, letGoWhenBack);
 }
 
 .stage.view-both {
-  /* (The staff: a little over a third of the height, and never too low to hold both its staves.) */
-  grid-template-rows: minmax(160px, 38%) 1px 1fr;
-}
-
-.divide {
-  background: var(--border);
+  /* (The staff: its share, as drawn by the line; the line; the falling notes, the rest.) */
+  grid-template-rows: var(--staff-share) 1px 1fr;
 }
 
 .view {
