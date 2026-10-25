@@ -66,6 +66,7 @@ defineExpose({ showWhereOneIs });
         v-for="{ step, index } in group.steps"
         :key="index"
         variant="quiet"
+        row
         class="step"
         :class="{ done: state.done.has(index) }"
         :label="state.done.has(index) ? `${words.what(step)} · ${t('stepDone')}` : undefined"
@@ -100,21 +101,8 @@ defineExpose({ showWhereOneIs });
   font-variant-numeric: tabular-nums;
 }
 
-.step {
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.step :deep(.words) {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .what {
   flex: 1;
-  text-align: start;
 }
 
 /* (A tick's room is kept where there is none, so that the steps' words stand in one column.) */

@@ -12,7 +12,7 @@ import SheetDialog from './SheetDialog.vue';
  * panel is the `panel` slot (given `close`, for a choice that is done with it), and `title` names both.
  */
 /** `quiet`: a button that reads as what it says (a readout), not as a control; `icon`: what is behind it, beside the words. */
-defineProps<{ title: string; label: string; disabled?: boolean; variant?: 'quiet'; icon?: IconName }>();
+defineProps<{ title: string; label: string; disabled?: boolean; variant?: 'quiet'; icon?: IconName; /** The button a pill (see AppButton). */ pill?: boolean }>();
 
 const phone = useMediaQuery(SMALL_SCREEN);
 const sheet = useTemplateRef<InstanceType<typeof SheetDialog>>('sheet');
@@ -34,7 +34,7 @@ function close(): void {
 <template>
   <div class="panel-control">
     <PopOver v-model:open="open" place="above" :label="title">
-      <AppButton class="face" :variant="variant" :icon="icon" :label="label" :hint="title" :disabled="disabled" :aria-expanded="phone ? undefined : open" @click="toggle"><slot /></AppButton>
+      <AppButton class="face" :variant="variant" :icon="icon" :label="label" :hint="title" :pill="pill" :disabled="disabled" :aria-expanded="phone ? undefined : open" @click="toggle"><span class="reading"><slot /></span></AppButton>
       <template #panel>
         <div class="beside"><slot name="panel" :close="close" /></div>
       </template>
@@ -46,9 +46,9 @@ function close(): void {
 </template>
 
 <style scoped>
-.face {
+/* (What it says stands set: a number that changes in place.) */
+.reading {
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 /* (Not "panel": a sheet's own box is called so, and a style of this component reaches the root of a child.) */

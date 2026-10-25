@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppButton from '../components/AppButton.vue';
+import AppIcon from '../components/AppIcon.vue';
 import ToggleChip from '../components/ToggleChip.vue';
 import { computed } from 'vue';
 import type { Hand } from '../../domain/note';
@@ -51,26 +52,21 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
 
 <template>
   <div class="practice" :class="{ tiled }">
-    <ToggleChip v-for="{ hand, label } in usedWay === 'learn' ? hands : []" :key="hand" :class="`hand-${hand}`" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
-      <template #sign><span class="dot" aria-hidden="true" /></template>
+    <ToggleChip v-for="{ hand, label } in usedWay === 'learn' ? hands : []" :key="hand" class="item hand" :pressed="state.hands[hand]" @update:pressed="playback.setHandEnabled(hand, $event)">
+      <template #sign><span class="dot" :class="[hand, { on: state.hands[hand] }]" aria-hidden="true" /></template>
       {{ t(label) }}
     </ToggleChip>
 
     <!-- (Not a switch: it begins setting them, in the bar of fingers. Not quiet: a bar's controls all show their edges.) -->
-    <AppButton v-if="fingers" class="fingers" icon="pencil" @click="emit('setFingers')">{{ t('fingers') }}</AppButton>
+    <AppButton v-if="fingers" class="item" pill icon="pencil" @click="emit('setFingers')">{{ t('fingers') }}</AppButton>
 
-    <ToggleChip
-      class="metronome"
-      :class="`pulse-${pulse}`"
-      icon="metronome"
-      :pressed="state.metronome"
-      :title="t('metronomeHint')"
-      @update:pressed="playback.setMetronomeEnabled($event)"
-    >
+    <ToggleChip class="item" :pressed="state.metronome" :title="t('metronomeHint')" @update:pressed="playback.setMetronomeEnabled($event)">
+      <!-- (Its own sign, to flash with each click it plays.) -->
+      <template #sign><span class="beat" :class="`pulse-${pulse}`"><AppIcon name="metronome" small /></span></template>
       {{ t('metronome') }}
     </ToggleChip>
 
-    <ToggleChip v-for="item in switches" :key="item.label" :pressed="item.on" @update:pressed="item.set($event)">
+    <ToggleChip v-for="item in switches" :key="item.label" class="item" :pressed="item.on" @update:pressed="item.set($event)">
       {{ t(item.label) }}
     </ToggleChip>
   </div>
@@ -89,13 +85,11 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
  * In a sheet: rows filled from edge to edge, the hands sharing the first. A chip is never narrower
  * than its words: where three do not fit a row (a narrow sheet, a long language), one goes to the next.
  */
-.tiled .toggle,
-.tiled .fingers {
+.tiled .item {
   flex: 1 1 auto;
-  justify-content: center;
 }
 
-.tiled .toggle[class*='hand-'] {
+.tiled .hand {
   flex-basis: 40%;
 }
 
@@ -108,28 +102,26 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
   border: 2px solid currentColor;
 }
 
-.hand-right .dot {
+.dot.right {
   color: var(--right);
 }
 
-.hand-left .dot {
+.dot.left {
   color: var(--left);
 }
 
-.toggle[aria-pressed='true'] .dot {
+.dot.on {
   background: currentColor;
 }
 
-.metronome :deep(.icon) {
+/* The metronome's sign, quiet, and lit with each click (the count-in's too). */
+.beat {
+  display: inline-flex;
   color: var(--muted);
 }
 
-.metronome.pulse-beat :deep(.icon),
-.metronome.pulse-accent :deep(.icon) {
+.beat.pulse-beat,
+.beat.pulse-accent {
   color: var(--accent);
-}
-
-.metronome.pulse-accent .dot {
-  scale: 1.35;
 }
 </style>

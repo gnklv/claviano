@@ -114,10 +114,12 @@ function togglePlay(): void {
     (What is touched seldom is in the settings panel.) How the groups are arranged depends on the
     width; see the grid areas below.
   -->
-  <footer class="transport bottom-bar" :class="{ listening: !learning }">
+  <!-- (Every button in it a pill, as its chips are: one row of one shape reads as of one height.) -->
+  <footer class="transport" :class="{ listening: !learning }">
     <div class="playback">
       <AppButton
         variant="primary"
+        pill
         :icon="state.playing ? 'pause' : 'play'"
         :disabled="!loaded"
         :label="t(state.playing ? 'pause' : 'play')"
@@ -140,7 +142,7 @@ function togglePlay(): void {
         @change="onSeekEnd"
       />
       </div>
-      <PanelControl class="readout" icon="bookmark" :title="t('bookmarks')" :label="`${barLabel} · ${t('bookmarks')}`" :disabled="!loaded">
+      <PanelControl class="readout" pill icon="bookmark" :title="t('bookmarks')" :label="`${barLabel} · ${t('bookmarks')}`" :disabled="!loaded">
         {{ barLabel }}
         <template #panel="{ close }"><BookmarksPanel :bar="currentBarNumber" @done="close" /></template>
       </PanelControl>
@@ -150,13 +152,13 @@ function togglePlay(): void {
 
     <div class="loop">
       <template v-if="learning">
-        <ToggleChip v-model:pressed="loopEnabled" icon="loop" :disabled="!loaded" :title="t('loopBars')">{{ t('loop') }}</ToggleChip>
+        <ToggleChip v-model:pressed="loopEnabled" class="loop-switch" icon="loop" :disabled="!loaded" :title="t('loopBars')">{{ t('loop') }}</ToggleChip>
         <TextField v-model="loopFrom" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopFrom')" />
         –
         <TextField v-model="loopTo" class="number" type="number" :min="firstBar" :max="lastBar" :label="t('loopTo')" />
       </template>
       <template v-if="phone">
-        <AppButton class="more" icon="more" :label="t('practice')" @click="practiceSheet?.open()" />
+        <AppButton class="more" pill icon="more" :label="t('practice')" @click="practiceSheet?.open()" />
         <SheetDialog ref="practiceSheet" :title="t('practice')">
           <PlanStart v-if="planInSheet" @began="practiceSheet?.close()" />
           <PracticeToggles
@@ -315,7 +317,7 @@ function togglePlay(): void {
 
 
 /* (The loop's word is never cut short: the place in the piece gives way, or the tempo says less.) */
-.loop .toggle {
+.loop-switch {
   flex: none;
 }
 

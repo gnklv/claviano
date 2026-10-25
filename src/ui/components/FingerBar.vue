@@ -36,7 +36,7 @@ const now = computed(() => {
       </div>
       <AppButton variant="quiet" :label="t('fingerClear')" :disabled="!now?.own" @click="emit('set', null)">{{ t('fingerClear') }}</AppButton>
     </template>
-    <AppNotice v-else class="note ask">{{ t('fingerPick') }}</AppNotice>
+    <AppNotice v-else class="ask">{{ t('fingerPick') }}</AppNotice>
     <AppButton class="done" :label="t('fingerDone')" @click="emit('done')">{{ t('fingerDone') }}</AppButton>
   </div>
 </template>
@@ -66,12 +66,11 @@ const now = computed(() => {
 .fingers {
   display: flex;
   gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
 }
 
 .finger {
   min-width: var(--touch);
-  justify-content: center;
-  font-variant-numeric: tabular-nums;
 }
 
 .done {

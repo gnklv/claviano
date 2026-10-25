@@ -42,6 +42,13 @@ const { t } = useI18n();
   background: var(--panel);
 }
 
+/* A phone on its side: a thin strip, every pixel of height is the screen's. */
+@media (max-height: 500px) {
+  .screen-header {
+    padding-block: max(var(--space-1), env(safe-area-inset-top)) var(--space-1);
+  }
+}
+
 .back {
   flex: none;
 }

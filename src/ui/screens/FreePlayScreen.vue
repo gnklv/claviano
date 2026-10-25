@@ -47,7 +47,7 @@ onUnmounted(() => {
 <template>
   <!-- (Safari's own pinch, which begins with a finger on the keys and another beside them: this screen is played on, not zoomed.) -->
   <div class="free-play" @gesturestart.prevent>
-    <ScreenHeader class="bar" back @back="emit('back')">
+    <ScreenHeader back @back="emit('back')">
       <template #title>{{ t('freePlay') }}</template>
       <div class="octaves" role="group" :aria-label="t('octave')">
         <AppButton icon="lower" :disabled="!state.canGoLower" :label="t('octaveLower')" :hint="`${t('octaveLower')} (Z)`" @click="freePlay.shift(-1)" />
@@ -171,12 +171,8 @@ onUnmounted(() => {
   background: var(--panel);
 }
 
-/* A phone on its side: a thin header, and the keys a little under half of what height there is. */
+/* A phone on its side: the keys a little under half of what height there is (the header is thin by itself). */
 @media (max-height: 500px) {
-  .bar {
-    padding-block: max(var(--space-1), env(safe-area-inset-top)) var(--space-1);
-  }
-
   .keyboard {
     height: 45dvh;
   }

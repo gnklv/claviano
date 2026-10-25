@@ -61,18 +61,18 @@ function choose(action: string): void {
 </script>
 
 <template>
-  <div v-if="shown" class="step-bar bottom-bar" :class="{ playing }">
+  <div v-if="shown" class="step-bar" :class="{ playing }">
     <template v-if="playing">
       <!-- (On a phone, what to do stands in the place of the step's name until a pass is marked.) -->
       <p v-if="narrow && !marked" class="how in-place">{{ t('stepHow', { of: PASSES_TO_DONE }) }}</p>
-      <AppButton v-else class="said" variant="quiet" :hint="t('plan')" @click="list?.open()">{{ words.whole(playing) }}</AppButton>
+      <AppButton v-else class="said" variant="quiet" pill :hint="t('plan')" @click="list?.open()"><span class="reading">{{ words.whole(playing) }}</span></AppButton>
       <PassDots class="dots" :count="state.clean" :of="PASSES_TO_DONE" :label="t('stepCleanCount', { count: state.clean, of: PASSES_TO_DONE })" />
       <div class="marks">
-        <AppButton @click="mark(false)">{{ t('stepSlip') }}</AppButton>
-        <AppButton @click="mark(true)">{{ t('stepClean') }}</AppButton>
+        <AppButton class="mark" pill @click="mark(false)">{{ t('stepSlip') }}</AppButton>
+        <AppButton class="mark" pill @click="mark(true)">{{ t('stepClean') }}</AppButton>
       </div>
       <PopOver v-model:open="menu" class="more" place="above-end" role="menu" :label="t('stepActions')">
-        <AppButton variant="quiet" icon="more" :label="t('stepActions')" :aria-expanded="menu" @click="menu = !menu" />
+        <AppButton variant="quiet" pill icon="more" :label="t('stepActions')" :aria-expanded="menu" @click="menu = !menu" />
         <template #panel><MenuList :items="actions" @choose="choose" /></template>
       </PopOver>
       <p v-if="!narrow && !marked" class="how">{{ t('stepHow', { of: PASSES_TO_DONE }) }}</p>
@@ -118,19 +118,15 @@ function choose(action: string): void {
   }
 }
 
-/* The words give way first: cut short, they never push the buttons out of the row. */
+/* The words give way first: cut short (as a button's words are), they never push the buttons out of the row. */
 .said {
   grid-area: said;
   min-width: 0;
-  justify-content: flex-start;
-  /* (Read, not passed over: the step is what one is playing. Quiet only in that it has no face.) */
-  color: var(--text);
 }
 
-.said :deep(.words) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* (Read, not passed over: the step is what one is playing. Quiet only in that it has no face.) */
+.reading {
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -142,10 +138,6 @@ function choose(action: string): void {
   grid-area: marks;
   display: flex;
   gap: var(--space-2);
-}
-
-.marks .button {
-  white-space: nowrap;
 }
 
 .more {
@@ -187,7 +179,7 @@ function choose(action: string): void {
     margin-inline-start: var(--space-3);
   }
 
-  .marks .button {
+  .mark {
     flex: 1 1 0;
   }
 }

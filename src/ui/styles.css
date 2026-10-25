@@ -374,13 +374,34 @@ input,
   }
 }
 
-/*
- * A bar of controls along the bottom of a screen (the transport, the step over it): its buttons are
- * pills, as its chips are, so that one row is of one shape and reads as of one height. (Not what
- * stands in a sheet it opens: that is a page of its own.)
- */
-.bottom-bar .button:not(dialog .button) {
+/* What a button is asked to be (see AppButton): a pill; a circle; with the colour of recording; a row of a list. */
+.button.pill {
   border-radius: var(--radius-pill);
+}
+
+.button.round {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  border-radius: 50%;
+}
+
+.button.recording .icon {
+  color: var(--record);
+}
+
+.button.row {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.button.row .words {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: start;
 }
 
 /*
@@ -394,6 +415,8 @@ input,
   display: inline-flex;
   white-space: nowrap;
   align-items: center;
+  /* (Its words in the middle, as a button's: a chip made wider than they are, in a row filled from edge to edge, keeps them there.) */
+  justify-content: center;
   gap: var(--space-2);
   border: 1px solid var(--border);
   background: transparent;

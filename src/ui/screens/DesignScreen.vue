@@ -121,6 +121,16 @@ const finger = ref('');
         <AppButton variant="quiet" icon="more" label="Quiet" />
         <AppButton disabled>Disabled</AppButton>
       </div>
+      <p class="about">What a place asks of a button, by name: a pill (in a bar of chips), a circle (a step of a number), the colour of recording, a row of a list.</p>
+      <div class="row start">
+        <AppButton pill>A pill</AppButton>
+        <AppButton variant="primary" pill icon="play" label="A primary pill" />
+        <AppButton round icon="minus" label="Round" />
+        <AppButton recording icon="record">Recording</AppButton>
+      </div>
+      <div class="list-sample">
+        <AppButton variant="quiet" row><span>A row of a list</span><span class="caption">at its end</span></AppButton>
+      </div>
 
       <SectionHeading>Header</SectionHeading>
       <p class="about">The strip on top of a screen. Its title names a place, said quietly; or what is open there (a piece), in ink.</p>
@@ -293,6 +303,11 @@ const finger = ref('');
 </template>
 
 <style scoped>
+/* (A row of a list as wide as a sheet's.) */
+.list-sample {
+  max-width: var(--panel-width);
+}
+
 /* (A chip as under the pointer, held so to be seen: what ui/styles.css does on hover.) */
 .as-hovered {
   color: var(--text);
@@ -431,7 +446,6 @@ const finger = ref('');
   position: absolute;
   top: var(--space-2);
   right: var(--space-2);
-  padding: var(--space-0) var(--space-2);
 }
 
 .panel-words {

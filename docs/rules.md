@@ -49,6 +49,13 @@ copy of something written a month before.
   case, a view drawn through a port. A component goes where it belongs as it changes: one that comes
   to ask for the deps moves to the parts, in that commit, and back. Being used on two screens does
   not make a part a building component. (A test holds this: `tests/uiParts.test.ts`.)
+- **A component's look is its own.** What holds it says where it stands (its place in a grid or a
+  row, the room outside it, its width), and nothing else: not its padding, its colour, its type, its
+  corners. What a place needs of it otherwise, it asks for by name, a prop or a slot (a button a
+  pill, a sign of one's own in a chip). So a style does not reach into another component (no
+  `:deep`), nor name its insides (`.button`, `.words`). (The piece's header had its padding set
+  from outside, by the screen: the header could no longer say how it is spaced.) A test holds
+  this: `tests/uiStyling.test.ts`.
 - **A use case is mirrored into a component by one helper** (a snapshot, refreshed on its
   `onChange`), not by a composable written anew for each.
 - **Behaviour that appears twice becomes a component or a composable** before the second copy is

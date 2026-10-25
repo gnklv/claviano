@@ -35,8 +35,8 @@ function begin(index: number): void {
 
 <template>
   <div class="plan-start">
-    <AppButton class="said" variant="quiet" :hint="t('plan')" @click="list?.open()">{{ said }}</AppButton>
-    <AppButton v-if="state.next !== null" class="begin" @click="begin(state.next)">{{ t('planStart') }}</AppButton>
+    <AppButton class="said" variant="quiet" pill :hint="t('plan')" @click="list?.open()"><span class="reading">{{ said }}</span></AppButton>
+    <AppButton v-if="state.next !== null" class="begin" pill @click="begin(state.next)">{{ t('planStart') }}</AppButton>
     <PlanList ref="list" @began="emit('began')" />
   </div>
 </template>
@@ -49,27 +49,19 @@ function begin(index: number): void {
   min-width: 0;
 }
 
-/*
- * The words give way first, cut short; never the button. Quiet: its words stand at the edge of what
- * holds them, as what stands above and below them does; the face, when it comes, reaches past.
- */
+/* The words give way first, cut short (as a button's words are); never the button. */
 .said {
   flex: 0 1 auto;
   min-width: 0;
-  justify-content: flex-start;
-  /* (Read, not passed over: it is where one is in the plan. Quiet only in that it has no face.) */
-  color: var(--text);
 }
 
-.said :deep(.words) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* (Read, not passed over: it is where one is in the plan. Quiet only in that it has no face.) */
+.reading {
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .begin {
   flex: none;
-  white-space: nowrap;
 }
 </style>

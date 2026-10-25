@@ -64,16 +64,16 @@ const percent = computed({
 <template>
   <div class="tempo-settings">
     <div class="now">
-      <AppButton class="step" icon="minus" :disabled="percent <= RANGE.min" :label="t('tempoSlower')" @click="stepTempo(playback, -1)" />
+      <AppButton round icon="minus" :disabled="percent <= RANGE.min" :label="t('tempoSlower')" @click="stepTempo(playback, -1)" />
       <output class="readout">
         <strong class="percent">{{ percent }}%</strong>
         <span class="mark"><TempoMark v-if="mark" v-bind="mark" /><template v-else>&nbsp;</template></span>
       </output>
-      <AppButton class="step" icon="plus" :disabled="percent >= RANGE.max" :label="t('tempoFaster')" @click="stepTempo(playback, 1)" />
+      <AppButton round icon="plus" :disabled="percent >= RANGE.max" :label="t('tempoFaster')" @click="stepTempo(playback, 1)" />
     </div>
     <AppSlider v-model="percent" class="slider" :min="RANGE.min" :max="RANGE.max" :step="RANGE.step" :label="t('tempo')" />
     <div class="presets">
-      <ToggleChip v-for="preset in PRESETS" :key="preset" class="preset" :pressed="percent === preset" @update:pressed="percent = preset">
+      <ToggleChip v-for="preset in PRESETS" :key="preset" :pressed="percent === preset" @update:pressed="percent = preset">
         {{ preset }}
       </ToggleChip>
     </div>
@@ -117,14 +117,6 @@ const percent = computed({
   gap: var(--space-3);
 }
 
-.step {
-  flex: none;
-  width: var(--touch);
-  height: var(--touch);
-  padding: 0;
-  border-radius: 50%;
-}
-
 .readout {
   display: grid;
   justify-items: center;
@@ -146,15 +138,11 @@ const percent = computed({
   margin: 0;
 }
 
+/* (Three to a row: six in one left a chip no room for its words but by taking its padding away.) */
 .presets {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-2);
-}
-
-.preset {
-  justify-content: center;
-  padding-inline: 0;
   font-variant-numeric: tabular-nums;
 }
 </style>

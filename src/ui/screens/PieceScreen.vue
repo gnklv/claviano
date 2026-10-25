@@ -131,6 +131,8 @@ useResize(stage, letGoWhenBack);
         :loops="learning"
         @pick="picked = $event"
       />
+      <!-- (Between the two, a line of the stage's own.) -->
+      <div v-if="viewMode === 'both'" class="divide" />
       <PianoRoll v-if="viewMode !== 'staff'" class="view" :fingers="fingers" :fingering="fingering" :picked="pickedTiles" @pick="pickTile" />
       <CountInOverlay />
       <InstrumentNotice />
@@ -225,7 +227,11 @@ useResize(stage, letGoWhenBack);
 
 .stage.view-both {
   /* (The staff: a little over a third of the height, and never too low to hold both its staves.) */
-  grid-template-rows: minmax(160px, 38%) 1fr;
+  grid-template-rows: minmax(160px, 38%) 1px 1fr;
+}
+
+.divide {
+  background: var(--border);
 }
 
 .view {
@@ -239,9 +245,5 @@ useResize(stage, letGoWhenBack);
 /* (The room around a staff held in the middle is its paper too.) */
 .stage:has(.held) {
   background: var(--surface);
-}
-
-.view-both .staff {
-  border-bottom: 1px solid var(--border);
 }
 </style>

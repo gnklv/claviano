@@ -73,7 +73,7 @@ function finishRenaming(keep: boolean): void {
     </template>
 
     <PopOver v-model:open="menu" class="actions" place="below" role="menu" :label="t('pieceActions')">
-      <AppButton class="more" variant="quiet" icon="more" :label="`${t('pieceActions')}: ${title}`" :hint="t('pieceActions')" :aria-expanded="menu" @click="menu = !menu" />
+      <AppButton variant="quiet" icon="more" :label="`${t('pieceActions')}: ${title}`" :hint="t('pieceActions')" :aria-expanded="menu" @click="menu = !menu" />
       <template #panel><MenuList :items="actions" @choose="choose" /></template>
     </PopOver>
   </PieceTile>
@@ -87,8 +87,6 @@ function finishRenaming(keep: boolean): void {
 
 .field {
   width: 100%;
-  /* (16px always: Safari on iOS zooms into a field with smaller text.) */
-  font-size: var(--text-field);
 }
 
 .note {
@@ -100,9 +98,5 @@ function finishRenaming(keep: boolean): void {
   position: absolute;
   top: var(--space-2);
   right: var(--space-2);
-}
-
-.more {
-  padding: var(--space-0) var(--space-2);
 }
 </style>

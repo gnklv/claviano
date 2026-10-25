@@ -38,7 +38,7 @@ const mark = computed<TempoReading | null>(() => {
 </script>
 
 <template>
-  <PanelControl class="tempo" :title="t('tempo')" :label="`${t('tempo')}: ${percent}%`">
+  <PanelControl class="tempo" pill :title="t('tempo')" :label="`${t('tempo')}: ${percent}%`">
     {{ percent }}%<span v-if="aim !== null" class="aim">{{ t('trainerAim', { to: aim }) }}</span><span v-if="mark" class="mark"> · <TempoMark v-bind="mark" /></span>
     <template #panel><TempoSettings :mark="mark" /></template>
   </PanelControl>

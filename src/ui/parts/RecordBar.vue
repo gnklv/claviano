@@ -54,31 +54,31 @@ const status = computed(() => {
 <template>
   <div class="record-bar">
     <div class="take">
-      <AppButton v-if="busy" class="stop" icon="stop" @click="recorder.stop()">{{ t('recordStop') }}</AppButton>
-      <AppButton v-else-if="state.state === 'idle'" class="record" icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
+      <AppButton v-if="busy" class="act" recording icon="stop" @click="recorder.stop()">{{ t('recordStop') }}</AppButton>
+      <AppButton v-else-if="state.state === 'idle'" class="act" recording icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
       <!-- A take is there: to hear, to keep, to mend at its end, or to play again. -->
       <template v-else>
         <!-- (On a phone on its side the bar is one row: what an icon says by itself goes without its word.) -->
-        <AppButton v-if="low" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
-        <AppButton v-else :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
-        <AppButton class="keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
+        <AppButton v-if="low" class="act" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
+        <AppButton v-else class="act" :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
+        <AppButton class="act keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
       </template>
       <span class="status" :class="{ live: state.state === 'recording' }" role="status">{{ status }}</span>
     </div>
 
     <div v-if="state.state === 'recorded'" class="mend">
-      <AppButton @click="recorder.eraseLastBar()">{{ t('takeEraseBar') }}</AppButton>
-      <AppButton class="record" icon="record" @click="recorder.arm()">{{ t('recordAgain') }}</AppButton>
-      <AppButton v-if="low" icon="close" :label="t('recordDiscard')" @click="recorder.discard()" />
-      <AppButton v-else @click="recorder.discard()">{{ t('recordDiscard') }}</AppButton>
+      <AppButton class="act" @click="recorder.eraseLastBar()">{{ t('takeEraseBar') }}</AppButton>
+      <AppButton class="act" recording icon="record" @click="recorder.arm()">{{ t('recordAgain') }}</AppButton>
+      <AppButton v-if="low" class="act" icon="close" :label="t('recordDiscard')" @click="recorder.discard()" />
+      <AppButton v-else class="act" @click="recorder.discard()">{{ t('recordDiscard') }}</AppButton>
     </div>
     <!-- (The beat is set before a take; with one there, it is that take's.) -->
     <div v-else class="beat">
       <ToggleChip :pressed="state.metronome" :disabled="busy" @update:pressed="recorder.setMetronome($event)">{{ t('metronome') }}</ToggleChip>
       <div class="tempo" role="group" :aria-label="t('tempo')">
-        <AppButton class="step" icon="minus" :disabled="busy || state.tempo <= RECORDING_TEMPO.min" :label="t('tempoSlower')" @click="recorder.setTempo(state.tempo - RECORDING_TEMPO.step)" />
+        <AppButton class="act" icon="minus" :disabled="busy || state.tempo <= RECORDING_TEMPO.min" :label="t('tempoSlower')" @click="recorder.setTempo(state.tempo - RECORDING_TEMPO.step)" />
         <output class="bpm"><TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /></output>
-        <AppButton class="step" icon="plus" :disabled="busy || state.tempo >= RECORDING_TEMPO.max" :label="t('tempoFaster')" @click="recorder.setTempo(state.tempo + RECORDING_TEMPO.step)" />
+        <AppButton class="act" icon="plus" :disabled="busy || state.tempo >= RECORDING_TEMPO.max" :label="t('tempoFaster')" @click="recorder.setTempo(state.tempo + RECORDING_TEMPO.step)" />
       </div>
       <SegmentedControl v-model="meter" class="meter" wide :disabled="busy" :options="meters" :label="t('timeSignature')" />
     </div>
@@ -116,12 +116,6 @@ const status = computed(() => {
   min-width: 0;
 }
 
-/* (Recording is red, and so is what stops it.) */
-.record :deep(.icon),
-.stop :deep(.icon) {
-  color: var(--record);
-}
-
 /* What is done with a take has what room the beat leaves it; the word on what is going on gives way first, and never pushes the beat to a row of its own. */
 .take {
   flex: 1 1 auto;
@@ -149,9 +143,8 @@ const status = computed(() => {
   white-space: nowrap;
 }
 
-.record-bar .button {
+.act {
   flex: none;
-  white-space: nowrap;
 }
 
 /*
@@ -172,8 +165,8 @@ const status = computed(() => {
     flex-wrap: wrap;
   }
 
-  .take .button,
-  .mend .button {
+  .take .act,
+  .mend .act {
     flex: 1 1 auto;
   }
 
@@ -208,11 +201,6 @@ const status = computed(() => {
 @media (max-height: 500px) {
   .record-bar {
     column-gap: var(--space-3);
-  }
-
-  .mend .button,
-  .take .button {
-    padding-inline: var(--space-2);
   }
 
   .keep ~ .status {

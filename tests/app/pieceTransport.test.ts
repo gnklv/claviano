@@ -60,7 +60,7 @@ describe('the transport bar', () => {
       input.value = text;
       input.dispatchEvent(new Event('input'));
     };
-    const names = () => [...panel()!.querySelectorAll('.go')].map((row) => [...row.querySelectorAll('span')].map((part) => part.textContent).join(' · '));
+    const names = () => [...panel()!.querySelectorAll('.go')].map((row) => [...row.querySelectorAll('.title, .at')].map((part) => part.textContent).join(' · '));
 
     it('are added at the bar the music is in, named as the bar unless given a name, and gone to at a press', async () => {
       playback.seek(playback.score!.bars[2] + 0.1);

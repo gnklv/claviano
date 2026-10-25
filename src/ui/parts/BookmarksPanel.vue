@@ -68,10 +68,10 @@ function remove(index: number): void {
           <AppButton :label="t('bookmarkDone')" @click="finish(true)">{{ t('bookmarkDone') }}</AppButton>
         </form>
         <template v-else>
-          <button class="go" @click="go(index)">
+          <AppButton class="go" variant="quiet" row @click="go(index)">
             <span class="title">{{ bookmark.name }}</span>
             <span class="at">{{ t('bookmarkAt', { bar: bookmark.bar }) }}</span>
-          </button>
+          </AppButton>
           <AppButton variant="quiet" icon="more" :label="`${t('bookmarkEdit')}: ${bookmark.name}`" :hint="t('bookmarkEdit')" @click="edit(index)" />
         </template>
       </li>
@@ -117,37 +117,24 @@ function remove(index: number): void {
 }
 
 .go {
-  appearance: none;
   flex: 1;
   min-width: 0;
-  min-height: var(--touch);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  /* (As large as the field the name becomes when it is changed: the words do not jump.) */
-  font-size: var(--text-field);
-  text-align: left;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .go:hover {
-    background: var(--control-hover);
-  }
 }
 
 .title {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
+  color: var(--text);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* (Under a finger, as large as the field the name becomes when it is changed: the words do not jump.) */
+@media (pointer: coarse), (max-width: 599px) {
+  .title {
+    font-size: var(--text-field);
+  }
 }
 
 .at {
@@ -159,14 +146,6 @@ function remove(index: number): void {
 .name {
   flex: 1;
   min-width: 0;
-  min-height: var(--touch);
-  /* (16px always: Safari on iOS zooms into a field with smaller text.) */
-  font-size: var(--text-field);
-}
-
-/* (The name being changed starts where it stood: the field's edge is a line wide.) */
-.editing .name {
-  padding-inline: calc(var(--space-3) - 1px);
 }
 
 .add {
