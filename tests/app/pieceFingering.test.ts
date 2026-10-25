@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { rereadPreferences } from '../../src/ui/kept/preferences';
-import { button, fingering, playback, rollFrames, rollPointer, root, settled, staffPointer, staffScores, useApp } from './harness';
+import { button, fingering, learn, playback, rollFrames, rollPointer, root, settled, staffPointer, staffScores, useApp } from './harness';
 
 /* The piece's screen: one's own fingering, set on the staff or on the falling notes. */
 
@@ -25,6 +25,7 @@ describe('one’s own fingering', () => {
   beforeEach(async () => {
     button(/Ode to Joy/).click();
     await settled();
+    await learn();
   });
 
   it('is offered only where fingering is shown', async () => {

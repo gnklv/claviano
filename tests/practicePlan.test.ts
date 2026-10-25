@@ -7,7 +7,7 @@ import { Playback } from '../src/application/use-cases/Playback';
 import { PracticePlan } from '../src/application/use-cases/PracticePlan';
 import { TempoTrainer } from '../src/application/use-cases/TempoTrainer';
 import { partsOf } from '../src/domain/practice/parts';
-import { AT_TEMPO, planOf, SLOW } from '../src/domain/practice/plan';
+import { AT_TEMPO, planOf, SLOW, UP_BY } from '../src/domain/practice/plan';
 import type { Hand, Note } from '../src/domain/note';
 import { transcribed } from '../src/domain/notation/transcription';
 import { createScore, writtenBarNumber } from '../src/domain/score';
@@ -29,15 +29,19 @@ describe('a piece in parts', () => {
 });
 
 describe('the steps for learning it', () => {
-  it('sets each hand alone and slow, both slow, up to tempo, then joins the part to the one before', () => {
+  it('sets each hand slow, alone and then to the other heard; both slow, up to tempo, then joins the part to the one before', () => {
     const steps = planOf(ode()).map((step) => `${step.kind} ${step.from}–${step.to} ${step.hands} ${step.tempo}${step.aim ? `→${step.aim}` : ''}`);
     expect(steps).toEqual([
       `alone 0–3 right ${SLOW}`,
+      `with 0–3 right ${SLOW}`,
       `alone 0–3 left ${SLOW}`,
+      `with 0–3 left ${SLOW}`,
       `together 0–3 both ${SLOW}`,
       `up 0–3 both ${SLOW}→${AT_TEMPO}`,
       `alone 4–7 right ${SLOW}`,
+      `with 4–7 right ${SLOW}`,
       `alone 4–7 left ${SLOW}`,
+      `with 4–7 left ${SLOW}`,
       `together 4–7 both ${SLOW}`,
       `up 4–7 both ${SLOW}→${AT_TEMPO}`,
       // (Two parts joined are the whole piece: no step of the whole after it.)
@@ -58,23 +62,24 @@ describe('what is written out again', () => {
     const barBeats = tune.map((_, bar) => bar * 4);
     return transcribed(createScore('Again', [...line(tune, 'right'), ...line(bass, 'left')], barBeats, { barBeats, timeSignatures: [{ beat: 0, numerator: 4, denominator: 4 }], keySignatures: [{ beat: 0, fifths: 0, minor: false }] }));
   };
-  const kinds = (score: ReturnType<typeof written>) => planOf(score).map((step) => `${step.kind} ${step.from + 1}–${step.to + 1}${step.kind === 'alone' ? ` ${step.hands}` : ''}`);
+  const kinds = (score: ReturnType<typeof written>) => planOf(score).map((step) => `${step.kind} ${step.from + 1}–${step.to + 1}${step.kind === 'alone' || step.kind === 'with' ? ` ${step.hands}` : ''}`);
 
   it('learns a part written out again once, and plays the way into it', () => {
     const tune = [64, 65, 67, 65], bass = [48, 43, 48, 43];
     expect(kinds(written([...tune, ...tune, 60, 62, 64, 60], [...bass, ...bass, ...bass]))).toEqual([
-      'alone 1–4 right', 'alone 1–4 left', 'together 1–4', 'up 1–4',
+      'alone 1–4 right', 'with 1–4 right', 'alone 1–4 left', 'with 1–4 left', 'together 1–4', 'up 1–4',
       // (Bars 5–8 are bars 1–4 again: only the way from the one into the other.)
       'join 1–8',
-      'alone 9–12 right', 'together 9–12', 'up 9–12', 'join 5–12',
+      'alone 9–12 right', 'with 9–12 right', 'with 9–12 left', 'together 9–12', 'up 9–12', 'join 5–12',
       'whole 1–12',
     ]);
   });
 
   it('learns a hand alone once for a line it plays again under another tune', () => {
     expect(kinds(written([64, 65, 67, 65, 60, 62, 64, 60], [48, 43, 48, 43, 48, 43, 48, 43]))).toEqual([
-      'alone 1–4 right', 'alone 1–4 left', 'together 1–4', 'up 1–4',
-      'alone 5–8 right', 'together 5–8', 'up 5–8', 'join 1–8',
+      'alone 1–4 right', 'with 1–4 right', 'alone 1–4 left', 'with 1–4 left', 'together 1–4', 'up 1–4',
+      // (The left hand plays its line again: to the new tune, not by itself.)
+      'alone 5–8 right', 'with 5–8 right', 'with 5–8 left', 'together 5–8', 'up 5–8', 'join 1–8',
     ]);
   });
 
@@ -113,34 +118,38 @@ describe('following the plan', () => {
     expect(plan.next).toBe(1);
   });
 
-  it('sets what a step is played with: its bars looped, its hand, its tempo, the piece learnt', () => {
+  it('sets what a step is played with: its bars looped a pass at a time, the metronome, its tempo, the piece learnt; the hand played not heard', () => {
     const { playback, barLoop, trainer, way, plan } = practising();
     way.set('listen');
-    // Each hand alone, slow: the left hand of bars 5–8.
+    // A hand alone, slow: the left hand of bars 5–8, to the metronome alone.
     plan.start(plan.steps.findIndex((step) => step.kind === 'alone' && step.hands === 'left' && step.from === 4));
     expect(way.way).toBe('learn');
-    expect([barLoop.enabled, barLoop.from, barLoop.to]).toEqual([true, 5, 8]);
-    expect([playback.isHandEnabled('right'), playback.isHandEnabled('left')]).toEqual([false, true]);
+    expect([barLoop.enabled, barLoop.from, barLoop.to, playback.passAtATime]).toEqual([true, 5, 8, true]);
+    expect([playback.isHandEnabled('right'), playback.isHandEnabled('left'), playback.metronomeEnabled]).toEqual([false, false, true]);
     expect(playback.tempo).toBe(SLOW);
     expect(trainer.enabled).toBe(false);
+    // The same hand to the other: the right hand heard.
+    plan.start(plan.steps.findIndex((step) => step.kind === 'with' && step.hands === 'left' && step.from === 4));
+    expect([playback.isHandEnabled('right'), playback.isHandEnabled('left')]).toEqual([true, false]);
+    // Out of the plan, the music is as it was: the loop going round, both hands heard, no metronome.
+    plan.stop();
+    expect([playback.passAtATime, playback.isHandEnabled('right'), playback.isHandEnabled('left'), playback.metronomeEnabled]).toEqual([false, true, true, false]);
   });
 
   it('brings a part up to tempo with the trainer, two steps up and one back', () => {
     const { playback, trainer, plan } = practising();
     plan.start(plan.steps.findIndex((step) => step.kind === 'up'));
     expect(trainer.enabled).toBe(true);
-    expect(trainer.plan).toMatchObject({ from: SLOW, to: AT_TEMPO, back: true });
+    expect(trainer.plan).toMatchObject({ from: SLOW, to: AT_TEMPO, step: UP_BY, every: 1, back: true });
     expect(playback.tempo).toBe(SLOW);
   });
 
-  it('leaves a step when the loop or a hand is changed by hand', () => {
+  it('leaves a step when the loop is changed by hand, not when a hand is let be heard', () => {
     const { playback, barLoop, plan } = practising();
     plan.start(0);
     playback.seek(1);
+    playback.setHandEnabled('right', true);
     expect(plan.current).toBe(0);
-    playback.setHandEnabled('left', true);
-    expect(plan.current).toBeNull();
-    plan.start(0);
     barLoop.setTo(2);
     expect(plan.current).toBeNull();
   });

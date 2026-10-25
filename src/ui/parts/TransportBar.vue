@@ -183,19 +183,23 @@ function togglePlay(): void {
 /* Wider: what is always at hand in one row, what is set once a session in a row under it. */
 @media (min-width: 600px) {
   .transport {
-    grid-template-columns: 1fr auto auto;
+    /* (The place in the piece is never narrower than its slider's least and its bar: they are not drawn over.) */
+    grid-template-columns: minmax(min-content, 1fr) auto auto;
     grid-template-areas:
       'playback tempo loop'
       'practice practice practice';
   }
 }
 
-/* Everything in one row, from the width at which all of it fits in one (a tablet on its side, and wider). */
-@media (min-width: 1150px) {
+/*
+ * Everything in one row, from the width at which all of it fits in one: learning, in Russian, with
+ * the fingers' chip and the tempo said in full, it takes about 1400 px (measured), the slider still
+ * long enough to find a place by. A tablet on its side is narrower: two rows there.
+ */
+@media (min-width: 1440px) {
   .transport {
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(min-content, 1fr) auto auto auto;
     grid-template-areas: 'playback tempo loop practice';
-    /* (A tablet on its side is just this wide: closer together, and the place in the piece keeps its length.) */
     column-gap: var(--space-4);
   }
 }

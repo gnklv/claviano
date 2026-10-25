@@ -49,7 +49,8 @@ metronome is a synth's blip.)
 
 | | |
 |---|---|
-| Listen / Learn | in the piece's header: the player alone, or with the tools of learning (the loop, the hands, the trainer, one's own fingers); what learning had set comes back with it |
+| Listen / Learn | in the piece's header: the player alone, or with the tools of learning (the loop, the hands, the trainer, one's own fingers); what learning had set comes back with it. A piece is listened to first, unless it was left learnt |
+| Plan | (in Learn, over the transport) the piece learnt in steps: its parts by form and phrase, each hand slow to the metronome, then to the other hand heard; both slow, up to tempo by 10%, joined to the part before. A step sets the loop, the tempo and the metronome; what one plays is shown lit and not heard. Play plays the loop once; after each pass, Clean or A slip; three clean in a row and the step is done. The words open the list of every step |
 | Space | play / pause |
 | ← → | previous / next bar |
 | Home | back to the start (of the loop, when one is on) |
@@ -71,8 +72,8 @@ metronome is a synth's blip.)
 | Fingers | (with Fingering on, in Learn, beside the hands) press a note on the staff or its falling tile, and set its finger |
 | Free play | play on the keys on the screen or the computer's letters; record, listen, save as a piece |
 
-What is set in a piece (its place, tempo, hands, loop, trainer, bookmarks, one's own fingers) is
-kept with it and set again when it is opened.
+What is set in a piece (its place, tempo, hands, loop, trainer, bookmarks, one's own fingers, the
+way it is used, the steps of its plan done) is kept with it and set again when it is opened.
 
 Drag a MIDI (`.mid`) or MusicXML file (`.musicxml`, or compressed `.mxl`) onto the window, or use
 "Open file".
@@ -96,6 +97,9 @@ src/
                        runs, chords and scales (passage.ts, scales.ts) and what of it is said
                        on the page (hints.ts), fitted round the fingers the notes give and
                        one's own (own.ts).
+    practice/          A plan for learning a piece: its parts, by its form and in phrases
+                       (parts.ts), the steps for each (plan.ts), and what is written out again,
+                       learnt once (repeats.ts).
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.
@@ -121,6 +125,8 @@ src/
                      StaffView, RollView, TilesView.
     use-cases/       Playback (tempo, loop, hands, pedals, metronome and count-in: clicks.ts),
                      BarLoop (the loop in printed bars), TempoTrainer, Bookmarks, OwnFingering,
+                     PieceWay (listened to or learnt), PracticePlan and followPlan (a step of
+                     the plan sets what it is played with),
                      LoadScore and OpenScore, PrepareInstrument (what the instrument must be
                      ready to play), Volume. Library (the shelf of pieces opened before, behind
                      the PieceShelf port; the same file is the same piece, told by its content);

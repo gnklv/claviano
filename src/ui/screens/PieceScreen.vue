@@ -7,6 +7,7 @@ import InstrumentNotice from '../parts/InstrumentNotice.vue';
 import PianoRoll from '../parts/PianoRoll.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
 import StaffView from '../parts/StaffView.vue';
+import StepBar from '../parts/StepBar.vue';
 import TransportBar from '../parts/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { useFingeredPage } from '../app/useFingeredPage';
@@ -141,7 +142,11 @@ useResize(stage, letGoWhenBack);
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <FingerBar v-if="fingering" :page="page" :picked="picked" @set="setFinger" @done="fingering = false" />
-        <TransportBar v-else :fingers="shown && learning" @set-fingers="fingering = true" />
+        <template v-else>
+          <!-- (The plan is learning's: over the transport, which its steps are played with.) -->
+          <StepBar v-if="learning" />
+          <TransportBar :fingers="shown && learning" @set-fingers="fingering = true" />
+        </template>
       </div>
     </div>
   </div>

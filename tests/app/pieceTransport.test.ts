@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { bookmarks, button, playback, root, settled, turnIntoPhone, useApp } from './harness';
+import { bookmarks, button, learn, playback, root, settled, turnIntoPhone, useApp } from './harness';
 
 /* The piece's screen: the transport bar, with the bookmarks and the tempo. */
 
@@ -13,6 +13,7 @@ describe('the transport bar', () => {
   beforeEach(async () => {
     button(/Ode to Joy/).click();
     await settled();
+    await learn();
   });
 
   it('has what is set once a session beside what is always at hand: the hands, the metronome, the count-in, the pedal', () => {

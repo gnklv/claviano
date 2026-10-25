@@ -9,6 +9,7 @@ import FingerBar from '../components/FingerBar.vue';
 import LanguageSwitch from '../components/LanguageSwitch.vue';
 import MenuList from '../components/MenuList.vue';
 import PanelControl from '../components/PanelControl.vue';
+import PassDots from '../components/PassDots.vue';
 import PianoKeys from '../components/PianoKeys.vue';
 import PieceCard from '../components/PieceCard.vue';
 import PieceTile from '../components/PieceTile.vue';
@@ -61,6 +62,7 @@ const sheet = ref<InstanceType<typeof SheetDialog> | null>(null);
 
 const panelOpen = ref(false);
 const menuOpen = ref(false);
+const endMenuOpen = ref(false);
 const MENU = [
   { id: 'one', label: 'A choice' },
   { id: 'two', label: 'Another choice' },
@@ -202,6 +204,18 @@ const finger = ref('');
             />
           </template>
         </PopOver>
+        <PopOver v-model:open="endMenuOpen" place="above-end" role="menu" label="A menu">
+          <AppButton icon="more" :aria-expanded="endMenuOpen" @click="endMenuOpen = !endMenuOpen">A menu, above its end</AppButton>
+          <template #panel>
+            <MenuList
+              :items="MENU"
+              @choose="
+                chosen = $event;
+                endMenuOpen = false;
+              "
+            />
+          </template>
+        </PopOver>
         <span class="caption">{{ chosen && `chosen: ${chosen}` }}</span>
       </div>
       <p class="about">A button in a bar with what it sets behind it: a panel over it, a sheet on a phone (the tempo, the bookmarks). Quiet, it reads as what it says.</p>
@@ -217,6 +231,14 @@ const finger = ref('');
         <FingerBar :page="null" :picked="{ beat: 0, pitch: 64, hand: 'right' }" @set="finger = $event === null ? 'none' : String($event)" />
       </div>
       <span class="caption">{{ finger && `set: ${finger}` }}</span>
+
+      <SectionHeading>Clean passes</SectionHeading>
+      <p class="about">A step of the plan, played clean so many times in a row: none yet, some, all.</p>
+      <div class="row">
+        <PassDots :count="0" :of="3" label="0 of 3 clean in a row" />
+        <PassDots :count="2" :of="3" label="2 of 3 clean in a row" />
+        <PassDots :count="3" :of="3" label="3 of 3 clean in a row" />
+      </div>
 
       <SectionHeading>Keys to play</SectionHeading>
       <p class="about">A keyboard to play on, with fingers, the mouse or the computer's letters: it says what is pressed, and lights what it is told is held.</p>

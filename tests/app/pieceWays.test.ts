@@ -21,29 +21,42 @@ describe('listening and learning', () => {
     await settled();
   });
 
-  it('learns a piece to begin with, with the loop, the hands and the fingers at hand', () => {
+  it('listens to a piece to begin with: no loop, no hands, no fingers to set, at its own tempo', () => {
+    expect(chosen()).toBe('Listen');
+    expect(playback.tempo).toBe(1);
+    expect(has(/^Loop$/)).toBe(false);
+    expect(has(/^Right$/)).toBe(false);
+    expect(button(/^Fingers$/)).toBeUndefined();
+    expect(root.querySelector('.step-bar')).toBeNull();
+  });
+
+  it('learns it with the loop, the hands, the fingers and the plan at hand', async () => {
+    choose('Learn');
+    await settled();
     expect(chosen()).toBe('Learn');
     expect(has(/^Loop$/)).toBe(true);
     expect(has(/^Right$/)).toBe(true);
     expect(button(/^Fingers$/)).toBeDefined();
+    expect(root.querySelector('.step-bar')).not.toBeNull();
   });
 
-  it('listens to it whole: no loop, no hands, no fingers to set, at its own tempo', async () => {
+  it('listens to it whole again from learning, and the trainer is not offered then', async () => {
+    choose('Learn');
+    await settled();
     playback.setTempo(0.7);
     choose('Listen');
     await settled();
     expect(chosen()).toBe('Listen');
     expect(playback.tempo).toBe(1);
     expect(has(/^Loop$/)).toBe(false);
-    expect(has(/^Right$/)).toBe(false);
-    expect(button(/^Fingers$/)).toBeUndefined();
-    // The trainer is not offered by the tempo either.
     button(/^Tempo: 100%$/).click();
     await settled();
     expect(root.querySelector('[role=group][aria-label="Tempo trainer"]')).toBeNull();
   });
 
   it('comes back to learning as it was left', async () => {
+    choose('Learn');
+    await settled();
     playback.setTempo(0.7);
     playback.setHandEnabled('left', false);
     choose('Listen');

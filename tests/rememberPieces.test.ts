@@ -81,8 +81,28 @@ describe('remembering pieces', () => {
     expect(barLoop.enabled).toBe(false);
   });
 
+  it('listens to a piece opened for the first time, and comes back to it learnt as it was left', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    expect(way.way).toBe('listen');
+    way.set('learn');
+    await library.openFile('two.tune', bytes('two'));
+    expect(way.way).toBe('listen');
+    await library.open(ONE);
+    expect(way.way).toBe('learn');
+  });
+
+  it('listens to a piece kept from before there were two ways, with what learning had set kept aside', async () => {
+    shelf.remembered.set(ONE, { position: 0, tempo: 0.8, hands: { right: true, left: true }, loop: { on: false, from: 0, to: 0 }, bar: 1, bars: 8 });
+    await start();
+    await library.openFile('one.tune', bytes('one'));
+    expect([way.way, playback.tempo]).toEqual(['listen', 1]);
+    way.set('learn');
+    expect(playback.tempo).toBe(0.8);
+  });
+
   it('keeps with a piece its place, tempo, hands and loop, and the bar it was left at', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.7);
     playback.setHandEnabled('right', false);
     barLoop.select(3, 5, 2);
@@ -104,6 +124,7 @@ describe('remembering pieces', () => {
 
   it('comes back to a piece as it was left, after another piece and after the app is started again', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.7);
     playback.setHandEnabled('right', false);
     barLoop.select(3, 5, 2);
@@ -128,6 +149,7 @@ describe('remembering pieces', () => {
 
   it('comes back to a piece with its trainer as it was left, at the tempo the training had got to', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     trainer.setPlan({ from: 0.7, step: 0.05, every: 2, back: true });
     trainer.setEnabled(true);
     playback.setTempo(0.8);
@@ -164,6 +186,7 @@ describe('remembering pieces', () => {
 
   it('keeps a piece listened to as learning had set it, and comes back to it listened to', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.7);
     barLoop.select(3, 5, 2);
     playback.setHandEnabled('left', false);
@@ -190,8 +213,16 @@ describe('remembering pieces', () => {
     expect(plan.doneSteps).toEqual([0, 1]);
   });
 
+  it('keeps a piece left in a step of its plan with both hands heard, as out of the plan', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    plan.start(0);
+    playback.setHandEnabled('right', false);
+    playback.setHandEnabled('left', false);
+    expect(memories.memory(ONE)?.hands).toEqual({ right: true, left: true });
+  });
+
   it('lets go of fingers at notes the piece no longer has, and of fingers that are not such', async () => {
-    const kept = { position: 0, tempo: 1, hands: { right: true, left: true }, loop: { on: false, from: 0, to: 0 }, bar: 1, bars: 8 };
+    const kept = { position: 0, tempo: 1, hands: { right: true, left: true }, loop: { on: false, from: 0, to: 0 }, way: 'learn', bar: 1, bars: 8 };
     shelf.remembered.set(ONE, { ...kept, fingers: [{ beat: 4, pitch: 61, finger: 2 }, { beat: 4, pitch: 99, finger: 3 }] });
     shelf.remembered.set(TWO, { ...kept, tempo: 0.8, fingers: [{ beat: 4, pitch: 61, finger: 6 }] });
     await start();
@@ -206,6 +237,7 @@ describe('remembering pieces', () => {
 
   it('remembers demos as it does files', async () => {
     await library.open('demo.demo');
+    way.set('learn');
     playback.setTempo(0.5);
     playback.seek(4);
     await start();
@@ -245,6 +277,7 @@ describe('remembering pieces', () => {
 
   it('starts a piece left at its very end from the beginning', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.8);
     playback.seek(7.9);
     await library.openFile('two.tune', bytes('two'));
@@ -255,6 +288,7 @@ describe('remembering pieces', () => {
 
   it('lets go of what is remembered of a piece taken off the shelf', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.7);
     expect(memories.memory(ONE)?.tempo).toBe(0.7);
     await library.remove(ONE);
@@ -264,6 +298,7 @@ describe('remembering pieces', () => {
 
   it('sets a piece as it was left even when it opens before what was kept has been read', async () => {
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.7);
     playback.seek(3);
     // Again, with the shelf read in the other order: the piece first, its memory after.
@@ -294,6 +329,7 @@ describe('remembering pieces', () => {
     shelf.broken = true;
     await start();
     await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     playback.setTempo(0.6);
     await library.openFile('two.tune', bytes('two'));
     await library.open(ONE);

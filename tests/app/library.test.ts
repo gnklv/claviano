@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { button, drop, onPiece, playback, restart, root, screen, settled, shelf, text, useApp, xml } from './harness';
+import { button, drop, learn, onPiece, playback, restart, root, screen, settled, shelf, text, useApp, xml } from './harness';
 
 /* The library: what it shows, what it keeps, and what can be done with a piece on its shelf. */
 
@@ -115,6 +115,7 @@ describe('the shelf', () => {
   it('comes back to a piece where it was left: the place, the tempo, the loop, the hands; and says the place on its card', async () => {
     button(/Ode to Joy/).click();
     await settled();
+    await learn();
     playback.setTempo(0.7);
     playback.setHandEnabled('left', false);
     playback.seek(playback.score!.bars[4] + 0.1);

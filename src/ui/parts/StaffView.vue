@@ -6,14 +6,14 @@ import { timeAtPage, writtenBarNumber, type Score } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
 import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useDrawnView } from '../browser/useDrawnView';
+import { litHands } from '../app/litHands';
 import { usePlaybackState } from '../app/usePlaybackState';
-import type { Hand } from '../../domain/note';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 import { readStaffColors } from '../theme/readCanvasColors';
 import { useCanvasColors } from '../theme/useCanvasColors';
 
-const { playback, barLoop: loop, createStaff } = useDeps();
+const { playback, barLoop: loop, plan, createStaff } = useDeps();
 const state = usePlaybackState(playback);
 const { t, locale } = useI18n();
 /**
@@ -51,7 +51,8 @@ watch(
 watch(locale, () => staff.view?.setHandLabels(handLabels()));
 
 // …and only slides during playback, outside Vue's reactivity.
-const handOn = (hand: Hand) => playback.isHandEnabled(hand);
+/** (Lit: the hands one reads now, see litHands.) */
+const handOn = litHands(plan, playback);
 useAnimationFrame(() => staff.view?.render(playback.position, handOn, playback.playing));
 
 // --- Click to jump there; drag to look through the tape; Shift+drag (or a long press) to loop bars ---

@@ -3,9 +3,9 @@ import { useTemplateRef } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { PedalMove, RollView } from '../../application/ports/RollView';
 import type { Fingering } from '../../domain/fingering/own';
-import type { Hand } from '../../domain/note';
 import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useDrawnView } from '../browser/useDrawnView';
+import { litHands } from '../app/litHands';
 import { useDeps } from '../deps';
 import { useGlide } from '../motion/useGlide';
 import { useI18n } from '../i18n/useI18n';
@@ -18,7 +18,7 @@ import { useCanvasColors } from '../theme/useCanvasColors';
  */
 const props = defineProps<{ fingers?: readonly (Fingering | null)[]; fingering?: boolean; picked?: readonly number[] }>();
 const emit = defineEmits<{ pick: [note: number] }>();
-const { playback, barLoop: loop, createRoll } = useDeps();
+const { playback, barLoop: loop, plan, createRoll } = useDeps();
 const { noteLabel, t } = useI18n();
 /** The right pedal is just "Pedal": it is the one people mean. */
 const PEDAL_LABELS = {
@@ -43,7 +43,8 @@ const roll = useDrawnView(
 // Drawn outside Vue's reactivity: 60 fps straight from Playback to the canvas.
 useAnimationFrame(draw);
 
-const isHandEnabled = (hand: Hand) => playback.isHandEnabled(hand);
+/** (Lit: the hands one reads now, see litHands.) */
+const isHandEnabled = litHands(plan, playback);
 const pedalLabel = (move: PedalMove) => t(PEDAL_LABELS[move.pedal][move.kind]);
 
 function draw(): void {

@@ -46,6 +46,7 @@ export let bookmarks: Bookmarks;
 export let fingering: OwnFingering;
 export let way: PieceWay;
 export let plan: PracticePlan;
+export let barLoop: BarLoop;
 export let volume: Volume;
 export let app: VueApp;
 export let shelf: FakePieceShelf;
@@ -79,6 +80,11 @@ export const button = (label: RegExp) => [...root.querySelectorAll<HTMLElement>(
 export const settled = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await nextTick();
+};
+/** The open piece learnt: "Learn" chosen in its header, as a piece is listened to first. */
+export const learn = async () => {
+  [...root.querySelectorAll<HTMLElement>('.piece header [role=group] button')].find((choice) => choice.textContent?.trim() === 'Learn')!.click();
+  await settled();
 };
 export const drop = async (name: string, content: string) => {
   const event = new Event('drop', { bubbles: true, cancelable: true });
@@ -155,7 +161,7 @@ export function useApp(): void {
     void library.load();
     const memories = new PieceMemories(shelf);
     void memories.load();
-    const barLoop = new BarLoop(playback);
+    barLoop = new BarLoop(playback);
     const trainer = new TempoTrainer(playback);
     bookmarks = new Bookmarks(playback, barLoop);
     fingering = new OwnFingering(playback);

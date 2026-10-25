@@ -10,8 +10,11 @@ import { onUnmounted, useTemplateRef, watch } from 'vue';
  * (v-model:open): the button is the parent's too, and presses it as it likes.
  */
 defineProps<{
-  /** Where the panel stands: over the button, in the middle of it; or under it, against its right edge. */
-  place: 'above' | 'below';
+  /**
+   * Where the panel stands: over the button, in the middle of it; under it, against its right edge;
+   * or over it, against its right edge (a button at the end of a bar along the bottom).
+   */
+  place: 'above' | 'below' | 'above-end';
   /** What the panel is, for a screen reader. */
   label: string;
   /** A panel of choices is a menu; of controls, a group. */
@@ -77,6 +80,12 @@ onUnmounted(() => listen(false));
   top: calc(100% + var(--space-1));
   right: 0;
   transform-origin: top right;
+}
+
+.above-end {
+  bottom: calc(100% + var(--space-1));
+  right: 0;
+  transform-origin: bottom right;
 }
 
 /* It grows a little out of its button as it comes, and back into it as it goes (see "Motion" in ui/styles.css). */

@@ -69,6 +69,10 @@ export class Playback {
   private loopTempo: number | null = null;
   /** How many times the loop has come round since playing began. */
   private rounds = 0;
+  /** A pass of the loop at a time: it stops at the loop's end, at the loop's start, for the next. */
+  private onePass = false;
+  /** When the pass being played ends, on the audio clock (once it is all handed to the output). */
+  private passEnd: number | null = null;
   private nextNoteIndex = 0;
 
   private stopTicker: (() => void) | null = null;
@@ -125,9 +129,14 @@ export class Playback {
     return this.clicks.lastClick;
   }
 
-  /** How many times the loop has come round since playing began: each time, a change is told. */
+  /** How many times the loop has come round since playing began (or a pass of it ended): each time, a change is told. */
   get loopRounds(): number {
     return this.rounds;
+  }
+
+  /** Whether the loop is played a pass at a time: stopping at its end, ready at its start. */
+  get passAtATime(): boolean {
+    return this.onePass;
   }
 
   /** Current position in score seconds. Cheap enough to read every animation frame. */
@@ -194,6 +203,7 @@ export class Playback {
     this.stopTicker = null;
     if (silence) this.audio.stopAll();
     this.pendingWraps = [];
+    this.passEnd = null;
     this.clicks.silence();
     this.anchor = { audio: 0, score: position };
     this.emit();
@@ -271,6 +281,18 @@ export class Playback {
    * The tempo the loop's next pass is played at, from its first note (null: as the one before). It
    * is taken when the loop comes round next, unless that is already on its way to the output.
    */
+  setPassAtATime(on: boolean): void {
+    if (on === this.onePass) return;
+    this.onePass = on;
+    // (What was handed to the output was handed for the other way: the end of the pass, or the next pass.)
+    if (this.isPlaying) {
+      const position = this.position;
+      this.audio.stopAll();
+      this.restartFrom(position);
+    }
+    this.emit();
+  }
+
   setTempoAtLoop(tempo: number | null): void {
     this.loopTempo = tempo === null ? null : clamp(tempo, MIN_TEMPO, MAX_TEMPO);
   }
@@ -307,6 +329,7 @@ export class Playback {
     const lead = withCountIn ? this.clicks.countIn(score, position, this.currentTempo) : 0;
     this.anchor = { audio: now + lead, score: position };
     this.pendingWraps = [];
+    this.passEnd = null;
     this.scheduleAnchor = this.anchor;
     this.scheduleTempo = this.currentTempo;
     this.nextNoteIndex = firstNoteAtOrAfter(score, position);
@@ -345,6 +368,10 @@ export class Playback {
     const score = this.currentScore;
     if (!score || !this.isPlaying) return;
     this.reachWraps(this.audio.now());
+    if (this.passEnd !== null && this.audio.now() >= this.passEnd) {
+      this.endPass();
+      return;
+    }
     if (!this.currentLoop && this.position >= score.duration) {
       this.halt(false);
       return;
@@ -388,6 +415,10 @@ export class Playback {
       }
       this.clicks.due(horizon, this.scheduleAnchor, this.scheduleTempo);
       if (!this.currentLoop || horizon < segmentEnd) return;
+      if (this.onePass) {
+        this.passEnd = this.toAudio(segmentEnd);
+        return;
+      }
 
       // The horizon crosses the loop end: continue scheduling from the loop start seamlessly.
       const wrap = { audio: this.toAudio(segmentEnd), score: this.currentLoop.start, tempo: this.loopTempo ?? this.scheduleTempo };
@@ -399,6 +430,19 @@ export class Playback {
       this.clicks.from(wrap.score);
       this.nextPedalIndex = firstAtOrAfter(this.pedalMoves, wrap.score, (move) => move.time);
     }
+  }
+
+  /**
+   * A pass played a pass at a time has ended: the music stops at the loop's start, at the tempo set
+   * for the next pass, and the pass is counted as the loop come round (what the trainer steps by).
+   */
+  private endPass(): void {
+    this.halt(false);
+    this.rounds++;
+    if (this.loopTempo !== null) this.currentTempo = this.loopTempo;
+    this.loopTempo = null;
+    this.anchor = { audio: 0, score: this.currentLoop?.start ?? 0 };
+    this.emit();
   }
 
   private toAudio(scoreTime: number): number {

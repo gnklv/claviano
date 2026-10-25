@@ -207,10 +207,11 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)
-13. [ ] A plan for learning a piece, out of what is there already: a list of steps, each with its
+13. [x] A plan for learning a piece, out of what is there already: a list of steps, each with its
         own tempo. The piece in parts, by its form (repeats, voltas, changes of key and time) and
         within that by phrases of four to eight bars, taken in order; for each part the steps a
-        teacher sets: each hand alone and slow, both hands slow, up to tempo with the trainer,
+        teacher sets: each hand slow, to the metronome alone and then to the other hand heard
+        (what one plays is shown, not heard), both hands slow, up to tempo with the trainer (by 10%),
         then joined to the parts before it; what is written out again note for note (a part, a
         hand's line, a join) is learnt once. Each step sets what it needs (the loop on its bars, a
         hand muted, its tempo, the trainer). A step is done after three clean passes in a row:
@@ -218,16 +219,16 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         step by hand; the microphone will mark the passes itself (step 16). Kept with the piece.
         The trainer gets steps that go two up and one back (60, 64, 62, 66…), a choice beside its
         others: a tempo is not only climbed to, it is come back to. The piece's screen in two ways,
-        "Listen" and "Learn", switched in its header and kept with the piece: listening is the
+        "Listen" and "Learn", switched in its header and kept with the piece (a piece is listened to
+        first, unless it was left learnt): listening is the
         player (play, the place, the bar and the bookmarks, the tempo at 100% to begin with, the
         metronome, the view), learning has the plan, the loop, the hands, the trainer and the
         editing of one's own fingers (the fingering is shown in both, where it is shown at all);
         what learning had set comes back with it, and a step of the plan touched by hand pauses.
-        In order (done so far: the trainer's steps back, the two ways, `PieceWay`; the parts and steps,
-        `domain/practice`; the plan followed and kept, `PracticePlan` and `followPlan`): the trainer's
-        steps back; the two ways; the parts and steps (the slow ones at
-        60%, a part joined to the one before it, and the whole piece at the end); the plan kept
-        with the piece; the bar of the step and the list of steps, in "Learn". Why: what predicts how a passage is played the next day is
+        The step over the transport (its clean passes as rings; the loop played a pass at a time,
+        "Clean" and "A slip" after each, skipped or left by hand, what to do said under it; or the
+        step to play next), its words opening the list of every
+        step under its bars. Why: what predicts how a passage is played the next day is
         not the time spent nor the repetitions, but how many of the tries were right, a slip
         stopped at and mended at once (Duke, Simmons and Cash, 2009); experts practise in the parts
         of a piece's form, and remember it by them (Chaffin, 2002); the hard places first, hands

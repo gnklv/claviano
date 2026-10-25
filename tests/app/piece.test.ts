@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { button, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
+import { button, learn, onPiece, playback, root, screen, settled, turnIntoPhone, useApp } from './harness';
 
 /*
  * The piece's screen: getting to it and back, the keys of the computer, the view, a phone on its side.
@@ -131,6 +131,7 @@ describe('a phone on its side', () => {
   beforeEach(async () => {
     button(/Ode to Joy/).click();
     await settled();
+    await learn();
     screen.short = true;
     screen.listeners.forEach((listener) => listener());
     await nextTick();

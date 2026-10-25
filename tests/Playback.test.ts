@@ -82,6 +82,34 @@ describe('Playback', () => {
     expect(playback.position).toBeLessThan(2);
   });
 
+  it('plays the loop a pass at a time: it stops at the loop’s end, ready at its start, at the tempo set for the next pass', async () => {
+    const { audio, playback, advance } = setup();
+    playback.setLoop({ start: 0, end: 2 });
+    playback.setPassAtATime(true);
+    await playback.play();
+    playback.setTempoAtLoop(0.5);
+    advance(3);
+    expect(audio.played.map((n) => n.pitch)).toEqual([60, 62]);
+    expect([playback.playing, playback.position, playback.loopRounds, playback.tempo]).toEqual([false, 0, 1, 0.5]);
+    await playback.play();
+    advance(5);
+    expect(audio.played.map((n) => n.pitch)).toEqual([60, 62, 60, 62]);
+    expect(playback.playing).toBe(false);
+  });
+
+  it('goes round the loop again when no longer played a pass at a time', async () => {
+    const { audio, playback, advance } = setup();
+    playback.setLoop({ start: 0, end: 2 });
+    playback.setPassAtATime(true);
+    await playback.play();
+    advance(1);
+    playback.setPassAtATime(false);
+    advance(2);
+    expect(playback.playing).toBe(true);
+    // (The loop's first note again, at its second pass.)
+    expect(audio.played.filter((n) => n.pitch === 60).map((n) => n.at)).toEqual([0, 2]);
+  });
+
   it('plays the loop’s next pass at the tempo set for it, from its first note, and tells when the loop comes round', async () => {
     const { audio, playback, advance } = setup();
     playback.setLoop({ start: 0, end: 2 });

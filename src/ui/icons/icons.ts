@@ -25,6 +25,8 @@ export const ICONS = {
   lower: [line('M14.5 6l-6 6 6 6')],
   higher: [line('M9.5 6l6 6-6 6')],
   close: [line('M6 6l12 12M18 6L6 18')],
+  // A tick, as a teacher puts by what was played right: done.
+  check: [line('M5 12.5l4.5 4.5L19 7')],
   // Two sliders, not a cog: what the settings hold is levels and choices. (Two, not three: a third leaves no air at a small size.)
   settings: [line(`M4 8h8M18 8h2M4 16h2M12 16h8${circle(15, 8, 3)}${circle(9, 16, 3)}`)],
   play: [solid('M8 5.5v13l11-6.5z')],

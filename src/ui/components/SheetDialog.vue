@@ -125,7 +125,9 @@ function onCancel(event: Event): void {
   grid-template-columns: minmax(0, 1fr);
   /* As wide inside as on any screen: the notch of a phone on its side takes its room outside of that. */
   width: min(calc(var(--panel-width) + env(safe-area-inset-right, 0px)), 100%);
-  padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) var(--space-4);
+  /* (The room over the heading: the heading stays in it while what is under it scrolls, see below.) */
+  --top: max(var(--space-4), env(safe-area-inset-top));
+  padding: var(--top) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) var(--space-4);
   overflow: hidden auto;
   border-left: 1px solid var(--border);
   background: var(--panel);
@@ -151,7 +153,14 @@ function onCancel(event: Event): void {
   }
 }
 
+/* A long sheet (a plan of a hundred steps) scrolls under its heading: its name and its close stay in sight. */
 .head {
+  position: sticky;
+  z-index: 1;
+  top: calc(-1 * var(--top));
+  margin-top: calc(-1 * var(--top));
+  padding-top: var(--top);
+  background: var(--panel);
   font-family: var(--font-title);
   font-weight: var(--title-weight);
   display: flex;
@@ -170,7 +179,8 @@ function onCancel(event: Event): void {
     inset: auto 0 0 0;
     width: 100%;
     max-height: 85%;
-    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+    --top: var(--space-4);
+    padding: var(--top) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
     border-left: 0;
     border-top: 1px solid var(--border);
     border-radius: var(--radius-m) var(--radius-m) 0 0;

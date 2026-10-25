@@ -15,10 +15,11 @@ const AT_THE_END = 0.5;
 
 /**
  * Coming back to a piece is coming back to where it was left: its place, tempo, loop, hands, tempo
- * trainer, bookmarks, one's own fingering, the steps of its plan done and the way it was had (listened to, or learnt) are kept
- * with it, and set again when it is opened. Listened to, it is kept as learning had set it. A piece
- * opened for the first time starts plain: learnt, from the beginning, at full tempo, both hands, no
- * loop, no trainer, no bookmarks, no fingers of one's own.
+ * trainer, bookmarks, one's own fingering, the steps of its plan done and the way it was had
+ * (listened to, or learnt) are kept with it, and set again when it is opened. Listened to, it is
+ * kept as learning had set it; in a step of its plan, with both hands heard, as out of the plan (the
+ * step is not come back to). A piece opened for the first time starts plain: listened to, from the
+ * beginning, at full tempo, both hands, no loop, no trainer, no bookmarks, no fingers of one's own.
  *
  * Returns a function that writes down where the open piece stands now: to call when the page is
  * about to go (the place moves on while the music plays, and nothing tells of that).
@@ -59,7 +60,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     return {
       position,
       tempo: learning.tempo,
-      hands: { ...learning.hands },
+      hands: plan.current === null ? { ...learning.hands } : { right: true, left: true },
       loop: { ...learning.loop },
       trainer: { on: learning.trainer.on, ...learning.trainer.plan },
       bookmarks: bookmarks.all,
@@ -102,8 +103,9 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     bookmarks.set(memory?.bookmarks ?? []);
     fingering.set(memory?.fingers ?? []);
     plan.set(memory?.plan?.done ?? []);
-    // Last: listening keeps aside what was just set, to come back to it.
-    way.set(memory?.way ?? 'learn');
+    // Last: listening keeps aside what was just set, to come back to it. A piece is listened to
+    // first, heard whole before it is learnt, unless it was left learnt.
+    way.set(memory?.way ?? 'listen');
     restoring = false;
   };
 
