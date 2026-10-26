@@ -179,10 +179,11 @@ const finger = ref('');
       </div>
 
       <SectionHeading>Action</SectionHeading>
-      <p class="about">What a screen starts from: a few, larger than buttons. One of them is the main one.</p>
+      <p class="about">What a screen starts from: a few, larger than buttons. One of them is the main one; one whose word matters to its end has it wrapped, not cut short.</p>
       <div class="actions">
         <ActionTile main icon="plus" title="The main action" note="A word about it" />
         <ActionTile icon="note" title="Another" note="A word about it too" />
+        <ActionTile wrap icon="play" title="Its word wrapped" note="A longer word, which goes on to the next line rather than being cut short" />
       </div>
 
       <SectionHeading>Notice</SectionHeading>

@@ -32,10 +32,14 @@ function set(part: SoundPart, percent: number): void {
 </template>
 
 <style scoped>
-/* (No shorter than can be aimed at.) */
+/*
+ * Under its words and its percentage, the row's whole width: two levels one under the other start
+ * and end level, whatever their words (beside them, each had what its words left, in Russian as
+ * little as 60 px for the metronome's).
+ */
 .slider {
-  flex: 1;
-  min-width: 80px;
+  flex-basis: 100%;
+  order: 1;
 }
 
 .value {

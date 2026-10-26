@@ -85,14 +85,19 @@ function onFileChosen(event: Event): void {
     <main class="shelf">
       <AppNotice v-if="error" class="error" alert>{{ error }}</AppNotice>
 
-      <!-- What can be begun here, apart from the pieces under them; three in the pieces' own columns. -->
+      <!--
+        What can be begun here, apart from the pieces under them; three in the pieces' own columns.
+        (Where the pieces' columns are two, going on has the first row to itself, the two others
+        under it: not one left alone in a second row. Its word says where the piece was left, and
+        is never cut short.)
+      -->
       <div class="actions" :class="{ three: goOn }">
         <!--
           One accent on a screen, on its main action: for one who comes back, going on; else opening
           a piece. (A file can be dropped onto the window as well, which the window says when one is
           held over it.)
         -->
-        <ActionTile v-if="goOn" main icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
+        <ActionTile v-if="goOn" class="go-on" main wrap icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
         <ActionTile tag="label" :main="!goOn" icon="plus" :title="t('openMidi')" :note="t('openFormats')">
           <input class="chooser" type="file" :accept="touch ? undefined : FILE_KINDS" @change="onFileChosen" />
         </ActionTile>
@@ -133,6 +138,7 @@ function onFileChosen(event: Event): void {
 }
 
 .shelf {
+  container: shelf / inline-size;
   overflow-y: auto;
   padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-6), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
 }
@@ -155,6 +161,16 @@ function onFileChosen(event: Event): void {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--tile-width), 1fr));
   gap: var(--space-4);
+}
+
+/*
+ * Two of the pieces' columns, not three: going on across both. (692 px is three tiles at their
+ * narrowest, `--tile-width`, and the two rooms between them, `--space-4`: a query takes no tokens.)
+ */
+@container shelf (max-width: 691px) {
+  .go-on {
+    grid-column: 1 / -1;
+  }
 }
 
 /* The file chooser unseen, the tile being what is seen of it; still reached by the keys (hidden, it would not be). */

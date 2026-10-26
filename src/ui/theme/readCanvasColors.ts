@@ -18,6 +18,7 @@ export function readRollColors(): RollColors {
     blackKey: cssVar('--key-black'),
     keyBorder: cssVar('--key-border'),
     keyLabel: cssVar('--key-label'),
+    onHand: cssVar('--on-hand'),
     pedal: cssVar('--pedal'),
     cursor: cssVar('--cursor'),
     hand: { right: cssVar('--right'), left: cssVar('--left') },

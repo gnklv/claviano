@@ -84,7 +84,8 @@ function layoutKeys(whiteWidth: number, range: KeyRange): Map<number, KeyRect> {
 
 /**
  * The keys, from `top` and `height` tall: those in `active` pressed, in the colour of their hand.
- * Every Do is named, a landmark for finding one's place (`viewWidth`: the screen's, for the size).
+ * Every Do is named, a landmark for finding one's place (`viewWidth`: the screen's, for the size);
+ * on a pressed key, in the ink that reads on its hand's colour.
  */
 export function drawKeyboard(
   { ctx, colors }: RollPen,
@@ -114,9 +115,10 @@ export function drawKeyboard(
   ctx.font = `${fontSize}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillStyle = colors.keyLabel;
   for (const [midi, key] of keys) {
-    if (midi % 12 === 0) ctx.fillText(noteLabel(midi), key.x + key.width / 2, top + height - DO_LABEL.above);
+    if (midi % 12 !== 0) continue;
+    ctx.fillStyle = active.has(midi) ? colors.onHand : colors.keyLabel;
+    ctx.fillText(noteLabel(midi), key.x + key.width / 2, top + height - DO_LABEL.above);
   }
   ctx.textAlign = 'start';
 }

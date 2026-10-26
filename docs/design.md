@@ -151,11 +151,11 @@ A screen is built of these, and does not write a button or a field of its own.
 | `AppSlider` | a level | volume, tempo. (The place in the piece is the same slider by hand: it is set at every frame, past Vue, and sets its own `--fill`) |
 | `TextField` | a name, a number | |
 | `PieceTile` | a piece on a shelf | one's own pieces and the demos |
-| `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main` |
+| `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main`. Asked for by name: `wrap` (its word on to a second line, where what it says matters to its end: where a piece was left) |
 | `ScreenHeader` | the strip on top of a screen | the way back, what the screen is, and what is set there |
 | `SectionHeading` | the name of a section | over a group of tiles or rows |
 | `AppNotice` | word of how things stand, or (`alert`) of something gone wrong | said in the page, where it concerns |
-| `SettingRow` | what is set, and the control that sets it | the rows of a sheet |
+| `SettingRow` | what is set, and the control that sets it | the rows of a sheet. A level is under its words and its percentage, the row's whole width: levels one under another start and end level |
 | `SheetDialog` | a panel from the side (from below on a phone) | what is set once in a while, and what a phone's bar has no room for |
 | `PopOver` | a small panel beside its button | what is set often, in a few touches; a menu |
 | `PanelControl` | a button with what it sets behind it: a `PopOver`, a sheet on a phone | the tempo, the bookmarks. As wide as a sheet (`--panel-width`) |

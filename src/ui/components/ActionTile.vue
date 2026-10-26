@@ -8,8 +8,10 @@ import AppIcon from './AppIcon.vue';
  *
  * `main`: the one of them the screen is for; its sign is in the accent. As a `label` it can hold a
  * field of its own (a file to choose) in the default slot, and a press on it presses that.
+ * `wrap`: its word goes on to the next line rather than being cut short, where what it says
+ * matters to its end (where a piece was left).
  */
-defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?: 'button' | 'label' }>();
+defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap?: boolean; tag?: 'button' | 'label' }>();
 </script>
 
 <template>
@@ -17,7 +19,7 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?
     <span class="sign"><AppIcon :name="icon" /></span>
     <span class="words">
       <span class="name">{{ title }}</span>
-      <span v-if="note" class="note">{{ note }}</span>
+      <span v-if="note" class="note" :class="{ wrap }">{{ note }}</span>
     </span>
     <slot />
   </component>
@@ -94,5 +96,9 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?
 
 .note {
   color: var(--muted);
+}
+
+.note.wrap {
+  white-space: normal;
 }
 </style>

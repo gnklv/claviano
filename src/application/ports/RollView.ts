@@ -40,6 +40,8 @@ export interface RollColors {
   readonly blackKey: string;
   readonly keyBorder: string;
   readonly keyLabel: string;
+  /** The words on a pressed key, over its hand's colour. */
+  readonly onHand: string;
   readonly pedal: string;
   /** Where the music is, when the notes are dragged elsewhere. */
   readonly cursor: string;

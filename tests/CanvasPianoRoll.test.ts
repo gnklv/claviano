@@ -14,6 +14,8 @@ function countedCanvas() {
   /** The settings put by with `save`, and the line width each rectangle was outlined with. */
   const saved: Record<string | symbol, unknown>[] = [];
   const outlines: unknown[] = [];
+  /** The words written, each with the ink it was written in. */
+  const written: { text: string; ink: unknown }[] = [];
   const context = new Proxy(settings, {
     get: (_, name) => {
       if (name in settings) return settings[name];
@@ -22,12 +24,13 @@ function countedCanvas() {
       if (name === 'save') return () => void saved.push({ ...settings });
       if (name === 'restore') return () => void (settings = saved.pop() ?? settings);
       if (name === 'strokeRect') return () => void outlines.push(settings.lineWidth);
+      if (name === 'fillText') return (text: string) => void written.push({ text, ink: settings.fillStyle });
       return () => void (name === 'fillRect' && drawn++);
     },
     set: (_, name, value) => ((settings[name] = value), true),
   });
   const canvas = { clientWidth: 800, clientHeight: 400, width: 0, height: 0, getContext: () => context, getBoundingClientRect: () => ({ left: 0, top: 0 }) } as unknown as HTMLCanvasElement;
-  return { canvas, drawn: () => drawn, outlines };
+  return { canvas, drawn: () => drawn, outlines, written };
 }
 
 const score = odeToJoy('Ode to Joy');
@@ -42,6 +45,7 @@ const DARKER: RollColors = {
   blackKey: '#111',
   keyBorder: '#999',
   keyLabel: '#888',
+  onHand: '#fff',
   pedal: '#777',
   cursor: '#f00',
   hand: { right: '#00f', left: '#0f0' },
@@ -114,5 +118,16 @@ describe('the falling notes', () => {
     roll.render(frame(0, { picked: [0] }));
     expect(plain.length).toBeGreaterThan(0);
     expect(outlines).toEqual(plain);
+  });
+
+  it('name a Do pressed in the ink that reads on its hand, and the others in the keys\' own', () => {
+    const { canvas, written } = countedCanvas();
+    const roll = new CanvasPianoRoll(canvas, PAPER);
+    // A moment a Do is played (the labels are the keys' numbers here).
+    const played = score.notes.find((note) => note.pitch % 12 === 0)!;
+    roll.render(frame(played.start));
+    const dos = written.filter(({ text }) => Number(text) % 12 === 0);
+    expect(dos.find(({ text }) => Number(text) === played.pitch)?.ink).toBe(PAPER.onHand);
+    expect(dos.filter(({ ink }) => ink === PAPER.keyLabel).length).toBeGreaterThan(0);
   });
 });
