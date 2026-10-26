@@ -141,17 +141,21 @@ One rule: the first row never hides, the third never takes room on the stage.
 - **A computer, a tablet on its side:** a thin header, the stage, a bar with the first two rows of
   tools in one line.
 - **A phone upright:** the bar has play, tempo and loop; the rest is in a sheet that slides up from
-  the bottom. "Both" does not fit this height: the staff or the keys. The staff alone is in lines
-  one under another, as on a page, as many as fit whole at the size the width gives it (three at
-  most; two for a piece that reaches far over and under its staves): the music is read in the
-  first, and each line goes on where the one over it ends. They move together, played, drawn by
-  hand or gliding; a press on any of them is in its bars, and each begins with its clefs and
-  signatures.
+  the bottom. "Both" does not fit this height: the staff or the keys.
 - **A phone on its side:** the best way to see a keyboard. The header and the bar shrink to thin
   strips and hide while the music plays; a touch brings them back. The falling notes take the room
   they leave; the staff keeps its size, in the middle of it (laid out anew, it would jolt).
 - **The computer's keyboard** stays (Space, the arrows by bars, − and + for the tempo, 1–9 for the
   bookmarks), with keys for the loop to add.
+
+**The staff alone is in lines, on every screen,** one under another as on a page: as many as fit
+whole at the size the width gives it, three at most, each a little smaller (by a fifth at most) if
+that makes room for one more: the Ode in two lines on a computer, listened to and learnt alike;
+three on a phone held upright, or a tablet. The music is read in the first, and each line goes on
+where the one over it ends. They move together, played, drawn by hand or gliding; a press on any
+of them is in its bars. Each begins with its clefs and its key; the time signature is the first
+line's, as a page prints it once (a change of it stands on the line where it is). Beside the
+falling notes, the staff is one line: the height is the line's between them to share.
 
 ## What it takes in the code
 

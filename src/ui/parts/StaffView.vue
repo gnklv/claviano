@@ -16,7 +16,7 @@ const state = usePlaybackState(playback);
  * useFingeredPage). `fingering`: a press on a note picks it (`pick`), and does not move the music;
  * `picked` is marked. `loops`: bars may be selected to loop (Shift and a drag, a long press); not
  * while the piece is listened to. `lined`: the staff may stand in lines one under another, as on a
- * page, as many as fit (a stage tall and narrow, a phone held upright, has room for more than one).
+ * page, as many as fit (the staff alone: beside the falling notes, the height is the line's between them to share).
  */
 const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null; loops?: boolean; lined?: boolean }>();
 const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
@@ -30,11 +30,12 @@ const container = useTemplateRef<HTMLDivElement>('container');
  */
 const MOST_LINES = 3;
 /**
- * A line may be this much lower than its width would have it, its staff drawn as much smaller: too
- * little to be seen, and a phone falls short of a line by little (a stage of 375 × 636 px has room
- * for 2.996 lines of the Ode).
+ * A line may be this much lower than its width would have it, its staff drawn as much smaller, for
+ * one more line in sight. Tuned against a screen of 1280 × 800: the Ode stands in two lines both
+ * listened to and learnt (the stage 656 and about 605 px high, a line asking for 336), its staff
+ * 12.6 px between lines rather than 14; without it, the lines would come and go with the way.
  */
-const LINE_SLACK = 0.03;
+const LINE_SLACK = 0.2;
 const count = ref(1);
 /** A line, as its owner holds it (see StaffLine). */
 interface Line {

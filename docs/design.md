@@ -179,12 +179,15 @@ A screen is built of these, and does not write a button or a field of its own.
 Three kinds of screen are told apart, by name (`ui/browser/useMediaQuery.ts`):
 
 - **narrow** (under 600px wide): a phone held upright. One column; what is set once a session goes
-  into a sheet. The staff alone stands in lines one under another, as on a page: as many as fit
-  whole, three at most, each as large as the width allows (two bars and a bit); where one line goes
-  on into the next its tape does not fade, as the music is read on.
+  into a sheet.
 - **short** (under 500px high): a phone on its side. Every pixel of height is the music's: the
   strips fold away while it plays, and the staff holds its size while they do.
 - **under a finger** (`pointer: coarse`, or narrow): pressable things grow to 44px.
+
+The staff alone stands in lines one under another, as on a page, on any screen: as many as fit
+whole, three at most, each as large as the width allows (two bars and a bit), or smaller by a fifth
+at most where that makes room for another line. Where one line goes on into the next its tape does
+not fade, as the music is read on; the time signature is printed on the first line only.
 
 These are the widths the interface is laid out by: narrow and not. (The piece's header, for one,
 has its view in sight but on a phone, and there its ways drawn, not said.) A layout that needs

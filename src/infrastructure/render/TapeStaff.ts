@@ -326,7 +326,8 @@ export class TapeStaff implements StaffView {
     this.surface.goesOn(over > 0, under > 0);
     if (over === this.geometry.linesOver) return;
     this.geometry.linesOver = over;
-    // (The left column says what is in force where this line begins: see render.)
+    // (The left column says what is in force where this line begins, see render; under the first, without the time signature.)
+    this.surface.sized(this.geometry.width, this.geometry.height, this.geometry.gutterWidth());
     this.drawBackground();
     if (this.score) this.drawTape();
   }
@@ -351,7 +352,8 @@ export class TapeStaff implements StaffView {
     const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, beat), clefSignAt(score, 2, beat)];
     // (Nothing written, no bar: no signatures. A bar with nothing in it yet, as a take before it is played, has them.)
     if (score.notation.bars.length === 0) return { clefs, signatures: null };
-    return { clefs, signatures: { key: keySignatureAt(score, beat), time: timeSignatureAt(score, beat) } };
+    // (The time signature is the first line's: a page does not print it again at each line, only where it changes.)
+    return { clefs, signatures: { key: keySignatureAt(score, beat), time: this.geometry.linesOver > 0 ? null : timeSignatureAt(score, beat) } };
   }
 
   /** The last change of clef, key or time at or before `beat` (as the domain finds what is in force there). */

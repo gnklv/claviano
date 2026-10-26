@@ -1,46 +1,55 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { button, named, playback, root, settled, staffLines, turnIntoPhone, useApp } from './harness';
+import { button, learn, named, playback, root, settled, staffLines, turnIntoPhone, useApp } from './harness';
 
-/* The staff alone on a phone held upright: lines one under another, as on a page, as many as fit. */
+/* The staff alone, on any screen: lines one under another, as on a page, as many as fit. */
 
 useApp();
 
 describe('the staff in lines', () => {
-  /** The stage's size, as the staff finds it. */
+  /** The staff's size, as it finds it: a phone held upright's stage, unless a test says another. */
   const size = { width: 375, height: 636 };
+  /** Told of a new size: the staff's watchers. */
+  let told: (() => void)[] = [];
+  const resized = async (width: number, height: number) => {
+    Object.assign(size, { width, height });
+    for (const tell of told) tell();
+    await settled();
+  };
   const lines = () => [...root.querySelectorAll<HTMLElement>('.staff-line')];
-  const notes = async () => {
-    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => named(choice) === 'Notes')!.click();
+  const view = async (name: string) => {
+    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => named(choice) === name)!.click();
     await settled();
   };
 
   beforeEach(async () => {
+    told = [];
+    Object.assign(size, { width: 375, height: 636 });
     vi.stubGlobal(
       'ResizeObserver',
       class {
-        constructor(private readonly told: () => void) {}
+        constructor(private readonly tell: () => void) {}
         observe(element: Element) {
           if (element.classList.contains('staff')) {
             Object.defineProperty(element, 'clientWidth', { get: () => size.width, configurable: true });
             Object.defineProperty(element, 'clientHeight', { get: () => size.height, configurable: true });
+            told.push(this.tell);
           }
-          this.told();
+          this.tell();
         }
         disconnect() {}
       },
     );
-    // A line asks for a third of the stage and a little over (the Ode, at 375 px: see StaffView's slack).
+    // A line asks for a third of the stage and a little over (the Ode, at 375 px).
     staffLines.height = 212.3;
     button(/Ode to Joy/).click();
     await settled();
-    await notes();
+    await view('Notes');
   });
 
   afterEach(() => vi.unstubAllGlobals());
 
   it('stands in as many lines as fit whole on a phone held upright, each going on from the one over it', async () => {
-    expect(lines()).toHaveLength(1);
     await turnIntoPhone();
     await settled();
     expect(lines()).toHaveLength(3);
@@ -54,22 +63,29 @@ describe('the staff in lines', () => {
 
   it('has three lines at the most', async () => {
     staffLines.height = 100;
-    await turnIntoPhone();
-    await settled();
+    await resized(375, 636);
     expect(lines()).toHaveLength(3);
   });
 
-  it('is one line where two do not fit', async () => {
+  it('is one line where two do not fit, even a little smaller', async () => {
     staffLines.height = 400;
-    await turnIntoPhone();
-    await settled();
+    await resized(375, 636);
     expect(lines()).toHaveLength(1);
   });
 
-  it('is one line beside the falling notes, and on a wide screen', async () => {
-    expect(lines()).toHaveLength(1);
-    [...root.querySelectorAll<HTMLElement>('.piece header [role=group][aria-label=View] button')].find((choice) => named(choice) === 'Both')!.click();
-    await settled();
+  it('stands in two lines on a computer, listened to and learnt alike: a little smaller rather than one', async () => {
+    // (1280 × 800: the Ode's line asks for 336 px; the stage is 656 px high listened to, about 605 learnt, under the plan's bar.)
+    staffLines.height = 336;
+    await resized(1280, 656);
+    expect(lines()).toHaveLength(2);
+    await learn();
+    await resized(1280, 605);
+    expect(lines()).toHaveLength(2);
+  });
+
+  it('is one line beside the falling notes', async () => {
+    await resized(1280, 656);
+    await view('Both');
     expect(lines()).toHaveLength(1);
   });
 

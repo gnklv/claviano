@@ -84,6 +84,8 @@ export class StaffGeometry {
   height = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
   gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
+  /** Of it, the widest time signature's, in staff spaces: a line under another does not repeat it. */
+  timeSpaces = 0;
   /** Key and time changes along the page. */
   changes: SignatureChange[] = [];
   /**
@@ -142,6 +144,7 @@ export class StaffGeometry {
     this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i]! + lead + this.tail[i]!));
     this.barIndices = score ? tapeBars(score).starts.map((_, i) => i) : [];
     this.gutterSpaces = fitGutter(score);
+    this.timeSpaces = score && score.notes.length > 0 ? Math.max(...score.notation.timeSignatures.map((time) => timeSignatureWidth(time))) : 0;
     this.fit();
   }
 
@@ -178,13 +181,19 @@ export class StaffGeometry {
     return (SYSTEM_HEIGHT + this.roomAbove + this.roomBelow) * this.spaceFor(width, Infinity);
   }
 
+  /** The left column: on a line under another, without the time signature (as a page prints it once). */
   gutterWidth(): number {
-    return this.gutterSpaces * this.space;
+    return (this.gutterSpaces - (this.linesOver > 0 ? this.timeSpaces : 0)) * this.space;
+  }
+
+  /** The tape of the first line of a page (or of the staff alone): the bars are set out by it, on every line alike. */
+  private firstTape(): number {
+    return this.width - this.gutterSpaces * this.space;
   }
 
   /** The width of a bar that is not crowded, in pixels: about two such bars on the tape, so phones see what comes next too. */
   barWidth(): number {
-    const tapeWidth = this.width - this.gutterWidth();
+    const tapeWidth = this.firstTape();
     const spaces = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, tapeWidth / BARS_VISIBLE / this.space));
     return spaces * this.space;
   }
@@ -254,10 +263,13 @@ export class StaffGeometry {
 
   /** Cursor position inside the tape (left of it, on a line under another). */
   cursorX(): number {
-    return (this.width - this.gutterWidth()) * this.cursorShare();
+    const first = this.firstTape();
+    if (this.linesOver === 0) return first * this.cursorAt;
+    // Under the first line: past what the first shows after its cursor, and the whole of each line between.
+    return -((1 - this.cursorAt) * first + (this.linesOver - 1) * (this.width - this.gutterWidth()));
   }
 
-  /** Where the cursor stands, as a share of the tape's width, on this line of the page. */
+  /** Where the cursor stands, as a share of the tape's width, on this line of the page (near enough: the lines under the first are wider by a time signature). */
   cursorShare(): number {
     return this.cursorAt - this.linesOver;
   }
