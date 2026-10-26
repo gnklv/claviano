@@ -79,6 +79,10 @@ A thin header (back to the library, the title, listen or learn, the view mode, s
 between the staff and the falling notes is drawn up or down: a larger staff reads better, a smaller
 one shows more bars ahead, and which is one's own (kept, one for every piece).
 
+The staff alone takes as much of the stage as it can: on a computer it is drawn large (up to 18px
+between lines), with as little room around it as the piece needs; on a phone held upright the
+width decides, two bars and a bit in sight.
+
 The header, in its order: back; the piece's name, in ink (it names what is open, not a place), and
 nothing beside it (how many bars and notes is not what one opens a piece for); the way, listen or
 learn; apart from it, as another choice, the view of the stage, drawn (a staff, a keyboard, the two);
@@ -147,15 +151,6 @@ One rule: the first row never hides, the third never takes room on the stage.
   they leave; the staff keeps its size, in the middle of it (laid out anew, it would jolt).
 - **The computer's keyboard** stays (Space, the arrows by bars, − and + for the tempo, 1–9 for the
   bookmarks), with keys for the loop to add.
-
-**The staff alone is in lines, on every screen,** one under another as on a page: as many as fit
-whole at the size the width gives it, three at most, each a little smaller (by a fifth at most) if
-that makes room for one more: the Ode in two lines on a computer, listened to and learnt alike;
-three on a phone held upright, or a tablet. The music is read in the first, and each line goes on
-where the one over it ends. They move together, played, drawn by hand or gliding; a press on any
-of them is in its bars. Each begins with its clefs and its key; the time signature is the first
-line's, as a page prints it once (a change of it stands on the line where it is). Beside the
-falling notes, the staff is one line: the height is the line's between them to share.
 
 ## What it takes in the code
 

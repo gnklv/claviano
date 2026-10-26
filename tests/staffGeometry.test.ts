@@ -17,9 +17,23 @@ describe('the size of the staff', () => {
   const barsOnTape = (geometry: StaffGeometry) => (geometry.width - geometry.gutterWidth()) / geometry.barWidth();
 
   it('follows the height of the view, within limits', () => {
-    expect(sized(1200, 240).space).toBe(10);
+    expect(sized(1200, 240).space).toBe(12);
     expect(sized(1200, 100).space).toBe(6);
-    expect(sized(1200, 900).space).toBe(14);
+    expect(sized(1200, 900).space).toBe(18);
+  });
+
+  it('fills a computer\'s stage more than it did, and no more than reads well', () => {
+    // (1280 × 800, the staff alone: once 14 between lines at the most, the staves 196 px high in 656.)
+    const computer = sized(1280, 656);
+    expect(computer.space).toBeGreaterThan(14);
+    expect(computer.space).toBeLessThanOrEqual(18);
+  });
+
+  it('keeps less room over and under a piece that reaches no further than its staves: three spaces, not five', () => {
+    const plain = sized(1200, 240);
+    const content = (plain.systemBottom() - plain.trebleTop()) / plain.space;
+    const room = (240 / plain.space - content) / 2;
+    expect(room).toBeCloseTo(3);
   });
 
   it('is smaller on a tall and narrow view, so that two bars and a bit are in sight', () => {
@@ -103,17 +117,17 @@ describe('the staff of a piece that reaches far', () => {
   };
 
   it('is as large as any when the piece keeps within the usual', () => {
-    expect(sized({ above: 10, below: 6 }).space).toBe(sized().space);
-    expect(sized({ above: 10, below: 6 }).trebleTop()).toBe(sized().trebleTop());
+    expect(sized({ above: 6, below: 4 }).space).toBe(sized().space);
+    expect(sized({ above: 6, below: 4 }).trebleTop()).toBe(sized().trebleTop());
   });
 
   it('is smaller, so that the whole height holds what the piece has above and below', () => {
     const plain = sized();
     const low = sized({ above: 0, below: 20 });
     expect(low.space).toBeLessThan(plain.space);
-    // Ten spaces under the lower staff are within the view, five over the upper one.
+    // Ten spaces under the lower staff are within the view, three over the upper one.
     expect(low.systemBottom() + 10 * low.space).toBeLessThanOrEqual(240 + 1e-6);
-    expect(low.trebleTop() - 5 * low.space).toBeGreaterThanOrEqual(-1e-6);
+    expect(low.trebleTop() - 3 * low.space).toBeGreaterThanOrEqual(-1e-6);
   });
 
   it('stands lower in the view when the piece reaches up, higher when it reaches down', () => {

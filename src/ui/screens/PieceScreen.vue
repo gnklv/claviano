@@ -160,7 +160,6 @@ const staffShare = computed({
         :fingering="fingering"
         :picked="picked"
         :loops="learning"
-        :lined="viewMode === 'staff'"
         @pick="picked = $event"
       />
       <!-- (Between the two, a line of the stage's own, to be drawn up or down: how large the staff is is one's own.) -->

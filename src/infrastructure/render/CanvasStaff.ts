@@ -55,8 +55,6 @@ class CanvasSurface implements StaffSurface {
   private lit: Lit = { chords: [], graces: [] };
   private offset = 0;
   private inSight = 0;
-  /** The music goes on from a line over this one, and into one under it: those ends are not faded. */
-  private joined = { start: false, end: false };
 
   constructor() {
     Object.assign(this.background.style, { position: 'absolute', inset: '0' });
@@ -149,12 +147,6 @@ class CanvasSurface implements StaffSurface {
     this.paint();
   }
 
-  goesOn(fromOver: boolean, intoUnder: boolean): void {
-    if (fromOver === this.joined.start && intoUnder === this.joined.end) return;
-    this.joined = { start: fromOver, end: intoUnder };
-    this.paint();
-  }
-
   /** The tape in sight: what is behind the music, the pictures of it, what sounds over it, and its ends faded. */
   private paint(): void {
     const ctx = this.tapeCanvas.getContext('2d');
@@ -181,18 +173,15 @@ class CanvasSurface implements StaffSurface {
     this.fade(ctx);
   }
 
-  /**
-   * The tape fades out at both its ends: the music comes into sight, and goes out of it, gently.
-   * Not where it goes on in another line: there it is read on, as at the end of a line of a page.
-   */
+  /** The tape fades out at both its ends: the music comes into sight, and goes out of it, gently. */
   private fade(ctx: CanvasRenderingContext2D): void {
     const width = this.tapeCanvas.width;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const gradient = ctx.createLinearGradient(0, 0, width, 0);
-    gradient.addColorStop(0, `rgba(0, 0, 0, ${this.joined.start ? 1 : 0})`);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
     gradient.addColorStop(FADE, 'rgba(0, 0, 0, 1)');
     gradient.addColorStop(1 - FADE, 'rgba(0, 0, 0, 1)');
-    gradient.addColorStop(1, `rgba(0, 0, 0, ${this.joined.end ? 1 : 0})`);
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.globalCompositeOperation = 'destination-in';
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, this.tapeCanvas.height);

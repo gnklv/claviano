@@ -90,6 +90,11 @@ component names the token; it never writes a colour.
   taken hold of further: a little either side under a pointer, 44px under a finger (`--touch`); in
   ink when reached for, held or reached by Tab. Where it stands is kept between visits, one for
   the whole app (a `preference`, to the percent), and a double press puts it back.
+- **The staff is as large as its stage allows**, between 6 and 18px from line to line: by the
+  height, with room over and under it for what the piece has there (three spaces at the least: a
+  bar number, a ledger line), and no wider than leaves two bars and a bit in sight. A computer's
+  stage fills with it (18px chosen by eye, of 14, 18 and 22); a phone held upright sizes it by its
+  width, two bars and a bit kept in sight rather than a larger staff (chosen too).
 - **The keyboard to play on has its octaves at its ends**: an octave down on the left, up on the
   right, a fingertip wide (`--touch`) and as tall as the keys, out where the range ends; Z and X do
   the same. Its white keys are never narrower than a fingertip (34px): eight of them at the fewest,
@@ -183,11 +188,6 @@ Three kinds of screen are told apart, by name (`ui/browser/useMediaQuery.ts`):
 - **short** (under 500px high): a phone on its side. Every pixel of height is the music's: the
   strips fold away while it plays, and the staff holds its size while they do.
 - **under a finger** (`pointer: coarse`, or narrow): pressable things grow to 44px.
-
-The staff alone stands in lines one under another, as on a page, on any screen: as many as fit
-whole, three at most, each as large as the width allows (two bars and a bit), or smaller by a fifth
-at most where that makes room for another line. Where one line goes on into the next its tape does
-not fade, as the music is read on; the time signature is printed on the first line only.
 
 These are the widths the interface is laid out by: narrow and not. (The piece's header, for one,
 has its view in sight but on a phone, and there its ways drawn, not said.) A layout that needs

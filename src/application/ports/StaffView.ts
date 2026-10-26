@@ -48,14 +48,6 @@ export interface StaffView {
    * back at, behind a cursor near the right.
    */
   setCursorPlace(share: number): void;
-  /**
-   * A line of a page, `over` lines of it over this one and `under` under it, each a staff as wide
-   * (none: the staff alone, the default). It shows what begins where the one over it ends, the
-   * cursor out of sight over it; the music goes on from one line into the next without fading.
-   */
-  setLine(over: number, under: number): void;
-  /** The least height in which a staff `width` wide is drawn as large as that width allows: what a line of a page needs. */
-  heightAt(width: number): number;
   /** Call when the container's size changes. */
   resize(): void;
   /** Called every frame, with the music's position in seconds. Chords of muted hands are not highlighted. */

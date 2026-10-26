@@ -15,13 +15,20 @@ const STAFF_GAP = 6;
 /** The two staves and the gap between them. */
 const SYSTEM_HEIGHT = 2 * (LINES_PER_STAFF - 1) + STAFF_GAP;
 /**
- * Room over the upper staff and under the lower one, at the least: for a ledger line or two, and
- * for what stands there (bar numbers and the tempo above; dynamics and the pedal below). A piece
- * that reaches further has more (see setScore).
+ * Room over the upper staff and under the lower one, at the least: for a bar number over the top
+ * line (it stands a little over two spaces up) and a ledger line under the bottom one. What a piece
+ * has further out, its notes, words, dynamics and pedal, it has room for by itself (see setScore's
+ * reach). Five spaces once, two fifths of the height whatever the piece: three, measured against
+ * the Ode, the showcase holding nothing cut off (tests/staffInSight.test.ts).
  */
-const ROOM_BEYOND = 5;
+const ROOM_BEYOND = 3;
 const MIN_SPACE_PX = 6;
-const MAX_SPACE_PX = 14;
+/**
+ * The staff no larger than this, between two lines: chosen by eye against 1280 × 800, of 14, 18
+ * and 22 (the Ode's two staves 196, 252 and 308 px high in a stage of 656). At 14 it stood small in
+ * the middle of an empty stage; at 22 it is larger than one reads music at.
+ */
+const MAX_SPACE_PX = 18;
 /** About this many bars fit on the tape, within the bar width limits below. */
 const BARS_VISIBLE = 2.2;
 /** Narrower bars would not leave room for notes; wider ones waste a wide screen. */
@@ -75,17 +82,10 @@ export class StaffGeometry {
   space = 10;
   /** Where the cursor stands, as a share of the tape's width. */
   cursorAt = READING_AHEAD;
-  /**
-   * How many lines of a page stand over this one, each a tape as wide: what it shows begins where
-   * the one over it ends (the cursor, that many tapes to the left of its own, out of sight).
-   */
-  linesOver = 0;
   width = 0;
   height = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
   gutterSpaces = CLEF_AREA + GUTTER_END_GAP;
-  /** Of it, the widest time signature's, in staff spaces: a line under another does not repeat it. */
-  timeSpaces = 0;
   /** Key and time changes along the page. */
   changes: SignatureChange[] = [];
   /**
@@ -144,7 +144,6 @@ export class StaffGeometry {
     this.lead.forEach((lead, i) => this.roomBefore.push(this.roomBefore[i]! + lead + this.tail[i]!));
     this.barIndices = score ? tapeBars(score).starts.map((_, i) => i) : [];
     this.gutterSpaces = fitGutter(score);
-    this.timeSpaces = score && score.notes.length > 0 ? Math.max(...score.notation.timeSignatures.map((time) => timeSignatureWidth(time))) : 0;
     this.fit();
   }
 
@@ -176,24 +175,13 @@ export class StaffGeometry {
     return Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
   }
 
-  /** The least height in which a view `width` wide draws the staff as large as that width allows (a taller one only has more room around it). */
-  heightFor(width: number): number {
-    return (SYSTEM_HEIGHT + this.roomAbove + this.roomBelow) * this.spaceFor(width, Infinity);
-  }
-
-  /** The left column: on a line under another, without the time signature (as a page prints it once). */
   gutterWidth(): number {
-    return (this.gutterSpaces - (this.linesOver > 0 ? this.timeSpaces : 0)) * this.space;
-  }
-
-  /** The tape of the first line of a page (or of the staff alone): the bars are set out by it, on every line alike. */
-  private firstTape(): number {
-    return this.width - this.gutterSpaces * this.space;
+    return this.gutterSpaces * this.space;
   }
 
   /** The width of a bar that is not crowded, in pixels: about two such bars on the tape, so phones see what comes next too. */
   barWidth(): number {
-    const tapeWidth = this.firstTape();
+    const tapeWidth = this.width - this.gutterWidth();
     const spaces = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, tapeWidth / BARS_VISIBLE / this.space));
     return spaces * this.space;
   }
@@ -261,17 +249,9 @@ export class StaffGeometry {
     return sameMoment(starts[bar] ?? 0, x) ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
   }
 
-  /** Cursor position inside the tape (left of it, on a line under another). */
+  /** Cursor position inside the tape. */
   cursorX(): number {
-    const first = this.firstTape();
-    if (this.linesOver === 0) return first * this.cursorAt;
-    // Under the first line: past what the first shows after its cursor, and the whole of each line between.
-    return -((1 - this.cursorAt) * first + (this.linesOver - 1) * (this.width - this.gutterWidth()));
-  }
-
-  /** Where the cursor stands, as a share of the tape's width, on this line of the page (near enough: the lines under the first are wider by a time signature). */
-  cursorShare(): number {
-    return this.cursorAt - this.linesOver;
+    return (this.width - this.gutterWidth()) * this.cursorAt;
   }
 
   /** The top line of the upper staff: what the piece needs is in the middle of the height, the room over the staff above this. */

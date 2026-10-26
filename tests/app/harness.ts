@@ -58,8 +58,6 @@ export let rollFrames: RollFrame[];
 export let staffScores: (Score | null)[];
 /** The note a press on the staff lands on, as the test puts it there; and the note the staff was told is picked. */
 export const staffPointer: { note: NoteOnPage | null; picked: NoteOnPage | null } = { note: null, picked: null };
-/** The lines of the staff as made, each told how many stand over it and under it; and the height a line asks for (0: none said). */
-export const staffLines: { lines: { over: number; under: number }[]; height: number } = { lines: [], height: 0 };
 /** The note (its place in the piece's played notes) whose tile a press on the falling notes lands on, as the test puts it there. */
 export const rollPointer: { note: number | null } = { note: null };
 /** The tiles of free play, as last handed to their view. */
@@ -128,8 +126,6 @@ export function useApp(): void {
   screen.listeners.clear();
   staffPointer.note = null;
   staffPointer.picked = null;
-  staffLines.lines = [];
-  staffLines.height = 0;
   rollPointer.note = null;
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
     // Only what this screen changes is told of a change: the width, the height, the pointer (not the density, say).
@@ -196,19 +192,14 @@ export function useApp(): void {
       recorder,
       keepTake: (title, fileName) => keepTake(recorder, new MidiFileWriter(), library, title, fileName),
       createRoll: () => fakeView<RollView>({ secondsPerPixel: null, scrollable: false, noteAt: () => rollPointer.note, render: (frame) => void rollFrames.push(frame) }),
-      createStaff: () => {
-        const line = { over: 0, under: 0 };
-        staffLines.lines.push(line);
-        return fakeView<StaffView>({
+      createStaff: () =>
+        fakeView<StaffView>({
           setScore: (score) => void staffScores.push(score),
-          setLine: (over, under) => void Object.assign(line, { over, under }),
-          heightAt: () => staffLines.height,
-          // (A press anywhere on a line of the staff is on the bar of its number, the first on the first; on the note the test puts under it.)
-          pageAt: () => ({ bar: line.over, beat: 0 }),
+          // (A press anywhere on the staff is on its first bar, on the note the test puts under it.)
+          pageAt: () => ({ bar: 0, beat: 0 }),
           noteAt: () => staffPointer.note,
           setPicked: (note) => void (staffPointer.picked = note),
-        });
-      },
+        }),
       createTiles: () => fakeView<TilesView>({ secondsInSight: 5, render: (frame) => void (tilesShown = frame.tiles) }),
       demos,
     });

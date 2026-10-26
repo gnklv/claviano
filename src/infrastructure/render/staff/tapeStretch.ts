@@ -67,7 +67,7 @@ export class TapeStretch {
     // The tape is boxed as it will be, in what is drawn: from the left column (stretched with the
     // rest) to the view's edges. Its fade, and the edge that cuts it, go with the box.
     const tape = (width - by * geometry.gutterWidth()) / by;
-    this.moved = tenth(geometry.cursorShare() * (tape - (geometry.width - geometry.gutterWidth())));
+    this.moved = tenth(geometry.cursorAt * (tape - (geometry.width - geometry.gutterWidth())));
     this.scale = by;
     this.tape = tape;
     parts.tape.style.right = `${width - geometry.gutterWidth() - tape}px`;

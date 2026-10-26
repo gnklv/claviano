@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { drawStaff } from './drawnStaff';
-import { timeDigits } from '../src/infrastructure/render/staff/glyphs';
 import { ode } from './staffPieces';
 
 /* The staff's tape: stretched while its size is on the move, dragged by hand. (Shown near the view only: see the pictures of canvasStaff.test.ts.) */
@@ -119,64 +118,5 @@ describe('the tape dragged by hand', () => {
     frame(staff, 1.1);
     for (let i = 0; i < 20; i++) frame(staff, 8);
     expect(offset(shown)).toBeCloseTo(following(8), 0);
-  });
-});
-
-describe('the staff as lines of a page', () => {
-  const PHONE = { width: 375, height: 212 };
-  afterEach(() => vi.restoreAllMocks());
-
-  it('goes on in a line under another where that one ends: a whole tape further on', () => {
-    // (Frames a tenth of a second apart, on a clock set by hand: each line glides to the music, and arrives.)
-    let time = performance.now();
-    vi.spyOn(performance, 'now').mockImplementation(() => (time += 100));
-    const first = drawStaff(ode(), PHONE);
-    const second = drawStaff(ode(), PHONE);
-    first.staff.setLine(0, 1);
-    second.staff.setLine(1, 0);
-    for (let i = 0; i < 20; i++) {
-      first.staff.render(3);
-      second.staff.render(3);
-    }
-    const tape = PHONE.width - first.staff['geometry'].gutterWidth();
-    expect(second.shown.offset).toBeCloseTo(first.shown.offset - tape, 0);
-  });
-
-  it('asks for the height in which its width, not the height, sizes it', () => {
-    const { staff } = drawStaff(ode(), PHONE);
-    const height = staff.heightAt(PHONE.width);
-    const space = (size: { width: number; height: number }) => drawStaff(ode(), size).staff['geometry'].space;
-    expect(space({ width: PHONE.width, height })).toBeCloseTo(space({ width: PHONE.width, height: 2000 }));
-    expect(space({ width: PHONE.width, height: height - 20 })).toBeLessThan(space({ width: PHONE.width, height }));
-  });
-
-  it('prints the time signature on the first line only, the clefs and the key on every line', () => {
-    const first = drawStaff(ode(), PHONE);
-    const second = drawStaff(ode(), PHONE);
-    first.staff.setLine(0, 1);
-    second.staff.setLine(1, 0);
-    first.staff.render(0);
-    second.staff.render(0);
-    const column = (shown: typeof first.shown) => shown.column.flatMap((shape) => (shape.kind === 'text' ? [shape.text] : []));
-    const four = timeDigits(4);
-    expect(column(first.shown).filter((text) => text === four)).toHaveLength(4);
-    expect(column(second.shown)).not.toContain(four);
-    // (Its clefs still: as many glyphs, but for the four digits.)
-    expect(column(second.shown)).toHaveLength(column(first.shown).length - 4);
-  });
-
-  it('goes on in a third line where the second ends, the second wider by the time signature it does not print', () => {
-    let time = performance.now();
-    vi.spyOn(performance, 'now').mockImplementation(() => (time += 100));
-    const lines = [0, 1, 2].map((over) => {
-      const line = drawStaff(ode(), PHONE);
-      line.staff.setLine(over, 2 - over);
-      return line;
-    });
-    for (let i = 0; i < 20; i++) for (const line of lines) line.staff.render(3);
-    const tape = (line: (typeof lines)[number]) => PHONE.width - line.staff['geometry'].gutterWidth();
-    expect(tape(lines[1])).toBeGreaterThan(tape(lines[0]));
-    expect(lines[1].shown.offset).toBeCloseTo(lines[0].shown.offset - tape(lines[0]), 0);
-    expect(lines[2].shown.offset).toBeCloseTo(lines[1].shown.offset - tape(lines[1]), 0);
   });
 });

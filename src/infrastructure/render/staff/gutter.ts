@@ -8,14 +8,12 @@ import { COLORS, noteGlyph, type Shape } from './shapes';
 /** What the left column shows: the clefs in force (upper, lower) and, with music, the signatures. */
 export interface GutterContent {
   clefs: [ClefSign, ClefSign];
-  /** (`time`: none on a line under another, as a page prints it once.) */
-  signatures: { key: KeySignature; time: TimeSignature | null } | null;
+  signatures: { key: KeySignature; time: TimeSignature } | null;
 }
 
 /**
  * What never moves: the staff lines across the whole view, the line joining both staves, and the
- * left column with the clefs, the key signature and the time signature in force under the cursor
- * (or where its line begins).
+ * left column with the clefs, the key signature and the time signature in force under the cursor.
  */
 export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: GutterContent): Shape[] {
   const { space } = geometry;
@@ -56,7 +54,6 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
     });
   }
 
-  if (!time) return shapes;
   // Time signature digits are two spaces tall and centred on their baseline:
   // the numerator fills the upper half of the staff, the denominator the lower half.
   const timeCenter = keyX + keySignatureWidth(key) * space + (timeSignatureWidth(time) * space) / 2;

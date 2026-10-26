@@ -321,9 +321,7 @@ Small things noticed, to fix between the steps:
 - [x] A fingering over a bar's first note can run into the bar's number
 - [x] Words over the staff run into each other where two stand at one place ("Values" over the
       tempo mark at the start of the showcase)
-- [x] On a phone held upright the staff takes less than half the height: it is sized by the width
-      (two bars and a bit in sight), and a piece that reaches far makes it smaller still. The staff
-      alone stands in lines one under another, as on a page, on any screen, as many as fit (three
-      at most, a little smaller for one more), the time signature on the first only
+- [ ] On a phone held upright the staff takes less than half the height: it is sized by the width
+      (two bars and a bit in sight), and a piece that reaches far makes it smaller still
 - [x] The top of the staff was cut off when the stage is low: a phone on its side shows the
       staff or the keys, not both, and gives them the whole screen while the music plays

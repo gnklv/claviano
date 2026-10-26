@@ -1,81 +1,64 @@
 <script setup lang="ts">
 import { useGlide } from '../motion/useGlide';
-import { ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import type { NoteOnPage } from '../../domain/fingering/own';
 import { timeAtPage, writtenBarNumber, type Score } from '../../domain/score';
 import type { StaffView } from '../../application/ports/StaffView';
-import { useResize } from '../browser/useResize';
+import { useAnimationFrame } from '../browser/useAnimationFrame';
+import { useDrawnView } from '../browser/useDrawnView';
+import { litHands } from '../app/litHands';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
-import StaffLine from './StaffLine.vue';
+import { useI18n } from '../i18n/useI18n';
+import { readStaffColors } from '../theme/readCanvasColors';
+import { useCanvasColors } from '../theme/useCanvasColors';
 
-const { playback, barLoop: loop } = useDeps();
+const { playback, barLoop: loop, plan, createStaff } = useDeps();
 const state = usePlaybackState(playback);
+const { t, locale } = useI18n();
 /**
  * `page`: what the staff is given to draw, the piece with its fingering as it is to be shown (see
  * useFingeredPage). `fingering`: a press on a note picks it (`pick`), and does not move the music;
  * `picked` is marked. `loops`: bars may be selected to loop (Shift and a drag, a long press); not
- * while the piece is listened to. `lined`: the staff may stand in lines one under another, as on a
- * page, as many as fit (the staff alone: beside the falling notes, the height is the line's between them to share).
+ * while the piece is listened to.
  */
-const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null; loops?: boolean; lined?: boolean }>();
+const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null; loops?: boolean }>();
 const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
+const page = computed(() => props.page);
+watch(
+  () => props.picked,
+  (note) => staff.view?.setPicked(note ?? null),
+);
+const handLabels = () => ({ right: t('handMarkRight'), left: t('handMarkLeft') });
 const container = useTemplateRef<HTMLDivElement>('container');
 
-// --- Lines: as many as fit whole, each at the size its width allows; it goes on where the one over it ends. ---
+const colors = useCanvasColors(readStaffColors, () => staff.view);
+const staff = useDrawnView(container, (element): StaffView => {
+  const made = createStaff(element, colors());
+  made.setHandLabels(handLabels());
+  made.setScore(page.value);
+  made.setLoop(state.value.loop);
+  return made;
+});
 
-/**
- * Lines at the most: the music is read in the first, and the eye goes down to what comes next; a
- * fourth, on a screen that had room for it, would be read no further (and is drawn every frame).
- */
-const MOST_LINES = 3;
-/**
- * A line may be this much lower than its width would have it, its staff drawn as much smaller, for
- * one more line in sight. Tuned against a screen of 1280 × 800: the Ode stands in two lines both
- * listened to and learnt (the stage 656 and about 605 px high, a line asking for 336), its staff
- * 12.6 px between lines rather than 14; without it, the lines would come and go with the way.
- */
-const LINE_SLACK = 0.2;
-const count = ref(1);
-/** A line, as its owner holds it (see StaffLine). */
-interface Line {
-  readonly $props: { readonly over: number };
-  view(): StaffView | null;
-  holds(clientY: number): boolean;
-}
-const lineParts = useTemplateRef<Line[]>('lines');
-/** The lines' views, the first (where the music is) first. */
-const views = (): StaffView[] =>
-  [...(lineParts.value ?? [])]
-    .sort((a, b) => a.$props.over - b.$props.over)
-    .map((line) => line.view())
-    .filter((view) => view !== null);
-/** The view of the line at `clientY` (the first, where none is). */
-const viewAt = (clientY: number): StaffView | null => (lineParts.value ?? []).find((line) => line.holds(clientY))?.view() ?? views()[0] ?? null;
+// The tape is rebuilt only when the score or the loop changes…
+watch(page, (score) => staff.view?.setScore(score));
+watch(
+  () => state.value.loop,
+  (loop) => staff.view?.setLoop(loop),
+);
 
-/** As many lines as fit whole in the height, at the size the width gives the staff. */
-function fit(): void {
-  const box = container.value;
-  const first = views()[0];
-  const need = first && box ? first.heightAt(box.clientWidth) : 0;
-  count.value = props.lined && box && need > 0 ? Math.min(MOST_LINES, Math.max(1, Math.floor(box.clientHeight / (need * (1 - LINE_SLACK))))) : 1;
-}
-useResize(container, fit);
-// (After the lines are given the piece: how much room it needs over and under its staves is its own.)
-watch([() => props.lined, () => props.page], fit, { flush: 'post' });
+watch(locale, () => staff.view?.setHandLabels(handLabels()));
+
+// …and only slides during playback, outside Vue's reactivity.
+/** (Lit: the hands one reads now, see litHands.) */
+const handOn = litHands(plan, playback);
+useAnimationFrame(() => staff.view?.render(playback.position, handOn, playback.playing));
 
 // --- Click to jump there; drag to look through the tape; Shift+drag (or a long press) to loop bars ---
 
 /** Let go on the move, the tape goes on and slows to rest (see ui/motion/glide.ts). */
-const glide = useGlide((by) => dragBy(by));
-
-/** Every line moved together; by as much as the first could be. */
-function dragBy(dx: number): number {
-  const [first, ...rest] = views();
-  const moved = first?.dragBy(dx) ?? 0;
-  for (const view of rest) view.dragBy(dx);
-  return moved;
-}
+const glide = useGlide((by) => staff.view?.dragBy(by) ?? 0);
 
 /** A pointer moves this many pixels before it counts as dragging rather than clicking. */
 const DRAG_PX = 6;
@@ -86,8 +69,6 @@ const grabbing = ref(false);
 /** The press in progress: where it started on the page, what it does, and the bar it has reached. */
 let press: {
   pointerId: number;
-  /** The line pressed: a place in it is in its bars. */
-  line: StaffView;
   startX: number;
   x: number;
   place: { bar: number; beat: number };
@@ -104,17 +85,15 @@ function endPress(): void {
   if (press) clearTimeout(press.timer);
   press = null;
   grabbing.value = false;
-  for (const view of views()) view.setSelection(null);
+  staff.view?.setSelection(null);
 }
 
 function onPointerDown(event: PointerEvent): void {
   if (press || event.button !== 0) return;
-  const line = viewAt(event.clientY);
-  const place = line?.pageAt(event.clientX);
-  if (!line || !place) return;
+  const place = staff.view?.pageAt(event.clientX);
+  if (!place) return;
   const current = {
     pointerId: event.pointerId,
-    line,
     startX: event.clientX,
     x: event.clientX,
     place,
@@ -129,7 +108,7 @@ function onPointerDown(event: PointerEvent): void {
       if (press !== current || press.mode !== 'pending') return;
       press.mode = 'select';
       press.selecting = true;
-      for (const view of views()) view.setSelection({ from: place.bar, to: place.bar });
+      staff.view?.setSelection({ from: place.bar, to: place.bar });
       navigator.vibrate?.(10);
     }, LONG_PRESS_MS);
   }
@@ -140,7 +119,7 @@ function onPointerDown(event: PointerEvent): void {
 
 function onPointerMove(event: PointerEvent): void {
   if (!press) {
-    if (event.pointerType === 'mouse') hover(viewAt(event.clientY)?.pageAt(event.clientX)?.bar ?? null);
+    if (event.pointerType === 'mouse') staff.view?.setHover(staff.view.pageAt(event.clientX)?.bar ?? null);
     return;
   }
   if (event.pointerId !== press.pointerId) return;
@@ -148,30 +127,28 @@ function onPointerMove(event: PointerEvent): void {
     clearTimeout(press.timer);
     press.mode = press.selecting ? 'select' : 'drag';
     grabbing.value = press.mode === 'drag';
-    hover(null);
+    staff.view?.setHover(null);
   }
   if (press.mode === 'drag') {
-    dragBy(event.clientX - press.x);
+    staff.view?.dragBy(event.clientX - press.x);
     glide.follow(event.clientX);
   } else if (press.mode === 'select') {
-    // (Over another line, its bars: a loop may be drawn from one line on to the next.)
-    press.toBar = viewAt(event.clientY)?.pageAt(event.clientX)?.bar ?? press.toBar;
-    const selection = { from: press.place.bar, to: press.toBar };
-    for (const view of views()) view.setSelection(selection);
+    press.toBar = staff.view?.pageAt(event.clientX)?.bar ?? press.toBar;
+    staff.view?.setSelection({ from: press.place.bar, to: press.toBar });
   }
   press.x = event.clientX;
 }
 
 function onPointerUp(event: PointerEvent): void {
   if (!press || event.pointerId !== press.pointerId) return;
-  const { line, place, toBar, mode, caught } = press;
+  const { place, toBar, mode, caught } = press;
   endPress();
   if (mode === 'drag') glide.letGo();
   const score = playback.score;
   if (!score || mode === 'drag' || (caught && mode === 'pending')) return;
   if (props.fingering && mode === 'pending') {
     // Fingering: a press on a note picks it; the music stays where it is.
-    const note = line.noteAt(event.clientX, event.clientY);
+    const note = staff.view?.noteAt(event.clientX, event.clientY);
     if (note) emit('pick', note);
     return;
   }
@@ -181,17 +158,12 @@ function onPointerUp(event: PointerEvent): void {
     loop.select(writtenBarNumber(score, place.bar), writtenBarNumber(score, toBar), time);
   } else {
     loop.jumpTo(time);
-    for (const view of views()) view.followMusic();
+    staff.view?.followMusic();
   }
 }
 
-/** The bar under the pointer, shaded on every line (one cut by a line's end is on two). */
-function hover(bar: number | null): void {
-  for (const view of views()) view.setHover(bar);
-}
-
 function onPointerLeave(): void {
-  hover(null);
+  staff.view?.setHover(null);
 }
 
 function onPointerCancel(event: PointerEvent): void {
@@ -204,22 +176,16 @@ function onPointerCancel(event: PointerEvent): void {
     ref="container"
     class="staff"
     :class="{ interactive: state.score, grabbing }"
-    :style="{ '--lines': count }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
     @pointerleave="onPointerLeave"
-  >
-    <StaffLine v-for="over in count" :key="over" ref="lines" :page="page" :picked="picked ?? null" :over="over - 1" :under="count - over" />
-  </div>
+  />
 </template>
 
 <style scoped>
 .staff {
-  display: grid;
-  /* (Lines of one height: each the same staff, in the middle of its own.) */
-  grid-template-rows: repeat(var(--lines), minmax(0, 1fr));
   width: 100%;
   height: 100%;
 }
