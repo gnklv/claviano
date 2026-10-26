@@ -59,7 +59,28 @@ class CanvasSurface implements StaffSurface {
   constructor() {
     Object.assign(this.background.style, { position: 'absolute', inset: '0' });
     this.tapeCanvas.style.display = 'block';
-    void Promise.allSettled(FONTS.map((font) => document.fonts?.load(font))).then(() => this.drawAnew());
+    for (const font of FONTS) void document.fonts?.load(font).catch(() => undefined);
+    this.drawWhenFontsCome();
+  }
+
+  /*
+   * A canvas draws on with a stand-in for a font that has not come (the music font's signs as empty
+   * boxes), and does not draw anew by itself when it comes: so the staff is drawn anew each time
+   * fonts finish loading, until its own are all there, whenever they come (late, or after a failed
+   * try). Not on the loads asked for above settling: they may settle before the font can be drawn
+   * with. Once they are there, it listens no more.
+   */
+  private drawWhenFontsCome(): void {
+    const fonts = document.fonts;
+    if (!fonts || FONTS.every((font) => fonts.check(font))) return;
+    fonts.addEventListener(
+      'loadingdone',
+      () => {
+        this.drawAnew();
+        this.drawWhenFontsCome();
+      },
+      { once: true },
+    );
   }
 
   setColors(colors: StaffColors): void {

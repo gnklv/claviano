@@ -25,6 +25,8 @@ const state = useFreePlay(freePlay);
 const recording = useRecorder(recorder);
 /** There is a take, being recorded or recorded: it is shown as notes. */
 const taken = computed(() => recording.value.state === 'recording' || recording.value.state === 'recorded');
+/** Nothing asked of recording yet: what "Record" does is said. (Waiting for the first note, the record bar says what to do.) */
+const unasked = computed(() => recording.value.state === 'idle');
 
 /** Black keys and all: twelve to every seven white ones, ending on a white one. */
 const keysFor = (whiteKeys: number): number => {
@@ -60,14 +62,14 @@ onUnmounted(() => {
       <div class="written">
         <TakeStaff />
         <!-- What the staff is for, until there is a take on it. -->
-        <p v-if="!taken" class="on-staff">{{ t('freePlayHintRecord') }}</p>
+        <p v-if="unasked" class="on-staff">{{ t('freePlayHintRecord') }}</p>
         <!-- Without the metronome nobody knows where the beats were: the bars are a guess. -->
-        <p v-else-if="!recording.metronome" class="caveat">{{ t('recordedOffTheBeat') }}</p>
+        <p v-else-if="taken && !recording.metronome" class="caveat">{{ t('recordedOffTheBeat') }}</p>
       </div>
       <PlayedRoll class="played" :lowest="state.lowest" :keys="state.keys" />
       <p v-if="!taken" class="hint">
         <!-- (On a phone the staff is too low to say it on: it is said here first.) -->
-        <span class="record-word">{{ t('freePlayHintRecordAbove') }}</span>
+        <span v-if="unasked" class="record-word">{{ t('freePlayHintRecordAbove') }}</span>
         {{ t('freePlayHint') }}
         <!-- (The computer's keyboard: nothing to say where there is only a finger.) -->
         <span class="by-letters">{{ t('freePlayHintLetters') }}</span>

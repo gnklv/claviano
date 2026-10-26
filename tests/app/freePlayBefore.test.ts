@@ -64,4 +64,14 @@ describe('free play, before a take', () => {
     expect(whites).toBe(8);
     expect(keysWidth / whites).toBeGreaterThanOrEqual(34);
   });
+
+  it('says no more what "Record" does once it is pressed: waiting for the first note, the record bar says what to do', async () => {
+    await come();
+    button(/^Record$/).click();
+    await settled();
+    expect(root.querySelector('.on-staff')).toBeNull();
+    expect(root.querySelector('.record-word')).toBeNull();
+    expect(root.querySelector('.caveat')).toBeNull();
+    expect(root.querySelector('.record-bar .status')?.textContent).toBe('Play: the first note starts the recording');
+  });
 });

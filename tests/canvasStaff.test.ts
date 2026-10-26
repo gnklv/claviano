@@ -134,4 +134,40 @@ describe('CanvasStaff', () => {
     expect(hands.length).toBeGreaterThan(0);
     for (const hand of new Set(hands)) expect(fills).toContain(`#${hand}`);
   });
+
+  it('is drawn anew when its fonts come after it was first drawn, and listens no more once they are there', () => {
+    const contexts: ReturnType<typeof recorder>[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const made = recorder();
+      contexts.push(made);
+      return made.ctx;
+    });
+    // Fonts not there yet: the page tells when loads are done.
+    let there = false;
+    const listeners: (() => void)[] = [];
+    vi.stubGlobal('document', Object.assign(Object.create(document), {
+      fonts: {
+        check: () => there,
+        load: () => Promise.resolve([]),
+        addEventListener: (_: string, listener: () => void) => listeners.push(listener),
+      },
+    }));
+    const container = document.createElement('div');
+    Object.defineProperties(container, { clientWidth: { get: () => 1024 }, clientHeight: { get: () => 300 } });
+    const staff = new CanvasStaff(container, STAFF_COLORS);
+    staff.setScore(ode());
+    const signs = () => contexts.flatMap(({ calls }) => calls.filter((call) => call.name === 'fillText')).length;
+    const before = signs();
+    expect(listeners).toHaveLength(1);
+    // A load done, the fonts not all there yet: drawn anew, and still waiting.
+    listeners.shift()!();
+    expect(signs()).toBeGreaterThan(before);
+    expect(listeners).toHaveLength(1);
+    // They come: drawn anew once more, and no more listening.
+    there = true;
+    const drawn = signs();
+    listeners.shift()!();
+    expect(signs()).toBeGreaterThan(drawn);
+    expect(listeners).toHaveLength(0);
+  });
 });
