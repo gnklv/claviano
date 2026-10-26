@@ -38,6 +38,10 @@ component names the token; it never writes a colour.
   note under the cursor. A lit key must not pass for a white or a black one, which is why neither
   hand is ink or ivory. (In free play nobody says which hand plays: under middle Do it is taken
   for the left, as for any playing that does not say; keys, tiles and the notes of a take agree.)
+- **Seen, and read, against what they stand on**, in both themes: the hands' inks are graphics (a
+  tile, a line, a lit key) and stand at 3:1 at the least against the page and a panel; the quiet ink
+  is small words and stands at 4.5:1. (The light theme's sepia was 2.9:1, and was darkened.) A test
+  holds this: `tests/uiContrast.test.ts`, reading the themes from `ui/styles.css`.
 - **No blue of a system.** A slider, a field's edge, a selection: each is drawn here, in the
   palette. What a browser would paint in its own colour is restyled.
 - The music's own colours (the staff's ink, the cursor, the pedal, the keys) are tokens too, lower in
@@ -50,8 +54,10 @@ component names the token; it never writes a colour.
   (`--title-weight`).
 - **Everything else in the system's own face** (`--font-text`): buttons, labels, numbers. A control
   is not a title, however large.
-- **Five sizes**, `--text-xs` to `--text-xl`; `--text-m` is the size of the page. A field under a
-  finger is never under 16px (`--text-field`): an iPhone zooms the page into a smaller one. Two
+- **Five sizes**, `--text-xs` (13) to `--text-xl` (26); `--text-m` (16) is the size of the page:
+  read at a glance from the bench, a step back from the screen, and even with a field's, which is
+  never under 16px under a finger (`--text-field`: an iPhone zooms the page into a smaller one).
+  `--text-s` is 14, `--text-l` 18. Two
   more for their one place: the captions on the keys (`--text-key`) and the beats counted in before
   the music (`--text-count`, as large as the screen allows).
 - Numbers that change in place (a bar, a tempo, a percentage) are tabular, so that nothing shifts.
@@ -91,6 +97,15 @@ component names the token; it never writes a colour.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
   depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
   `--scrim`.
+
+## Focus
+
+What the keys of the computer have reached is ringed, and all of it alike: in ink (`--text`),
+`--focus-width` wide, `--focus-gap` away from it; only from the keys (`:focus-visible`), never for a
+finger or the mouse. One rule for everything in `ui/styles.css`; a component whose own box would
+cut the ring off draws it inside itself (segments, a menu's rows), one whose real control is hidden
+rings itself (the tile that chooses a file). The system's own ring is nowhere, and no outline is
+taken away: a test holds this (`tests/uiFocus.test.ts`). Not the accent: that is the main action's.
 
 ## Icons
 

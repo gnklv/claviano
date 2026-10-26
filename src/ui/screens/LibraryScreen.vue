@@ -94,7 +94,7 @@ function onFileChosen(event: Event): void {
         -->
         <ActionTile v-if="goOn" main icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
         <ActionTile tag="label" :main="!goOn" icon="plus" :title="t('openMidi')" :note="t('openFormats')">
-          <input type="file" :accept="touch ? undefined : FILE_KINDS" hidden @change="onFileChosen" />
+          <input class="chooser" type="file" :accept="touch ? undefined : FILE_KINDS" @change="onFileChosen" />
         </ActionTile>
         <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
       </div>
@@ -155,6 +155,15 @@ function onFileChosen(event: Event): void {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--tile-width), 1fr));
   gap: var(--space-4);
+}
+
+/* The file chooser unseen, the tile being what is seen of it; still reached by the keys (hidden, it would not be). */
+.chooser {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .error {

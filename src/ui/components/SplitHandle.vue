@@ -74,9 +74,10 @@ function key(event: KeyboardEvent): void {
 .split-handle {
   position: relative;
   z-index: 1;
+  /* (Short of the sides by its ring's room: the stage cuts off what reaches past its edges.) */
+  margin-inline: calc(var(--focus-width) + var(--focus-gap));
   background: var(--border);
   cursor: row-resize;
-  outline: none;
   /* (Drawn by the finger, not scrolled with it.) */
   touch-action: none;
 }
@@ -94,9 +95,8 @@ function key(event: KeyboardEvent): void {
   }
 }
 
-/* Reached for, held, or reached by the keys: the line in ink, a little thicker. */
-.split-handle.dragging,
-.split-handle:focus-visible {
+/* Reached for or held: the line in ink, a little thicker. (Reached by the keys, it is ringed as all else is.) */
+.split-handle.dragging {
   background: var(--muted);
   box-shadow: 0 0 0 1px var(--muted);
 }

@@ -57,6 +57,12 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?
   color: var(--text);
 }
 
+/* (As a label round a field of its own: the field is reached by the keys, and the tile is what is seen of it.) */
+.action-tile:has(:focus-visible) {
+  outline: var(--focus-width) solid var(--text);
+  outline-offset: var(--focus-gap);
+}
+
 .action-tile:hover .sign,
 .action-tile:focus-within .sign {
   background: var(--control-hover);

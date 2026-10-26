@@ -60,10 +60,13 @@
  * whenever the theme changes.
  */
 :root {
-  /* Type: five sizes, and three for special places. */
-  --text-xs: 12px;
-  --text-s: 13px;
-  --text-m: 14px;
+  /*
+   * Type: five sizes, and three for special places. The page's own is 16 px: read at a glance from the
+   * bench, a step back from the screen, and even with a field's (which an iPhone wants no smaller).
+   */
+  --text-xs: 13px;
+  --text-s: 14px;
+  --text-m: 16px;
   /* Titles are set in a serif, as the words in sheet music are; everything else in the system's own face. */
   --font-title: 'Playfair Display', Georgia, serif;
   --font-text: system-ui, -apple-system, sans-serif;
@@ -131,6 +134,14 @@
   /* An icon beside words, and a smaller one inside a line of them. */
   --icon: 20px;
   --icon-s: 16px;
+
+  /*
+   * The ring round what the keys of the computer have reached: in ink, two pixels wide, two away
+   * from it (inside, where a box would cut it off). Only from the keys: a finger or the mouse knows
+   * where it is.
+   */
+  --focus-width: 2px;
+  --focus-gap: 2px;
 }
 
 :root[data-theme='dark'] {
@@ -201,7 +212,8 @@
 
   /* Hands: graphite and sepia, deeper than on lacquer to keep contrast on paper. */
   --right: #4a6079;
-  --left: #a08a6c;
+  /* (Darker than its first sepia: a line or a tile of it against the paper is a graphic, and wants 3:1; a finger's white figure on it reads too.) */
+  --left: #94795a;
 
   /* Music views */
   --surface: #faf7f1;
@@ -256,6 +268,16 @@ body,
 *::before,
 *::after {
   touch-action: manipulation;
+}
+
+/*
+ * What the keys have reached is ringed in ink, all of it alike, and nothing in the system's own
+ * ring. A component whose box would cut the ring off draws it inside itself (segments, a menu's
+ * rows); one whose real control is hidden rings itself (a tile choosing a file).
+ */
+:focus-visible {
+  outline: var(--focus-width) solid var(--text);
+  outline-offset: var(--focus-gap);
 }
 
 html {
@@ -515,9 +537,8 @@ input[type='range']::-moz-range-thumb {
   background: var(--text);
 }
 
+/* (Its ring round the track as a whole, with the thumb's room.) */
 input[type='range']:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
   border-radius: var(--radius-pill);
 }
 

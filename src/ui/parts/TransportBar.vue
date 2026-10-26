@@ -210,8 +210,9 @@ function togglePlay(): void {
 
 /*
  * Everything in one row, from the width at which all of it fits in one: learning, in Russian, with
- * the fingers' chip and the tempo said in full, it takes about 1400 px (measured), the slider still
- * long enough to find a place by. A tablet on its side is narrower: two rows there.
+ * the fingers' chip and the tempo said in full, at the page's 16 px, it fits at 1440 px with the
+ * slider some 200 px long, still long enough to find a place by (measured). A tablet on its side is
+ * narrower: two rows there.
  */
 @media (min-width: 1440px) {
   .transport {

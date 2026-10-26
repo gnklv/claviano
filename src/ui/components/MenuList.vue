@@ -44,6 +44,11 @@ defineEmits<{ choose: [id: string] }>();
   background: var(--control-hover);
 }
 
+/* (Inside: the rows stand close in the panel.) */
+.item:focus-visible {
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
 .item.danger {
   color: var(--danger);
 }

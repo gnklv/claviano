@@ -40,11 +40,6 @@ defineExpose({
   text-align: center;
 }
 
-.text-field:focus-visible {
-  border-color: var(--accent);
-  outline: none;
-}
-
 .text-field:disabled {
   opacity: 0.4;
 }

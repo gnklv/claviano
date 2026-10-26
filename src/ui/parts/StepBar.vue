@@ -109,7 +109,7 @@ function choose(action: string): void {
   padding-inline-start: calc(max(var(--space-4), env(safe-area-inset-left)) - var(--space-3));
 }
 
-/* (Too narrow for what to do beside the rest: under it.) */
+/* (Too narrow for what to do beside the rest: under it. From 1000 px it fits beside a step's name whole, at the page's 16 px: measured on a step up to tempo; a longer name cuts it short.) */
 @media (max-width: 999px) {
   .step-bar.playing {
     grid-template-areas:

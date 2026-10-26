@@ -72,6 +72,11 @@ const model = defineModel<T>({ required: true });
   }
 }
 
+/* (Inside: the group's own edge would cut a ring outside off.) */
+.option:focus-visible {
+  outline-offset: calc(-1 * (var(--focus-width) + var(--focus-gap)));
+}
+
 .option + .option {
   border-left: 1px solid var(--border);
 }

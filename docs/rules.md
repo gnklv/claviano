@@ -86,6 +86,9 @@ are in [design.md](design.md); these are the ones most easily broken:
   (they differ between systems, and an iPhone draws some as emoji). The linter holds this. A new
   icon is drawn in the manner of the others and shows itself on the design page.
 - **Under a finger, everything pressable is 44 px at the least.**
+- **Seen by everyone**: the hands' inks stand at 3:1 against the page, the quiet ink at 4.5:1, in
+  both themes; what the keys reach is ringed in ink, one ring for all. Tests hold both
+  (`tests/uiContrast.test.ts`, `tests/uiFocus.test.ts`).
 - **The interface is built of the components** (`AppButton`, `ToggleChip`, `SegmentedControl`,
   `AppSlider`, `TextField`, `PieceTile`, `ActionTile`, `ScreenHeader`, `SectionHeading`,
   `AppNotice`, `SettingRow`, `SheetDialog`, `PopOver`, `PanelControl`, `MenuList`, `AppIcon`): a

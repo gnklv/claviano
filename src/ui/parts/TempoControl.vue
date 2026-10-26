@@ -57,7 +57,8 @@ const mark = computed<TempoReading | null>(() => {
 /*
  * Where the bar is tight, the percent alone: what it makes, and where the trainer takes it, are in
  * the panel. Tight is under 720 px: the place, the tempo said in full and the loop share a row from
- * about 700 (measured with a bar of three figures and a tempo of three), the loop's word whole.
+ * about 700 (measured with a bar of three figures and a tempo of three, at the page's 16 px), the
+ * loop's word whole.
  */
 @media (max-width: 719px) {
   .mark,
