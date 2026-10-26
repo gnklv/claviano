@@ -182,6 +182,19 @@ describe('the recorder', () => {
     expect(taken()).toEqual([[64, 0, 1]]);
   });
 
+  it('has a sheet to write on before a take: a bar with nothing in it, in the metre set; the take, once there is one', () => {
+    expect(recorder.score('Mine')).toBeNull();
+    recorder.setMeter('3/4');
+    const empty = recorder.sheet('Mine');
+    expect([empty.notes.length, empty.bars.length, empty.notation.timeSignatures[0]?.numerator]).toEqual([0, 1, 3]);
+    recorder.setMetronome(false);
+    recorder.arm();
+    note(60, 0, 1);
+    audio.time = 1.5;
+    recorder.stop();
+    expect(recorder.sheet('Mine').notes.map((written) => written.pitch)).toEqual([60]);
+  });
+
   describe('a take that is there', () => {
     /** Three bars at 80 in 4/4 (three seconds each), without the metronome: a note in each, the last held over from the second. */
     beforeEach(() => {

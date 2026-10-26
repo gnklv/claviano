@@ -104,6 +104,12 @@ network.
 The keyboard is the main thing; the staff fills with notes as they are played. Record, stop, a
 metronome, "Save as a piece". The header names where the notes come from.
 
+Before a take the staff is there already, empty, in the metre set, and says what it is for (press
+"Record", and what is played is written here); the tiles under it say how to play (the keys, and
+the computer's letters where there is a keyboard). Recording begins on the staff in sight: nothing
+moves. (A phone on its side has no room for both: the tiles have it until there is a take.) The way
+an octave down and up stands at the two ends of the keyboard, where the hand is, on every screen.
+
 States: ready · recording · recorded (listen, save or throw away) · no access to the microphone.
 
 Where the notes come from is the screen's one dependency, and it does not care which: the keys on

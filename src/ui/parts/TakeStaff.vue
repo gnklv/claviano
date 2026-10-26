@@ -12,7 +12,8 @@ import { useCanvasColors } from '../theme/useCanvasColors';
 
 /*
  * The take as notes: written down as it is played, the staff moving on under the place the music
- * has reached. Once recorded it stands at its end, and can be drawn back by hand to read.
+ * has reached. Once recorded it stands at its end, and can be drawn back by hand to read. Before a
+ * take, the staff it will be written on, empty, in the metre set.
  */
 const { recorder, createStaff } = useDeps();
 const { t, locale } = useI18n();
@@ -30,12 +31,12 @@ const staff = useDrawnView(container, (element): StaffView => {
 
 /** The take is written down anew whenever a note is added to it or ends. */
 function write(): void {
-  staff.view?.setScore(recorder.score(t('freePlay')));
+  staff.view?.setScore(recorder.sheet(t('freePlay')));
   staff.view?.followMusic();
 }
 
 onMounted(write);
-watch(() => [state.value.state, state.value.notes, state.value.ends, state.value.listening], write);
+watch(() => [state.value.state, state.value.notes, state.value.ends, state.value.listening, state.value.meter, state.value.tempo], write);
 watch(locale, () => staff.view?.setHandLabels({ right: t('handMarkRight'), left: t('handMarkLeft') }));
 
 useAnimationFrame(() => staff.view?.render(recorder.position, undefined, state.value.state === 'recording' || state.value.listening));

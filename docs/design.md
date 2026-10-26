@@ -84,6 +84,10 @@ component names the token; it never writes a colour.
   taken hold of further: a little either side under a pointer, 44px under a finger (`--touch`); in
   ink when reached for, held or reached by Tab. Where it stands is kept between visits, one for
   the whole app (a `preference`, to the percent), and a double press puts it back.
+- **The keyboard to play on has its octaves at its ends**: an octave down on the left, up on the
+  right, a fingertip wide (`--touch`) and as tall as the keys, out where the range ends; Z and X do
+  the same. Its white keys are never narrower than a fingertip (34px): eight of them at the fewest,
+  beside the arrows on a phone held upright.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
   depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
   `--scrim`.

@@ -140,7 +140,9 @@ describe('free play', () => {
     });
 
     it('writes the take down as notes while it is played, on the beat of the metronome', async () => {
-      expect(root.querySelector('.take-staff')).toBeNull();
+      // (On the staff that stood there before it, empty.)
+      expect(root.querySelector('.take-staff')).not.toBeNull();
+      expect(staffScores.at(-1)!.notes).toEqual([]);
       button(/^Record$/).click();
       // (The first bar begins with the metronome's first click, at 0.1.)
       audio.time = 0.12;
@@ -164,7 +166,8 @@ describe('free play', () => {
       expect(root.querySelector('.take-staff')).not.toBeNull();
       button(/^Discard$/).click();
       await settled();
-      expect(root.querySelector('.take-staff')).toBeNull();
+      // (The staff stays, empty again.)
+      expect(staffScores.at(-1)!.notes).toEqual([]);
     });
 
     /** A take of two bars: a note in each (the metronome's first click is at 0.1; a bar at 80 is three seconds). */

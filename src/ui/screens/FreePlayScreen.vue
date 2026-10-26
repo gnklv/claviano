@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AppButton from '../components/AppButton.vue';
 import ScreenHeader from '../components/ScreenHeader.vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 import PianoKeys from '../components/PianoKeys.vue';
@@ -14,7 +13,8 @@ import { useI18n } from '../i18n/useI18n';
 
 /*
  * Free play: the keyboard leads. What is played rises from the keys as it sounds, and can be
- * recorded: a take is written down as notes while it is played. (It will be kept as a piece.)
+ * recorded: a take is written down as notes while it is played, on a staff that is there before it
+ * (empty, in the metre set), so that nothing moves when recording begins.
  */
 
 const emit = defineEmits<{ back: [] }>();
@@ -33,8 +33,12 @@ const keysFor = (whiteKeys: number): number => {
   // (From a Do: the white keys of an octave stand at these semitones.)
   return octaves * 12 + ([0, 1, 3, 5, 6, 8, 10][rest] ?? 0);
 };
-/** From an octave and a half (a phone held upright) to three octaves and a key. */
-const fit = (whiteKeys: number) => freePlay.setKeys(keysFor(Math.min(22, Math.max(10, whiteKeys))));
+/**
+ * From an octave and a key to three octaves and a key: a phone held upright has room for eight white
+ * keys a fingertip wide (34 px) beside the octave arrows; never narrower, for fewer keys than that
+ * would not hold a phrase.
+ */
+const fit = (whiteKeys: number) => freePlay.setKeys(keysFor(Math.min(22, Math.max(8, whiteKeys))));
 
 onMounted(() => freePlay.enter());
 onUnmounted(() => {
@@ -49,21 +53,21 @@ onUnmounted(() => {
   <div class="free-play" @gesturestart.prevent>
     <ScreenHeader back @back="emit('back')">
       <template #title>{{ t('freePlay') }}</template>
-      <div class="octaves" role="group" :aria-label="t('octave')">
-        <AppButton icon="lower" :disabled="!state.canGoLower" :label="t('octaveLower')" :hint="`${t('octaveLower')} (Z)`" @click="freePlay.shift(-1)" />
-        <AppButton icon="higher" :disabled="!state.canGoHigher" :label="t('octaveHigher')" :hint="`${t('octaveHigher')} (X)`" @click="freePlay.shift(1)" />
-      </div>
       <SettingsPanel />
     </ScreenHeader>
 
     <main class="stage" :class="{ taken }">
-      <div v-if="taken" class="written">
+      <div class="written">
         <TakeStaff />
+        <!-- What the staff is for, until there is a take on it. -->
+        <p v-if="!taken" class="on-staff">{{ t('freePlayHintRecord') }}</p>
         <!-- Without the metronome nobody knows where the beats were: the bars are a guess. -->
-        <p v-if="!recording.metronome" class="caveat">{{ t('recordedOffTheBeat') }}</p>
+        <p v-else-if="!recording.metronome" class="caveat">{{ t('recordedOffTheBeat') }}</p>
       </div>
       <PlayedRoll class="played" :lowest="state.lowest" :keys="state.keys" />
       <p v-if="!taken" class="hint">
+        <!-- (On a phone the staff is too low to say it on: it is said here first.) -->
+        <span class="record-word">{{ t('freePlayHintRecordAbove') }}</span>
         {{ t('freePlayHint') }}
         <!-- (The computer's keyboard: nothing to say where there is only a finger.) -->
         <span class="by-letters">{{ t('freePlayHintLetters') }}</span>
@@ -79,6 +83,7 @@ onUnmounted(() => {
         :pressed="state.pressed"
         @press="freePlay.press($event)"
         @release="freePlay.release($event)"
+        :octaves="{ lower: state.canGoLower, higher: state.canGoHigher }"
         @shift="freePlay.shift($event)"
         @room="fit"
       />
@@ -94,12 +99,6 @@ onUnmounted(() => {
   height: 100%;
 }
 
-.octaves {
-  display: inline-flex;
-  flex: none;
-  gap: var(--space-1);
-}
-
 .stage {
   position: relative;
   display: grid;
@@ -109,14 +108,22 @@ onUnmounted(() => {
   padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
 }
 
-/* The hint stands over the tiles, at the top: out of their way as they rise. */
-.stage > * {
+/*
+ * The staff has the upper part of the stage (never too low to hold both staves), before a take and
+ * with one; the tiles the rest, the hint on playing standing over them, at their top, out of their
+ * way as they rise.
+ */
+.stage {
+  grid-template-rows: minmax(150px, 45%) 1fr;
+}
+
+.written {
   grid-area: 1 / 1;
 }
 
-/* With a take, its notes have the upper part of the stage (never too low to hold both staves), the tiles the rest. */
-.stage.taken {
-  grid-template-rows: minmax(150px, 45%) 1fr;
+.played,
+.hint {
+  grid-area: 2 / 1;
 }
 
 .written {
@@ -126,8 +133,32 @@ onUnmounted(() => {
   background: var(--surface);
 }
 
-.stage.taken .played {
-  grid-area: 2 / 1;
+/* Under the lower staff, in the room the staff keeps there. */
+.on-staff {
+  position: absolute;
+  inset: auto 0 var(--space-3);
+  margin: 0;
+  padding-inline: var(--space-4);
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
+}
+
+/* What the staff is for is said on it; on a phone, whose staff is too low for words under it, over the tiles first. */
+.record-word {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .on-staff {
+    display: none;
+  }
+
+  .record-word {
+    display: block;
+    margin-bottom: var(--space-2);
+  }
 }
 
 .caveat {
@@ -181,13 +212,23 @@ onUnmounted(() => {
     padding-block: var(--space-2);
   }
 
-  /* No room for a take's notes and the tiles both: the notes have it all (they say what was played, and more). */
-  .stage.taken {
+  /*
+   * No room for the notes and the tiles both. Before a take, the tiles have it (the staff would be
+   * empty); with one, the notes (they say what was played, and more).
+   */
+  .stage {
     grid-template-rows: minmax(0, 1fr);
   }
 
-  .stage.taken .played {
+  .stage:not(.taken) .written,
+  .stage.taken .played,
+  .stage.taken .hint {
     display: none;
+  }
+
+  .played,
+  .hint {
+    grid-area: 1 / 1;
   }
 }
 
@@ -203,7 +244,6 @@ onUnmounted(() => {
 
   .stage.taken .played {
     display: block;
-    grid-area: 1 / 1;
   }
 }
 </style>

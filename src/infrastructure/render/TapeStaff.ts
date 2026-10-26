@@ -328,7 +328,8 @@ export class TapeStaff implements StaffView {
           { clef: 'bass', octaves: 0 },
         ], signatures: null };
     const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, this.currentBeat), clefSignAt(score, 2, this.currentBeat)];
-    if (score.notes.length === 0) return { clefs, signatures: null };
+    // (Nothing written, no bar: no signatures. A bar with nothing in it yet, as a take before it is played, has them.)
+    if (score.notation.bars.length === 0) return { clefs, signatures: null };
     return { clefs, signatures: { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) } };
   }
 

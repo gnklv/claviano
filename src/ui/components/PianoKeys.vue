@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppButton from './AppButton.vue';
 import { computed, useTemplateRef } from 'vue';
 import { useResize } from '../browser/useResize';
 import { useWindowListener } from '../browser/useWindowListener';
@@ -12,7 +13,9 @@ import { useI18n } from '../i18n/useI18n';
  * (as many as there are), the mouse, and the computer's keyboard press it: two rows of letters
  * laid out as the keys are, the home row white and the row above it black.
  *
- * It tells what is pressed and let go; what sounds is not its business.
+ * It tells what is pressed and let go; what sounds is not its business. Given `octaves`, it has at
+ * its two ends the way an octave down and up (as Z and X are on the computer's keyboard), each out
+ * where the range ends: by the keys, where the hand is.
  */
 const props = defineProps<{
   /** The lowest key shown, and how many keys. */
@@ -20,10 +23,12 @@ const props = defineProps<{
   keys: number;
   /** The keys held now, to light them. */
   pressed: ReadonlySet<number>;
+  /** Whether it can go an octave lower and higher: arrows at its ends then. */
+  octaves?: { readonly lower: boolean; readonly higher: boolean };
 }>();
 const emit = defineEmits<{ press: [pitch: number]; release: [pitch: number]; room: [whiteKeys: number]; shift: [octaves: -1 | 1] }>();
 
-const { noteLabel } = useI18n();
+const { noteLabel, t } = useI18n();
 
 /** A white key is no narrower than this, in pixels: a fingertip finds it. */
 const MIN_WHITE_PX = 34;
@@ -140,41 +145,59 @@ useWindowListener('blur', onBlur);
 </script>
 
 <template>
-  <div
-    ref="board"
-    class="keys"
-    :style="{ '--whites': whites.length }"
-    @pointerdown.prevent="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerUp"
-    @touchstart.prevent
-    @touchmove.prevent
-    @touchend.prevent
-    @contextmenu.prevent
-  >
-    <div v-for="pitch in whites" :key="pitch" class="key white" :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]" :data-pitch="pitch">
-      <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
-      <!-- Each Do is named, with its octave: where on the piano this is. -->
-      <span v-if="pitch % 12 === 0" class="name">{{ noteLabel(pitch) }}</span>
-    </div>
+  <div class="piano">
+    <AppButton v-if="octaves" class="octave" variant="quiet" icon="lower" :disabled="!octaves.lower" :label="t('octaveLower')" :hint="`${t('octaveLower')} (Z)`" @click="emit('shift', -1)" />
     <div
-      v-for="{ pitch, left } in blacks"
-      :key="pitch"
-      class="key black"
-      :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]"
-      :data-pitch="pitch"
-      :style="{ left: `calc(${left} * 100% / var(--whites))`, width: `calc(${BLACK_KEY_WIDTH} * 100% / var(--whites))` }"
+      ref="board"
+      class="keys"
+      :style="{ '--whites': whites.length }"
+      @pointerdown.prevent="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerUp"
+      @touchstart.prevent
+      @touchmove.prevent
+      @touchend.prevent
+      @contextmenu.prevent
     >
-      <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
+      <div v-for="pitch in whites" :key="pitch" class="key white" :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]" :data-pitch="pitch">
+        <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
+        <!-- Each Do is named, with its octave: where on the piano this is. -->
+        <span v-if="pitch % 12 === 0" class="name">{{ noteLabel(pitch) }}</span>
+      </div>
+      <div
+        v-for="{ pitch, left } in blacks"
+        :key="pitch"
+        class="key black"
+        :class="[handBySplitPoint(pitch), { down: pressed.has(pitch) }]"
+        :data-pitch="pitch"
+        :style="{ left: `calc(${left} * 100% / var(--whites))`, width: `calc(${BLACK_KEY_WIDTH} * 100% / var(--whites))` }"
+      >
+        <span v-if="letterOf(pitch)" class="letter">{{ letterOf(pitch) }}</span>
+      </div>
     </div>
+    <AppButton v-if="octaves" class="octave" variant="quiet" icon="higher" :disabled="!octaves.higher" :label="t('octaveHigher')" :hint="`${t('octaveHigher')} (X)`" @click="emit('shift', 1)" />
   </div>
 </template>
 
 <style scoped>
+.piano {
+  display: flex;
+  height: 100%;
+}
+
+/* An octave down and up: a fingertip wide, as tall as the keys. */
+.octave {
+  flex: none;
+  width: var(--touch);
+  height: 100%;
+}
+
 .keys {
   position: relative;
   display: flex;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   /*
    * Every touch here is a key pressed: no scrolling, no zooming, no selecting. (Said twice: here,

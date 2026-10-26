@@ -2,8 +2,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Hand } from '../src/domain/note';
 import { engrave } from '../src/domain/notation/engraving';
+import { scoreFromTake } from '../src/domain/notation/recording';
 import { transcribed } from '../src/domain/notation/transcription';
 import { barRange, createScore, EMPTY_SCORE, secondsAtBeat } from '../src/domain/score';
+import { timeDigits } from '../src/infrastructure/render/staff/glyphs';
 import type { LineShape } from '../src/infrastructure/render/staff/shapes';
 import { drawStaff, everything, flat, lit, shaded, texts } from './drawnStaff';
 import { ode, showcase, sounding } from './staffPieces';
@@ -33,6 +35,15 @@ describe('the staff', () => {
       staff.render(3);
       expect(shaded(shown)).toEqual([]);
     }
+  });
+
+  it('draws a bar with nothing in it yet with its clefs and time signature, as a take before it is played', () => {
+    const blank = scoreFromTake('', [], { tempo: 80, numerator: 3, denominator: 4, beat: 1 }, 0);
+    const column = (score: Parameters<typeof drawStaff>[0]) => flat(drawStaff(score).shown.column).map(({ shape }) => shape);
+    const digits = (score: Parameters<typeof drawStaff>[0]) => column(score).filter((shape) => shape.kind === 'text' && shape.text === timeDigits(3));
+    // (On each staff.)
+    expect(digits(blank)).toHaveLength(2);
+    expect(digits(EMPTY_SCORE)).toEqual([]);
   });
 
   it('draws every piece it is given anew', () => {

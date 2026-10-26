@@ -281,6 +281,10 @@ const finger = ref('');
       <div class="keys">
         <PianoKeys :lowest="60" :keys="13" :pressed="held" @press="hold($event, true)" @release="hold($event, false)" />
       </div>
+      <p class="about">With the way an octave down and up at its ends; out where the range ends (here, down).</p>
+      <div class="keys">
+        <PianoKeys :lowest="60" :keys="13" :pressed="held" :octaves="{ lower: false, higher: true }" @press="hold($event, true)" @release="hold($event, false)" />
+      </div>
 
       <SectionHeading>A row of settings</SectionHeading>
       <p class="about">What is set, and the control that sets it. Sheets are made of these.</p>

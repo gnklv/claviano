@@ -92,8 +92,20 @@ export class Recorder {
   /** The take written down as a piece (as far as it has got, while recording); null when there is none. */
   score(title: string): Score | null {
     const take = this.take;
+    return take && scoreFromTake(title, take.notes, this.beat(), take.seconds);
+  }
+
+  /**
+   * What the take is written on: the take, or before one a bar with nothing in it, in the metre and
+   * tempo set (the staff it will be written on, there to be seen before anything is played).
+   */
+  sheet(title: string): Score {
+    return this.score(title) ?? scoreFromTake(title, [], this.beat(), 0);
+  }
+
+  private beat() {
     const { numerator, denominator, beat } = METERS[this.signature];
-    return take && scoreFromTake(title, take.notes, { tempo: this.bpm, numerator, denominator, beat }, take.seconds);
+    return { tempo: this.bpm, numerator, denominator, beat };
   }
 
   /** The take is being played back. */
