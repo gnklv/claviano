@@ -7,7 +7,7 @@ import PlanStart from './PlanStart.vue';
 import PopOver from '../components/PopOver.vue';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import { PASSES_TO_DONE } from '../../application/use-cases/PracticePlan';
-import { NARROW_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { NARROW_SCREEN, SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePracticePlan } from '../app/usePracticePlan';
 import { useStepWords } from '../app/useStepWords';
 import { useDeps } from '../deps';
@@ -19,19 +19,22 @@ import { useI18n } from '../i18n/useI18n';
  * without looking; what else can be done with the step behind "⋯". What to do is said until the
  * first pass is marked. None: the plan before a step (PlanStart).
  *
- * A phone held upright has no room for a bar to begin from: the plan before a step is in the
- * practice sheet there (see TransportBar), and the bar stands only while a step is played; in it,
- * what to do stands in the place of the step's name until a pass is marked (the name is in the
- * transport under it too: the loop's bars, the tempo).
+ * A phone, held either way, has no room for a bar to begin from (upright, no width; on its side,
+ * no height, the falling notes have little enough): the plan before a step is in the practice
+ * sheet there (see TransportBar), and the bar stands only while a step is played. Upright, what to
+ * do stands in the place of the step's name until a pass is marked (the name is in the transport
+ * under it too: the loop's bars, the tempo); on its side the bar is one row, and says no more.
  */
 const { plan, playback } = useDeps();
 const { t } = useI18n();
 const state = usePracticePlan(plan);
 const words = useStepWords(playback);
 const narrow = useMediaQuery(NARROW_SCREEN);
+/** A phone, upright or on its side. */
+const phone = useMediaQuery(SMALL_SCREEN);
 
 const playing = computed(() => (state.value.current === null ? null : state.value.steps[state.value.current]!));
-const shown = computed(() => state.value.steps.length > 0 && (playing.value !== null || !narrow.value));
+const shown = computed(() => state.value.steps.length > 0 && (playing.value !== null || !phone.value));
 
 /** A pass of this step has been marked: what to do is known. */
 const marked = ref(false);

@@ -10,7 +10,7 @@ import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useFrameValue } from '../browser/useFrameValue';
 import { useBarLoop } from '../app/useBarLoop';
 import { useBookmarks } from '../app/useBookmarks';
-import { NARROW_SCREEN, SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePieceWay } from '../app/usePieceWay';
 import { usePracticePlan } from '../app/usePracticePlan';
 import { usePlaybackState } from '../app/usePlaybackState';
@@ -37,12 +37,12 @@ const loaded = computed(() => state.value.score !== null);
 const phone = useMediaQuery(SMALL_SCREEN);
 const practiceSheet = useTemplateRef('practiceSheet');
 /**
- * A phone held upright: the plan before a step stands in the practice sheet, over the rest (there is
- * no room for a bar over the transport to begin from; see StepBar). A step begun closes the sheet.
+ * A phone, held either way: the plan before a step stands in the practice sheet, over the rest
+ * (there is no room for a bar over the transport to begin from; see StepBar). A step begun closes
+ * the sheet.
  */
-const narrow = useMediaQuery(NARROW_SCREEN);
 const planned = usePracticePlan(plan);
-const planInSheet = computed(() => narrow.value && learning.value && planned.value.steps.length > 0 && planned.value.current === null);
+const planInSheet = computed(() => phone.value && learning.value && planned.value.steps.length > 0 && planned.value.current === null);
 /** Bar numbers as printed: a pickup is bar 0, so the first and last numbers depend on the score. */
 const firstBar = computed(() => (state.value.score ? barNumber(state.value.score, 0) : 1));
 const lastBar = computed(() => (state.value.score ? barNumber(state.value.score, state.value.score.bars.length - 1) : 1));
