@@ -113,6 +113,14 @@ the computer's letters where there is a keyboard). Recording begins on the staff
 moves. (A phone on its side has no room for both: the tiles have it until there is a take.) The way
 an octave down and up stands at the two ends of the keyboard, where the hand is, on every screen.
 
+The record bar, on a phone held upright: before a take, "Record" and the beat it will be played to
+(the metronome, the tempo, the time signature). While waiting for the first note and recording, one
+row: "Stop", and what is going on with the beat in words ("Recording · bar 2 · ♩ = 80 · 4/4"): it
+cannot be changed then, and its rows would only take the keyboard's room. A take there, one row:
+listen, "Save as a piece" (the main action, its words whole) and "⋯" with erasing the last bar,
+recording again and discarding; the count of its notes is read out, not shown (the staff shows
+them). On a computer and on a phone on its side the bar is one row as it is.
+
 States: ready · recording · recorded (listen, save or throw away) · no access to the microphone.
 
 Where the notes come from is the screen's one dependency, and it does not care which: the keys on

@@ -69,6 +69,7 @@ export const en = {
   takeListen: 'Listen',
   takeKeep: 'Save as a piece',
   takeEraseBar: 'Erase the last bar',
+  takeActions: 'More with the take',
   takeTitle: 'Played on {when}',
   recordWaiting: 'Play: the first note starts the recording',
   recording: 'Recording',

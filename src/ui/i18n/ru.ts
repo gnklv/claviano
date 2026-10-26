@@ -63,6 +63,7 @@ export const ru: Dictionary = {
   takeListen: 'Прослушать',
   takeKeep: 'Сохранить как пьесу',
   takeEraseBar: 'Стереть последний такт',
+  takeActions: 'Ещё с записью',
   takeTitle: 'Сыграно {when}',
   recordWaiting: 'Играйте: запись начнётся с первой ноты',
   recording: 'Идёт запись',

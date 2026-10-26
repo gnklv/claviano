@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import AppButton from '../components/AppButton.vue';
+import MenuList from '../components/MenuList.vue';
+import PopOver from '../components/PopOver.vue';
 import ToggleChip from '../components/ToggleChip.vue';
 import TempoMark from '../components/TempoMark.vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { METERS, RECORDING_TEMPO, type Meter } from '../../application/use-cases/Recorder';
 import { useFrameValue } from '../browser/useFrameValue';
-import { SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
+import { NARROW_SCREEN, SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { useRecorder } from '../app/useRecorder';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -14,11 +16,18 @@ import SegmentedControl from '../components/SegmentedControl.vue';
 /*
  * Recording what is played: the button that begins and ends it, and the beat it is played to (the
  * metronome, its tempo, the time signature), set before recording and held through it.
+ *
+ * A phone held upright has the room of one row for a take, the keyboard's and the staff's being
+ * the rest: while it is played, "Stop" and what is going on, the beat said in words (it cannot be
+ * changed then, and its rows would only take the room); once there, hearing it, keeping it, and
+ * what else can be done with it behind "⋯".
  */
 const { recorder, keepTake } = useDeps();
 const { t, locale } = useI18n();
 /** A phone on its side: the bar has one row, and no room for every word. */
 const low = useMediaQuery(SHORT_SCREEN);
+/** A phone held upright. */
+const narrow = useMediaQuery(NARROW_SCREEN);
 const state = useRecorder(recorder);
 
 const busy = computed(() => state.value.state === 'armed' || state.value.state === 'recording');
@@ -34,6 +43,21 @@ function keep(): void {
   const when = new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(now);
   const stamp = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()].map((part) => String(part).padStart(2, '0')).join('-');
   void keepTake(t('takeTitle', { when }), `claviano-${stamp}`);
+}
+
+// --- On a phone, what else can be done with a take: behind "⋯". ---
+
+const menu = ref(false);
+const mends = computed(() => [
+  { id: 'erase-bar', label: t('takeEraseBar') },
+  { id: 'again', label: t('recordAgain') },
+  { id: 'discard', label: t('recordDiscard'), danger: true },
+]);
+function mend(action: string): void {
+  menu.value = false;
+  if (action === 'erase-bar') recorder.eraseLastBar();
+  else if (action === 'again') void recorder.arm();
+  else recorder.discard();
 }
 
 /** What is going on, in a few words. */
@@ -55,25 +79,35 @@ const status = computed(() => {
   <div class="record-bar">
     <div class="take">
       <AppButton v-if="busy" class="act" recording icon="stop" @click="recorder.stop()">{{ t('recordStop') }}</AppButton>
-      <AppButton v-else-if="state.state === 'idle'" class="act" recording icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
+      <AppButton v-else-if="state.state === 'idle'" class="act wide" recording icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
       <!-- A take is there: to hear, to keep, to mend at its end, or to play again. -->
       <template v-else>
-        <!-- (On a phone on its side the bar is one row: what an icon says by itself goes without its word.) -->
-        <AppButton v-if="low" class="act" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
-        <AppButton v-else class="act" :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
-        <AppButton class="act keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
+        <!-- (On a phone the take is one row: what an icon says by itself goes without its word, and the main action keeps all of its.) -->
+        <AppButton v-if="low || narrow" class="act" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
+        <AppButton v-else class="act wide" :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
+        <AppButton class="act wide keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
+        <PopOver v-if="narrow" v-model:open="menu" class="act" place="above-end" role="menu" :label="t('takeActions')">
+          <AppButton icon="more" :label="t('takeActions')" :aria-expanded="menu" @click="menu = !menu" />
+          <template #panel><MenuList :items="mends" @choose="mend" /></template>
+        </PopOver>
       </template>
-      <span class="status" :class="{ live: state.state === 'recording' }" role="status">{{ status }}</span>
+      <!-- (On a phone the take's notes are seen on the staff: their count is only read out.) -->
+      <span class="status" :class="{ live: state.state === 'recording', unseen: narrow && state.state === 'recorded', blank: status === '' }" role="status"
+        >{{ status
+        }}<template v-if="narrow && busy">
+          · <TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /> · {{ state.meter }}</template
+        ></span
+      >
     </div>
 
-    <div v-if="state.state === 'recorded'" class="mend">
+    <div v-if="state.state === 'recorded' && !narrow" class="mend">
       <AppButton class="act" @click="recorder.eraseLastBar()">{{ t('takeEraseBar') }}</AppButton>
       <AppButton class="act" recording icon="record" @click="recorder.arm()">{{ t('recordAgain') }}</AppButton>
       <AppButton v-if="low" class="act" icon="close" :label="t('recordDiscard')" @click="recorder.discard()" />
       <AppButton v-else class="act" @click="recorder.discard()">{{ t('recordDiscard') }}</AppButton>
     </div>
     <!-- (The beat is set before a take; with one there, it is that take's.) -->
-    <div v-else class="beat">
+    <div v-else-if="state.state !== 'recorded' && !(narrow && busy)" class="beat">
       <ToggleChip :pressed="state.metronome" :disabled="busy" @update:pressed="recorder.setMetronome($event)">{{ t('metronome') }}</ToggleChip>
       <div class="tempo" role="group" :aria-label="t('tempo')">
         <AppButton class="act" icon="minus" :disabled="busy || state.tempo <= RECORDING_TEMPO.min" :label="t('tempoSlower')" @click="recorder.setTempo(state.tempo - RECORDING_TEMPO.step)" />
@@ -148,9 +182,10 @@ const status = computed(() => {
 }
 
 /*
- * A phone: rows as wide as the screen, each filled from edge to edge. What is done with a take on
- * top, its buttons sharing the width; what is going on said under them; then the beat: the metronome
- * and the tempo at the two ends of a row, the time signature across the next.
+ * A phone: rows as wide as the screen, each filled from edge to edge. A take one row: "Record" or
+ * "Stop" and what is going on beside it; once there, what is done with it, the buttons sharing the
+ * width. Before a take, the beat under it: the metronome and the tempo at the two ends of a row,
+ * the time signature across the next.
  */
 @media (max-width: 599px) {
   .record-bar {
@@ -160,24 +195,27 @@ const status = computed(() => {
     gap: var(--space-2);
   }
 
-  .take,
-  .mend {
-    flex-wrap: wrap;
-  }
-
-  .take .act,
-  .mend .act {
+  /* (Beginning, hearing and keeping share the row; "Stop" and "⋯" are as wide as their words.) */
+  .take .wide {
     flex: 1 1 auto;
   }
 
-  .status {
-    flex: 1 1 100%;
-    width: auto;
-    text-align: center;
+  /* (What is going on gives way first, cut short: "Stop" beside it never is.) */
+  .take .status {
+    flex: 1 1 0;
   }
 
-  .status:empty {
+  .status.blank {
     display: none;
+  }
+
+  /* (Read out, not shown: the notes are seen on the staff.) */
+  .status.unseen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 
   .beat {
