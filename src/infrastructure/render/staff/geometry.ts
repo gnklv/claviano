@@ -75,6 +75,11 @@ export class StaffGeometry {
   space = 10;
   /** Where the cursor stands, as a share of the tape's width. */
   cursorAt = READING_AHEAD;
+  /**
+   * How many lines of a page stand over this one, each a tape as wide: what it shows begins where
+   * the one over it ends (the cursor, that many tapes to the left of its own, out of sight).
+   */
+  linesOver = 0;
   width = 0;
   height = 0;
   /** Width of the left column in staff spaces, fitted to the piece's signatures. */
@@ -168,6 +173,11 @@ export class StaffGeometry {
     return Math.min(MAX_SPACE_PX, Math.max(MIN_SPACE_PX, Math.min(byHeight, byWidth)));
   }
 
+  /** The least height in which a view `width` wide draws the staff as large as that width allows (a taller one only has more room around it). */
+  heightFor(width: number): number {
+    return (SYSTEM_HEIGHT + this.roomAbove + this.roomBelow) * this.spaceFor(width, Infinity);
+  }
+
   gutterWidth(): number {
     return this.gutterSpaces * this.space;
   }
@@ -242,9 +252,14 @@ export class StaffGeometry {
     return sameMoment(starts[bar] ?? 0, x) ? this.barLineX(bar) : this.px(x) - BAR_LINE_GAP * this.space;
   }
 
-  /** Cursor position inside the tape. */
+  /** Cursor position inside the tape (left of it, on a line under another). */
   cursorX(): number {
-    return (this.width - this.gutterWidth()) * this.cursorAt;
+    return (this.width - this.gutterWidth()) * this.cursorShare();
+  }
+
+  /** Where the cursor stands, as a share of the tape's width, on this line of the page. */
+  cursorShare(): number {
+    return this.cursorAt - this.linesOver;
   }
 
   /** The top line of the upper staff: what the piece needs is in the middle of the height, the room over the staff above this. */

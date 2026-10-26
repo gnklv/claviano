@@ -141,7 +141,12 @@ One rule: the first row never hides, the third never takes room on the stage.
 - **A computer, a tablet on its side:** a thin header, the stage, a bar with the first two rows of
   tools in one line.
 - **A phone upright:** the bar has play, tempo and loop; the rest is in a sheet that slides up from
-  the bottom. "Both" does not fit this height: the staff or the keys.
+  the bottom. "Both" does not fit this height: the staff or the keys. The staff alone is in lines
+  one under another, as on a page, as many as fit whole at the size the width gives it (three at
+  most; two for a piece that reaches far over and under its staves): the music is read in the
+  first, and each line goes on where the one over it ends. They move together, played, drawn by
+  hand or gliding; a press on any of them is in its bars, and each begins with its clefs and
+  signatures.
 - **A phone on its side:** the best way to see a keyboard. The header and the bar shrink to thin
   strips and hide while the music plays; a touch brings them back. The falling notes take the room
   they leave; the staff keeps its size, in the middle of it (laid out anew, it would jolt).

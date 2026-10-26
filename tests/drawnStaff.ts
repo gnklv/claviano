@@ -49,6 +49,7 @@ export class ShownSurface implements StaffSurface {
   move(offset: number): void {
     this.offset = offset;
   }
+  goesOn(): void {}
 
   /** The tape's shapes, in the order they are drawn: under the music, then the chords and grace notes, then over them. */
   get tapeShapes(): Shape[] {

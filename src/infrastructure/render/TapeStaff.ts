@@ -51,6 +51,8 @@ export interface StaffSurface {
   light(lit: Lit): void;
   /** The tape drawn `offset` pixels along, `inSight` of it in the view. */
   move(offset: number, inSight: number): void;
+  /** Whether the music goes on from a line over this one, and into one under it: its ends there are not faded. */
+  goesOn(fromOver: boolean, intoUnder: boolean): void;
 }
 
 /**
@@ -76,8 +78,10 @@ export class TapeStaff implements StaffView {
   /** The tape's offset as last drawn (NaN: to be drawn afresh). */
   private lastOffset = Number.NaN;
   private lastFrameAt = 0;
-  /** Beat under the cursor; the left column shows the signatures in force there. */
+  /** Beat under the cursor. */
   private currentBeat = 0;
+  /** Beat the left column shows the signatures in force at: under the cursor, or where a line under another begins. */
+  private gutterBeat = 0;
   /** Where along the page (beats) a clef, key or time changes: the left column is drawn anew past one. */
   private gutterChanges: number[] = [];
   /** The last of them the left column was drawn after (−1: none, the piece's start). */
@@ -143,6 +147,7 @@ export class TapeStaff implements StaffView {
     });
     this.gutterChanges = score ? [...score.notation.clefs, ...score.notation.keySignatures, ...score.notation.timeSignatures].map((change) => change.beat).sort((a, b) => a - b) : [];
     this.currentBeat = 0;
+    this.gutterBeat = 0;
     this.redraw();
   }
 
@@ -269,19 +274,21 @@ export class TapeStaff implements StaffView {
    */
   render(position: number, isHandEnabled: (hand: Hand) => boolean = () => true, playing = false): void {
     const { geometry, score } = this;
-    if (score) {
-      this.currentBeat = writtenBeatAt(score, position);
-      if (this.gutterAt(this.currentBeat) !== this.shownGutter) this.drawBackground();
-      this.surface.light(this.sounding.at(this.currentBeat, isHandEnabled));
-    }
     const x = score ? geometry.px(barPosition(score, position)) : 0;
     const now = performance.now();
     const dt = this.lastFrameAt ? Math.min(0.1, (now - this.lastFrameAt) / 1000) : 0;
     this.lastFrameAt = now;
     const shown = this.motion.frame({ position, target: geometry.cursorX() - x, bar: score ? writtenBarAt(score, position) : 0, overRoom: this.overRoom }, dt, playing);
+    const { shift } = this.stretch;
+    if (score) {
+      this.currentBeat = writtenBeatAt(score, position);
+      // A line under another begins with the clefs and signatures in force where it begins, as on a page.
+      this.gutterBeat = geometry.linesOver > 0 ? (geometry.pageAt(-(shown + shift))?.beat ?? this.currentBeat) : this.currentBeat;
+      if (this.gutterAt(this.gutterBeat) !== this.shownGutter) this.drawBackground();
+      this.surface.light(this.sounding.at(this.currentBeat, isHandEnabled));
+    }
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
-    const { shift } = this.stretch;
     const cursorX = (this.motion.held !== null ? x + shown : geometry.cursorX()) + shift;
     const cursorLeft = tenth(geometry.gutterWidth() + cursorX - 1);
     if (cursorLeft !== this.lastCursorLeft) {
@@ -315,22 +322,36 @@ export class TapeStaff implements StaffView {
     this.geometry.cursorAt = Math.min(1, Math.max(0, share));
   }
 
+  setLine(over: number, under: number): void {
+    this.surface.goesOn(over > 0, under > 0);
+    if (over === this.geometry.linesOver) return;
+    this.geometry.linesOver = over;
+    // (The left column says what is in force where this line begins: see render.)
+    this.drawBackground();
+    if (this.score) this.drawTape();
+  }
+
+  heightAt(width: number): number {
+    return this.geometry.heightFor(width);
+  }
+
   /** Back to following the music (after a jump): the tape glides to it. */
   followMusic(): void {
     this.motion.follow();
   }
 
-  /** What the left column shows under the cursor: the clefs, and the key and time signatures. */
+  /** What the left column shows (see gutterBeat): the clefs, and the key and time signatures. */
   private gutterContent(): GutterContent {
     const score = this.score;
     if (!score) return { clefs: [
           { clef: 'treble', octaves: 0 },
           { clef: 'bass', octaves: 0 },
         ], signatures: null };
-    const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, this.currentBeat), clefSignAt(score, 2, this.currentBeat)];
+    const beat = this.gutterBeat;
+    const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, beat), clefSignAt(score, 2, beat)];
     // (Nothing written, no bar: no signatures. A bar with nothing in it yet, as a take before it is played, has them.)
     if (score.notation.bars.length === 0) return { clefs, signatures: null };
-    return { clefs, signatures: { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) } };
+    return { clefs, signatures: { key: keySignatureAt(score, beat), time: timeSignatureAt(score, beat) } };
   }
 
   /** The last change of clef, key or time at or before `beat` (as the domain finds what is in force there). */
@@ -345,7 +366,7 @@ export class TapeStaff implements StaffView {
     const { space } = geometry;
     const gutter = geometry.gutterWidth();
     this.surface.showBackground(drawGutter(geometry, this.gutterContent()));
-    this.shownGutter = this.gutterAt(this.currentBeat);
+    this.shownGutter = this.gutterAt(this.gutterBeat);
 
     this.tape.style.left = `${gutter}px`;
     // Its left is set by render(): it moves with the tape when the tape is dragged away.

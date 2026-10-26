@@ -120,3 +120,32 @@ describe('the tape dragged by hand', () => {
     expect(offset(shown)).toBeCloseTo(following(8), 0);
   });
 });
+
+describe('the staff as lines of a page', () => {
+  const PHONE = { width: 375, height: 212 };
+  afterEach(() => vi.restoreAllMocks());
+
+  it('goes on in a line under another where that one ends: a whole tape further on', () => {
+    // (Frames a tenth of a second apart, on a clock set by hand: each line glides to the music, and arrives.)
+    let time = performance.now();
+    vi.spyOn(performance, 'now').mockImplementation(() => (time += 100));
+    const first = drawStaff(ode(), PHONE);
+    const second = drawStaff(ode(), PHONE);
+    first.staff.setLine(0, 1);
+    second.staff.setLine(1, 0);
+    for (let i = 0; i < 20; i++) {
+      first.staff.render(3);
+      second.staff.render(3);
+    }
+    const tape = PHONE.width - first.staff['geometry'].gutterWidth();
+    expect(second.shown.offset).toBeCloseTo(first.shown.offset - tape, 0);
+  });
+
+  it('asks for the height in which its width, not the height, sizes it', () => {
+    const { staff } = drawStaff(ode(), PHONE);
+    const height = staff.heightAt(PHONE.width);
+    const space = (size: { width: number; height: number }) => drawStaff(ode(), size).staff['geometry'].space;
+    expect(space({ width: PHONE.width, height })).toBeCloseTo(space({ width: PHONE.width, height: 2000 }));
+    expect(space({ width: PHONE.width, height: height - 20 })).toBeLessThan(space({ width: PHONE.width, height }));
+  });
+});
