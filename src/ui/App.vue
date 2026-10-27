@@ -88,7 +88,7 @@ usePieceKeys(() => screen.value === 'piece');
   z-index: 10;
   display: grid;
   place-items: center;
-  border: 2px dashed var(--accent);
+  border: var(--stroke) dashed var(--accent);
   border-radius: var(--radius-m);
   background: var(--drop-overlay);
   font-size: var(--text-l);

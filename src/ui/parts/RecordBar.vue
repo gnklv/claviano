@@ -64,7 +64,8 @@ function mend(action: string): void {
 const status = computed(() => {
   switch (state.value.state) {
     case 'armed':
-      return t('recordWaiting');
+      // (On a phone, in the room beside "Stop", with the beat after it: a few words.)
+      return t(narrow.value ? 'recordWaitingShort' : 'recordWaiting');
     case 'recording':
       return bar.value === null ? t('recording') : t('recordingBar', { bar: bar.value });
     case 'recorded':
@@ -92,11 +93,10 @@ const status = computed(() => {
         </PopOver>
       </template>
       <!-- (On a phone the take's notes are seen on the staff: their count is only read out.) -->
+      <!-- (On a phone the beat stands after it, and stays whole: the words give way first.) -->
       <span class="status" :class="{ live: state.state === 'recording', unseen: narrow && state.state === 'recorded', blank: status === '' }" role="status"
-        >{{ status
-        }}<template v-if="narrow && busy">
-          · <TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /> · {{ state.meter }}</template
-        ></span
+        ><span class="said">{{ status }}</span
+        ><span v-if="narrow && busy" class="beat-said">&nbsp;· <TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /> · {{ state.meter }}</span></span
       >
     </div>
 
@@ -127,7 +127,7 @@ const status = computed(() => {
   justify-content: space-between;
   gap: var(--space-2) var(--space-5);
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
   background: var(--panel);
 }
 
@@ -156,14 +156,23 @@ const status = computed(() => {
 }
 
 .status {
+  display: flex;
   flex: 1 1 0;
   width: 0;
   min-width: 0;
-  overflow: hidden;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.said {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.beat-said {
+  flex: none;
 }
 
 .status.live {
@@ -209,13 +218,10 @@ const status = computed(() => {
     display: none;
   }
 
-  /* (Read out, not shown: the notes are seen on the staff.) */
+  /* (Read out, not shown: the notes are seen on the staff. See .unseen: what is said of the status's size here gives way to it.) */
   .status.unseen {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+    flex: none;
+    width: auto;
   }
 
   .beat {

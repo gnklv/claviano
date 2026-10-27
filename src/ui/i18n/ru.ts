@@ -66,6 +66,7 @@ export const ru: Dictionary = {
   takeActions: 'Ещё с записью',
   takeTitle: 'Сыграно {when}',
   recordWaiting: 'Играйте: запись начнётся с первой ноты',
+  recordWaitingShort: 'Ждёт первую ноту',
   recording: 'Идёт запись',
   recordingBar: 'Идёт запись · такт {bar}',
   recordedNotes: { one: 'Записана {count} нота', few: 'Записано {count} ноты', many: 'Записано {count} нот', other: 'Записано {count} ноты' },

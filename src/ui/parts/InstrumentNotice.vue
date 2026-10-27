@@ -22,7 +22,7 @@ const status = useMirror(instrument, () => (instrument.enabled && instrument.sta
   right: var(--space-3);
   bottom: var(--space-3);
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--muted);

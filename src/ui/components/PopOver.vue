@@ -84,7 +84,7 @@ onUnmounted(() => listen(false));
   position: absolute;
   z-index: 10;
   box-sizing: border-box;
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   background: var(--panel);
   box-shadow: var(--shadow-raised);

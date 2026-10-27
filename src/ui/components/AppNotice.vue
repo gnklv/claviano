@@ -19,7 +19,7 @@ defineProps<{ alert?: boolean }>();
 
 .alert {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--danger);
+  border: var(--edge) solid var(--danger);
   border-radius: var(--radius-m);
   color: var(--text);
   font-size: inherit;

@@ -194,7 +194,7 @@ function togglePlay(): void {
   /* Keep clear of the home indicator and, in landscape, the notch. */
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
   background: var(--panel);
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
 }
 
 /* Wider: what is always at hand in one row, what is set once a session in a row under it. */
@@ -288,7 +288,7 @@ function togglePlay(): void {
 .seek {
   position: relative;
   flex: 1;
-  min-width: 80px;
+  min-width: var(--slider-least);
   display: grid;
 }
 
@@ -303,7 +303,7 @@ function togglePlay(): void {
   position: absolute;
   top: 50%;
   left: calc(var(--slider-thumb) / 2 + var(--at) * (100% - var(--slider-thumb)));
-  width: 2px;
+  width: var(--stroke);
   height: var(--space-3);
   translate: -50% -50%;
   border-radius: var(--radius-pill);

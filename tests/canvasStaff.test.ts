@@ -18,6 +18,8 @@ function recorder() {
     get: (target, name) => {
       if (name in target) return target[name];
       if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
+      // (The music font's signs measure as their own, narrower than a stand-in's box.)
+      if (name === 'measureText') return () => ({ width: String(target.font).includes('Bravura') ? 13 : 14 });
       return (...args: unknown[]) => void calls.push({ name: String(name), args, fill: target.fillStyle, stroke: target.strokeStyle, alpha: target.globalAlpha });
     },
     set: (target, name, value) => ((target[name] = value), true),
@@ -135,21 +137,31 @@ describe('CanvasStaff', () => {
     for (const hand of new Set(hands)) expect(fills).toContain(`#${hand}`);
   });
 
-  it('is drawn anew when its fonts come after it was first drawn, and listens no more once they are there', () => {
+  /**
+   * A staff on canvases that draw nothing but count the signs written, under fonts the test
+   * controls: `loaded`, what the page says of them; `drawable`, whether a canvas draws the music
+   * font's own signs (else a stand-in's, measured wider); `ready`, the page's fonts ready.
+   */
+  const staffUnderFonts = (start = { loaded: false, drawable: false }) => {
+    const fonts = { ...start };
     const contexts: ReturnType<typeof recorder>[] = [];
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
       const made = recorder();
+      const ctx = made.ctx as unknown as Record<string, unknown>;
+      ctx.measureText = () => ({ width: fonts.drawable && String(ctx.font).includes('Bravura') ? 13 : 14 });
       contexts.push(made);
       return made.ctx;
     });
-    // Fonts not there yet: the page tells when loads are done.
-    let there = false;
-    const listeners: (() => void)[] = [];
+    const listeners = new Set<() => void>();
+    let ready: () => void = () => {};
+    const readiness = new Promise<void>((resolve) => (ready = resolve));
     vi.stubGlobal('document', Object.assign(Object.create(document), {
       fonts: {
-        check: () => there,
-        load: () => Promise.resolve([]),
-        addEventListener: (_: string, listener: () => void) => listeners.push(listener),
+        check: () => fonts.loaded,
+        load: () => new Promise(() => {}),
+        ready: readiness,
+        addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+        removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
       },
     }));
     const container = document.createElement('div');
@@ -157,17 +169,64 @@ describe('CanvasStaff', () => {
     const staff = new CanvasStaff(container, STAFF_COLORS);
     staff.setScore(ode());
     const signs = () => contexts.flatMap(({ calls }) => calls.filter((call) => call.name === 'fillText')).length;
+    const loadDone = () => [...listeners].forEach((listener) => listener());
+    return { staff, fonts, listeners, signs, loadDone, ready };
+  };
+
+  it('is drawn anew when its fonts come after it was first drawn, and listens no more once they are there', () => {
+    const { fonts, listeners, signs, loadDone } = staffUnderFonts();
     const before = signs();
-    expect(listeners).toHaveLength(1);
-    // A load done, the fonts not all there yet: drawn anew, and still waiting.
-    listeners.shift()!();
+    expect(listeners.size).toBe(1);
+    // A load done, the fonts not all there yet: not drawn anew, and still waiting.
+    loadDone();
+    expect(signs()).toBe(before);
+    expect(listeners.size).toBe(1);
+    // They come: drawn anew, and no more listening.
+    Object.assign(fonts, { loaded: true, drawable: true });
+    loadDone();
     expect(signs()).toBeGreaterThan(before);
-    expect(listeners).toHaveLength(1);
-    // They come: drawn anew once more, and no more listening.
-    there = true;
-    const drawn = signs();
-    listeners.shift()!();
-    expect(signs()).toBeGreaterThan(drawn);
-    expect(listeners).toHaveLength(0);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('is drawn anew when the page said its fonts were there but the canvas still drew boxes, once it draws them', async () => {
+    // (The order that left a phone's staff in boxes: check() said yes, the first drawing was made with a stand-in, no load was told of after.)
+    const { fonts, signs, ready } = staffUnderFonts();
+    fonts.loaded = true;
+    const before = signs();
+    fonts.drawable = true;
+    ready();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(signs()).toBeGreaterThan(before);
+  });
+
+  it('is drawn anew when its fonts came before it listened: the page’s fonts, ready, tell it', async () => {
+    const { fonts, signs, ready } = staffUnderFonts();
+    const before = signs();
+    // The load was done, and told, before anything listened; only "ready" is left to say so.
+    Object.assign(fonts, { loaded: true, drawable: true });
+    ready();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(signs()).toBeGreaterThan(before);
+  });
+
+  it('is drawn anew when its fonts went away and came back, as when the screen changes', () => {
+    const { staff, fonts, listeners, signs, loadDone } = staffUnderFonts({ loaded: true, drawable: true });
+    expect(listeners.size).toBe(0);
+    // The page reads its fonts anew for another screen: for a moment it has none, and the staff is drawn for that screen then.
+    Object.assign(fonts, { loaded: false, drawable: false });
+    staff.setScore(ode());
+    expect(listeners.size).toBe(1);
+    const before = signs();
+    Object.assign(fonts, { loaded: true, drawable: true });
+    loadDone();
+    expect(signs()).toBeGreaterThan(before);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('does not wait when it was drawn with its fonts there', () => {
+    const { listeners } = staffUnderFonts({ loaded: true, drawable: true });
+    expect(listeners.size).toBe(0);
   });
 });

@@ -38,7 +38,7 @@ const model = defineModel<T>({ required: true });
 <style scoped>
 .segmented {
   display: inline-flex;
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   overflow: hidden;
 }
@@ -78,7 +78,7 @@ const model = defineModel<T>({ required: true });
 }
 
 .option + .option {
-  border-left: 1px solid var(--border);
+  border-left: var(--edge) solid var(--border);
 }
 
 .wide {

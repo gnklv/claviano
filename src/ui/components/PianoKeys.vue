@@ -224,7 +224,7 @@ useWindowListener('blur', onBlur);
 .white {
   flex: 1;
   min-width: 0;
-  border-right: 1px solid var(--key-border);
+  border-right: var(--edge) solid var(--key-border);
   border-radius: 0 0 var(--radius-s) var(--radius-s);
   background: var(--key-white);
   color: var(--key-label);
@@ -269,10 +269,9 @@ useWindowListener('blur', onBlur);
 
 .letter {
   box-sizing: border-box;
-  /* (A keycap: as small as a letter in it can be read.) */
-  min-width: 18px;
+  min-width: var(--keycap);
   padding: var(--space-0) var(--space-1);
-  border: 1px solid currentColor;
+  border: var(--edge) solid currentColor;
   border-radius: var(--radius-s);
   font-size: var(--text-key);
   font-weight: 600;

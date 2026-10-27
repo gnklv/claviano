@@ -130,6 +130,33 @@
   --panel-width: 340px;
   /* A tile on a shelf at the narrowest (a piece, an action): a title of two lines and its note under it; three across a reading column. */
   --tile-width: 220px;
+  /* A piece's tile as tall as a title of two lines and the note under it, so that a row stands even (by eye); on a phone, of one line. */
+  --tile-height: 120px;
+  --tile-height-narrow: 72px;
+  /* A column of reading: three tiles across, and a line of words that can still be read. */
+  --column-width: 880px;
+  /* A menu no narrower than its longest usual choice ("Remove from the shelf"), by eye: a short menu is not a narrow one. */
+  --menu-width: 180px;
+  /* A slider no shorter than can be aimed at. */
+  --slider-least: 80px;
+  /* A round sign at the head of a tile, a little under a fingertip: the tile around it is what is pressed. */
+  --sign: 36px;
+  /* A small round mark beside words (a pass, a hand): the size of a capital of the words, by eye. */
+  --dot: 10px;
+  /* A keycap on a key to play: as small as the letter in it can be read. */
+  --keycap: 18px;
+  /*
+   * The keyboard to play on: tall enough for a finger to land on a black key and on the white under
+   * it, and no taller, for what is played is seen over it (tuned by eye on a phone held upright, and
+   * on its side).
+   */
+  --keys-least: 120px;
+  --keys-most: 200px;
+
+  /* An edge: between the parts of a screen, round a box. A hairline, one pixel at any density. */
+  --edge: 1px;
+  /* A line a mark is drawn with: a pass's ring, a hand's dot, a bookmark on the track, the dashes round a file held over the window. */
+  --stroke: 2px;
 
   /* An icon beside words, and a smaller one inside a line of them. */
   --icon: 20px;
@@ -275,6 +302,19 @@ body,
  * ring. A component whose box would cut the ring off draws it inside itself (segments, a menu's
  * rows); one whose real control is hidden rings itself (a tile choosing a file).
  */
+/*
+ * Read out, or reached by the keys, but not seen: a pixel, clipped. (Not hidden: a hidden thing is
+ * neither read out nor reached; nor of no size at all, which some readers pass over.)
+ */
+.unseen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 :focus-visible {
   outline: var(--focus-width) solid var(--text);
   outline-offset: var(--focus-gap);

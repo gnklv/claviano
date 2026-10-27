@@ -131,7 +131,7 @@ onUnmounted(() => {
 .written {
   position: relative;
   min-height: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--edge) solid var(--border);
   background: var(--surface);
 }
 
@@ -198,9 +198,9 @@ onUnmounted(() => {
  */
 .keyboard {
   /* (Of the height there is now, with the browser's bars out: dvh, not vh.) */
-  height: clamp(120px, 22dvh, 200px);
+  height: clamp(var(--keys-least), 22dvh, var(--keys-most));
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
   background: var(--panel);
 }
 

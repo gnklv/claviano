@@ -72,6 +72,7 @@ export const en = {
   takeActions: 'More with the take',
   takeTitle: 'Played on {when}',
   recordWaiting: 'Play: the first note starts the recording',
+  recordWaitingShort: 'Waiting for the first note',
   recording: 'Recording',
   recordingBar: 'Recording · bar {bar}',
   recordedNotes: { one: 'Recorded: {count} note', other: 'Recorded: {count} notes' },

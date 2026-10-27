@@ -21,10 +21,10 @@ defineProps<{ count: number; of: number; /** What it says, read out. */ label: s
 
 /* (The size of the hands' rings in the practice toggles: one kind of mark in one bar.) */
 .dot {
-  width: 10px;
-  height: 10px;
+  width: var(--dot);
+  height: var(--dot);
   border-radius: 50%;
-  border: 2px solid var(--muted);
+  border: var(--stroke) solid var(--muted);
   transition: background-color var(--quick) var(--glide), border-color var(--quick) var(--glide);
 }
 

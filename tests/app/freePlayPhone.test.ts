@@ -56,13 +56,15 @@ describe('recording on a phone', () => {
     await settled();
     expect(beat()).toBeNull();
     expect(buttons()).toEqual(['Stop']);
-    expect(status().textContent).toBe(`Play: the first note starts the recording · ${QUARTER_NOTE} = 80 · 4/4`);
+    expect(status().textContent).toBe(`Waiting for the first note\u00a0· ${QUARTER_NOTE} = 80 · 4/4`);
+    // (The beat stands apart from the words, whole: they give way first where the row is short.)
+    expect(status().querySelector('.beat-said')?.textContent).toBe(`\u00a0· ${QUARTER_NOTE} = 80 · 4/4`);
 
     audio.time = 3.2;
     press('KeyA');
     await settled();
     expect(beat()).toBeNull();
-    expect(status().textContent).toMatch(new RegExp(`^Recording · bar \\d+ · ${QUARTER_NOTE} = 80 · 4/4$`));
+    expect(status().textContent).toMatch(new RegExp(`^Recording · bar \\d+\u00a0· ${QUARTER_NOTE} = 80 · 4/4$`));
   });
 
   it('once there, has listening, keeping and "⋯" in one row; the count of notes only read out', async () => {
@@ -92,7 +94,7 @@ describe('recording on a phone', () => {
     await choose('Record again');
     expect(root.querySelector('[role=menuitem]')).toBeNull();
     expect(buttons()).toEqual(['Stop']);
-    expect(status().textContent).toMatch(/^Play: the first note starts the recording/);
+    expect(status().textContent).toMatch(/^Waiting for the first note/);
   });
 
   it('discards the take from "⋯": the beat is to be set again', async () => {

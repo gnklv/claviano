@@ -150,6 +150,6 @@ function remove(index: number): void {
 
 .add {
   padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
 }
 </style>

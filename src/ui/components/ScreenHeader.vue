@@ -38,7 +38,7 @@ const { t } = useI18n();
   gap: var(--space-2) var(--space-4);
   /* Keep clear of the notch and rounded corners (viewport-fit=cover in index.html). */
   padding: max(var(--space-2), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--edge) solid var(--border);
   background: var(--panel);
 }
 

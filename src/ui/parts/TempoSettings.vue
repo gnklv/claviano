@@ -107,7 +107,7 @@ const percent = computed({
   display: grid;
   gap: var(--space-2);
   padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
 }
 
 .now {

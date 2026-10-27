@@ -32,7 +32,7 @@ defineExpose({
   /* As tall as a button beside it (the loop's bars beside its chip), its words clear of its edge. */
   min-height: var(--control-height);
   padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-s);
   background: var(--control);
   color: var(--text);

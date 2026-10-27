@@ -22,7 +22,7 @@ defineEmits<{ choose: [id: string] }>();
 /* (No narrower than its longest usual choice, "Rename", "Remove from the shelf", by eye: a short menu is not a narrow one.) */
 .menu-list {
   display: grid;
-  min-width: 180px;
+  min-width: var(--menu-width);
   padding: var(--space-1);
 }
 

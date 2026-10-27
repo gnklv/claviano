@@ -87,7 +87,7 @@ const onOrOff = computed(() => [
 .credit {
   margin: 0;
   padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.4;

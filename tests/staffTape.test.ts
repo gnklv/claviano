@@ -120,3 +120,16 @@ describe('the tape dragged by hand', () => {
     expect(offset(shown)).toBeCloseTo(following(8), 0);
   });
 });
+
+describe('the cursor', () => {
+  const cursor = (container: HTMLElement) => container.lastElementChild as HTMLElement;
+
+  it('marks the music; on a staff with none yet (a take before its first note) there is none', () => {
+    const empty = drawStaff({ ...ode(), notes: [] });
+    empty.staff.render(0);
+    expect(cursor(empty.container).style.visibility).toBe('hidden');
+    const music = drawStaff(ode());
+    music.staff.render(0);
+    expect(cursor(music.container).style.visibility).toBe('visible');
+  });
+});

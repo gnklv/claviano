@@ -98,13 +98,13 @@ function key(event: KeyboardEvent): void {
 /* Reached for or held: the line in ink, a little thicker. (Reached by the keys, it is ringed as all else is.) */
 .split-handle.dragging {
   background: var(--muted);
-  box-shadow: 0 0 0 1px var(--muted);
+  box-shadow: 0 0 0 var(--edge) var(--muted);
 }
 
 @media (hover: hover) {
   .split-handle:hover {
     background: var(--muted);
-    box-shadow: 0 0 0 1px var(--muted);
+    box-shadow: 0 0 0 var(--edge) var(--muted);
   }
 }
 </style>

@@ -1,6 +1,7 @@
 import type { StaffColors } from '../../application/ports/StaffView';
 import type { StaffChord, StaffGrace } from '../../domain/notation/engraving';
 import type { Hand } from '../../domain/note';
+import { FontsComing } from './staff/fontsComing';
 import { LABEL_FONT, MUSIC_FONT, TEXT_FONT } from './staff/glyphs';
 import { paintShape, type Colours } from './staff/paint';
 import { COLORS, extentOf, type GroupShape, type Paint, type Shape } from './staff/shapes';
@@ -55,32 +56,12 @@ class CanvasSurface implements StaffSurface {
   private lit: Lit = { chords: [], graces: [] };
   private offset = 0;
   private inSight = 0;
+  /** Drawn anew once its fonts can be drawn with, if it was drawn before (see fontsComing). */
+  private readonly fonts = new FontsComing(FONTS, () => this.drawAnew());
 
   constructor() {
     Object.assign(this.background.style, { position: 'absolute', inset: '0' });
     this.tapeCanvas.style.display = 'block';
-    for (const font of FONTS) void document.fonts?.load(font).catch(() => undefined);
-    this.drawWhenFontsCome();
-  }
-
-  /*
-   * A canvas draws on with a stand-in for a font that has not come (the music font's signs as empty
-   * boxes), and does not draw anew by itself when it comes: so the staff is drawn anew each time
-   * fonts finish loading, until its own are all there, whenever they come (late, or after a failed
-   * try). Not on the loads asked for above settling: they may settle before the font can be drawn
-   * with. Once they are there, it listens no more.
-   */
-  private drawWhenFontsCome(): void {
-    const fonts = document.fonts;
-    if (!fonts || FONTS.every((font) => fonts.check(font))) return;
-    fonts.addEventListener(
-      'loadingdone',
-      () => {
-        this.drawAnew();
-        this.drawWhenFontsCome();
-      },
-      { once: true },
-    );
   }
 
   setColors(colors: StaffColors): void {
@@ -98,6 +79,7 @@ class CanvasSurface implements StaffSurface {
 
   showBackground(shapes: readonly Shape[]): void {
     this.backgroundShapes = shapes;
+    this.fonts.drawing();
     const ctx = this.background.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -149,6 +131,7 @@ class CanvasSurface implements StaffSurface {
 
   /** The tape in sight: what is behind the music, the pictures of it, what sounds over it, and its ends faded. */
   private paint(): void {
+    this.fonts.drawing();
     const ctx = this.tapeCanvas.getContext('2d');
     if (!ctx) return;
     const { density } = this;

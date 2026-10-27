@@ -93,13 +93,13 @@ const pulse = useFrameValue((): 'none' | 'beat' | 'accent' => {
   flex-basis: 40%;
 }
 
-/* The hand's colour in a chip: a small round of it, the size of a capital of the chip's words, by eye. */
+/* The hand's colour in a chip: a small round of it. */
 .dot {
   flex: none;
-  width: 10px;
-  height: 10px;
+  width: var(--dot);
+  height: var(--dot);
   border-radius: 50%;
-  border: 2px solid currentColor;
+  border: var(--stroke) solid currentColor;
 }
 
 .dot.right {

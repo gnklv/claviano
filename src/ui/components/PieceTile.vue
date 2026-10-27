@@ -27,12 +27,12 @@ defineEmits<{ open: [] }>();
 </template>
 
 <style scoped>
-/* (As tall as a title of two lines and the note under it, so that the tiles of a row stand even; by eye.) */
+/* (As tall as a title of two lines and the note under it, so that the tiles of a row stand even.) */
 .piece-tile {
   position: relative;
   display: grid;
-  min-height: 120px;
-  border: 1px solid var(--border);
+  min-height: var(--tile-height);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   background: var(--panel);
 }
@@ -97,7 +97,7 @@ button.face {
 /* A phone: lower tiles, one to a row (a title of one line and its note). */
 @media (max-width: 599px) {
   .piece-tile {
-    min-height: 72px;
+    min-height: var(--tile-height-narrow);
   }
 
   .low {

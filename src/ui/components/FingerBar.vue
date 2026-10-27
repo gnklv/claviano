@@ -48,7 +48,7 @@ const now = computed(() => {
   align-items: center;
   gap: var(--space-2) var(--space-3);
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
   background: var(--panel);
 }
 

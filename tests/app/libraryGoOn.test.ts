@@ -29,15 +29,6 @@ describe('going on', () => {
     expect(playback.position).toBeCloseTo(0.2);
   });
 
-  it('says where the piece was left whole, on a second line if it must; the other tiles\' short words are cut short', async () => {
-    await drop('first.musicxml', xml('First'));
-    playback.seek(0.2);
-    await back();
-    // (The test DOM lays nothing out: the wrapping is asked for by name, and seen in the browser.)
-    const wrapped = actions().map((tile) => tile.querySelector('.note')!.classList.contains('wrap'));
-    expect(wrapped).toEqual([true, false, false]);
-  });
-
   it('opens the piece where it was left from its card too, this visit and the next', async () => {
     await drop('first.musicxml', xml('First'));
     playback.seek(0.2);

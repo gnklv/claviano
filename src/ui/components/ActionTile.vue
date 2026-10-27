@@ -8,10 +8,8 @@ import AppIcon from './AppIcon.vue';
  *
  * `main`: the one of them the screen is for; its sign is in the accent. As a `label` it can hold a
  * field of its own (a file to choose) in the default slot, and a press on it presses that.
- * `wrap`: its word goes on to the next line rather than being cut short, where what it says
- * matters to its end (where a piece was left).
  */
-defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap?: boolean; tag?: 'button' | 'label' }>();
+defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; tag?: 'button' | 'label' }>();
 </script>
 
 <template>
@@ -19,7 +17,7 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap
     <span class="sign"><AppIcon :name="icon" /></span>
     <span class="words">
       <span class="name">{{ title }}</span>
-      <span v-if="note" class="note" :class="{ wrap }">{{ note }}</span>
+      <span v-if="note" class="note">{{ note }}</span>
     </span>
     <slot />
   </component>
@@ -33,7 +31,7 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   background: transparent;
   color: var(--text);
@@ -52,8 +50,8 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap
   flex: none;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: var(--sign);
+  height: var(--sign);
   border-radius: 50%;
   background: var(--control);
   color: var(--text);
@@ -83,8 +81,7 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap
   min-width: 0;
 }
 
-.name,
-.note {
+.name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -94,11 +91,9 @@ defineProps<{ icon: IconName; title: string; note?: string; main?: boolean; wrap
   font-size: var(--text-l);
 }
 
+/* (Its word goes on to a second line rather than being cut short, its lines of a length: no word left alone on the second.) */
 .note {
   color: var(--muted);
-}
-
-.note.wrap {
-  white-space: normal;
+  text-wrap: balance;
 }
 </style>

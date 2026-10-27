@@ -86,20 +86,19 @@ function onFileChosen(event: Event): void {
       <AppNotice v-if="error" class="error" alert>{{ error }}</AppNotice>
 
       <!--
-        What can be begun here, apart from the pieces under them; three in the pieces' own columns.
-        (Where the pieces' columns are two, going on has the first row to itself, the two others
-        under it: not one left alone in a second row. Its word says where the piece was left, and
-        is never cut short.)
+        What can be begun here, apart from the pieces under them, in the pieces' own columns. (Where
+        the pieces' columns are two, going on has the first row to itself, the two others under it:
+        not one left alone in a second row.)
       -->
-      <div class="actions" :class="{ three: goOn }">
+      <div class="actions">
         <!--
           One accent on a screen, on its main action: for one who comes back, going on; else opening
           a piece. (A file can be dropped onto the window as well, which the window says when one is
           held over it.)
         -->
-        <ActionTile v-if="goOn" class="go-on" main wrap icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
+        <ActionTile v-if="goOn" class="go-on" main icon="play" :title="t('goOn')" :note="goOn.note" @click="emit('piece', goOn.id)" />
         <ActionTile tag="label" :main="!goOn" icon="plus" :title="t('openMidi')" :note="t('openFormats')">
-          <input class="chooser" type="file" :accept="touch ? undefined : FILE_KINDS" @change="onFileChosen" />
+          <input class="chooser unseen" type="file" :accept="touch ? undefined : FILE_KINDS" @change="onFileChosen" />
         </ActionTile>
         <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
       </div>
@@ -143,20 +142,14 @@ function onFileChosen(event: Event): void {
   padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-6), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
 }
 
-/* (A column of this width at the most: three tiles across, and a line of words that can be read.) */
+/* (A column of reading at the most: see --column-width.) */
 .shelf > * {
-  max-width: 880px;
+  max-width: var(--column-width);
   margin-inline: auto;
 }
 
-/* The actions: side by side, apart from the pieces under them; three stand in the pieces' columns, edge on edge. */
-.actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.actions.three,
+/* The actions stand in the pieces' columns, edge on edge with them, however many there are. */
+.actions,
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--tile-width), 1fr));
@@ -173,12 +166,8 @@ function onFileChosen(event: Event): void {
   }
 }
 
-/* The file chooser unseen, the tile being what is seen of it; still reached by the keys (hidden, it would not be). */
+/* (The file chooser unseen, the tile being what is seen of it; still reached by the keys: see .unseen. A press is the tile's.) */
 .chooser {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
   pointer-events: none;
 }
 
@@ -197,7 +186,6 @@ function onFileChosen(event: Event): void {
   }
 
   .actions,
-  .actions.three,
   .cards {
     grid-template-columns: 1fr;
     gap: var(--space-3);

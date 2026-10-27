@@ -77,6 +77,11 @@ component names the token; it never writes a colour.
   is a pill, as the chips are: asked for (`AppButton`'s `pill`), not set from outside. No space is
   written in pixels: a test holds this (`tests/uiSpacing.test.ts`), allowing a number only beside a token in a
   `calc()` (an edge's pixel taken off).
+- **Sizes are tokens too**, each with its reason beside it in `ui/styles.css`: an edge (`--edge`,
+  a hairline), the line a mark is drawn with (`--stroke`), a dot, a tile's sign, a tile's height,
+  a menu's width, the column of reading. No width, height, shadow or edge is written in pixels in
+  a component: a test holds this (`tests/uiSizing.test.ts`), with the same allowance in a `calc()`.
+  What is read out but not seen is one class for all, `.unseen`.
 - **A pop-up stands inside the screen**, clear of its sides by 4: moved along its button's row as far
   as it must.
 - **Three radii**: `--radius-s` for what is small and inside something (a field, a row of a menu),
@@ -101,7 +106,7 @@ component names the token; it never writes a colour.
   beside the arrows on a phone held upright.
 - What stands over the page (a pop-up) casts one shadow, `--shadow-raised`. Nothing else has one:
   depth is said by `--panel` on `--bg`, and by an edge. A sheet quiets the page under it with
-  `--scrim`.
+  `--scrim`, and stands apart from it by its edge: no shadow of its own.
 
 ## Focus
 
@@ -156,7 +161,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `AppSlider` | a level | volume, tempo. (The place in the piece is the same slider by hand: it is set at every frame, past Vue, and sets its own `--fill`) |
 | `TextField` | a name, a number | |
 | `PieceTile` | a piece on a shelf | one's own pieces and the demos |
-| `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main`. Asked for by name: `wrap` (its word on to a second line, where what it says matters to its end: where a piece was left) |
+| `ActionTile` | something that can be begun: a sign, a name, a word about it | the few things a screen starts from; one of them is `main`. They stand in the columns of what is under them; a word about one goes on to a second line, of even lines, rather than being cut short |
 | `ScreenHeader` | the strip on top of a screen | the way back, what the screen is, and what is set there |
 | `SectionHeading` | the name of a section | over a group of tiles or rows |
 | `AppNotice` | word of how things stand, or (`alert`) of something gone wrong | said in the page, where it concerns |

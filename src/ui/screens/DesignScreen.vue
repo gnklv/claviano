@@ -179,11 +179,11 @@ const finger = ref('');
       </div>
 
       <SectionHeading>Action</SectionHeading>
-      <p class="about">What a screen starts from: a few, larger than buttons. One of them is the main one; one whose word matters to its end has it wrapped, not cut short.</p>
+      <p class="about">What a screen starts from: a few, larger than buttons. One of them is the main one. Their words go on to a second line rather than being cut short.</p>
       <div class="actions">
         <ActionTile main icon="plus" title="The main action" note="A word about it" />
         <ActionTile icon="note" title="Another" note="A word about it too" />
-        <ActionTile wrap icon="play" title="Its word wrapped" note="A longer word, which goes on to the next line rather than being cut short" />
+        <ActionTile icon="play" title="A longer word" note="Which goes on to the next line rather than being cut short" />
       </div>
 
       <SectionHeading>Notice</SectionHeading>
@@ -331,7 +331,7 @@ const finger = ref('');
   grid-template-rows: var(--upper) 1px 1fr;
   width: var(--panel-width);
   height: calc(3 * var(--panel-width) / 4);
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   overflow: hidden;
 }
@@ -345,7 +345,7 @@ const finger = ref('');
 
 .as-hovered[role='separator'] {
   background: var(--muted);
-  box-shadow: 0 0 0 1px var(--muted);
+  box-shadow: 0 0 0 var(--edge) var(--muted);
 }
 
 /* (A row of a list as wide as a sheet's.) */
@@ -413,9 +413,9 @@ const finger = ref('');
 
 .swatch .chip {
   flex: none;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
+  width: var(--sign);
+  height: var(--sign);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
 }
 
@@ -439,11 +439,11 @@ const finger = ref('');
 }
 
 .slider {
-  width: 200px;
+  width: var(--tile-width);
 }
 
 .name-field {
-  width: 240px;
+  width: var(--tile-width);
 }
 
 .number-field {
@@ -454,7 +454,7 @@ const finger = ref('');
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-  max-width: 640px;
+  max-width: calc(2 * var(--panel-width));
 }
 
 .keys {
@@ -470,13 +470,13 @@ const finger = ref('');
 .rows {
   display: grid;
   gap: var(--space-4);
-  max-width: 340px;
+  max-width: var(--panel-width);
 }
 
 .notices {
   display: grid;
   gap: var(--space-3);
-  max-width: 640px;
+  max-width: calc(2 * var(--panel-width));
 }
 
 .tiles {
@@ -494,7 +494,7 @@ const finger = ref('');
 }
 
 .panel-words {
-  width: 220px;
+  width: var(--tile-width);
   margin: 0;
   padding: var(--space-4);
 }
@@ -513,7 +513,7 @@ const finger = ref('');
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3);
-  border: 1px solid var(--border);
+  border: var(--edge) solid var(--border);
   border-radius: var(--radius-m);
   background: var(--panel);
 }

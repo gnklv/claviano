@@ -68,8 +68,7 @@ of music from the internet (one brings one's own); no record of practice (minute
 
 States: a first visit (only "Open file", "Free play" and the demos) · pieces are there, the last
 not begun · the last begun ("Continue" over all, first of the three actions; where the pieces stand
-two across, it has the first row to itself, and its word, where the piece was left, is never cut
-short) · a file is being dragged in · a file is being
+two across, it has the first row to itself) · a file is being dragged in · a file is being
 read · a file did not open.
 
 ### 2. Learning: the stage, with what matters under it

@@ -129,9 +129,8 @@ function onCancel(event: Event): void {
   --top: max(var(--space-4), env(safe-area-inset-top));
   padding: var(--top) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) var(--space-4);
   overflow: hidden auto;
-  border-left: 1px solid var(--border);
+  border-left: var(--edge) solid var(--border);
   background: var(--panel);
-  box-shadow: -12px 0 32px var(--shade);
   /* Closed (and closing): away. */
   translate: var(--away);
   transition: translate var(--leave) var(--glide);
@@ -182,9 +181,8 @@ function onCancel(event: Event): void {
     --top: var(--space-4);
     padding: var(--top) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
     border-left: 0;
-    border-top: 1px solid var(--border);
+    border-top: var(--edge) solid var(--border);
     border-radius: var(--radius-m) var(--radius-m) 0 0;
-    box-shadow: 0 -12px 32px var(--shade);
   }
 }
 

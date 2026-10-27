@@ -94,6 +94,8 @@ export class TapeStaff implements StaffView {
   /** Whether the last drawing anew took longer than a frame (see resize). */
   private costly = false;
   private lastCursorLeft = Number.NaN;
+  /** Whether the cursor is in sight now (null: not yet said). */
+  private cursorShown: boolean | null = null;
   private selection: { from: number; to: number } | null = null;
 
   /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
@@ -281,13 +283,18 @@ export class TapeStaff implements StaffView {
     const shown = this.motion.frame({ position, target: geometry.cursorX() - x, bar: score ? writtenBarAt(score, position) : 0, overRoom: this.overRoom }, dt, playing);
 
     // The cursor marks the music on the tape: it stands still, unless the tape is moved away from it.
+    // With no music (a take before its first note), there is nothing for it to mark.
     const { shift } = this.stretch;
     const cursorX = (this.motion.held !== null ? x + shown : geometry.cursorX()) + shift;
     const cursorLeft = tenth(geometry.gutterWidth() + cursorX - 1);
     if (cursorLeft !== this.lastCursorLeft) {
       this.lastCursorLeft = cursorLeft;
       this.cursor.style.left = `${cursorLeft}px`;
-      this.cursor.style.visibility = cursorX < 0 || cursorX > this.stretch.tapeInSight ? 'hidden' : 'visible';
+    }
+    const cursorShown = score !== null && score.notes.length > 0 && cursorX >= 0 && cursorX <= this.stretch.tapeInSight;
+    if (cursorShown !== this.cursorShown) {
+      this.cursorShown = cursorShown;
+      this.cursor.style.visibility = cursorShown ? 'visible' : 'hidden';
     }
 
     const offset = tenth(shown + shift);

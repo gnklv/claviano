@@ -88,7 +88,7 @@ function choose(action: string): void {
 <style scoped>
 .step-bar {
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
-  border-top: 1px solid var(--border);
+  border-top: var(--edge) solid var(--border);
   background: var(--panel);
 }
 
