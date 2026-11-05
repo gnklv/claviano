@@ -10,6 +10,8 @@ import { usePieceKeys } from './navigation/shortcuts';
 import FreePlayScreen from './screens/FreePlayScreen.vue';
 import LibraryScreen from './screens/LibraryScreen.vue';
 import PieceScreen from './screens/PieceScreen.vue';
+import WarmupScreen from './screens/WarmupScreen.vue';
+import { useWarmupState } from './app/useWarmupState';
 
 /*
  * The shell: which screen is shown, and what works on every screen: a file dropped onto the
@@ -22,7 +24,9 @@ const DesignScreen = import.meta.env.DEV ? defineAsyncComponent(() => import('./
 const { playback, library, openScore, warmup } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
+const session = useWarmupState(warmup);
 const dragging = ref(false);
+const prepareWarmup = ref(false);
 
 const navigation = createNavigation(
   // (A piece's screen needs a piece; the design's page is there in development; the others need nothing.)
@@ -47,9 +51,25 @@ watch(screen, (shown) => {
     playback.pause();
   } else if (navigation.piece.value === null && playback.score && openScore.isGenerated(playback.score)) {
     // Browser Forward may show the exercise left in the player. A named piece is its own request.
-    warmup.resume();
+    if (warmup.status === 'finished') {
+      prepareWarmup.value = false;
+      navigation.go('warmup');
+    }
+    else warmup.resume();
   }
 });
+
+watch(() => session.value.status, status => {
+  if (status === 'finished' && screen.value === 'piece' && playback.score && openScore.isGenerated(playback.score)) {
+    prepareWarmup.value = false;
+    navigation.go('warmup');
+  }
+});
+
+function chooseWarmup(): void {
+  prepareWarmup.value = true;
+  navigation.go('warmup');
+}
 
 async function openFile(file: File): Promise<void> {
   await library.openFile(file.name, file.arrayBuffer());
@@ -75,8 +95,9 @@ usePieceKeys(() => screen.value === 'piece');
   >
     <PieceScreen v-if="screen === 'piece'" @back="navigation.go('library')" />
     <FreePlayScreen v-else-if="screen === 'play'" @back="navigation.go('library')" />
+    <WarmupScreen v-else-if="screen === 'warmup'" :prepare="prepareWarmup" @back="navigation.go('library')" />
     <component :is="DesignScreen" v-else-if="screen === 'design' && DesignScreen" @back="navigation.go('library')" />
-    <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" @play="navigation.go('play')" />
+    <LibraryScreen v-else @file="openFile" @piece="library.open($event)" @demo="library.open(demoPieceId($event))" @play="navigation.go('play')" @warmup="chooseWarmup" />
   </div>
 </template>
 

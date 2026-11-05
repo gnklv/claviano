@@ -132,6 +132,24 @@ States: ready · recording · recorded (listen, save or throw away) · no access
 Where the notes come from is the screen's one dependency, and it does not care which: the keys on
 the screen (mouse, touch, the computer's keyboard), the microphone, or a MIDI keyboard.
 
+## Warm-ups and exercises
+
+A secondary entry in the library opens preparation (`#/warmup`): a warm-up of about 5, 10 or
+15 minutes, or one exercise. Beginner, intermediate and advanced are independent of duration.
+The C-major tasks, hands and suggested repetitions are visible before opening. A short explanation
+of each level helps choose it; a new movement can be tried on its own first.
+
+Exercises use the existing player, opening paused. A compact task row above the stage names the
+current exercise, hand and place in the queue, with Next or Finish as secondary actions. This row
+stays visible when landscape playback hides the header and transport. Its title opens the full
+queue, or the details of a single exercise. Early finishing is available in the queue. A transition
+says nothing about the quality of playing; repetitions are suggestions, not an automatic count.
+
+Leaving keeps the current task and settings for this visit. The library offers a separate return;
+Continue still belongs to a library piece. Finishing leads to a neutral completion screen with
+the library, repeat and new choice actions. Reloading clears the session. The complete scope and
+the instrument checks still needed are in [warmups.md](warmups.md).
+
 ## The tools: by how often, not by kind
 
 | How often | What | Where |

@@ -5,6 +5,7 @@ import AppButton from '../components/AppButton.vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppNotice from '../components/AppNotice.vue';
 import AppSlider from '../components/AppSlider.vue';
+import ExerciseSequence from '../components/ExerciseSequence.vue';
 import FingerBar from '../components/FingerBar.vue';
 import LanguageSwitch from '../components/LanguageSwitch.vue';
 import MenuList from '../components/MenuList.vue';
@@ -320,6 +321,9 @@ const finger = ref('');
           <span class="caption">{{ icon }}</span>
         </li>
       </ul>
+    <SectionHeading>Exercise sequence</SectionHeading>
+      <ExerciseSequence label="Planned tasks" :rows="[{ title: 'Five notes', detail: 'Right · 4 repetitions' }, { title: 'Five notes', detail: 'Left · 4 repetitions' }]" />
+      <ExerciseSequence label="Current task" :current="1" :rows="[{ title: 'Five notes', detail: 'Right · 4 repetitions' }, { title: 'Five notes', detail: 'Left · 4 repetitions' }]" />
     </main>
   </div>
 </template>

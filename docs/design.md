@@ -173,6 +173,7 @@ A screen is built of these, and does not write a button or a field of its own.
 | `SplitHandle` | the line between two parts of a column, drawn up or down | the staff over the falling notes, in both views |
 | `AppIcon` | an icon of the set | |
 | `TempoMark` | a tempo as the page writes it | |
+| `ExerciseSequence` | an ordered list of exercise names and their hands, initial tempo and suggested repetitions | preparation and the session sheet; the current row is highlighted, with no success marks |
 
 - **Nothing sticks out of its box.** Where things do not fit a row, the row wraps: a chip goes to
   the next row, a setting's control goes under its words. Where nothing can wrap (a bar of one

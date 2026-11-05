@@ -9,16 +9,16 @@ import { readonly, ref, type Ref } from 'vue';
  */
 
 /** ('design' is the page of the design system, shown in development only.) */
-export type Screen = 'library' | 'piece' | 'play' | 'design';
+export type Screen = 'library' | 'piece' | 'play' | 'warmup' | 'design';
 
-const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece', play: '#/play', design: '#/design' };
+const ADDRESSES: Record<Screen, string> = { library: '#/', piece: '#/piece', play: '#/play', warmup: '#/warmup', design: '#/design' };
 const PIECE_ADDRESS = /^#\/piece(?:\/([^/]+))?\/*$/;
 
 /** The screen an address stands for; anything unknown is the library. */
 export function screenAt(hash: string): Screen {
   if (PIECE_ADDRESS.test(hash)) return 'piece';
   const address = hash.replace(/\/+$/, '');
-  return address === ADDRESSES.play ? 'play' : address === ADDRESSES.design ? 'design' : 'library';
+  return address === ADDRESSES.play ? 'play' : address === ADDRESSES.warmup ? 'warmup' : address === ADDRESSES.design ? 'design' : 'library';
 }
 
 /** The piece an address names; null for the library's, or a piece's address without a name. */
@@ -97,10 +97,14 @@ export function createNavigation(
         return;
       }
       if (next === screen.value) return;
-      if (next === 'piece' && screen.value === 'play') {
-        // What was played has become a piece: it takes free play's place, so Back from it is the library.
+      if (next === 'piece' && (screen.value === 'play' || screen.value === 'warmup')) {
+        // Playing takes the place of preparation or free play: the library stays one step back.
         history.replaceState(null, '', pieceAddress(openPiece()));
         piece.value = openPiece();
+      } else if (next === 'warmup' && screen.value === 'piece') {
+        // Completing the session replaces its player, rather than leaving a finished task behind.
+        history.replaceState(null, '', ADDRESSES.warmup);
+        piece.value = null;
       } else if (next === 'piece') {
         libraryBehind = true;
         location.hash = pieceAddress(openPiece());

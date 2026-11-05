@@ -9,6 +9,7 @@ import PianoRoll from '../parts/PianoRoll.vue';
 import SettingsPanel from '../parts/SettingsPanel.vue';
 import StaffView from '../parts/StaffView.vue';
 import StepBar from '../parts/StepBar.vue';
+import WarmupTaskBar from '../parts/WarmupTaskBar.vue';
 import TransportBar from '../parts/TransportBar.vue';
 import ViewModeSwitch from '../components/ViewModeSwitch.vue';
 import { useFingeredPage } from '../app/useFingeredPage';
@@ -17,6 +18,8 @@ import { useImmersion } from '../motion/useImmersion';
 import { NARROW_SCREEN, SHORT_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePieceText } from '../app/usePieceText';
 import { usePieceWay } from '../app/usePieceWay';
+import { useWarmupState } from '../app/useWarmupState';
+import { useExerciseWords } from '../app/useExerciseWords';
 import { useResize } from '../browser/useResize';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { useShownViewMode } from '../kept/useViewMode';
@@ -32,7 +35,10 @@ import { useI18n } from '../i18n/useI18n';
 
 const emit = defineEmits<{ back: [] }>();
 
-const { playback, openScore, library, demos, fingering: own, way } = useDeps();
+const { playback, openScore, library, demos, fingering: own, way, warmup } = useDeps();
+const session = useWarmupState(warmup);
+const exercise = useExerciseWords();
+const inWarmup = computed(() => session.value.status === 'active');
 const viewMode = useShownViewMode();
 const { title, error } = usePieceText(playback, openScore, library, demos);
 const { t } = useI18n();
@@ -134,12 +140,12 @@ const staffShare = computed({
 </script>
 
 <template>
-  <div class="piece" :class="{ immersed }" @pointerdown.capture="wake">
+  <div class="piece" :class="{ immersed, 'in-warmup': inWarmup }" @pointerdown.capture="wake">
     <div class="strip" @transitionend.self="letGoWhenBack">
       <div class="fold">
         <!-- A file dropped here that did not open: said in place of the title, as the piece stays. -->
         <ScreenHeader back opened :alert="!!error" @back="emit('back')">
-          <template #title>{{ error ?? title }}</template>
+          <template #title>{{ error ?? (inWarmup && session.step ? exercise.title(session.step.exerciseId) : title) }}</template>
           <!-- The way of the screen, then the view of its stage: two choices, two groups, the view drawn.
                The view is chosen often enough to stand here; on a phone, the settings panel has it. -->
           <SegmentedControl v-model="chosenWay" class="way" :options="WAYS" :label="t('way')" />
@@ -148,6 +154,9 @@ const staffShare = computed({
         </ScreenHeader>
       </div>
     </div>
+
+    <!-- The task stays visible while the other strips fold away on a phone on its side. -->
+    <WarmupTaskBar v-if="inWarmup" />
 
     <main ref="stage" class="stage" :class="`view-${viewMode}`" :style="viewMode === 'both' ? { '--staff-share': `${staffShare}%` } : undefined">
       <StaffView
@@ -183,7 +192,7 @@ const staffShare = computed({
         <FingerBar v-if="fingering" :page="page" :picked="picked" @set="setFinger" @done="fingering = false" />
         <template v-else>
           <!-- (The plan is learning's: over the transport, which its steps are played with.) -->
-          <StepBar v-if="learning" />
+          <StepBar v-if="learning && !inWarmup" />
           <TransportBar :fingers="shown && learning" @set-fingers="fingering = true" />
         </template>
       </div>
@@ -198,6 +207,10 @@ const staffShare = computed({
   /* One column no wider than the screen: by default it would grow to fit the title's one long line. */
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
+}
+
+.piece.in-warmup {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
 /*

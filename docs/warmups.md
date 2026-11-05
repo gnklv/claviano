@@ -76,7 +76,7 @@ after another piece or free play. Browser Back/Forward also leaves and resumes t
 Generated scores bypass PracticePlan and the shelf; cancellation covers pending browser file
 reads as well as demo and shelf openings. The library's Continue and piece memories stay separate.
 
-Until stage 3 adds the entry and controls, the development console can exercise the session:
+The development console can also exercise the session:
 
 ```js
 window.claviano.warmup.start('intermediate', 10);
@@ -101,14 +101,36 @@ The implementation covers:
 
 ### 3. Screens and design review
 
-- Add the library entry, preparation screen, task line, sequence sheet and completion state
-  using the existing UI components, navigation and useMirror. Provide English and Russian copy.
-- Add screen tests under `tests/app/`: both modes, all three levels, duration changes, an actual
+Implemented. The library has a secondary entry and a separate return to the unfinished session.
+`#/warmup` prepares either a warm-up or one exercise. All three levels, allowed hands, the C-major
+key and suggested repetitions are shown before opening. Time changes the repetitions only.
+The mode and hand choices fill their rows in equal segments, without an empty tail inside the frame.
+Both modes keep the same layout: settings on the left, the sequence or exercise details on the
+right. On a phone these stack; one exercise's details precede its opening button, while a warm-up
+can open without scrolling past the whole queue. Changing mode leaves the shared heading, mode
+and level in place.
+`WarmupTaskBar` stays visible above the stage, including while the other strips fold away on a
+phone on its side. Its title opens the queue, or the task's details for a single exercise.
+The current row is marked as current, never as successfully played. Next and Finish are manual;
+early finishing is in the sequence sheet. Completion offers the library, a repeat or a new choice.
+Preparation, playing and completion replace one another in the same history entry, so Back leads
+to the library. A fresh library entry opens preparation rather than the previous completion.
+
+English and Russian copy, the 17 exercise-to-score choices, valid hands, independent library
+Continue, cancellation of a slow file read, returning, repeating and completion are covered by
+screen tests. The preparation, player, sequence and completion were viewed in headless Chrome
+at phone, landscape phone, tablet and desktop sizes in both themes, and reviewed with the design
+chat. This does not replace an iOS device check or listening and fingering checks at the piano.
+
+- The library entry, preparation screen, task line, sequence sheet and completion state
+  use the existing UI components, navigation and useMirror, with English and Russian copy.
+- Screen tests under `tests/app/`: both modes, all three levels, duration changes, an actual
   type-to-exercise match, paused opening, manual transitions, leaving/resuming and completion.
-- Check phone portrait/landscape, tablet and desktop, both themes, keyboard access and touch
-  targets. The task line must not take the notation's remaining height on a small screen.
-- Synchronize implemented screens with the design chat. Architecture and final code review use
-  Astra. No broad redesign of Learn or transport is part of this feature.
+- Phone portrait/landscape, tablet and desktop, both themes, keyboard access and touch targets
+  checked in Chrome. The task row stays visible during landscape playback. At 320 px the existing
+  transport gives the loop its own row so the bar range stays together and practice stays reachable.
+- The design chat reviewed the screens; architecture and code review used Astra. No broad
+  redesign of Learn or transport is part of this feature.
 
 For every stage: `npm run lint`, `npm run typecheck`, `CI=true npx vitest run`, `npm run build`.
 Update the roadmap and README with what is actually implemented. Browser viewing, listening and

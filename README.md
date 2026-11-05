@@ -71,6 +71,7 @@ metronome is a synth's blip.)
 | ⚙ → Fingering | fingering hints where the notes give none, and one's own fingers |
 | Fingers | (with Fingering on, in Learn, beside the hands) press a note on the staff or its falling tile, and set its finger |
 | Free play | play on the keys on the screen or the computer's letters; record, listen, save as a piece |
+| Warm-ups and exercises | from the library: beginner, intermediate or advanced; about 5/10/15 minutes, or one exercise and its hands. Preview the tasks, open paused, move on manually. The task's title opens the sequence (or one exercise's details); finish early there. Leaving keeps the session until reload, separately from Continue for a piece |
 
 What is set in a piece (its place, tempo, hands, loop, trainer, bookmarks, one's own fingers, the
 way it is used, the steps of its plan done) is kept with it and set again when it is opened.
@@ -103,7 +104,8 @@ src/
     exercises/         C-major exercises at three levels: a catalogue of tasks (catalog.ts),
                        explicitly fingered patterns (patterns.ts), notation made into ordinary
                        scores (score.ts), and whole repetitions suggested for about 5/10/15
-                       minutes (warmup.ts). The musical core and session are ready; UI follows.
+                       minutes (warmup.ts). Starting tempos and fingering still need checks at
+                       the instrument; the levels are not examination grades.
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.
@@ -132,8 +134,8 @@ src/
                      PieceWay (listened to or learnt), PracticePlan and followPlan (a step of
                      the plan sets what it is played with). WarmupSession and followWarmup
                      (an exercise queue opened paused, kept in memory while away, separate
-                     from the shelf and a piece's plan; available through window.claviano.warmup
-                     in development until the screens follow),
+                     from the shelf and a piece's plan; also available through
+                     window.claviano.warmup in development),
                      LoadScore and OpenScore, PrepareInstrument (what the instrument must be
                      ready to play), Volume. Library (the shelf of pieces opened before, behind
                      the PieceShelf port; the same file is the same piece, told by its content);
@@ -176,7 +178,8 @@ src/
                        shapes (shapes.ts), beams.ts and curves.ts into beam lines and slurs;
                        sounding notes light up. CanvasStaff draws it, in pictures drawn ahead
                        of the view (tapeTiles.ts) and laid at every frame. CanvasPlayedTiles — the keys played in free play, as tiles.
-  ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, design),
+  ui/                Vue 3 shell: App.vue, screens/ (library, piece, free play, warm-up preparation
+                     and completion, design),
                      components/ (the building blocks, all shown on #/design), parts/ (the
                      parts of screens, which reach the app). app/ mirrors the use cases
                      (useMirror); kept/ the choices kept between visits; browser/ the few

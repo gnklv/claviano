@@ -131,6 +131,41 @@ describe('free play', () => {
   });
 });
 
+describe('a warm-up visit', () => {
+  it('opens preparation directly, without a piece', () => {
+    open('#/warmup');
+    expect(navigation.screen.value).toBe('warmup');
+    expect(navigation.piece.value).toBeNull();
+  });
+
+  it('replaces preparation with playing and completion, so the library stays one step back', () => {
+    open();
+    navigation.go('warmup');
+    const steps = history.length;
+    hasPiece = true;
+    navigation.go('piece');
+    expect(history.length).toBe(steps);
+    expect(location.hash).toBe('#/piece');
+    navigation.go('warmup');
+    expect(history.length).toBe(steps);
+    expect(location.hash).toBe('#/warmup');
+    expect(navigation.piece.value).toBeNull();
+    navigation.go('library');
+    expect(back).toHaveBeenCalledOnce();
+    expect(location.hash).toBe('#/');
+  });
+
+  it('returns to the library by address after a visit begun from a direct link', () => {
+    open('#/warmup');
+    hasPiece = true;
+    navigation.go('piece');
+    navigation.go('warmup');
+    navigation.go('library');
+    expect(back).not.toHaveBeenCalled();
+    expect(location.hash).toBe('#/');
+  });
+});
+
 describe('navigation between screens', () => {
   it('starts in the library', () => {
     open();

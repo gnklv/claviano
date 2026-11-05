@@ -247,14 +247,14 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         - [x] Session: a separate queue, each exercise opened paused in the existing player;
           manual Next and Finish, in-memory return after leaving, no interference with library
           Continue or a piece's memories. No long automatic PracticePlan and no grading.
-        - [ ] Interface: secondary library entry, preparation with a visible sequence, compact
+        - [x] Interface: secondary library entry, preparation with a visible sequence, compact
           current task, and explicit completion. Both modes (warm-up and one exercise), all
           three levels, and phone/tablet layouts reviewed with the design chat.
         - [ ] Try the notation, sound and fingering at the instrument, stage by stage; starting
           tempos and suitability of each pattern are not established by automated tests.
         Later: other keys, contrary motion, chromatic scales and further patterns within the
-        same three levels. The domain and player integration are in place; the feature is not yet
-        available through the UI.
+        same three levels. The catalogue, session and interface are implemented; instrument
+        validation remains open before treating the patterns as a finished practice routine.
 15. [ ] A piece in layers, from its bones to the whole: the melody (the right hand's top voice),
         then the bass under it (the left hand's lowest note on the strong beats), then the left
         hand's chords on the strong beats, then the right hand whole over a simple left hand, then

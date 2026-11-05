@@ -16,6 +16,9 @@ import { useDeps, type Demo } from '../deps';
 import { relativeDay } from '../i18n/relativeDay';
 import { useI18n } from '../i18n/useI18n';
 import { saveFile } from '../browser/saveFile';
+import AppButton from '../components/AppButton.vue';
+import { useWarmupState } from '../app/useWarmupState';
+import { useExerciseWords } from '../app/useExerciseWords';
 
 /*
  * Where the app starts. On top, what can be begun: going on with the piece last played, where it
@@ -24,10 +27,12 @@ import { saveFile } from '../browser/saveFile';
  * and are nobody's pieces.
  */
 
-const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo]; play: [] }>();
+const emit = defineEmits<{ file: [file: File]; piece: [id: string]; demo: [demo: Demo]; play: []; warmup: [] }>();
 
-const { playback, openScore, library, memories, demos } = useDeps();
+const { playback, openScore, library, memories, demos, warmup } = useDeps();
 const { t, locale } = useI18n();
+const session = useWarmupState(warmup);
+const exercise = useExerciseWords();
 
 /**
  * The kinds of file the chooser offers. Not on a phone or a tablet: an iPhone knows files by its
@@ -101,6 +106,16 @@ function onFileChosen(event: Event): void {
           <input class="chooser unseen" type="file" :accept="touch ? undefined : FILE_KINDS" @change="onFileChosen" />
         </ActionTile>
         <ActionTile icon="note" :title="t('freePlay')" :note="t('freePlayNote')" @click="emit('play')" />
+      </div>
+      <div class="warmups">
+        <div v-if="session.status === 'away' && session.step" class="resume">
+          <AppButton @click="warmup.resume()">{{ t(session.selection?.mode === 'exercise' ? 'exerciseResume' : 'warmupResume') }}</AppButton>
+          <p class="warmup-note">{{ exercise.title(session.step.exerciseId) }}<template v-if="session.selection?.mode === 'warmup'"> · {{ t('warmupProgress', { count: (session.current ?? 0) + 1, of: session.steps.length }) }}</template></p>
+        </div>
+        <div>
+          <AppButton variant="quiet" @click="emit('warmup')">{{ t(session.status === 'away' ? 'warmupChoose' : 'warmupTitle') }}</AppButton>
+          <p v-if="session.status !== 'away'" class="warmup-note">{{ t('warmupNote') }}</p>
+        </div>
       </div>
       <!-- A private window, or no room: said once, here, so that pieces gone after a reload are no surprise. -->
       <AppNotice v-if="!shelf.keeps" class="unkept">{{ t('shelfUnavailable') }}</AppNotice>
@@ -177,6 +192,24 @@ function onFileChosen(event: Event): void {
 
 .unkept {
   margin-top: var(--space-3);
+}
+
+.warmups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-3) var(--space-6);
+  margin-top: var(--space-5);
+}
+
+.warmup-note {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.resume {
+  min-width: 0;
 }
 
 /* A phone: one column of everything. */

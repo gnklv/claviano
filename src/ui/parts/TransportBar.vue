@@ -332,4 +332,16 @@ function togglePlay(): void {
     width: 3em;
   }
 }
+
+/* At 320 px the loop's fields and practice button cannot share the room beside tempo. */
+@media (max-width: 359px) {
+  .transport:not(.listening) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'playback' 'tempo' 'loop';
+  }
+
+  .tempo {
+    justify-self: start;
+  }
+}
 </style>
