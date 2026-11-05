@@ -138,6 +138,7 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     save();
   });
   memories.onChange(restoreCurrent);
+  playback.onBeforeLoad(save);
   playback.onChange(save);
   barLoop.onChange(save);
   trainer.onChange(save);

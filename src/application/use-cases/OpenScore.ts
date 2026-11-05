@@ -23,6 +23,7 @@ export interface OpenFailure {
 export class OpenScore {
   private opened: { score: Score; demo: DemoPiece } | null = null;
   private failed: OpenFailure | null = null;
+  private generated: Score | null = null;
   /** Counts the openings asked for: a slow demo that arrives after something else was asked for is dropped. */
   private asked = 0;
   private readonly listeners = new Set<() => void>();
@@ -63,6 +64,22 @@ export class OpenScore {
     }
   }
 
+  /** Opens generated music without giving it a place on the shelf. */
+  openGenerated(score: Score): void {
+    this.cancelPending();
+    this.open(score, null, true);
+  }
+
+  isGenerated(score: Score): boolean {
+    return score === this.generated;
+  }
+
+  /** A file could not be read, before its content reached the parser. */
+  failFile(name: string, error: unknown): void {
+    this.cancelPending();
+    this.fail({ file: name }, error);
+  }
+
   /** Opens a demo once it is loaded (some are fetched). */
   async openDemo(demo: DemoPiece): Promise<void> {
     const asked = ++this.asked;
@@ -74,7 +91,8 @@ export class OpenScore {
     }
   }
 
-  private open(score: Score, demo: DemoPiece | null): void {
+  private open(score: Score, demo: DemoPiece | null, generated = false): void {
+    this.generated = generated ? score : null;
     this.failed = null;
     this.opened = demo ? { score, demo } : null;
     this.playback.load(score);

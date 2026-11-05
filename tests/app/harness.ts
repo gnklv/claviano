@@ -10,6 +10,8 @@ import { OwnFingering } from '../../src/application/use-cases/OwnFingering';
 import { PieceWay } from '../../src/application/use-cases/PieceWay';
 import { PracticePlan } from '../../src/application/use-cases/PracticePlan';
 import { followPlan } from '../../src/application/use-cases/followPlan';
+import { WarmupSession } from '../../src/application/use-cases/WarmupSession';
+import { followWarmup } from '../../src/application/use-cases/followWarmup';
 import { keepTake } from '../../src/application/use-cases/keepTake';
 import { FreePlay } from '../../src/application/use-cases/FreePlay';
 import { keepInstrumentPrepared } from '../../src/application/use-cases/PrepareInstrument';
@@ -46,6 +48,7 @@ export let bookmarks: Bookmarks;
 export let fingering: OwnFingering;
 export let way: PieceWay;
 export let plan: PracticePlan;
+export let warmup: WarmupSession;
 export let barLoop: BarLoop;
 export let volume: Volume;
 export let app: VueApp;
@@ -168,12 +171,14 @@ export function useApp(): void {
     bookmarks = new Bookmarks(playback, barLoop);
     fingering = new OwnFingering(playback);
     way = new PieceWay(playback, barLoop, trainer);
-    plan = new PracticePlan(playback);
+    plan = new PracticePlan(playback, score => !openScore.isGenerated(score));
     followPlan(plan, { playback, barLoop, trainer, way });
     rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way, plan });
     const freePlay = new FreePlay(audio);
     const instrument = new FakeInstrument();
     keepInstrumentPrepared(playback, freePlay, instrument);
+    warmup = new WarmupSession();
+    followWarmup(warmup, { playback, openScore, library, barLoop, trainer, way, bookmarks, fingering, freePlay });
     const recorder = new Recorder(freePlay, audio, new FakeTicker());
     app = createApp(App).provide(depsKey, {
       playback,
@@ -183,6 +188,7 @@ export function useApp(): void {
       fingering,
       way,
       plan,
+      warmup,
       volume,
       instrument,
       openScore,

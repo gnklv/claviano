@@ -53,6 +53,8 @@ three levels; beginning with the musical core does not reduce its scope to begin
 
 ### 1. Musical core and session selection
 
+Implemented.
+
 - `src/domain/exercises/catalog.ts`: the three levels, exercise identities, tasks, allowed hands,
   suggested tempos and suitability for a suggested warm-up.
 - `src/domain/exercises/patterns.ts`: the small, explicitly fingered musical patterns.
@@ -67,14 +69,34 @@ three levels; beginning with the musical core does not reduce its scope to begin
 
 ### 2. Session and player
 
-- Add `src/application/use-cases/WarmupSession.ts` and `tests/WarmupSession.test.ts`: start,
+Implemented. `WarmupSession` owns the queue; `followWarmup` opens its current task and keeps the
+position, learning settings, bookmarks and fingering while away. Returning opens it paused, even
+after another piece or free play. Browser Back/Forward also leaves and resumes the session.
+`Playback.onBeforeLoad` lets outgoing state be captured before score-bound controls reset.
+Generated scores bypass PracticePlan and the shelf; cancellation covers pending browser file
+reads as well as demo and shelf openings. The library's Continue and piece memories stay separate.
+
+Until stage 3 adds the entry and controls, the development console can exercise the session:
+
+```js
+window.claviano.warmup.start('intermediate', 10);
+window.claviano.warmup.next();
+window.claviano.warmup.leave();
+window.claviano.warmup.resume();
+window.claviano.warmup.finish();
+window.claviano.warmup.restart();
+```
+
+The implementation covers:
+
+- `src/application/use-cases/WarmupSession.ts` and `tests/WarmupSession.test.ts`: start,
   current task, recommended passes, next, finish, leave and resume. Keep state per instance.
-- Integrate ready-made scores with `OpenScore`, `Library` and `Playback` through explicit
+- Ready-made scores integrated with `OpenScore`, `Library` and `Playback` through explicit
   opening/cancellation contracts. Cancel pending file/demo openings. Generated scores are not
   demos and are not written to the shelf.
-- Wire in `src/main.ts`. Reuse Playback, BarLoop and PrepareInstrument. Explicitly initialize
+- Wiring in `src/main.ts`. Reuse Playback, BarLoop and PrepareInstrument. Explicitly initialize
   tempo and hands: Playback.load alone does not reset them. Keep library piece memory separate.
-- Test late openings, next during playback, return after opening a piece, and independent
+- Tests for late openings, next during playback, return after opening a piece, and independent
   library Continue. No second audio scheduler and no automatic assessment of playing.
 
 ### 3. Screens and design review

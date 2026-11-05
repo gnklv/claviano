@@ -295,6 +295,29 @@ describe('remembering pieces', () => {
     expect(memories.memory(TWO)?.position).toBe(0);
   });
 
+  it('keeps outgoing practice before another score starts changing it', async () => {
+    const audio = new FakeAudio();
+    playback = new Playback(audio, new FakeTicker());
+    barLoop = new BarLoop(playback);
+    library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, []);
+    const settings = practice();
+    rememberPieces(library, memories, { playback, barLoop, ...settings });
+    await library.openFile('one.tune', bytes('one'));
+    settings.way.set('learn');
+    settings.trainer.setPlan({ from: 0.7, step: 0.05, every: 2, back: true });
+    settings.bookmarks.add('Keep this', 3);
+    settings.fingering.setFinger({ beat: 4, pitch: 61, hand: 'right' }, 2);
+    settings.plan.set([0]);
+    playback.seek(3);
+    const expected = memories.memory(ONE);
+    await playback.play();
+    audio.time += 1;
+    playback.onBeforeLoad(() => {
+      expect(memories.memory(ONE)).toEqual({ ...expected, position: 4, bar: 5 });
+    });
+    playback.load(piece('Generated'));
+  });
+
   it('starts a piece left at its very end from the beginning', async () => {
     await library.openFile('one.tune', bytes('one'));
     way.set('learn');

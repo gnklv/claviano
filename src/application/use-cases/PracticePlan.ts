@@ -27,14 +27,14 @@ export class PracticePlan {
   private running = 0;
   private readonly listeners = new Set<() => void>();
 
-  constructor(playback: Playback) {
+  constructor(playback: Playback, canPlan: (score: Score) => boolean = () => true) {
     // Another piece has a plan of its own (and as far as one had come in it, set from what is remembered).
     let score: Score | null = playback.score;
-    this.plan = score ? planOf(score) : [];
+    this.plan = score && canPlan(score) ? planOf(score) : [];
     playback.onChange(() => {
       if (playback.score === score) return;
       score = playback.score;
-      this.plan = score ? planOf(score) : [];
+      this.plan = score && canPlan(score) ? planOf(score) : [];
       this.done = new Set();
       this.active = null;
       this.running = 0;

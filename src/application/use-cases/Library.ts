@@ -81,10 +81,26 @@ export class Library {
     return this.loaded;
   }
 
-  /** Opens a file, and puts it on the shelf if it opened: under `title`, if given, else the piece's own. */
-  async openFile(name: string, data: ArrayBuffer, title?: string): Promise<void> {
-    const id = contentId(data);
+  /** Drops an opening still waiting for its demo, shelf or file bytes. */
+  cancelPending(): void {
     this.asked++;
+    this.pending = null;
+    this.openScore.cancelPending();
+  }
+
+  /** Opens a file, and puts it on the shelf if it opened: under `title`, if given, else the piece's own. */
+  async openFile(name: string, source: ArrayBuffer | Promise<ArrayBuffer>, title?: string): Promise<void> {
+    this.cancelPending();
+    const asked = this.asked;
+    let data: ArrayBuffer;
+    try {
+      data = source instanceof ArrayBuffer ? source : await source;
+    } catch (error) {
+      if (asked === this.asked) this.openScore.failFile(name, error);
+      return;
+    }
+    if (asked !== this.asked) return;
+    const id = contentId(data);
     this.pending = id;
     this.openScore.openFile(name, data);
     if (this.current !== id) return;
@@ -104,9 +120,8 @@ export class Library {
 
   /** Opens a piece by its id: a demo, or one from the shelf. An id nobody knows opens nothing. */
   async open(id: string): Promise<void> {
-    const asked = ++this.asked;
-    this.openScore.cancelPending();
-    this.pending = null;
+    this.cancelPending();
+    const asked = this.asked;
     // (The shelf is read first: the piece may be on it.)
     await this.loaded;
     if (asked !== this.asked) return;

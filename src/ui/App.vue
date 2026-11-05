@@ -19,7 +19,7 @@ import PieceScreen from './screens/PieceScreen.vue';
 /** The page of the design system: in development only, and not a part of what is built for use. */
 const DesignScreen = import.meta.env.DEV ? defineAsyncComponent(() => import('./screens/DesignScreen.vue')) : null;
 
-const { playback, library } = useDeps();
+const { playback, library, openScore, warmup } = useDeps();
 const { t } = useI18n();
 const state = usePlaybackState(playback);
 const dragging = ref(false);
@@ -42,11 +42,17 @@ watch([() => state.value.score, () => shelf.value.current], ([score, current], [
 });
 
 watch(screen, (shown) => {
-  if (shown !== 'piece') playback.pause();
+  if (shown !== 'piece') {
+    warmup.leave();
+    playback.pause();
+  } else if (navigation.piece.value === null && playback.score && openScore.isGenerated(playback.score)) {
+    // Browser Forward may show the exercise left in the player. A named piece is its own request.
+    warmup.resume();
+  }
 });
 
 async function openFile(file: File): Promise<void> {
-  await library.openFile(file.name, await file.arrayBuffer());
+  await library.openFile(file.name, file.arrayBuffer());
 }
 
 function onDrop(event: DragEvent): void {

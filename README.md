@@ -103,7 +103,7 @@ src/
     exercises/         C-major exercises at three levels: a catalogue of tasks (catalog.ts),
                        explicitly fingered patterns (patterns.ts), notation made into ordinary
                        scores (score.ts), and whole repetitions suggested for about 5/10/15
-                       minutes (warmup.ts). The musical core is ready; session and UI follow.
+                       minutes (warmup.ts). The musical core and session are ready; UI follows.
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.
@@ -130,7 +130,10 @@ src/
     use-cases/       Playback (tempo, loop, hands, pedals, metronome and count-in: clicks.ts),
                      BarLoop (the loop in printed bars), TempoTrainer, Bookmarks, OwnFingering,
                      PieceWay (listened to or learnt), PracticePlan and followPlan (a step of
-                     the plan sets what it is played with),
+                     the plan sets what it is played with). WarmupSession and followWarmup
+                     (an exercise queue opened paused, kept in memory while away, separate
+                     from the shelf and a piece's plan; available through window.claviano.warmup
+                     in development until the screens follow),
                      LoadScore and OpenScore, PrepareInstrument (what the instrument must be
                      ready to play), Volume. Library (the shelf of pieces opened before, behind
                      the PieceShelf port; the same file is the same piece, told by its content);

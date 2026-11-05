@@ -109,3 +109,100 @@ describe('cancelling a pending opening', () => {
     expect(errors).not.toHaveBeenCalled();
   });
 });
+
+describe('opening generated music', () => {
+  it.each(['opens', 'fails'] as const)('replaces a pending demo that later %s', async (outcome) => {
+    const playback = new Playback(new FakeAudio(), new FakeTicker());
+    const open = new OpenScore(playback, new LoadScore([tunes]));
+    open.openFile('bad.jpg', bytes('bad'));
+    const fetched = pending<Score>();
+    const obsolete = open.openDemo({ id: 'slow', load: () => fetched.promise });
+    const generated = piece('Warmup');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    open.openGenerated(generated);
+    if (outcome === 'opens') fetched.resolve(piece('Obsolete'));
+    else fetched.reject(new Error('obsolete'));
+    await obsolete;
+    expect(playback.score).toBe(generated);
+    expect(open.demo).toBeNull();
+    expect(open.failure).toBeNull();
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  it.each(['file', 'list', 'bytes'] as const)('cancels a pending %s before generated music opens', async (waiting) => {
+    const shelf = new FakePieceShelf();
+    const playback = new Playback(new FakeAudio(), new FakeTicker());
+    const open = new OpenScore(playback, new LoadScore([tunes]));
+    const library = new Library(shelf, open, playback, []);
+    await library.load();
+    await library.openFile('Saved.tune', bytes('saved'));
+    const data = pending<ArrayBuffer>();
+    const list = pending<Awaited<ReturnType<FakePieceShelf['list']>>>();
+    let obsolete: Promise<void>;
+    if (waiting === 'bytes') obsolete = library.openFile('Slow.tune', data.promise);
+    else {
+      if (waiting === 'file') vi.spyOn(shelf, 'file').mockReturnValueOnce(data.promise);
+      else { vi.spyOn(shelf, 'list').mockReturnValueOnce(list.promise); void library.load(); }
+      obsolete = library.open(contentId(bytes('saved')));
+      await Promise.resolve();
+    }
+    const changed = vi.fn();
+    library.onChange(changed);
+    library.cancelPending();
+    expect(changed).not.toHaveBeenCalled();
+    const generated = piece('Warmup');
+    open.openGenerated(generated);
+    data.resolve(bytes('saved'));
+    list.resolve([...shelf.pieces.values()]);
+    await obsolete;
+    expect(playback.score).toBe(generated);
+    expect(library.current).toBeNull();
+    expect(open.failure).toBeNull();
+  });
+
+  it.each([false, true])('ignores a rejected file read after cancellation: %s', async (cancelled) => {
+    const playback = new Playback(new FakeAudio(), new FakeTicker());
+    const open = new OpenScore(playback, new LoadScore([tunes]));
+    const library = new Library(new FakePieceShelf(), open, playback, []);
+    const read = pending<ArrayBuffer>();
+    const opening = library.openFile('Unreadable.tune', read.promise);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    if (cancelled) library.cancelPending();
+    read.reject(new Error('read failed'));
+    await opening;
+    expect(open.failure).toEqual(cancelled ? null : { source: { file: 'Unreadable.tune' }, reason: 'unknown' });
+    expect(errors).toHaveBeenCalledTimes(cancelled ? 0 : 1);
+  });
+});
+
+it('identifies generated music during load notifications and clears it only when another piece opens', () => {
+  const playback = new Playback(new FakeAudio(), new FakeTicker());
+  const open = new OpenScore(playback, new LoadScore([tunes]));
+  const generated = piece('Warmup');
+  const seen: boolean[] = [];
+  playback.onChange(() => { if (playback.score === generated) seen.push(open.isGenerated(generated)); });
+  open.openGenerated(generated);
+  expect(seen).toEqual([true]);
+  open.openFile('bad.jpg', bytes('bad'));
+  expect(open.isGenerated(generated)).toBe(true);
+  open.openFile('Good.tune', bytes('good'));
+  expect(open.isGenerated(generated)).toBe(false);
+});
+
+it('keeps the later demo opening attached to its shelf identity when old file bytes arrive', async () => {
+  const playback = new Playback(new FakeAudio(), new FakeTicker());
+  const open = new OpenScore(playback, new LoadScore([tunes]));
+  const fetched = pending<Score>();
+  const demo: DemoPiece = { id: 'later', load: () => fetched.promise };
+  const library = new Library(new FakePieceShelf(), open, playback, [demo]);
+  const read = pending<ArrayBuffer>();
+  const obsolete = library.openFile('Slow.tune', read.promise);
+  const latest = library.open(demoPieceId(demo));
+  await Promise.resolve();
+  read.resolve(bytes('slow'));
+  await obsolete;
+  fetched.resolve(piece('Later demo'));
+  await latest;
+  expect(playback.score?.title).toBe('Later demo');
+  expect(library.current).toBe(demoPieceId(demo));
+});

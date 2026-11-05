@@ -79,6 +79,7 @@ export class Playback {
 
   private stopTicker: (() => void) | null = null;
   private readonly listeners = new Set<() => void>();
+  private readonly beforeLoadListeners = new Set<() => void>();
 
   constructor(
     private readonly audio: AudioOutput,
@@ -158,7 +159,14 @@ export class Playback {
     return () => this.listeners.delete(listener);
   }
 
+  /** Gives outgoing practice a chance to be kept before any setting changes. */
+  onBeforeLoad(listener: () => void): () => void {
+    this.beforeLoadListeners.add(listener);
+    return () => this.beforeLoadListeners.delete(listener);
+  }
+
   load(score: Score): void {
+    for (const listener of this.beforeLoadListeners) listener();
     this.pause();
     this.currentScore = score;
     this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);

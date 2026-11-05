@@ -6,6 +6,8 @@ import { OwnFingering } from './application/use-cases/OwnFingering';
 import { PieceWay } from './application/use-cases/PieceWay';
 import { PracticePlan } from './application/use-cases/PracticePlan';
 import { followPlan } from './application/use-cases/followPlan';
+import { WarmupSession } from './application/use-cases/WarmupSession';
+import { followWarmup } from './application/use-cases/followWarmup';
 import { keepTake } from './application/use-cases/keepTake';
 import { FreePlay } from './application/use-cases/FreePlay';
 import { Library } from './application/use-cases/Library';
@@ -70,7 +72,7 @@ const trainer = new TempoTrainer(playback);
 const bookmarks = new Bookmarks(playback, barLoop);
 const fingering = new OwnFingering(playback);
 const way = new PieceWay(playback, barLoop, trainer);
-const plan = new PracticePlan(playback);
+const plan = new PracticePlan(playback, score => !openScore.isGenerated(score));
 followPlan(plan, { playback, barLoop, trainer, way });
 const writeDownThePlace = rememberPieces(library, memories, { playback, barLoop, trainer, bookmarks, fingering, way, plan });
 // The place moves on while the music plays: written down when the page is left (closed, or put away on a phone).
@@ -80,10 +82,11 @@ document.addEventListener('visibilitychange', () => {
   rest();
   writeDownThePlace();
 });
-if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks, fingering, way, plan } });
-
 const freePlay = new FreePlay(piano);
 keepInstrumentPrepared(playback, freePlay, piano);
+const warmup = new WarmupSession();
+followWarmup(warmup, { playback, openScore, library, barLoop, trainer, way, bookmarks, fingering, freePlay });
+if (import.meta.env.DEV) Object.assign(window, { claviano: { playback, piano, volume, library, trainer, bookmarks, fingering, way, plan, warmup } });
 const recorder = new Recorder(freePlay, piano, new IntervalTicker());
 const rest = restWhenPutAway(playback, recorder);
 const midiWriter = new MidiFileWriter();
@@ -101,6 +104,7 @@ createApp(App)
     fingering,
     way,
     plan,
+    warmup,
     volume,
     instrument: piano,
     openScore,
