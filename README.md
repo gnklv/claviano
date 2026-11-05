@@ -100,6 +100,10 @@ src/
     practice/          A plan for learning a piece: its parts, by its form and in phrases
                        (parts.ts), the steps for each (plan.ts), and what is written out again,
                        learnt once (repeats.ts).
+    exercises/         C-major exercises at three levels: a catalogue of tasks (catalog.ts),
+                       explicitly fingered patterns (patterns.ts), notation made into ordinary
+                       scores (score.ts), and whole repetitions suggested for about 5/10/15
+                       minutes (warmup.ts). The musical core is ready; session and UI follow.
     notation/          Music theory, independent of file formats and of drawing.
                        notation.ts — the notation of a piece: everything printed on its pages
                        (notes, rests, signatures, marks), as a reader of any format fills it in.
@@ -196,3 +200,4 @@ timer jitter; the view only reads `playback.position` each frame.
 - [docs/roadmap.md](docs/roadmap.md): what is done, what is next and in what order, what was left out.
 - [docs/rules.md](docs/rules.md): how the code and the interface are kept in order.
 - [docs/design.md](docs/design.md): how the interface looks and why; what it is built of.
+- [docs/warmups.md](docs/warmups.md): the three exercise levels and the staged warm-up plan.
