@@ -105,7 +105,7 @@ describe('free play', () => {
   });
 
   describe('recording', () => {
-    const status = () => root.querySelector('.record-bar [role=status]')?.textContent ?? '';
+    const status = () => root.querySelector('.record-bar .status[role=status]')?.textContent ?? '';
 
     it('begins with the first note played, not with the button, and counts the bars to the metronome', async () => {
       button(/^Record$/).click();
@@ -232,6 +232,48 @@ describe('free play', () => {
       button(/Free play/).click();
       await settled();
       expect(status()).toBe('');
+    });
+
+    it('keeps a take on screen when saving fails, and lets it be saved again', async () => {
+      await recordTwoBars();
+      shelf.broken = true;
+      button(/^Save as a piece$/).click();
+      await settled();
+      expect(onPiece()).toBe(false);
+      expect(status()).toBe('Recorded: 2 notes');
+      expect(root.textContent).toContain('Could not save the recording');
+      expect(shelf.pieces.size).toBe(0);
+      shelf.broken = false;
+      button(/^Save as a piece$/).click();
+      await settled();
+      expect(onPiece()).toBe(true);
+      expect(shelf.pieces.size).toBe(1);
+    });
+
+    it('does not replace a new take when an earlier save finishes late', async () => {
+      await recordTwoBars();
+      const save = shelf.save.bind(shelf);
+      let finish!: () => void;
+      const waiting = new Promise<void>((resolve) => { finish = resolve; });
+      vi.spyOn(shelf, 'save').mockImplementationOnce(async (piece, data) => {
+        await waiting;
+        await save(piece, data);
+      });
+      button(/^Save as a piece$/).click();
+      await settled();
+      button(/^Record again$/).click();
+      audio.time = 5;
+      press('KeyS');
+      audio.time = 6;
+      press('KeyS', 'keyup');
+      await settled();
+      button(/^Stop$/).click();
+      await settled();
+      finish();
+      await settled();
+      expect(onPiece()).toBe(false);
+      expect(status()).toBe('Recorded: 1 note');
+      expect(shelf.pieces.size).toBe(1);
     });
 
     it('says the bars are a guess for a take played without the metronome', async () => {

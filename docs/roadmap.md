@@ -304,6 +304,11 @@ the research for steps 16, 18 and 19; checks on real devices and on GitHub Pages
 
 Small things noticed, to fix between the steps:
 
+- [x] A take stays available when the shelf cannot save it; saving can be tried again
+- [x] A cache failure does not prevent a successful network response from reaching the app
+- [x] Pausing, stopping or loading a piece cancels a start still waiting for audio
+- [x] Asking for another piece cancels an older demo before waiting for the shelf
+
 - [x] A double tap zoomed the page on an iPhone, though the page asked it not to: `touch-action`
       was on `html` alone, and it is not inherited (Safari heeds it where the touch lands). Now
       on every element (styles.css); what asks for less, the keys and the staff, says so on

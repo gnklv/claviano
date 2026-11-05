@@ -67,6 +67,7 @@ export const en = {
   recordStop: 'Stop',
   recordDiscard: 'Discard',
   takeListen: 'Listen',
+  takeSaveFailed: 'Could not save the recording. It is still here; try saving again before closing the page.',
   takeKeep: 'Save as a piece',
   takeEraseBar: 'Erase the last bar',
   takeActions: 'More with the take',

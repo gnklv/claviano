@@ -16,7 +16,16 @@ const scope = new URL(self.registration.scope);
 const isOurs = (url) => url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
 const isSample = (url) => url.pathname.startsWith(`${scope.pathname}piano/`) && /\.(mp3|wav)$/.test(url.pathname);
 const isManifest = (url) => url.pathname === `${scope.pathname}piano/manifest.json`;
-const cacheFor = (url) => caches.open(isSample(url) ? PIANO_CACHE : APP_CACHE);
+/** Keeping a copy must never stop the network's answer reaching the page. */
+const withCache = async (work) => {
+  try {
+    return await work();
+  } catch {
+    return undefined;
+  }
+};
+const cacheFor = (url) => withCache(() => caches.open(isSample(url) ? PIANO_CACHE : APP_CACHE));
+const keep = (cache, address, response) => withCache(() => cache?.put(address, response));
 /** Only whole, successful answers are worth keeping. */
 const keepable = (response) => response.ok && response.status === 200;
 /** How long the network is waited for when there is a kept copy to show instead. */
@@ -43,9 +52,9 @@ self.addEventListener('message', (event) => {
         const url = new URL(address);
         if (!isOurs(url)) return;
         const cache = await cacheFor(url);
-        if (await find(cache, address)) return;
+        if (!cache || (await find(cache, address))) return;
         const response = await fetch(address).catch(() => null);
-        if (response && keepable(response)) await cache.put(address, response);
+        if (response && keepable(response)) await keep(cache, address, response);
       }),
     ),
   );
@@ -56,25 +65,25 @@ self.addEventListener('message', (event) => {
  * (Vary: Origin); a page's own requests for its script, styles and fonts carry other headers than
  * the request the answer was kept under, and would not find it.
  */
-const find = (cache, address) => cache.match(address, { ignoreVary: true });
+const find = (cache, address) => withCache(() => cache?.match(address, { ignoreVary: true }));
 
 async function cacheFirst(request) {
-  const cache = await caches.open(PIANO_CACHE);
+  const cache = await cacheFor(new URL(request.url));
   const kept = await find(cache, request.url);
   if (kept) return kept;
   const response = await fetch(request);
-  if (keepable(response)) await cache.put(request, response.clone());
+  if (keepable(response)) await keep(cache, request, response.clone());
   return response;
 }
 
 async function networkFirst(request, event) {
-  const cache = await caches.open(APP_CACHE);
   const url = new URL(request.url);
+  const cache = await cacheFor(url);
   const fresh = fetch(request).then(async (response) => {
     if (keepable(response)) {
-      await cache.put(request, response.clone());
-      if (isManifest(url)) await dropOldSamples(response.clone());
-      if (request.mode === 'navigate') await dropOldBuild(response.clone());
+      await keep(cache, request, response.clone());
+      if (isManifest(url)) await withCache(() => dropOldSamples(response.clone()));
+      if (request.mode === 'navigate') await withCache(() => dropOldBuild(response.clone()));
     }
     return response;
   });

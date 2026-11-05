@@ -61,6 +61,7 @@ export const ru: Dictionary = {
   recordStop: 'Стоп',
   recordDiscard: 'Стереть',
   takeListen: 'Прослушать',
+  takeSaveFailed: 'Не удалось сохранить запись. Она осталась здесь; попробуйте сохранить ещё раз до закрытия страницы.',
   takeKeep: 'Сохранить как пьесу',
   takeEraseBar: 'Стереть последний такт',
   takeActions: 'Ещё с записью',

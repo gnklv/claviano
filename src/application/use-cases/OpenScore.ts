@@ -48,6 +48,11 @@ export class OpenScore {
     return () => this.listeners.delete(listener);
   }
 
+  /** Drops a demo still loading, leaving the open piece and its last failure as they were. */
+  cancelPending(): void {
+    this.asked++;
+  }
+
   /** Opens a file by its name (the format is told by its extension) and content. */
   openFile(name: string, data: ArrayBuffer): void {
     this.asked++;

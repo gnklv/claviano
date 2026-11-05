@@ -124,6 +124,9 @@ listen, "Save as a piece" (the main action, its words whole) and "⋯" with eras
 recording again and discarding; the count of its notes is read out, not shown (the staff shows
 them). On a computer and on a phone on its side the bar is one row as it is.
 
+Saving a take writes its file to the shelf before opening it as a piece. If the shelf cannot
+write, the take stays on this screen with a message to try saving again before closing the page.
+
 States: ready · recording · recorded (listen, save or throw away) · no access to the microphone.
 
 Where the notes come from is the screen's one dependency, and it does not care which: the keys on

@@ -93,9 +93,20 @@ export class Library {
     await this.keep({ id, fileName: known?.fileName ?? name, title: shelved, openedAt: this.now() }, known ? undefined : data);
   }
 
+  /** Keeps a generated file before opening it: a recording must survive a shelf that cannot write. */
+  async keepFile(name: string, data: ArrayBuffer, title: string): Promise<string | null> {
+    await this.loaded;
+    const id = contentId(data);
+    const known = this.shelved.find((piece) => piece.id === id);
+    const kept = await this.keep({ id, fileName: known?.fileName ?? name, title: known?.title ?? title, openedAt: this.now() }, known ? undefined : data);
+    return kept ? id : null;
+  }
+
   /** Opens a piece by its id: a demo, or one from the shelf. An id nobody knows opens nothing. */
   async open(id: string): Promise<void> {
     const asked = ++this.asked;
+    this.openScore.cancelPending();
+    this.pending = null;
     // (The shelf is read first: the piece may be on it.)
     await this.loaded;
     if (asked !== this.asked) return;
@@ -142,13 +153,13 @@ export class Library {
     this.emit();
   }
 
-  private async keep(piece: ShelvedPiece, data?: ArrayBuffer): Promise<void> {
+  private async keep(piece: ShelvedPiece, data?: ArrayBuffer): Promise<boolean> {
     try {
       await this.shelf.save(piece, data);
     } catch {
-      // Not kept: the piece is open all the same.
+      // The caller decides whether an unsaved piece may still be opened.
       this.kept(false);
-      return;
+      return false;
     }
     // With something of one's own on the shelf, it is worth asking that the shelf be kept for good.
     if (!this.protectionAsked) {
@@ -158,6 +169,7 @@ export class Library {
     this.keeping = true;
     this.shelved = sorted([piece, ...this.shelved.filter((other) => other.id !== piece.id)]);
     this.emit();
+    return true;
   }
 
   private kept(keeping: boolean): void {

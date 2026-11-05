@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppButton from '../components/AppButton.vue';
+import AppNotice from '../components/AppNotice.vue';
 import MenuList from '../components/MenuList.vue';
 import PopOver from '../components/PopOver.vue';
 import ToggleChip from '../components/ToggleChip.vue';
@@ -37,12 +38,24 @@ const meters = (Object.keys(METERS) as Meter[]).map((value) => ({ value, label: 
 /** The bar the take is in, counted as it goes. */
 const bar = useFrameValue(() => recorder.bar);
 
-/** A take is kept under the day and the hour it was played: a name to tell it by, until it is given one. */
-function keep(): void {
+const saving = ref(false);
+const saveFailed = ref(false);
+
+/** A take is kept under the day and the hour it was played, until it is given a name. */
+async function keep(): Promise<void> {
+  if (saving.value) return;
+  saving.value = true;
+  saveFailed.value = false;
   const now = new Date();
   const when = new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(now);
   const stamp = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()].map((part) => String(part).padStart(2, '0')).join('-');
-  void keepTake(t('takeTitle', { when }), `claviano-${stamp}`);
+  try {
+    saveFailed.value = !(await keepTake(t('takeTitle', { when }), `claviano-${stamp}`));
+  } catch {
+    saveFailed.value = true;
+  } finally {
+    saving.value = false;
+  }
 }
 
 // --- On a phone, what else can be done with a take: behind "⋯". ---
@@ -78,6 +91,7 @@ const status = computed(() => {
 
 <template>
   <div class="record-bar">
+    <AppNotice class="save-error" v-if="saveFailed && state.state === 'recorded'">{{ t('takeSaveFailed') }}</AppNotice>
     <div class="take">
       <AppButton v-if="busy" class="act" recording icon="stop" @click="recorder.stop()">{{ t('recordStop') }}</AppButton>
       <AppButton v-else-if="state.state === 'idle'" class="act wide" recording icon="record" @click="recorder.arm()">{{ t('record') }}</AppButton>
@@ -86,7 +100,7 @@ const status = computed(() => {
         <!-- (On a phone the take is one row: what an icon says by itself goes without its word, and the main action keeps all of its.) -->
         <AppButton v-if="low || narrow" class="act" :icon="state.listening ? 'stop' : 'play'" :label="t(state.listening ? 'recordStop' : 'takeListen')" @click="state.listening ? recorder.stopListening() : recorder.listen()" />
         <AppButton v-else class="act wide" :icon="state.listening ? 'stop' : 'play'" @click="state.listening ? recorder.stopListening() : recorder.listen()">{{ t(state.listening ? 'recordStop' : 'takeListen') }}</AppButton>
-        <AppButton class="act wide keep" variant="primary" @click="keep">{{ t('takeKeep') }}</AppButton>
+        <AppButton class="act wide keep" variant="primary" :disabled="saving" @click="keep">{{ t('takeKeep') }}</AppButton>
         <PopOver v-if="narrow" v-model:open="menu" class="act" place="above-end" role="menu" :label="t('takeActions')">
           <AppButton icon="more" :label="t('takeActions')" :aria-expanded="menu" @click="menu = !menu" />
           <template #panel><MenuList :items="mends" @choose="mend" /></template>
@@ -129,6 +143,11 @@ const status = computed(() => {
   padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
   border-top: var(--edge) solid var(--border);
   background: var(--panel);
+}
+
+.save-error {
+  flex-basis: 100%;
+  grid-column: 1 / -1;
 }
 
 .take,

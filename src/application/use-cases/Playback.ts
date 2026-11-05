@@ -42,6 +42,8 @@ const clamp = (value: number, min: number, max: number): number =>
 export class Playback {
   private currentScore: Score | null = null;
   private isPlaying = false;
+  /** A pause also cancels starts waiting for the audio output to wake up. */
+  private playGeneration = 0;
   private currentTempo = 1;
   private currentLoop: TimeRange | null = null;
   private readonly enabledHands = new Set<Hand>(HANDS);
@@ -176,10 +178,11 @@ export class Playback {
   }
 
   async play(): Promise<void> {
-    if (!this.currentScore || this.isPlaying) return;
-    await this.audio.resume();
     const score = this.currentScore;
     if (!score || this.isPlaying) return;
+    const generation = this.playGeneration;
+    await this.audio.resume();
+    if (generation !== this.playGeneration || this.isPlaying) return;
 
     const range = this.playRange(score);
     const from = this.anchor.score;
@@ -196,6 +199,7 @@ export class Playback {
 
   /** Stops playing; `silence` also cuts what is still sounding (a finished piece rings out instead). */
   private halt(silence: boolean): void {
+    this.playGeneration++;
     if (!this.isPlaying) return;
     const position = this.position;
     this.isPlaying = false;

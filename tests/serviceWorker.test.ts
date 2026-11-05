@@ -54,6 +54,7 @@ type Listener = (event: Record<string, unknown>) => void;
 let listeners: Map<string, Listener>;
 let caches: Map<string, FakeCache>;
 let network: FakeNetwork;
+let storage: { open: (name: string) => Promise<FakeCache> };
 let self: { skipWaiting: ReturnType<typeof vi.fn>; clients: { claim: ReturnType<typeof vi.fn> } };
 
 const cache = (name: 'app' | 'piano'): FakeCache => {
@@ -79,26 +80,30 @@ async function ask(request: FakeRequest): Promise<{ response: Response; settled:
 }
 const text = async (request: FakeRequest): Promise<string> => (await ask(request))!.response.text();
 
-beforeEach(() => {
-  listeners = new Map();
-  caches = new Map();
-  network = new FakeNetwork();
-  self = { skipWaiting: vi.fn(), clients: { claim: vi.fn(() => Promise.resolve()) } };
+const runWorker = (storage: unknown) => {
   const scope = {
     ...self,
     registration: { scope: SCOPE },
     addEventListener: (type: string, listener: Listener) => listeners.set(type, listener),
   };
-  const storage = {
+  // The worker is a script, not a module: it is run with these around it.
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const run = new Function('self', 'caches', 'fetch', readFileSync('public/sw.js', 'utf8')) as (...around: unknown[]) => void;
+  run(scope, storage, network.fetch);
+};
+
+beforeEach(() => {
+  listeners = new Map();
+  caches = new Map();
+  network = new FakeNetwork();
+  self = { skipWaiting: vi.fn(), clients: { claim: vi.fn(() => Promise.resolve()) } };
+  storage = {
     open: (name: string) => {
       if (!caches.has(name)) caches.set(name, new FakeCache());
       return Promise.resolve(caches.get(name)!);
     },
   };
-  // The worker is a script, not a module: it is run with these around it.
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const run = new Function('self', 'caches', 'fetch', readFileSync('public/sw.js', 'utf8')) as (...around: unknown[]) => void;
-  run(scope, storage, network.fetch);
+  runWorker(storage);
 });
 
 afterEach(() => {
@@ -120,6 +125,46 @@ describe('the service worker', () => {
     expect(await ask(get('https://example.org/other/page.html'))).toBeNull();
     expect(await ask({ ...get('index.html'), method: 'POST' })).toBeNull();
     expect(network.requests).toEqual([]);
+  });
+
+  describe.each([
+    { name: 'app', path: 'assets/app.js', body: 'script' },
+    { name: 'piano', path: 'piano/loud/60.mp3?v=abc', body: 'sound' },
+  ] as const)('$name files when keeping them is unavailable', ({ name, path, body }) => {
+    beforeEach(() => network.has(path, body));
+
+    it('come from the network when the cache API is missing', async () => {
+      runWorker(undefined);
+      expect(await text(get(path))).toBe(body);
+    });
+
+    it('come from the network when the cache cannot be opened', async () => {
+      vi.spyOn(storage, 'open').mockRejectedValue(new Error('cache unavailable'));
+      expect(await text(get(path))).toBe(body);
+    });
+
+    it('come from the network when the kept copy cannot be read', async () => {
+      vi.spyOn(cache(name), 'match').mockRejectedValue(new Error('cache unreadable'));
+      expect(await text(get(path))).toBe(body);
+    });
+
+    it('come from the network when the new copy cannot be kept', async () => {
+      if (name === 'app') cache(name).kept.set(at(path), new Response('old'));
+      vi.spyOn(cache(name), 'put').mockRejectedValue(new Error('cache full'));
+      expect(await text(get(path))).toBe(body);
+    });
+
+    it('still reports the network error when the cache cannot be read offline', async () => {
+      network.offline = true;
+      vi.spyOn(cache(name), 'match').mockRejectedValue(new Error('cache unreadable'));
+      await expect(ask(get(path))).rejects.toThrow('Failed to fetch');
+    });
+
+    it('still reports the network error when the cache is unavailable offline', async () => {
+      network.offline = true;
+      vi.spyOn(storage, 'open').mockRejectedValue(new Error('cache unavailable'));
+      await expect(ask(get(path))).rejects.toThrow('Failed to fetch');
+    });
   });
 
   describe('piano samples', () => {
@@ -147,6 +192,14 @@ describe('the service worker', () => {
       network.has('piano/manifest.json', JSON.stringify({ version: 'new', extras: { metronome: { version: 'ticks' } } }));
       await ask(get('piano/manifest.json'));
       expect(keptIn('piano')).toEqual(['piano/loud/60.mp3?v=new', 'piano/metronome/beat.wav?v=ticks']);
+    });
+
+    it('receives a fresh manifest even when old samples cannot be cleared', async () => {
+      const manifest = JSON.stringify({ version: 'new' });
+      network.has('piano/manifest.json', manifest);
+      vi.spyOn(cache('piano'), 'keys').mockRejectedValue(new Error('cache unreadable'));
+      vi.spyOn(cache('app'), 'match').mockRejectedValue(new Error('cache unreadable'));
+      expect(await text(get('piano/manifest.json'))).toBe(manifest);
     });
 
     it('of an old set are let go when the manifest names a new version', async () => {
@@ -201,6 +254,13 @@ describe('the service worker', () => {
       expect(await text(get('some/other/address', 'navigate'))).toBe('<html>app</html>');
       // Only a page: a script at an unknown address is not answered with the page.
       await expect(ask(get('some/other/script.js'))).rejects.toThrow();
+    });
+
+    it('shows a fresh page even when the old build cannot be cleared', async () => {
+      network.has('', '<html>new app</html>');
+      vi.spyOn(cache('app'), 'keys').mockRejectedValue(new Error('cache unreadable'));
+      vi.spyOn(cache('app'), 'match').mockRejectedValue(new Error('cache unreadable'));
+      expect(await text(get('', 'navigate'))).toBe('<html>new app</html>');
     });
 
     it('lets go of the old build’s scripts and styles it no longer names', async () => {
