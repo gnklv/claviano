@@ -9,4 +9,5 @@ export interface StaffContext {
   readonly ink: StaffInk;
   readonly activeNotes?: ReadonlySet<number> | null;
   readonly activeGraceGroups?: ReadonlySet<number> | null;
+  readonly plainNotes?: ReadonlySet<number> | null;
 }

@@ -99,6 +99,7 @@ export class TapeStaff implements StaffView {
   private selection: { from: number; to: number } | null = null;
   private activeNotes: ReadonlySet<number> | null = null;
   private activeGraceGroups: ReadonlySet<number> | null = null;
+  private plainNotes: ReadonlySet<number> | null = null;
 
   /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
   constructor(
@@ -160,6 +161,13 @@ export class TapeStaff implements StaffView {
     this.activeGraceGroups = graceGroups === null ? null : new Set(graceGroups);
     this.drawTape();
   }
+
+  setPlainNotes(notes: readonly number[] | null): void {
+    this.plainNotes = notes === null ? null : new Set(notes);
+    this.drawTape();
+  }
+
+  private readonly isGraceEnabled = (grace: StaffGrace): boolean => this.activeGraceGroups === null || grace.slots.some((slot) => slot.notes.some((note) => this.activeGraceGroups!.has(note.graceGroup ?? -1)));
 
   setLoop(loop: TimeRange | null): void {
     this.loop = loop;
@@ -282,7 +290,7 @@ export class TapeStaff implements StaffView {
     if (score) {
       this.currentBeat = writtenBeatAt(score, position);
       if (this.gutterAt(this.currentBeat) !== this.shownGutter) this.drawBackground();
-      this.surface.light(this.sounding.at(this.currentBeat, isHandEnabled));
+      this.surface.light(this.sounding.at(this.currentBeat, isHandEnabled, this.isGraceEnabled));
     }
     const x = score ? geometry.px(barPosition(score, position)) : 0;
     const now = performance.now();
@@ -414,7 +422,7 @@ export class TapeStaff implements StaffView {
       return;
     }
     const { geometry, ink } = this;
-    const drawing = drawTape({ score, geometry, ink, activeNotes: this.activeNotes, activeGraceGroups: this.activeGraceGroups }, this.layout, this.handLabels);
+    const drawing = drawTape({ score, geometry, ink, activeNotes: this.activeNotes, activeGraceGroups: this.activeGraceGroups, plainNotes: this.plainNotes }, this.layout, this.handLabels);
     this.surface.showTape(drawing, { chords: ink.chords, graces: this.layout.graces });
     this.sounding.set(ink.chords, this.layout.graces);
     this.drawOverlay();

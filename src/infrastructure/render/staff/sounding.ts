@@ -31,7 +31,7 @@ export class Sounding {
   }
 
   /** What sounds at `beat` along the page, chords of muted hands left out: the same object as last time while it is the same. */
-  at(beat: number, isHandEnabled: (hand: Hand) => boolean): Lit {
+  at(beat: number, isHandEnabled: (hand: Hand) => boolean, isGraceEnabled: (grace: StaffGrace) => boolean = () => true): Lit {
     const chords: number[] = [];
     for (let i = firstAtOrAfter(this.chords, beat - this.longestChord, beatOf); i < this.chords.length; i++) {
       const chord = this.chords[i]!;
@@ -41,7 +41,7 @@ export class Sounding {
     // Grace notes: few, and each sounds for a moment.
     const graces: number[] = [];
     this.graces.forEach((grace, index) => {
-      if (grace.beat <= beat + SAME_MOMENT && grace.beat + grace.beats > beat + SAME_MOMENT && isHandEnabled(grace.hand)) graces.push(index);
+      if (grace.beat <= beat + SAME_MOMENT && grace.beat + grace.beats > beat + SAME_MOMENT && isHandEnabled(grace.hand) && isGraceEnabled(grace)) graces.push(index);
     });
     if (!same(chords, this.lit.chords) || !same(graces, this.lit.graces)) this.lit = { chords, graces };
     return this.lit;

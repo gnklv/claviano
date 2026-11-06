@@ -109,6 +109,7 @@ export interface PathShape {
 export interface GroupShape {
   readonly kind: 'group';
   readonly color?: Paint;
+  readonly opacity?: number;
   readonly children: Shape[];
 }
 

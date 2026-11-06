@@ -91,4 +91,14 @@ describe('keepInstrumentPrepared', () => {
     playback.setHandEnabled('left', false);
     expect(prepared).toHaveLength(1);
   });
+
+  it('prepares the sustained demonstration and restores the original notes when it ends', () => {
+    const { playback, prepared } = setup();
+    playback.load(score);
+    playback.setPracticeNotes([note(64, 0, 4)], [0]);
+    expect(prepared.at(-1)).toEqual([{ pitch: 64, velocity: 0.5, seconds: 4 }]);
+    playback.setPracticeNotes(null, null);
+    expect(prepared.at(-1)).toEqual([{ pitch: 60, velocity: 0.5, seconds: 2 }]);
+    expect(playback.score).toBe(score);
+  });
 });

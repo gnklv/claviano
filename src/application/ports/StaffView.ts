@@ -28,6 +28,8 @@ export interface StaffView {
   setScore(score: Score | null): void;
   /** Written-note indices and original grace-group indices to emphasize; null shows all notes. */
   setActiveNotes(notes: readonly number[] | null, graceGroups?: readonly number[] | null): void;
+  /** Original written-note indices whose ornament signs remain as quiet context. */
+  setPlainNotes(notes: readonly number[] | null): void;
   /** Hand marks for notes written on the other hand's staff ("L.H." / "л. р."), in the UI language. */
   setHandLabels(labels: Record<Hand, string>): void;
   setLoop(loop: TimeRange | null): void;

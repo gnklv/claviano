@@ -42,7 +42,7 @@ export function keepInstrumentPrepared(playback: Playback, freePlay: FreePlay, i
       readyFor = { lowest, keys };
       instrument.prepare(keysToPrepare(lowest, keys));
     } else {
-      const { score, tempo } = playback;
+      const { performanceScore: score, tempo } = playback;
       if (readyFor && 'score' in readyFor && readyFor.score === score && readyFor.tempo === tempo) return;
       readyFor = { score, tempo };
       instrument.prepare(score ? notesToPrepare(score, tempo) : []);

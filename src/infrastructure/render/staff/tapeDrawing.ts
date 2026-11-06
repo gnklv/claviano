@@ -7,7 +7,7 @@ import { drawGrace } from './graces';
 import { drawBarLines, drawBarNumbers, drawClefChanges, drawNavigation, drawOctaveShift, drawSignatureChanges, drawTempoMarks, type OctaveBracket } from './markings';
 import { drawArpeggio, drawOrnament, drawTremolo } from './ornaments';
 import { drawPedal } from './pedal';
-import { COLORS, group, type GroupShape, type Shape } from './shapes';
+import { COLORS, INACTIVE_NOTE_OPACITY, group, type GroupShape, type Shape } from './shapes';
 
 /*
  * The whole tape of a piece, as shapes: what the staff's surface draws.
@@ -49,7 +49,11 @@ export function drawTape(context: StaffContext, layout: NotationLayout, handLabe
   // Grace notes and ornaments before what goes around the notes: bar numbers, brackets and
   // dynamics clear them too. Ornaments, tremolos and rolls belong to their chord and light up with it.
   const graces = layout.graces.map((grace) => drawGrace(context, grace));
-  for (const ornament of layout.ornaments) chords[ornament.chord]?.children.push(...drawOrnament(context, ornament));
+  for (const ornament of layout.ornaments) {
+    const shapes = drawOrnament(context, ornament);
+    const plain = context.plainNotes?.has(ornament.writtenIndex ?? -1);
+    chords[ornament.chord]?.children.push(...(plain ? [{ ...group(shapes, COLORS.note), opacity: INACTIVE_NOTE_OPACITY }] : shapes));
+  }
   for (const fingering of layout.fingerings) chords[fingering.chord]?.children.push(drawFingering(context, fingering));
   for (const tremolo of layout.tremolos) chords[tremolo.chord]?.children.push(...drawTremolo(context, tremolo));
   for (const arpeggio of layout.arpeggios) chords[arpeggio.chords[0] ?? -1]?.children.push(...drawArpeggio(context, arpeggio));

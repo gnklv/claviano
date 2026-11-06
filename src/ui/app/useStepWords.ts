@@ -26,9 +26,13 @@ export function useStepWords(playback: Playback) {
     return from === to ? t('stepBar', { bar: from }) : t('stepBars', { from, to });
   };
   const what = (step: PlanStep): string => {
+    if (step.restoreOrnaments) return `${t('stepAddOrnaments')} · ${percent(step.tempo)}%`;
     switch (step.kind) {
-      case 'layer':
-        return `${t(step.layer === 'lead-bass' ? 'stepLayerBass' : 'stepLayerLead')} · ${percent(step.tempo)}%`;
+      case 'layer': {
+        const label = step.layer === 'lead-hand-bass' ? (step.addedHand === 'left' ? 'stepLayerLeft' : 'stepLayerRight')
+          : step.layer === 'full' ? 'stepLayerFull' : step.layer === 'lead-bass' ? 'stepLayerBass' : 'stepLayerLead';
+        return `${t(label)} · ${percent(step.tempo)}%`;
+      }
       case 'with':
         return `${t(step.hands === 'left' ? 'stepLeftToRight' : 'stepRightToLeft')} · ${percent(step.tempo)}%`;
       case 'up':

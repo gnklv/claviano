@@ -25,6 +25,44 @@ const left = { staff: 2, voice: '1', hand: 'left' } as const;
 const indices = (result: LayerCandidates, kind: LayerKind) => result.layers.find((layer) => layer.kind === kind)?.notes;
 
 describe('written practice layers', () => {
+  it('adds the complete leading hand and its other voices above the same bass anchors', () => {
+    const result = layersOf(score([
+      note(0, 72, { beats: 4 }), note(0, 84, { beats: 4, chord: true }),
+      note(1, 67, { voice: '2' }), note(0, 48, left), note(0.5, 55, left),
+    ]), { from: 0, to: 0 });
+    expect(result.layers).toEqual([
+      { kind: 'lead', notes: [1] },
+      { kind: 'lead-bass', notes: [1, 3] },
+      { kind: 'lead-hand-bass', addedHand: 'right', notes: [0, 1, 2, 3] },
+      { kind: 'full', notes: [0, 1, 2, 3, 4] },
+    ]);
+  });
+
+  it('labels an explicitly chosen left-hand expansion by the hand it actually adds', () => {
+    const result = layersOf(score([
+      note(0, 48, left), note(0, 60, { ...left, chord: true }),
+      note(0.5, 55, { ...left, voice: '2' }), note(0, 84, { beats: 4 }),
+    ]), { from: 0, to: 0 }, { lead: left });
+    expect(result.layers).toContainEqual({ kind: 'lead-hand-bass', addedHand: 'left', notes: [0, 1, 2] });
+  });
+
+  it('omits the hand expansion when the selected staff and voice mix hands', () => {
+    const result = layersOf(score([
+      note(0, 84, { beats: 2 }), note(2, 72, { hand: 'left' }),
+      note(0.5, 67, { voice: '2' }), note(0, 48, left), note(0.5, 55, left),
+    ]), { from: 0, to: 0 });
+    expect(result.layers.some((layer) => layer.kind === 'lead-hand-bass')).toBe(false);
+  });
+
+  it('omits a hand expansion whose additional tie chain crosses to the other hand', () => {
+    const result = layersOf(score([
+      note(0, 84, { beats: 4 }), note(0, 60, { voice: '2', tieStart: true }),
+      note(1, 60, { voice: '2', hand: 'left', tieStop: true }),
+      note(0, 48, left), note(0.5, 55, left),
+    ]), { from: 0, to: 0 });
+    expect(result.layers.some((layer) => layer.kind === 'lead-hand-bass')).toBe(false);
+  });
+
   it('keeps staff and voice together when choosing one lead for the whole Part', () => {
     const result = layersOf(score([
       note(0, 72), note(1, 74), note(2, 76), note(3, 77),

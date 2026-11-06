@@ -69,6 +69,28 @@ describe('the local collection of layer candidates', () => {
     const report = await inspectLayerSamples(directory);
     expect(report.summary.failed).toBe(0);
     expect(report.files[0]).toMatchObject({ status: 'ok', source: 'inferred' });
+    const result = report.files[0];
+    if (result.status !== 'ok') throw new Error(result.error);
+    expect(result.parts.every((part) => part.previews.every((preview) => !('plainEvents' in preview) && !('plainGraces' in preview)))).toBe(true);
+  });
+
+  it('checks a grace-delayed trill in every layer while retaining the original report counts', async () => {
+    const directory = await folder();
+    const decorated = score(`<measure number="1">${attributes()}
+      <note><grace/><pitch><step>D</step><octave>5</octave></pitch><type>eighth</type><staff>1</staff></note>
+      ${note('E', 5, 8, { extra: '<notations><ornaments><trill-mark/></ornaments></notations>' })}
+      <backup><duration>8</duration></backup>${note('C', 3, 2, { staff: 2 })}
+      ${note('G', 3, 2, { staff: 2 })}${note('C', 3, 4, { staff: 2 })}</measure>`);
+    await writeFile(join(directory, 'decorated.musicxml'), new Uint8Array(decorated));
+    const report = await inspectLayerSamples(directory);
+    expect(report.summary).toMatchObject({ parsed: 1, failed: 0, fragments: 1, violations: 0 });
+    const result = report.files[0];
+    if (result.status !== 'ok') throw new Error(result.error);
+    expect(result.graceNotes).toBe(1);
+    expect(result.parts[0].previews).toEqual([
+      { kind: 'lead', events: 16, graces: 1, plainEvents: 1, plainGraces: 0 },
+      { kind: 'full', events: 19, graces: 1, plainEvents: 4, plainGraces: 0 },
+    ]);
   });
 
   it('does not present a missing or empty collection as a successful run', async () => {

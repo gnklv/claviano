@@ -16,7 +16,7 @@ export function useFingeredPage(shown: Readonly<Ref<boolean>>): ComputedRef<Scor
   const state = usePlaybackState(playback);
   const own = useMirror(fingering, () => fingering.all);
   return computed(() => {
-    const score = state.value.score;
+    const score = state.value.performanceScore;
     if (!score || !shown.value) return score;
     return withFingerHints(withOwnFingers(score, own.value));
   });

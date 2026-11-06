@@ -27,17 +27,22 @@ const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
 const page = computed(() => props.page);
 const activeNotes = computed(() => {
   const selection = state.value.noteSelection;
-  if (selection === null) return { notes: null, graces: null };
+  if (selection === null && !state.value.plain) return { notes: null, graces: null };
   const notes = new Set<number>();
   const graces = new Set<number>();
-  for (const index of selection) {
-    for (const source of state.value.score?.notes[index]?.sources ?? []) {
+  const performance = state.value.performanceScore;
+  const indices = selection ?? performance?.notes.map((_, index) => index) ?? [];
+  for (const index of indices) {
+    for (const source of performance?.notes[index]?.sources ?? []) {
       if (source.kind === 'note') notes.add(source.index);
       else graces.add(source.group);
     }
   }
-  return { notes: [...notes], graces: [...graces] };
+  return { notes: selection === null ? null : [...notes], graces: [...graces] };
 });
+const plainNotes = computed(() => state.value.plain
+  ? state.value.score?.notation.notes.flatMap((note, index) => note.ornaments.length || note.trillLine ? [index] : []) ?? []
+  : null);
 watch(
   () => props.picked,
   (note) => staff.view?.setPicked(note ?? null),
@@ -51,6 +56,7 @@ const staff = useDrawnView(container, (element): StaffView => {
   made.setHandLabels(handLabels());
   made.setScore(page.value);
   made.setActiveNotes(activeNotes.value.notes, activeNotes.value.graces);
+  made.setPlainNotes(plainNotes.value);
   made.setLoop(state.value.loop);
   return made;
 });
@@ -58,6 +64,7 @@ const staff = useDrawnView(container, (element): StaffView => {
 // The tape is rebuilt only when the score or the loop changes…
 watch(page, (score) => staff.view?.setScore(score));
 watch(activeNotes, (active) => staff.view?.setActiveNotes(active.notes, active.graces));
+watch(plainNotes, (notes) => staff.view?.setPlainNotes(notes));
 watch(
   () => state.value.loop,
   (loop) => staff.view?.setLoop(loop),

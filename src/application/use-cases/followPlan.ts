@@ -2,6 +2,8 @@ import type { Hand } from '../../domain/note';
 import type { PlanStep } from '../../domain/practice/plan';
 import { layersOf } from '../../domain/practice/layers';
 import { scoreForLayer } from '../../domain/practice/layerScore';
+import { plainNotesOf } from '../../domain/notation/performance';
+import type { Score } from '../../domain/score';
 import { timeAtPage, writtenBarAt, writtenBarNumber, writtenBarStart } from '../../domain/score';
 import type { BarLoop } from './BarLoop';
 import type { PieceWay } from './PieceWay';
@@ -12,8 +14,8 @@ import type { TempoTrainer } from './TempoTrainer';
 /*
  * A step of the plan, begun, sets what it is played with, each by what holds it: the loop on its
  * bars, played a pass at a time (a pass, then a word on how it went, then the next when one is
- * ready); the metronome; its tempo (or the trainer, from it to the tempo aimed at, two steps up and
- * one back); and the piece learnt, not listened to. Each task is heard as an example: the chosen
+ * ready); the metronome; its tempo (adjusted by assessment in tempo work);
+ * and the piece learnt, not listened to. Each task is heard as an example: the chosen
  * hand alone, or both hands together. The learner can mute either hand with the existing controls.
  *
  * Out of the plan the music is as it was: both hands heard, the loop going round, the metronome as
@@ -36,6 +38,8 @@ export function followPlan(plan: PracticePlan, { playback, barLoop, trainer, way
   let set: { from: number; to: number } | null = null;
   /** Whether the metronome was on before the steps: as it is to be after them. */
   let metronome: boolean | null = null;
+  let preparedSource: Score | null = null;
+  let preparation: Score | null = null;
 
   plan.onChange(() => {
     const index = plan.current;
@@ -44,8 +48,12 @@ export function followPlan(plan: PracticePlan, { playback, barLoop, trainer, way
     set = null;
     const step = index === null ? undefined : plan.steps[index];
     const score = playback.score;
+    if (preparedSource !== score) {
+      preparedSource = score;
+      preparation = null;
+    }
     if (!step || !score) {
-      playback.setNoteSelection(null);
+      playback.setPracticeNotes(null, null);
       if (metronome === null) return;
       playback.pause();
       trainer.setEnabled(false);
@@ -76,30 +84,24 @@ export function followPlan(plan: PracticePlan, { playback, barLoop, trainer, way
     way.set('learn');
     playback.pause();
     const part = { from: step.from, to: step.to };
+    if (step.plain) preparation ??= { ...score, notes: plainNotesOf(score) };
+    const performance = step.plain ? preparation! : score;
     const layer = step.kind === 'layer' ? layersOf(score, part).layers.find((layer) => layer.kind === step.layer) : undefined;
-    const selected = layer ? new Set(scoreForLayer(score, part, layer).notes) : null;
-    playback.setNoteSelection(selected ? score.notes.flatMap((note, index) => selected.has(note) ? [index] : []) : null);
+    const selected = layer ? new Set(scoreForLayer(performance, part, layer).notes) : null;
+    playback.setPracticeNotes(step.plain ? performance.notes : null, selected ? performance.notes.flatMap((note, index) => selected.has(note) ? [index] : []) : null);
     // (The first pass of its bars, where the piece repeats them.)
     barLoop.select(from, to, kept ? position : timeAtPage(score, step.from, writtenBarStart(score, step.from), 0));
     playback.setPassAtATime(true);
     for (const hand of HANDS) playback.setHandEnabled(hand, heard(step, hand));
     playback.setMetronomeEnabled(true);
-    if (step.kind === 'up' && step.aim !== undefined && step.by !== undefined) {
-      // (A step at each pass: how many passes a tempo takes is the step's three clean ones at the end.)
-      trainer.setPlan({ from: step.tempo, to: step.aim, step: step.by, every: 1, back: true });
-      // (Begun again from its first tempo, if it was on already.)
-      trainer.setEnabled(false);
-      trainer.setEnabled(true);
-    } else {
-      trainer.setEnabled(false);
-      playback.setTempo(step.tempo);
-    }
+    trainer.setEnabled(false);
+    playback.setTempo(step.tempo);
     const range = playback.loop;
     playback.seek(kept && range && position >= range.start && position < range.end ? position : range?.start ?? 0);
     if (kept) {
       playback.setTempo(kept.tempo);
       for (const hand of HANDS) playback.setHandEnabled(hand, kept.hands[hand]);
-      trainer.restore(kept.trainer);
+      trainer.restore(step.kind === 'up' ? { ...kept.trainer, on: false } : kept.trainer);
     }
     set = { from, to };
     setting = false;
@@ -116,7 +118,7 @@ export function followPlan(plan: PracticePlan, { playback, barLoop, trainer, way
     if (way.way === 'learn') plan.resume();
     else {
       plan.stop();
-      playback.setNoteSelection(null);
+      playback.setPracticeNotes(null, null);
     }
   });
 }

@@ -149,6 +149,8 @@ export interface StaffOctaveShift {
 
 /** An ornament sign over (or under) a chord: a trill, a mordent, a turn. */
 export interface StaffOrnament {
+  /** The written note that owns this sign, independent of the chord's head order. */
+  readonly writtenIndex?: number;
   readonly chord: number;
   readonly kind: OrnamentKind;
   readonly above: boolean;

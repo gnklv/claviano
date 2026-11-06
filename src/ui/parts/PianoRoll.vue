@@ -58,7 +58,7 @@ function draw(): void {
   const view = roll.view;
   if (!view) return;
   view.render({
-    score: playback.score ?? EMPTY_SCORE,
+    score: playback.performanceScore ?? EMPTY_SCORE,
     position: playback.position,
     playing: playback.playing,
     loop: playback.loop,

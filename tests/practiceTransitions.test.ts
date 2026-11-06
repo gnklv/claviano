@@ -49,19 +49,20 @@ describe('guided tempo graduation', () => {
       plan.clean();
     }
     expect(passes).toEqual([
-      { started: 0.6, following: 0.8 },
-      { started: 0.8, following: 0.7 },
-      { started: 0.7, following: 0.9 },
+      { started: 0.6, following: 0.6 },
+      { started: 0.7, following: 0.7 },
+      { started: 0.8, following: 0.8 },
     ]);
     expect(plan.progress(up)).toEqual({ clean: 0, done: false });
     expect(plan.current).toBe(up);
   });
 
-  it('counts the tempo of the completed pass, not the faster tempo already set for the next one', async () => {
+  it('does not count the pass that first brings the next tempo to the target', async () => {
     const { playback, plan, up, pass } = practising();
     plan.start(up);
     playback.setTempo(0.9);
-    expect(await pass()).toEqual({ started: 0.9, following: 1 });
+    expect(await pass()).toEqual({ started: 0.9, following: 0.9 });
+    expect(playback.tempo).toBe(0.9);
     plan.clean();
     expect(plan.progress(up)).toEqual({ clean: 0, done: false });
     for (let count = 1; count <= 2; count++) {
@@ -72,6 +73,61 @@ describe('guided tempo graduation', () => {
     await pass();
     plan.clean();
     expect(plan.progress(up).done).toBe(true);
+  });
+
+  it('raises tempo on clean physical-piano passes and completes only after three at the target', () => {
+    const { playback, plan, up } = practising();
+    plan.start(up);
+    for (const tempo of [0.7, 0.8, 0.9, 1]) {
+      plan.clean();
+      expect(playback.tempo).toBe(tempo);
+      expect(plan.progress(up)).toEqual({ clean: 0, done: false });
+    }
+    plan.clean();
+    plan.clean();
+    expect(plan.progress(up)).toEqual({ clean: 2, done: false });
+    plan.clean();
+    expect(plan.progress(up).done).toBe(true);
+  });
+
+  it('retries slower after a slip, including before any clean pass is counted', async () => {
+    const { playback, plan, up, pass } = practising();
+    plan.start(up);
+    plan.clean();
+    expect(playback.tempo).toBe(0.7);
+    await pass();
+    plan.missed();
+    expect(playback.tempo).toBe(0.6);
+    expect(playback.playing).toBe(false);
+    expect(playback.position).toBe(playback.loop!.start);
+    plan.missed();
+    expect(playback.tempo).toBe(0.6);
+    playback.setTempo(0.4);
+    plan.missed();
+    expect(playback.tempo).toBe(0.4);
+    playback.setTempo(1);
+    plan.clean();
+    plan.missed();
+    expect(playback.tempo).toBe(0.9);
+    expect(plan.progress(up)).toEqual({ clean: 0, done: false });
+  });
+
+  it('keeps resumed tempo work assessment-driven even with older saved automatic training', async () => {
+    const { playback, plan, up, trainer, way, pass } = practising();
+    plan.start(up);
+    playback.setTempo(0.8);
+    trainer.restore({ on: true, plan: { from: 0.6, to: 1, step: 0.1, every: 1, back: true } });
+    const savedTempo = playback.tempo;
+    way.set('listen');
+    plan.set(plan.steps.flatMap((_, index) => index < up ? [index] : []));
+    way.set('learn');
+    expect(playback.tempo).toBe(savedTempo);
+    expect(plan.current).toBe(up);
+    expect(playback.tempo).toBe(0.8);
+    expect(trainer.enabled).toBe(false);
+    expect(await pass()).toEqual({ started: 0.8, following: 0.8 });
+    plan.clean();
+    expect(playback.tempo).toBe(0.9);
   });
 
   it('accepts clean physical-piano assessments at the target without requiring playback', () => {
@@ -95,7 +151,7 @@ describe('guided tempo graduation', () => {
     expect(plan.progress(up)).toEqual({ clean: 0, done: false });
   });
 
-  it('clears an old completed tempo when the learner explicitly sets the already queued target', async () => {
+  it('clears an old completed tempo when the learner explicitly sets the target', async () => {
     const { playback, plan, up, pass } = practising();
     plan.start(up);
     playback.setTempo(0.9);

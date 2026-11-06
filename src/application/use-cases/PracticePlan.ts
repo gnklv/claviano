@@ -1,4 +1,4 @@
-import { legacyPlanOf, PLAN_VERSION, planOf, type PlanStep } from '../../domain/practice/plan';
+import { legacyPlanOf, PLAN_VERSION, planOf, planV2Of, planV3Of, type PlanStep } from '../../domain/practice/plan';
 import { SAME_MOMENT } from '../../domain/moment';
 import { writtenBarAt, type Score } from '../../domain/score';
 import type { Playback } from './Playback';
@@ -97,19 +97,23 @@ export class PracticePlan {
       this.set(saved?.done ?? []);
       return;
     }
-    if (saved.version !== undefined || !this.currentScore) {
+    if ((saved.version !== undefined && saved.version !== 2 && saved.version !== 3) || !this.currentScore) {
       this.set([]);
       return;
     }
-    const legacy = legacyPlanOf(this.currentScore);
+    const legacy = saved.version === 3 ? planV3Of(this.currentScore)
+      : saved.version === 2 ? planV2Of(this.currentScore) : legacyPlanOf(this.currentScore);
     const done = new Set<number>();
     for (const index of saved.done) {
       const old = Number.isInteger(index) ? legacy[index] : undefined;
       if (!old) continue;
-      const matched = this.plan.findIndex((step) => meaning(step) === meaning(old));
+      // Older tasks included the decorations: passing them also satisfies their plain preparation.
+      const matched = this.plan.findIndex((step) => meaning(step, true) === meaning(old, true));
       if (matched < 0) continue;
       done.add(matched);
-      if (old.kind === 'together' || old.kind === 'up') {
+      const hands = new Set(this.currentScore.notation.notes.filter((note) => note.bar >= old.from && note.bar <= old.to).map((note) => note.hand));
+      const fullAlone = old.kind === 'alone' && hands.size === 1 && old.hands !== 'both' && hands.has(old.hands);
+      if (old.kind === 'together' || old.kind === 'up' || fullAlone) {
         this.plan.forEach((step, index) => {
           if (step.kind === 'layer' && step.from === old.from && step.to === old.to) done.add(index);
         });
@@ -165,7 +169,7 @@ export class PracticePlan {
     const step = this.plan[this.active]!;
     if (step.kind === 'up') {
       const tempo = this.playback.lastCompletedPassTempo ?? this.playback.tempo;
-      this.playback.clearCompletedPass();
+      this.prepareTempo(Math.min(step.aim ?? step.tempo, tempo + (step.by ?? 0)));
       if (tempo < (step.aim ?? step.tempo) - SAME_MOMENT) {
         this.running = 0;
         this.emit();
@@ -179,6 +183,14 @@ export class PracticePlan {
 
   /** A pass with a slip: the count starts again. */
   missed(): void {
+    const step = this.active === null ? undefined : this.plan[this.active];
+    if (step?.kind === 'up') {
+      const tempo = this.playback.lastCompletedPassTempo ?? this.playback.tempo;
+      this.prepareTempo(Math.min(tempo, Math.max(step.tempo, tempo - (step.by ?? 0))));
+      this.running = 0;
+      this.emit();
+      return;
+    }
     this.playback.clearCompletedPass();
     if (this.active === null || this.running === 0) return;
     this.running = 0;
@@ -209,6 +221,13 @@ export class PracticePlan {
   private emit(): void {
     for (const listener of this.listeners) listener();
   }
+
+  /** Assessment prepares the next attempt, whether the last one used playback or a physical piano. */
+  private prepareTempo(tempo: number): void {
+    this.playback.pause();
+    this.playback.seek(this.playback.loop?.start ?? this.playback.position);
+    this.playback.setTempo(Math.round(tempo * 100) / 100);
+  }
 }
 
-const meaning = (step: PlanStep): string => JSON.stringify([step.kind, step.from, step.to, step.hands, step.tempo, step.aim, step.by, step.layer]);
+const meaning = (step: PlanStep, withoutPlain = false): string => JSON.stringify([step.kind, step.from, step.to, step.hands, step.tempo, step.aim, step.by, step.layer, step.addedHand, withoutPlain ? undefined : step.plain]);

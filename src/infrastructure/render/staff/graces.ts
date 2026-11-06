@@ -46,6 +46,7 @@ export function graceWidth(grace: StaffGrace, principalHasAccidental: boolean): 
  */
 export function drawGrace({ geometry, ink, activeGraceGroups }: StaffContext, grace: StaffGrace): GroupShape {
   const { space } = geometry;
+  const inactiveGroup = activeGraceGroups && !grace.slots.some((slot) => slot.notes.some((note) => activeGraceGroups.has(note.graceGroup ?? -1)));
   const shapes: Shape[] = [];
   const top = geometry.staffTop(grace.staff);
   const yOf = (step: number) => top + (step * space) / 2;
@@ -84,6 +85,8 @@ export function drawGrace({ geometry, ink, activeGraceGroups }: StaffContext, gr
   const stemEnd = (i: number) => line(i) - lift;
 
   grace.slots.forEach((slot, i) => {
+    const firstShape = shapes.length;
+    const inactiveSlot = !inactiveGroup && activeGraceGroups && !slot.notes.some((note) => activeGraceGroups.has(note.graceGroup ?? -1));
     for (const step of slot.ledgerSteps) {
       const y = yOf(step);
       const extension = LEDGER_EXTENSION * space;
@@ -93,10 +96,11 @@ export function drawGrace({ geometry, ink, activeGraceGroups }: StaffContext, gr
       const y = yOf(note.step);
       const headShapes = [glyph(NOTEHEAD.quarter, leftOf(i), y)];
       if (note.accidental) headShapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], leftOf(i) - ACCIDENTAL_ROOM * space, y));
-      const inactive = activeGraceGroups && !activeGraceGroups.has(note.graceGroup ?? -1);
+      const inactive = !inactiveGroup && !inactiveSlot && activeGraceGroups && !activeGraceGroups.has(note.graceGroup ?? -1);
       shapes.push(...headShapes.map((shape): TextShape => inactive ? { ...shape, fill: COLORS.note, opacity: INACTIVE_NOTE_OPACITY } : shape));
     }
     shapes.push({ kind: 'line', x1: stemX(i), x2: stemX(i), y1: lowest[i]! - space * 0.17 * SCALE, y2: stemEnd(i), stroke: 'currentColor', width: stemWidth });
+    if (inactiveSlot) shapes.push({ ...group(shapes.splice(firstShape), COLORS.note), opacity: INACTIVE_NOTE_OPACITY });
   });
 
   if (last === 0) {
@@ -138,5 +142,5 @@ export function drawGrace({ geometry, ink, activeGraceGroups }: StaffContext, gr
     });
     shapes.push({ kind: 'path', d: shape.path, fill: 'currentColor' });
   }
-  return group(shapes, COLORS.note);
+  return { ...group(shapes, COLORS.note), ...(inactiveGroup ? { opacity: INACTIVE_NOTE_OPACITY } : {}) };
 }

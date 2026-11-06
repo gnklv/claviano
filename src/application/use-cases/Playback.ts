@@ -1,4 +1,4 @@
-import { HANDS, type Hand } from '../../domain/note';
+import { HANDS, type Hand, type Note } from '../../domain/note';
 import { pedalDownAt, SOFT_PEDAL_LOUDNESS, soundingDurations } from '../../domain/pedal';
 import { firstNoteAtOrAfter, type Score, type TimeRange } from '../../domain/score';
 import { firstAtOrAfter } from '../../domain/search';
@@ -41,6 +41,7 @@ const clamp = (value: number, min: number, max: number): number =>
  */
 export class Playback {
   private currentScore: Score | null = null;
+  private performedScore: Score | null = null;
   private selectedNotes: readonly number[] | null = null;
   private selectedIndices: ReadonlySet<number> | null = null;
   private isPlaying = false;
@@ -95,7 +96,16 @@ export class Playback {
     return this.currentScore;
   }
 
-  /** Original performed-note indices heard in a practice layer; null plays the whole score. */
+  /** The notes heard and drawn, on the original piece's unchanged timeline and notation. */
+  get performanceScore(): Score | null {
+    return this.performedScore;
+  }
+
+  get plain(): boolean {
+    return this.performedScore !== this.currentScore;
+  }
+
+  /** Indices in performanceScore.notes heard in a practice layer; null plays the whole stream. */
   get noteSelection(): readonly number[] | null {
     return this.selectedNotes;
   }
@@ -106,13 +116,27 @@ export class Playback {
 
   /** Changing the notes stops the current sound and any start waiting for the instrument. */
   setNoteSelection(indices: readonly number[] | null): void {
+    this.setPracticeNotes(this.plain ? this.performedScore!.notes : null, indices);
+  }
+
+  /** Installs a demonstration and its indices together; null restores the original performance. */
+  setPracticeNotes(notes: readonly Note[] | null, indices: readonly number[] | null): void {
+    const original = this.currentScore;
+    if (notes !== null && !original) throw new RangeError('A demonstration needs an open score.');
+    const nextNotes = notes ?? original?.notes;
     const next = indices === null ? null : [...new Set(indices)].sort((a, b) => a - b);
-    if (next?.some((index) => !Number.isInteger(index) || index < 0 || index >= (this.currentScore?.notes.length ?? 0))) {
-      throw new RangeError('A playback selection must contain original score note indices.');
+    if (next?.some((index) => !Number.isInteger(index) || index < 0 || index >= (nextNotes?.length ?? 0))) {
+      throw new RangeError('A playback selection must contain current performance note indices.');
     }
-    if (next === null ? this.selectedNotes === null : this.selectedNotes !== null && next.length === this.selectedNotes.length && next.every((index, i) => index === this.selectedNotes![i])) return;
+    const sameSelection = next === null ? this.selectedNotes === null : this.selectedNotes !== null && next.length === this.selectedNotes.length && next.every((index, i) => index === this.selectedNotes![i]);
+    const sameNotes = this.performedScore?.notes === nextNotes;
+    if (sameNotes && sameSelection) return;
     this.clearCompletedPass();
     this.pause();
+    if (!sameNotes) {
+      this.performedScore = notes !== null && notes !== original?.notes ? { ...original!, notes } : original;
+      if (this.performedScore) this.prepareNotes(this.performedScore);
+    }
     this.selectedNotes = next === null ? null : Object.freeze(next);
     this.selectedIndices = next === null ? null : new Set(next);
     this.emit();
@@ -205,12 +229,11 @@ export class Playback {
     for (const listener of this.beforeLoadListeners) listener();
     this.pause();
     this.currentScore = score;
+    this.performedScore = score;
     this.clearCompletedPass();
     this.selectedNotes = null;
     this.selectedIndices = null;
-    this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
-    this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
-    this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i] ?? 0), 0);
+    this.prepareNotes(score);
     this.clicks.load(score);
     this.pedalMoves = score.pedal
       .flatMap((span) => [
@@ -377,9 +400,15 @@ export class Playback {
     return this.currentLoop ?? { start: 0, end: score.duration };
   }
 
+  private prepareNotes(score: Score): void {
+    this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
+    this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
+    this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i] ?? 0), 0);
+  }
+
   /** Starts sounding from `position` now, or after a count-in. */
   private restartFrom(position: number, withCountIn = false): void {
-    const score = this.currentScore!;
+    const score = this.performedScore!;
     const now = this.audio.now();
     this.clicks.silence();
     const lead = withCountIn ? this.clicks.countIn(score, position, this.currentTempo) : 0;
@@ -421,7 +450,7 @@ export class Playback {
   }
 
   private tick(until: number): void {
-    const score = this.currentScore;
+    const score = this.performedScore;
     if (!score || !this.isPlaying) return;
     this.reachWraps(this.audio.now());
     if (this.passEnd !== null && this.audio.now() >= this.passEnd) {

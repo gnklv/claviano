@@ -37,6 +37,18 @@ afterEach(() => {
 });
 
 describe('the shapes on a canvas', () => {
+  it('dims complete symbol groups, including paths, and multiplies existing hint opacity', () => {
+    vi.stubGlobal('Path2D', class {});
+    const { ctx, calls } = recorder();
+    const shapes: Shape = { kind: 'group', color: 'ink', opacity: 0.3, children: [
+      { kind: 'path', d: 'M0 0L1 1', stroke: 'currentColor', width: 1 },
+      { kind: 'text', x: 0, y: 0, text: '2', font: 'Bravura', size: 10, fill: 'currentColor', opacity: 0.6 },
+    ] };
+    paintShape(ctx, shapes, colours, '#right');
+    expect(calls.find((call) => call.name === 'stroke')?.alpha).toBe(0.3);
+    expect(calls.find((call) => call.name === 'fillText')?.alpha).toBe(0.18);
+    expect(ctx.globalAlpha).toBe(1);
+  });
   it('paints what is in a group in the group’s colour, and a colour given over it', () => {
     const { ctx, calls } = recorder();
     const chord = group([{ kind: 'line', x1: 0, y1: 0, x2: 0, y2: 10, stroke: 'currentColor', width: 1 }, { kind: 'text', x: 0, y: 5, text: 'x', size: 10, font: 'Bravura', fill: 'currentColor' }], 'ink');

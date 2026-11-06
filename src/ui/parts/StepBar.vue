@@ -9,6 +9,7 @@ import { computed, ref, useTemplateRef, watch } from 'vue';
 import { PASSES_TO_DONE } from '../../application/use-cases/PracticePlan';
 import { NARROW_SCREEN, SMALL_SCREEN, useMediaQuery } from '../browser/useMediaQuery';
 import { usePracticePlan } from '../app/usePracticePlan';
+import { usePlaybackState } from '../app/usePlaybackState';
 import { useStepWords } from '../app/useStepWords';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
@@ -28,6 +29,7 @@ import { useI18n } from '../i18n/useI18n';
 const { plan, playback } = useDeps();
 const { t } = useI18n();
 const state = usePracticePlan(plan);
+const performance = usePlaybackState(playback);
 const words = useStepWords(playback);
 const narrow = useMediaQuery(NARROW_SCREEN);
 /** A phone, upright or on its side. */
@@ -35,21 +37,25 @@ const phone = useMediaQuery(SMALL_SCREEN);
 
 const playing = computed(() => (state.value.current === null ? null : state.value.steps[state.value.current]!));
 const shown = computed(() => state.value.steps.length > 0 && (playing.value !== null || !phone.value));
-const how = computed(() => t(playing.value?.kind === 'up' ? 'stepUpHow' : playing.value?.kind === 'layer' ? 'stepLayerHow' : 'stepHow', {
+const how = computed(() => t(playing.value?.kind === 'up'
+  ? result.value === 'slip' ? 'stepUpRetry' : performance.value.tempo < (playing.value.aim ?? 1) ? 'stepUpBuild' : 'stepUpHow'
+  : playing.value?.kind === 'layer' ? 'stepLayerHow' : 'stepHow', {
   of: PASSES_TO_DONE,
   tempo: Math.round((playing.value?.aim ?? 1) * 100),
+  current: Math.round(performance.value.tempo * 100),
 }));
 
 /** A pass of this step has been marked: what to do is known. */
-const marked = ref(false);
+const result = ref<'clean' | 'slip' | null>(null);
+const marked = computed(() => result.value !== null);
 watch(
   () => state.value.current,
-  () => (marked.value = false),
+  () => (result.value = null),
   // Reselecting the same task passes through null synchronously before returning to its index.
   { flush: 'sync' },
 );
 function mark(clean: boolean): void {
-  marked.value = true;
+  result.value = clean ? 'clean' : 'slip';
   if (clean) plan.clean();
   else plan.missed();
 }
@@ -73,7 +79,7 @@ function choose(action: string): void {
   <div v-if="shown" class="step-bar" :class="{ playing }">
     <template v-if="playing">
       <!-- (On a phone, what to do stands in the place of the step's name until a pass is marked.) -->
-      <p v-if="narrow && (!marked || playing.kind === 'up')" class="how in-place">{{ playing.kind === 'layer' ? words.what(playing) : how }}</p>
+      <p v-if="narrow && (!marked || playing.kind === 'up')" class="how in-place">{{ playing.kind === 'layer' || playing.restoreOrnaments ? words.what(playing) : how }}</p>
       <AppButton v-else class="said" variant="quiet" pill :hint="t('plan')" @click="list?.open()"><span class="reading">{{ words.whole(playing) }}</span></AppButton>
       <PassDots class="dots" :count="state.clean" :of="PASSES_TO_DONE" :label="t('stepCleanCount', { count: state.clean, of: PASSES_TO_DONE })" />
       <div class="marks">

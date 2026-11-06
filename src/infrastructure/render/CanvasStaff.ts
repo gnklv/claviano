@@ -152,6 +152,7 @@ class CanvasSurface implements StaffSurface {
       for (const child of group.children) {
         // Fixed-ink heads already sit in the tape: overpainting them would darken the inactive layer.
         if (child.kind === 'text' && child.fill === COLORS.note) continue;
+        if (child.kind === 'group' && child.color === COLORS.note) continue;
         paintShape(ctx, child, this.colours, colour);
       }
     };

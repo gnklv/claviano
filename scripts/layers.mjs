@@ -24,7 +24,7 @@ try {
   const lines = ['# Written layer candidates', '',
     'Experimental selections of original written notes, not verified melodies or playable arrangements.',
     'Bars in headings use printed numbers. Diagnostic bars and JSON note.bar are zero-based written indices.',
-    'Layer indices refer to each file’s notes table in report.json. Grace notes are separate; decorations are not simplified.',
+    'Layer indices refer to each file’s notes table in report.json. Plain variants omit grace notes and ornament signs; tremolos and rolled chords remain.',
     'Projected event counts include all repeated occurrences; original timing, pedals and note objects are checked.',
     'Diagnostics are review cues, not measured musical accuracy. MIDI hands and voices are inferred.', ''];
   for (const file of report.files) {
@@ -45,7 +45,7 @@ try {
         return label;
       }).join(' → ');
       lines.push(`- Bars ${part.bars.join('–')}: ${lead ? voice(lead) : 'no lead'}; ${sizes || 'no ordinary notes'}.`);
-      lines.push(`  Sound events (all occurrences): ${part.previews.map((preview) => `${preview.kind}: ${preview.events}, grace events ${preview.graces}`).join('; ')}.`);
+      lines.push(`  Sound events (all occurrences): ${part.previews.map((preview) => `${preview.kind}: ${preview.events}, grace events ${preview.graces}${preview.plainEvents === undefined ? '' : `; plain ${preview.plainEvents}, grace events ${preview.plainGraces}`}`).join('; ')}.`);
       if (voices.length > 1) lines.push(`  Available voices: ${voices.map(voice).join('; ')}.`);
       for (const diagnostic of diagnostics) lines.push(`  Review: ${diagnostic.kind} (written indices ${diagnostic.bars.join(', ')}).`);
       for (const violation of part.violations) lines.push(`  FAILURE: ${violation}.`);

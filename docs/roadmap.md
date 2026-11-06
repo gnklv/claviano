@@ -210,10 +210,10 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 13. [x] A plan for learning a piece, out of what is there already: a list of steps, each with its
         own tempo. The piece in parts, by its form (repeats, voltas, changes of key and time) and
         within that by phrases of four to eight bars, taken in order; for each part the steps a
-        teacher sets: each hand slow, then with the other hand, both hands slow, up to tempo with the trainer (by 10%),
+        teacher sets: each hand slow, then with the other hand, both hands slow, up to tempo by assessed attempts (by 10 percentage points),
         then joined to the parts before it; what is written out again note for note (a part, a
         hand's line, a join) is learnt once. Each step sets what it needs (the loop on its bars,
-        its tempo, the trainer) and demonstrates the notes being learnt. A step is done after three clean passes in a row
+        its tempo) and demonstrates the notes being learnt. A step is done after three clean passes in a row
         (at the target tempo for tempo work):
         after each pass one marks it clean or not (a slip starts the count again), or closes the
         step by hand; the microphone will mark the passes itself (step 16). Kept with the piece.
@@ -275,9 +275,13 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         - [x] Three clean passes prepare the next task, paused: reduced notes, bass, full fragment,
           tempo work and joins. Old progress migrates by task meaning; returning to a piece keeps
           the user's practice settings and manual range.
-        Later: undecorated execution, richer intermediate layers and simpler written arrangements.
-        Removing grace notes or ornaments requires restoring the underlying note's timing;
-        turning arpeggios into chords is a separate arrangement problem.
+        - [x] Add the remaining notes of the leading hand before the full fragment when this
+          creates a distinct task. Skip ambiguous hand assignments; keep old progress by meaning.
+        - [x] Prepare without ornaments or grace notes, restoring principal-note durations and
+          chord starts. Add a distinct full plain pass where useful, then restore the original
+          ornaments. Sound, falling notes, fingering and staff emphasis agree; old progress migrates.
+        Later: simpler written arrangements. Tremolos and rolled chords retain their original
+        execution; turning arpeggios into chords is a separate arrangement problem.
 16. [ ] Listening through the microphone. What can be heard: one note at a time, reliably (a
         pitch detector written here); whether the notes that are expected sound, chords too
         (energy at their pitches and overtones); any chord by ear, not without a trained

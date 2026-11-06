@@ -161,7 +161,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   const drawn = untangled.chords;
   const groupsInOrder = entries.map((entry) => entry.group);
   const marks = layoutMarks(score, groupsInOrder, drawn, written, rests);
-  const ornaments = layoutOrnaments(score, groupsInOrder, drawn, marks);
+  const ornaments = layoutOrnaments(score, groupsInOrder, drawn, marks, sources);
   return {
     chords: drawn,
     octaveShifts: score.notation.octaveShifts.map(

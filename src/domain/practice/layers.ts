@@ -1,12 +1,13 @@
 import { beatsOf } from '../metronome';
+import type { Hand } from '../note';
 import { SAME_MOMENT, sameMoment } from '../moment';
 import type { WrittenNote } from '../notation/written';
 import { hasPickup, timeSignatureAt, type Score } from '../score';
 import type { Part } from './parts';
 
-export type LayerKind = 'lead' | 'lead-bass' | 'full';
+export type LayerKind = 'lead' | 'lead-bass' | 'lead-hand-bass' | 'full';
 export interface VoiceRef { readonly staff: number; readonly voice: string }
-export interface WrittenLayer { readonly kind: LayerKind; readonly notes: readonly number[] }
+export interface WrittenLayer { readonly kind: LayerKind; readonly notes: readonly number[]; readonly addedHand?: Hand }
 export interface LayerDiagnostic {
   readonly kind: 'multiple-lead-voices' | 'left-hand-lead-fallback' | 'no-bass-pulses' | 'tie-across-boundary' | 'ornaments-present' | 'graces-present' | 'tremolo-present' | 'arpeggio-present';
   /** Zero-based printed bar indices, never the order bars are played in. */
@@ -100,6 +101,12 @@ export function layersOf(score: Score, part: Part, options: { lead?: VoiceRef } 
   const bassNotes = extremeNotes(notes, visible.filter((i) => notes[i]!.hand === 'left' && !notes[i]!.tieStop
     && onPulse(score, notes[i]!) && !lowerHeld(notes[i]!)), 'lowest');
   const leadBass = closeTies([...leadNotes, ...bassNotes]);
+  const leadHands = new Set(visible.filter((i) => lead && voiceKey(notes[i]!) === voiceKey(lead)).map((i) => notes[i]!.hand));
+  const addedHand = leadHands.size === 1 ? [...leadHands][0]! : null;
+  const handNotes = addedHand ? closeTies([...leadBass, ...visible.filter((i) => notes[i]!.hand === addedHand)]) : [];
+  const bassSet = new Set(leadBass);
+  const handLayer: WrittenLayer[] = addedHand && handNotes.every((i) => bassSet.has(i) || notes[i]!.hand === addedHand)
+    ? [{ kind: 'lead-hand-bass', addedHand, notes: handNotes }] : [];
   if (visible.some((i) => notes[i]!.hand === 'left') && !bassNotes.length) {
     warn('no-bass-pulses', visible.filter((i) => notes[i]!.hand === 'left').map((i) => notes[i]!.bar));
   }
@@ -110,7 +117,7 @@ export function layersOf(score: Score, part: Part, options: { lead?: VoiceRef } 
   warn('arpeggio-present', full.filter((i) => notes[i]!.arpeggio).map((i) => notes[i]!.bar));
 
   const layers: WrittenLayer[] = [];
-  for (const layer of [{ kind: 'lead', notes: leadNotes }, { kind: 'lead-bass', notes: leadBass }, { kind: 'full', notes: full }] as const) {
+  for (const layer of [{ kind: 'lead', notes: leadNotes }, { kind: 'lead-bass', notes: leadBass }, ...handLayer, { kind: 'full', notes: full }] as readonly WrittenLayer[]) {
     if (!layer.notes.length) continue;
     const duplicate = layers.findIndex((before) => sameNotes(before.notes, layer.notes));
     if (duplicate >= 0) {

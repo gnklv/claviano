@@ -33,9 +33,13 @@ compares against them, so any change in reading, playing or engraving shows up l
 change that is meant is accepted with `npm run test:accept`, and the commit shows what changed.
 
 **Learning a piece.** Enter Learn to begin with a short fragment and highlighted notes. After
-three clean passes, the next task is ready: add bass, play the full fragment, then work up to tempo
-and join fragments. Sound, falling notes and the staff follow the same task; no layer setup is
-needed. The selections are rules-based, not verified melody detection. For development,
+three clean passes, the next task is ready: add bass, complete the leading hand where useful,
+play the full fragment, then work up to tempo
+and join fragments. In tempo work, Clean raises the next attempt and A slip slows it down;
+three clean passes at the target complete the task. Sound, falling notes and the staff follow the same task; no layer setup is
+needed. Preparation uses sustained principal notes in place of ornaments and omits grace notes;
+the next full task brings the original ornaments back. Tremolos and rolled chords remain.
+The selections are rules-based, not verified melody detection. For development,
 `npm run samples:layers` checks every local score in `samples/` and writes a report to `.layers/`.
 See [layers](docs/layers.md) for the rules and limitations. Private scores and reports stay out of Git.
 

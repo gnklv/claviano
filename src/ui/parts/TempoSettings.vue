@@ -13,6 +13,7 @@ import { TRAINER_PASSES, TRAINER_STEPS } from '../../application/use-cases/Tempo
 import { useTrainer } from '../app/useTrainer';
 import { usePlaybackState } from '../app/usePlaybackState';
 import { usePieceWay } from '../app/usePieceWay';
+import { usePracticePlan } from '../app/usePracticePlan';
 import { useDeps } from '../deps';
 import { useI18n } from '../i18n/useI18n';
 
@@ -31,7 +32,9 @@ const PRESETS = [50, 60, 70, 80, 90, 100];
 const percentOf = (tempo: number) => Math.round(tempo * 100);
 const RANGE = { min: percentOf(PRACTICE_TEMPO.min), max: percentOf(PRACTICE_TEMPO.max), step: percentOf(PRACTICE_TEMPO.step) };
 
-const { playback, trainer, way: pieceWay } = useDeps();
+const { playback, trainer, way: pieceWay, plan: practicePlan } = useDeps();
+const practice = usePracticePlan(practicePlan);
+const guidedTempo = computed(() => practice.value.current !== null && practice.value.steps[practice.value.current]?.kind === 'up');
 /** The trainer is a tool of learning: listened to, the piece is played at a tempo set by hand. */
 const usedWay = usePieceWay(pieceWay);
 const { t } = useI18n();
@@ -77,7 +80,7 @@ const percent = computed({
         {{ preset }}
       </ToggleChip>
     </div>
-    <div v-if="usedWay === 'learn'" class="trainer">
+    <div v-if="usedWay === 'learn' && !guidedTempo" class="trainer">
       <SettingRow :label="t('trainer')">
         <SegmentedControl v-model="on" :label="t('trainer')" :options="[{ value: 'off', label: t('off') }, { value: 'on', label: t('on') }]" />
       </SettingRow>

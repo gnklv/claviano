@@ -102,13 +102,35 @@ describe('the plan for learning a piece', () => {
     expect(button(/^Start the step$/)).toBeUndefined();
   });
 
-  it('explains that clean repeats for tempo work are counted at the target tempo', async () => {
+  it.each([false, true])('raises tempo on Clean and retries slower on A slip (phone: %s)', async (phone) => {
+    if (phone) await turnIntoPhone();
     plan.start(plan.steps.findIndex((step) => step.kind === 'up'));
     await settled();
-    expect(bar()!.querySelector('.how')?.textContent).toBe('Play 3 clean passes in a row at 100% tempo.');
+    expect(bar()!.querySelector('.how')?.textContent).toBe('Play at 60% tempo, then mark how it went.');
+    button(/^Clean$/).click();
+    await settled();
+    expect(playback.tempo).toBe(0.7);
+    expect(bar()!.querySelector('.how')?.textContent).toBe('Play at 70% tempo, then mark how it went.');
+    button(/^A slip$/).click();
+    await settled();
+    expect(playback.tempo).toBe(0.6);
+    expect(bar()!.querySelector('.how')?.textContent).toBe('Try again at 60% tempo.');
+    playback.setTempo(1);
     button(/^Clean$/).click();
     await settled();
     expect(bar()!.querySelector('.how')?.textContent).toBe('Play 3 clean passes in a row at 100% tempo.');
+  });
+
+  it('keeps automatic acceleration separate from guided tempo assessments', async () => {
+    plan.start(plan.steps.findIndex((step) => step.kind === 'up'));
+    await settled();
+    button(/^Tempo: 60%$/).click();
+    await settled();
+    expect(root.querySelector('.tempo-settings')).not.toBeNull();
+    expect(root.querySelector('[role=group][aria-label="Tempo trainer"]')).toBeNull();
+    plan.stop();
+    await settled();
+    expect(root.querySelector('[role=group][aria-label="Tempo trainer"]')).not.toBeNull();
   });
 
   it('shows the instruction again when the current task is chosen afresh', async () => {

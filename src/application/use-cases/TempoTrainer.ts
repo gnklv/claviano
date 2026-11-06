@@ -139,6 +139,11 @@ export class TempoTrainer {
 
   /** The tempo of the next pass: a step on, once this one ends the passes to be played at this tempo. */
   private decide(): void {
+    if (!this.on) {
+      this.planned = Number.NaN;
+      this.playback.setTempoAtLoop(null);
+      return;
+    }
     const { to, step, every, back } = this.current;
     const now = this.playback.tempo;
     const due = now < to - SAME_MOMENT && this.passes + 1 >= every;

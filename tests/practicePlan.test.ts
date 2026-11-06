@@ -360,11 +360,10 @@ describe('following the plan', () => {
     expect([playback.passAtATime, playback.isHandEnabled('right'), playback.isHandEnabled('left'), playback.metronomeEnabled]).toEqual([false, true, true, false]);
   });
 
-  it('brings a part up to tempo with the trainer, two steps up and one back', () => {
+  it('begins tempo work without automatic acceleration before assessment', () => {
     const { playback, trainer, plan } = practising();
     plan.start(plan.steps.findIndex((step) => step.kind === 'up'));
-    expect(trainer.enabled).toBe(true);
-    expect(trainer.plan).toMatchObject({ from: SLOW, to: AT_TEMPO, step: UP_BY, every: 1, back: true });
+    expect(trainer.enabled).toBe(false);
     expect(playback.tempo).toBe(SLOW);
   });
 
@@ -374,7 +373,7 @@ describe('following the plan', () => {
     plan.set(plan.steps.map((_, index) => index).filter((index) => index !== up));
     plan.start(up);
     await playback.play();
-    expect(trainer.enabled).toBe(true);
+    expect(trainer.enabled).toBe(false);
     expect(playback.playing).toBe(true);
     plan[action]();
     expect(plan.current).toBeNull();

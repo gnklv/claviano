@@ -3,7 +3,10 @@ import { join } from 'node:path';
 import { layersOf, type LayerCandidates, type LayerKind } from '../src/domain/practice/layers';
 import { scoreForLayer } from '../src/domain/practice/layerScore';
 import { partsOf } from '../src/domain/practice/parts';
-import { writtenBarNumber, type Score } from '../src/domain/score';
+import { plainNotesOf } from '../src/domain/notation/performance';
+import { SAME_MOMENT, sameMoment } from '../src/domain/moment';
+import type { Note } from '../src/domain/note';
+import { secondsAtBeat, writtenBarNumber, type Score } from '../src/domain/score';
 import { MidiFileParser } from '../src/infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 
@@ -12,7 +15,7 @@ export interface SamplePart {
   readonly candidates: LayerCandidates;
   readonly violations: readonly string[];
   /** Original performed events across every occurrence of the selected written bars. */
-  readonly previews: readonly { readonly kind: LayerKind; readonly events: number; readonly graces: number }[];
+  readonly previews: readonly { readonly kind: LayerKind; readonly events: number; readonly graces: number; readonly plainEvents?: number; readonly plainGraces?: number }[];
 }
 
 export interface SampleNotes {
@@ -67,6 +70,9 @@ export async function inspectLayerSamples(directory: string): Promise<LayerSampl
       const bytes = await readFile(join(directory, file));
       const parser = parsers.find((candidate) => candidate.canParse(file))!;
       const score = parser.parse(new Uint8Array(bytes).buffer, file);
+      const plainNotes = plainNotesOf(score);
+      const plainScore = plainNotes === score.notes ? score : { ...score, notes: plainNotes };
+      const plainSet = new Set(plainNotes);
       const parts = partsOf(score).map((part): SamplePart => {
         const candidates = layersOf(score, part);
         const violations = violationsOf(score, candidates);
@@ -76,8 +82,21 @@ export async function inspectLayerSamples(directory: string): Promise<LayerSampl
           if (projected.notes.some((note) => !originalNotes.has(note))) violations.push(`${layer.kind}: performed event was changed`);
           if (projected.duration !== score.duration || projected.timeMap !== score.timeMap || projected.bars !== score.bars
             || projected.pedal !== score.pedal || projected.notation !== score.notation) violations.push(`${layer.kind}: original timeline or notation was changed`);
+          let plain: { plainEvents: number; plainGraces: number } | undefined;
+          if (plainScore !== score) {
+            const plainProjected = scoreForLayer(plainScore, part, layer);
+            const label = `${layer.kind} plain`;
+            if (plainProjected.notes.some((note) => !plainSet.has(note))) violations.push(`${label}: performed event was changed`);
+            if (plainProjected.duration !== score.duration || plainProjected.timeMap !== score.timeMap || plainProjected.bars !== score.bars
+              || plainProjected.pedal !== score.pedal || plainProjected.notation !== score.notation) violations.push(`${label}: original timeline or notation was changed`);
+            if (plainProjected.notes.some((note) => !validPlainTiming(score, note))) violations.push(`${label}: event is not finite or placed on the original time map`);
+            if (!sameEvents(projected.notes, plainProjected.notes)) plain = {
+              plainEvents: plainProjected.notes.length,
+              plainGraces: plainProjected.notes.filter((note) => note.sources?.some((source) => source.kind === 'grace')).length,
+            };
+          }
           return { kind: layer.kind, events: projected.notes.length,
-            graces: projected.notes.filter((note) => note.sources?.some((source) => source.kind === 'grace')).length };
+            graces: projected.notes.filter((note) => note.sources?.some((source) => source.kind === 'grace')).length, ...plain };
         });
         return { bars: [writtenBarNumber(score, part.from), writtenBarNumber(score, part.to)], candidates, violations, previews };
       });
@@ -103,6 +122,22 @@ export async function inspectLayerSamples(directory: string): Promise<LayerSampl
     }
   }
   return { version: 1, files, summary };
+}
+
+function validPlainTiming(score: Score, note: Note): boolean {
+  const span = secondsAtBeat(score, note.beat + note.beats) - secondsAtBeat(score, note.beat);
+  return [note.pitch, note.start, note.duration, note.beat, note.beats, note.velocity].every(Number.isFinite)
+    && note.duration >= 0 && note.beats > 0 && note.duration <= span + SAME_MOMENT
+    && sameMoment(note.start, secondsAtBeat(score, note.beat));
+}
+
+function sameEvents(a: readonly Note[], b: readonly Note[]): boolean {
+  return a.length === b.length && a.every((note, i) => {
+    const other = b[i]!;
+    return note.pitch === other.pitch && note.hand === other.hand
+      && (['start', 'duration', 'beat', 'beats', 'velocity'] as const).every((key) => sameMoment(note[key], other[key]))
+      && JSON.stringify(note.sources) === JSON.stringify(other.sources);
+  });
 }
 
 /** Follow directories, not links: an unrelated collection outside this folder is not part of the run. */

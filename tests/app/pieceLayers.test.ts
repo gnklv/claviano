@@ -5,8 +5,10 @@ import { button, drop, learn, plan, playback, root, settled, useApp, way } from 
 
 useApp();
 
-const study = () => new TextDecoder().decode(score(`<measure number="1">${attributes(2, 0, 2)}
-  ${note('D', 5, 4, { extra: '<voice>1</voice>' })}<backup><duration>4</duration></backup>
+const study = (chords = false) => new TextDecoder().decode(score(`<measure number="1">${attributes(2, 0, 2)}
+  ${note('D', 5, 4, { extra: '<voice>1</voice>' })}
+  ${chords ? note('F', 4, 4, { extra: '<voice>1</voice><chord/>' }) + note('A', 4, 4, { extra: '<voice>1</voice><chord/>' }) : ''}
+  <backup><duration>4</duration></backup>
   ${note('D', 3, 1, { staff: 2, extra: '<voice>5</voice>' })}
   ${note('F', 3, 1, { staff: 2, extra: '<voice>5</voice>' })}
   ${note('A', 3, 1, { staff: 2, extra: '<voice>5</voice><chord/>' })}
@@ -57,5 +59,22 @@ describe('learning a piece a little at a time', () => {
     expect(plan.current).toBe(0);
     expect(playback.noteSelection).toHaveLength(1);
     expect(playback.score).toBe(original);
+  });
+
+  it('adds the rest of the leading hand before the full accompaniment when there is more to learn', async () => {
+    await drop('chords.musicxml', study(true));
+    await learn();
+    const original = playback.score;
+    for (let pass = 0; pass < 6; pass++) button(/^Clean$/).click();
+    await settled();
+    expect(root.querySelector('.step-bar')?.textContent).toContain('Add the rest of the right hand');
+    expect(playback.noteSelection).toHaveLength(5);
+    expect(playback.score).toBe(original);
+    expect(playback.playing).toBe(false);
+    expect([playback.isHandEnabled('right'), playback.isHandEnabled('left')]).toEqual([true, true]);
+    for (let pass = 0; pass < 3; pass++) button(/^Clean$/).click();
+    await settled();
+    expect(root.querySelector('.step-bar')?.textContent).toContain('Both hands');
+    expect(playback.noteSelection).toBeNull();
   });
 });

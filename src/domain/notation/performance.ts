@@ -1,6 +1,7 @@
 import type { Hand, Note, NoteSource } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
-import { createScore, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
+import { createScore, secondsAtBeat, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
+import { scoreForLayer } from '../practice/layerScore';
 import { firstAtOrAfter, lastAtOrBefore } from '../search';
 import { dynamicsAlongPage, levelCurve, withHairpinLevels } from './dynamics';
 import { graceTiming } from './grace';
@@ -79,6 +80,21 @@ type MutableNavigation = { -readonly [K in keyof BarNavigation]: BarNavigation[K
 
 /** Plays the notation: the score with its notes in time, and the notation kept beside them for the staff. */
 export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPTHS): Score {
+  return playNotation(notation, pace);
+}
+
+/**
+ * Principal notes without grace notes or ornament signs, in the original performance's clock.
+ * Tremolos and rolled chords retain their realization. Unmarked performances, including MIDI,
+ * keep their exact events; a decorated score needs complete written-source provenance.
+ */
+export function plainNotesOf(score: Score): readonly Note[] {
+  if (!score.notation.graces.some((group) => group.notes.length) && !score.notation.notes.some((note) => note.ornaments.length)) return score.notes;
+  scoreForLayer(score, { from: 0, to: score.notation.bars.length - 1 }, { kind: 'full', notes: score.notation.notes.map((_, index) => index) });
+  return playNotation(score.notation, PACE_DEPTHS, score).notes;
+}
+
+function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): Score {
   const measures: Measure[] = notation.bars.map((bar) => ({
     start: bar.start,
     length: bar.length,
@@ -94,7 +110,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
   // Grace notes: when each sounds, and how much later the note it leads to comes in.
   const graceSounds: GraceSound[] = [];
   const delays = new Map<number, number>();
-  for (const [groupIndex, group] of notation.graces.entries()) {
+  for (const [groupIndex, group] of (plainFrom ? [] : notation.graces).entries()) {
     const to = group.leadsTo === null ? null : notation.notes[group.leadsTo];
     const count = group.notes.filter((grace) => !grace.chord).length;
     const timing = graceTiming({ count, slash: group.notes[0]?.slash ?? false }, to ? { beats: to.beats, dotted: to.duration.dots > 0 } : null, group.beat);
@@ -129,7 +145,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
     const effect = articulationEffect(note.articulations);
     const beat = note.beat + delay;
     const beats = note.beats - delay;
-    const [ornament] = note.ornaments;
+    const [ornament] = plainFrom ? [] : note.ornaments;
     const fifths = keys[lastAtOrBefore(keys, note.beat + SAME_MOMENT, (key) => key.beat)]?.fifths ?? 0;
     // Under an octave shift the note is printed octaves away from where it sounds; its neighbours are counted from there.
     const spelled = { ...note.pitch, octave: note.pitch.octave + Math.round((note.sounding - midiOf(note.pitch)) / 12) };
@@ -183,7 +199,8 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
   }
 
   resolveJumpTargets(measures.map((m) => m.navigation));
-  const performance = perform(measures);
+  const performance = perform(measures, plainFrom);
+  const toSeconds = plainFrom ? (beat: number) => secondsAtBeat(plainFrom, beat) : performance.toSeconds;
 
   const hasNavigation = measures.some((m) => Object.keys(m.navigation).length > 0);
   const end = measures.reduce((sum, measure) => sum + measure.length, 0);
@@ -193,8 +210,8 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
     performance.notes.map(
       (n): Note => ({
         pitch: n.pitch,
-        start: performance.toSeconds(n.beat),
-        duration: (performance.toSeconds(n.beat + n.beats) - performance.toSeconds(n.beat)) * n.soundingLength,
+        start: toSeconds(n.beat),
+        duration: (toSeconds(n.beat + n.beats) - toSeconds(n.beat)) * n.soundingLength,
         beat: n.beat,
         beats: n.beats,
         velocity: n.velocity,
@@ -202,7 +219,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
         sources: n.sources,
       }),
     ),
-    performance.barBeats.map(performance.toSeconds),
+    performance.barBeats.map(toSeconds),
     {
       barBeats: performance.barBeats,
       barWritten: performance.barWritten,
@@ -212,7 +229,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
       pedal: performance.pedals.sustain,
       sostenutoPedal: performance.pedals.sostenuto,
       softPedal: performance.pedals.soft,
-      timeMap: performance.timeMap,
+      timeMap: plainFrom?.timeMap ?? performance.timeMap,
       tempoMarks: distinctTempoMarks(notation.tempoMarks),
       tempos: notation.tempos,
       pedalMoves: notation.pedalMoves,
@@ -286,8 +303,8 @@ function resolveJumpTargets(bars: MutableNavigation[]): void {
 }
 
 /** The second pass: bars in performance order, notes shifted into place, ties joined, fermatas held. */
-function perform(measures: readonly Measure[]) {
-  const order = performanceOrder(measures.map((m) => m.navigation));
+function perform(measures: readonly Measure[], original?: Score) {
+  const order = original?.barWritten ?? performanceOrder(measures.map((m) => m.navigation));
   const barBeats: number[] = [];
   const barWritten: number[] = [];
   const firstStart: number[] = [];
@@ -298,7 +315,8 @@ function perform(measures: readonly Measure[]) {
   const openTies = new Map<string, PendingNote>();
 
   let start = 0;
-  for (const index of order) {
+  for (const [played, index] of order.entries()) {
+    if (original) start = original.barBeats[played] ?? start;
     const measure = measures[index]!;
     const shift = start - measure.start;
     barBeats.push(start);

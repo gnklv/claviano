@@ -83,6 +83,7 @@ export function layoutOrnaments(
   groups: readonly WrittenChord[],
   chords: readonly StaffChord[],
   marks: readonly StaffMark[],
+  sources: ReadonlyMap<WrittenNote, number>,
 ): StaffOrnament[] {
   const ornaments: StaffOrnament[] = [];
   const marksOf = new Map<number, StaffMark[]>();
@@ -115,6 +116,7 @@ export function layoutOrnaments(
       const delayed = mark.kind === 'delayed-turn' || mark.kind === 'delayed-inverted-turn';
       const barEnd = (score.notation.bars[chord.bar + 1]?.start ?? pageEnd(score)) - SAME_MOMENT;
       ornaments.push({
+        writtenIndex: sources.get(note),
         chord: index,
         kind: mark.kind,
         above,

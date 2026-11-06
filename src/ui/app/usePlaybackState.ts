@@ -6,6 +6,8 @@ import { useMirror } from './useMirror';
 
 export interface PlaybackSnapshot {
   readonly score: Score | null;
+  readonly performanceScore: Score | null;
+  readonly plain: boolean;
   readonly playing: boolean;
   readonly tempo: number;
   readonly loop: TimeRange | null;
@@ -18,6 +20,8 @@ export interface PlaybackSnapshot {
 
 const snapshot = (playback: Playback): PlaybackSnapshot => ({
   score: playback.score,
+  performanceScore: playback.performanceScore,
+  plain: playback.plain,
   playing: playback.playing,
   tempo: playback.tempo,
   loop: playback.loop,
