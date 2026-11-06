@@ -1,4 +1,5 @@
 import { barAt, barNumber, type Score } from '../../domain/score';
+import { PLAN_VERSION } from '../../domain/practice/plan';
 import type { PieceMemory } from '../ports/PieceShelf';
 import type { BarLoop } from './BarLoop';
 import type { Bookmarks } from './Bookmarks';
@@ -17,8 +18,8 @@ const AT_THE_END = 0.5;
  * Coming back to a piece is coming back to where it was left: its place, tempo, loop, hands, tempo
  * trainer, bookmarks, one's own fingering, the steps of its plan done and the way it was had
  * (listened to, or learnt) are kept with it, and set again when it is opened. Listened to, it is
- * kept as learning had set it; in a step of its plan, with both hands heard, as out of the plan (the
- * step is not come back to). A piece opened for the first time starts plain: listened to, from the
+ * kept as learning had set it; a guided step resumes from its first unfinished place with those
+ * learning settings. A piece opened for the first time starts plain: listened to, from the
  * beginning, at full tempo, both hands, no loop, no trainer, no bookmarks, no fingers of one's own.
  *
  * Returns a function that writes down where the open piece stands now: to call when the page is
@@ -67,12 +68,12 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     return {
       position,
       tempo: learning.tempo,
-      hands: plan.current === null ? { ...learning.hands } : { right: true, left: true },
+      hands: { ...learning.hands },
       loop: { ...learning.loop },
       trainer: { on: learning.trainer.on, ...learning.trainer.plan },
       bookmarks: bookmarks.all,
       fingers: fingering.all,
-      plan: { done: [...plan.doneSteps] },
+      plan: { version: PLAN_VERSION, done: [...plan.doneSteps] },
       way: way.way,
       bar: barNumber(score, barAt(score, position)),
       bars: barNumber(score, score.bars.length - 1),
@@ -109,9 +110,10 @@ export function rememberPieces(library: Library, memories: PieceMemories, { play
     trainer.restore(kept ? { on: kept.on, plan: { from: kept.from, to: kept.to, step: kept.step, every: kept.every, back: kept.back ?? false } } : { on: false, plan: DEFAULT_PLAN });
     bookmarks.set(memory?.bookmarks ?? []);
     fingering.set(memory?.fingers ?? []);
-    plan.set(memory?.plan?.done ?? []);
+    plan.restore(memory?.plan);
     // Last: listening keeps aside what was just set, to come back to it. A piece is listened to
     // first, heard whole before it is learnt, unless it was left learnt.
+    if (memory?.way === 'learn') plan.resume({ preserveSettings: true });
     way.set(memory?.way ?? 'listen');
     restoring = false;
   };

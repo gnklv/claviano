@@ -142,6 +142,7 @@ export function layoutFingerings(
   chords: readonly StaffChord[],
   marks: readonly StaffMark[],
   ornaments: readonly StaffOrnament[],
+  sources: ReadonlyMap<WrittenNote, number>,
 ): StaffFingering[] {
   const fingerings: StaffFingering[] = [];
   groups.forEach((group, index) => {
@@ -163,7 +164,7 @@ export function layoutFingerings(
       // Nearest the chord first: its lowest note's finger when above, its highest one's when below.
       const outward = [...side].sort((a, b) => (above ? 1 : -1) * (staffStep(b.pitch, b.clef) - staffStep(a.pitch, a.clef)));
       for (const note of outward) {
-        fingerings.push({ chord: index, text: note.fingering!.text, above, step, ...(note.fingering!.hint ? { hint: true } : {}) });
+        fingerings.push({ writtenIndex: sources.get(note), chord: index, text: note.fingering!.text, above, step, ...(note.fingering!.hint ? { hint: true } : {}) });
         step += above ? -FINGERING_STEPS : FINGERING_STEPS;
       }
     }

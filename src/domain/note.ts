@@ -2,6 +2,11 @@ export type Hand = 'left' | 'right';
 
 export const HANDS: readonly Hand[] = ['right', 'left'];
 
+/** The written note or grace note a performed event came from; repeats keep the same source. */
+export type NoteSource =
+  | { readonly kind: 'note'; readonly index: number }
+  | { readonly kind: 'grace'; readonly group: number; readonly index: number };
+
 export interface Note {
   /** MIDI note number, 60 = Do4 (middle Do). */
   readonly pitch: number;
@@ -19,6 +24,8 @@ export interface Note {
   /** Loudness, 0..1. */
   readonly velocity: number;
   readonly hand: Hand;
+  /** Ties unite their written sources; ornaments and repeated attacks retain their own source. */
+  readonly sources?: readonly NoteSource[];
 }
 
 export const noteEnd = (note: Note): number => note.start + note.duration;

@@ -1,5 +1,6 @@
-import { planOf, type PlanStep } from '../../domain/practice/plan';
-import type { Score } from '../../domain/score';
+import { legacyPlanOf, PLAN_VERSION, planOf, type PlanStep } from '../../domain/practice/plan';
+import { SAME_MOMENT } from '../../domain/moment';
+import { writtenBarAt, type Score } from '../../domain/score';
 import type { Playback } from './Playback';
 
 /*
@@ -21,23 +22,29 @@ export interface StepProgress {
 }
 
 export class PracticePlan {
+  private currentScore: Score | null;
   private plan: readonly PlanStep[] = [];
   private done = new Set<number>();
   private active: number | null = null;
   private running = 0;
+  private begun = false;
+  private preserving = false;
   private readonly listeners = new Set<() => void>();
 
-  constructor(playback: Playback, canPlan: (score: Score) => boolean = () => true) {
+  constructor(private readonly playback: Playback, canPlan: (score: Score) => boolean = () => true) {
     // Another piece has a plan of its own (and as far as one had come in it, set from what is remembered).
     let score: Score | null = playback.score;
+    this.currentScore = score;
     this.plan = score && canPlan(score) ? planOf(score) : [];
     playback.onChange(() => {
       if (playback.score === score) return;
       score = playback.score;
+      this.currentScore = score;
       this.plan = score && canPlan(score) ? planOf(score) : [];
       this.done = new Set();
       this.active = null;
       this.running = 0;
+      this.begun = false;
       this.emit();
     });
   }
@@ -62,6 +69,11 @@ export class PracticePlan {
     return [...this.done].sort((a, b) => a - b);
   }
 
+  /** During a resumed step's synchronous notification, its learning settings are already restored. */
+  get preservingSettings(): boolean {
+    return this.preserving;
+  }
+
   progress(index: number): StepProgress {
     return { clean: index === this.active ? this.running : 0, done: this.done.has(index) };
   }
@@ -79,10 +91,62 @@ export class PracticePlan {
     this.emit();
   }
 
+  /** Restores old progress by what each step practised, never by its now-shifted index. */
+  restore(saved?: { readonly done: readonly number[]; readonly version?: number }): void {
+    if (!saved || saved.version === PLAN_VERSION) {
+      this.set(saved?.done ?? []);
+      return;
+    }
+    if (saved.version !== undefined || !this.currentScore) {
+      this.set([]);
+      return;
+    }
+    const legacy = legacyPlanOf(this.currentScore);
+    const done = new Set<number>();
+    for (const index of saved.done) {
+      const old = Number.isInteger(index) ? legacy[index] : undefined;
+      if (!old) continue;
+      const matched = this.plan.findIndex((step) => meaning(step) === meaning(old));
+      if (matched < 0) continue;
+      done.add(matched);
+      if (old.kind === 'together' || old.kind === 'up') {
+        this.plan.forEach((step, index) => {
+          if (step.kind === 'layer' && step.from === old.from && step.to === old.to) done.add(index);
+        });
+      }
+    }
+    this.set([...done]);
+  }
+
+  /** Begins the first unfinished step after entering Learn or restoring its saved progress. */
+  resume(options: { preserveSettings?: boolean } = {}): void {
+    if (this.currentScore !== this.playback.score || this.active !== null || this.next === null) return;
+    const preserve = options.preserveSettings ?? this.begun;
+    if (preserve) this.begun = true;
+    let next = this.next;
+    const loop = this.playback.loop;
+    if (preserve && loop && this.currentScore) {
+      const from = writtenBarAt(this.currentScore, loop.start);
+      const to = writtenBarAt(this.currentScore, loop.end - SAME_MOMENT);
+      const matching = this.plan.findIndex((step, index) => !this.done.has(index) && step.from === from && step.to === to);
+      if (matching < 0) return;
+      next = matching;
+    }
+    this.preserving = preserve;
+    try {
+      this.start(next);
+    } finally {
+      this.preserving = false;
+    }
+  }
+
   /** Begins a step: its count from nothing. */
   start(index: number): void {
     if (!this.plan[index]) return;
+    if (this.active === index) this.stop();
+    this.playback.clearCompletedPass();
     this.active = index;
+    this.begun = true;
     this.running = 0;
     this.emit();
   }
@@ -98,6 +162,16 @@ export class PracticePlan {
   /** A clean pass of the step being played: enough of them running, and it is done. */
   clean(): void {
     if (this.active === null) return;
+    const step = this.plan[this.active]!;
+    if (step.kind === 'up') {
+      const tempo = this.playback.lastCompletedPassTempo ?? this.playback.tempo;
+      this.playback.clearCompletedPass();
+      if (tempo < (step.aim ?? step.tempo) - SAME_MOMENT) {
+        this.running = 0;
+        this.emit();
+        return;
+      }
+    }
     this.running++;
     if (this.running >= PASSES_TO_DONE) this.finish();
     else this.emit();
@@ -105,29 +179,36 @@ export class PracticePlan {
 
   /** A pass with a slip: the count starts again. */
   missed(): void {
+    this.playback.clearCompletedPass();
     if (this.active === null || this.running === 0) return;
     this.running = 0;
     this.emit();
   }
 
-  /** The step being played is done (enough clean passes, or closed by hand): the plan stands at none. */
+  /** Continues after the chosen step; earlier unfinished work waits until its following steps end. */
   finish(): void {
     if (this.active === null) return;
+    const completed = this.active;
     this.done.add(this.active);
-    this.active = null;
+    const following = this.plan.findIndex((_, index) => index > completed && !this.done.has(index));
+    this.active = following >= 0 ? following : this.next;
     this.running = 0;
     this.emit();
   }
 
   /** The plan from its beginning: nothing done. */
   restart(): void {
+    this.stop();
     this.done = new Set();
-    this.active = null;
     this.running = 0;
-    this.emit();
+    this.begun = false;
+    if (this.plan.length) this.start(0);
+    else this.emit();
   }
 
   private emit(): void {
     for (const listener of this.listeners) listener();
   }
 }
+
+const meaning = (step: PlanStep): string => JSON.stringify([step.kind, step.from, step.to, step.hands, step.tempo, step.aim, step.by, step.layer]);

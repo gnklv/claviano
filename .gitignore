@@ -8,3 +8,5 @@ dist
 samples/
 # What scripts/engraving.mjs photographs and its browser's leavings
 .engraving/
+# Local layer diagnostics include note selections from the private sample collection.
+.layers/

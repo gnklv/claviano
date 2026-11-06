@@ -60,6 +60,7 @@ export function drawTiles(pen: RollPen, frame: RollFrame, view: TileView): void 
   for (let i = firstNoteAtOrAfter(score, position - view.longestNote); i < notes.length; i++) {
     const note = notes[i]!;
     if (note.start > view.until) break;
+    if (frame.isNoteEnabled && !frame.isNoteEnabled(i)) continue;
     const end = noteEnd(note);
     if (end < position) continue;
     const key = keys.get(note.pitch);
@@ -111,13 +112,14 @@ function drawFinger({ ctx, colors }: RollPen, finger: Fingering, key: KeyRect, t
  * near it: of those the press is on, the nearest across (a black key's tile stands over its
  * neighbours'). `pxPerSecond`: how tall a second is, to take a press just past a tile's end as on it.
  */
-export function tileAt(score: Score, keys: ReadonlyMap<number, KeyRect>, longestNote: number, x: number, time: number, pxPerSecond: number): number | null {
+export function tileAt(score: Score, keys: ReadonlyMap<number, KeyRect>, longestNote: number, x: number, time: number, pxPerSecond: number, isNoteEnabled?: (index: number) => boolean): number | null {
   const snap = TILE_SNAP_PX / pxPerSecond;
   let best: number | null = null;
   let bestDistance = Infinity;
   for (let i = firstNoteAtOrAfter(score, time - snap - longestNote); i < score.notes.length; i++) {
     const note = score.notes[i]!;
     if (note.start > time + snap) break;
+    if (isNoteEnabled && !isNoteEnabled(i)) continue;
     const key = keys.get(note.pitch);
     if (!key || noteEnd(note) < time - snap) continue;
     const distance = Math.abs(x - (key.x + key.width / 2));

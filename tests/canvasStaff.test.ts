@@ -7,6 +7,8 @@ import { TapeTiles, type TapePiece } from '../src/infrastructure/render/staff/ta
 import { secondsAtBeat } from '../src/domain/score';
 import { STAFF_COLORS } from './drawnStaff';
 import { ode, sounding } from './staffPieces';
+import { performNotation } from '../src/domain/notation/performance';
+import { notation, written } from './layerScoreFixtures';
 
 /* The staff on a canvas: its shapes drawn as SVG would draw them, its tape in pictures drawn ahead, and the music lit as it sounds. */
 
@@ -118,6 +120,24 @@ describe('the tape in pictures', () => {
 });
 
 describe('CanvasStaff', () => {
+  it('keeps inactive heads dim when another note in their chord is highlighted', () => {
+    const contexts: ReturnType<typeof recorder>[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const made = recorder();
+      contexts.push(made);
+      return made.ctx;
+    });
+    const container = document.createElement('div');
+    Object.defineProperties(container, { clientWidth: { get: () => 1024 }, clientHeight: { get: () => 300 } });
+    const staff = new CanvasStaff(container, STAFF_COLORS);
+    staff.setScore(performNotation(notation([written(0, 60), written(0, 72, { chord: true })])));
+    staff.setActiveNotes([0]);
+    for (const context of contexts) context.calls.length = 0;
+    staff.render(0.01);
+    const fills = contexts.flatMap(({ calls }) => calls.filter((call) => call.name === 'fillText'));
+    expect(fills.some((call) => call.fill === '#right')).toBe(true);
+    expect(fills.filter((call) => call.fill === '#ink' && Number(call.alpha) < 1)).toHaveLength(0);
+  });
   it('lights the chords sounding under the cursor, in their hand’s colour', () => {
     const contexts: ReturnType<typeof recorder>[] = [];
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {

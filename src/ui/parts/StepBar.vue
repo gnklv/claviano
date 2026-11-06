@@ -35,12 +35,18 @@ const phone = useMediaQuery(SMALL_SCREEN);
 
 const playing = computed(() => (state.value.current === null ? null : state.value.steps[state.value.current]!));
 const shown = computed(() => state.value.steps.length > 0 && (playing.value !== null || !phone.value));
+const how = computed(() => t(playing.value?.kind === 'up' ? 'stepUpHow' : playing.value?.kind === 'layer' ? 'stepLayerHow' : 'stepHow', {
+  of: PASSES_TO_DONE,
+  tempo: Math.round((playing.value?.aim ?? 1) * 100),
+}));
 
 /** A pass of this step has been marked: what to do is known. */
 const marked = ref(false);
 watch(
   () => state.value.current,
   () => (marked.value = false),
+  // Reselecting the same task passes through null synchronously before returning to its index.
+  { flush: 'sync' },
 );
 function mark(clean: boolean): void {
   marked.value = true;
@@ -67,7 +73,7 @@ function choose(action: string): void {
   <div v-if="shown" class="step-bar" :class="{ playing }">
     <template v-if="playing">
       <!-- (On a phone, what to do stands in the place of the step's name until a pass is marked.) -->
-      <p v-if="narrow && !marked" class="how in-place">{{ t('stepHow', { of: PASSES_TO_DONE }) }}</p>
+      <p v-if="narrow && (!marked || playing.kind === 'up')" class="how in-place">{{ playing.kind === 'layer' ? words.what(playing) : how }}</p>
       <AppButton v-else class="said" variant="quiet" pill :hint="t('plan')" @click="list?.open()"><span class="reading">{{ words.whole(playing) }}</span></AppButton>
       <PassDots class="dots" :count="state.clean" :of="PASSES_TO_DONE" :label="t('stepCleanCount', { count: state.clean, of: PASSES_TO_DONE })" />
       <div class="marks">
@@ -78,7 +84,7 @@ function choose(action: string): void {
         <AppButton variant="quiet" pill icon="more" :label="t('stepActions')" :aria-expanded="menu" @click="menu = !menu" />
         <template #panel><MenuList :items="actions" @choose="choose" /></template>
       </PopOver>
-      <p v-if="!narrow && !marked" class="how">{{ t('stepHow', { of: PASSES_TO_DONE }) }}</p>
+      <p v-if="!narrow && (!marked || playing.kind === 'up')" class="how">{{ how }}</p>
       <PlanList ref="list" />
     </template>
     <PlanStart v-else />

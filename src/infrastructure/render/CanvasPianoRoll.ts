@@ -66,7 +66,7 @@ export class CanvasPianoRoll implements RollView {
   /** Let go, the notes glide back to the music: how far from it they still are, in pixels. */
   private returning = 0;
   /** What the last frame showed, to turn a click's height into a moment of the music. */
-  private lastFrame: { score: Score; position: number; rollHeight: number; pxPerSecond: number } | null = null;
+  private lastFrame: { score: Score; position: number; rollHeight: number; pxPerSecond: number; isNoteEnabled?: (index: number) => boolean } | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -95,7 +95,7 @@ export class CanvasPianoRoll implements RollView {
     const rect = this.canvas.getBoundingClientRect();
     const y = clientY - rect.top;
     if (y < 0 || y > rollHeight) return null;
-    return tileAt(score, this.keys, this.longestNote, clientX - rect.left + this.scrollX, position + (rollHeight - y) / pxPerSecond, pxPerSecond);
+    return tileAt(score, this.keys, this.longestNote, clientX - rect.left + this.scrollX, position + (rollHeight - y) / pxPerSecond, pxPerSecond, frame.isNoteEnabled);
   }
 
   /**
@@ -115,6 +115,7 @@ export class CanvasPianoRoll implements RollView {
     for (let i = firstNoteAtOrAfter(score, time - snap); i < score.notes.length; i++) {
       const start = score.notes[i]!.start;
       if (start > time + snap) break;
+      if (frame.isNoteEnabled && !frame.isNoteEnabled(i)) continue;
       if (Math.abs(start - time) <= bestDistance) {
         best = start;
         bestDistance = Math.abs(start - time);
@@ -172,7 +173,7 @@ export class CanvasPianoRoll implements RollView {
     // The notes are drawn at the moment in view: where the music is, unless dragged elsewhere.
     const shown = { ...frame, position: this.viewTime(frame, dt, pxPerSecond, seeked) };
     const yOf = (time: number) => rollHeight - (time - shown.position) * pxPerSecond;
-    this.lastFrame = { score: frame.score, position: shown.position, rollHeight, pxPerSecond };
+    this.lastFrame = { score: frame.score, position: shown.position, rollHeight, pxPerSecond, isNoteEnabled: frame.isNoteEnabled };
     this.updateCamera(shown, dt, seeked);
 
     // Nothing to draw anew when nothing drawn would change: a piece at rest, with nobody moving it.
@@ -192,6 +193,7 @@ export class CanvasPianoRoll implements RollView {
       frame.noteLabel(60),
       frame.fingers,
       frame.picked,
+      frame.isNoteEnabled,
       width,
       height,
     ];
@@ -274,6 +276,7 @@ export class CanvasPianoRoll implements RollView {
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
       const note = score.notes[i]!;
       if (note.start > position) break;
+      if (frame.isNoteEnabled && !frame.isNoteEnabled(i)) continue;
       if (releases[i]! >= position && frame.isHandEnabled(note.hand)) active.set(note.pitch, note.hand);
     }
     return active;
@@ -327,6 +330,7 @@ export class CanvasPianoRoll implements RollView {
     for (let i = firstNoteAtOrAfter(score, position - this.longestNote); i < score.notes.length; i++) {
       const note = score.notes[i]!;
       if (note.start > until) break;
+      if (frame.isNoteEnabled && !frame.isNoteEnabled(i)) continue;
       if (noteEnd(note) <= position) continue;
       const key = this.keys.get(note.pitch);
       if (!key) continue;

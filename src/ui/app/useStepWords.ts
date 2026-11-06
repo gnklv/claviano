@@ -27,6 +27,8 @@ export function useStepWords(playback: Playback) {
   };
   const what = (step: PlanStep): string => {
     switch (step.kind) {
+      case 'layer':
+        return `${t(step.layer === 'lead-bass' ? 'stepLayerBass' : 'stepLayerLead')} · ${percent(step.tempo)}%`;
       case 'with':
         return `${t(step.hands === 'left' ? 'stepLeftToRight' : 'stepRightToLeft')} · ${percent(step.tempo)}%`;
       case 'up':

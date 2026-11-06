@@ -171,6 +171,7 @@ describe('a warmup in the ordinary player', () => {
     expect(h.session.status).toBe('away');
     expect(h.playback.score?.title).toBe('Library piece');
     expect(h.playback.tempo).toBeCloseTo(0.77);
+    expect(h.plan.current).toBe(0);
     expect(h.plan.steps.length).toBeGreaterThan(0);
   });
 

@@ -13,6 +13,7 @@ export interface PlaybackSnapshot {
   readonly pedal: boolean;
   readonly metronome: boolean;
   readonly countIn: boolean;
+  readonly noteSelection: readonly number[] | null;
 }
 
 const snapshot = (playback: Playback): PlaybackSnapshot => ({
@@ -24,6 +25,7 @@ const snapshot = (playback: Playback): PlaybackSnapshot => ({
   pedal: playback.pedalEnabled,
   metronome: playback.metronomeEnabled,
   countIn: playback.countInEnabled,
+  noteSelection: playback.noteSelection,
 });
 
 /**

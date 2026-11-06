@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { button, drop, learn, onPiece, playback, restart, root, screen, settled, shelf, text, useApp, xml } from './harness';
+import { barLoop, button, drop, learn, onPiece, playback, restart, root, screen, settled, shelf, text, useApp, xml } from './harness';
 
 /* The library: what it shows, what it keeps, and what can be done with a piece on its shelf. */
 
@@ -116,9 +116,10 @@ describe('the shelf', () => {
     button(/Ode to Joy/).click();
     await settled();
     await learn();
+    // The transport's jump leaves the guided fragment when choosing a place outside it.
+    barLoop.jumpTo(playback.score!.bars[4] + 0.1);
     playback.setTempo(0.7);
     playback.setHandEnabled('left', false);
-    playback.seek(playback.score!.bars[4] + 0.1);
     button(/Back to the library/).click();
     await settled();
     expect(button(/Ode to Joy/).textContent).toMatch(/bar 5 of 8/);

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { bookmarks, button, learn, playback, root, settled, turnIntoPhone, useApp } from './harness';
+import { barLoop, bookmarks, button, learn, plan, playback, root, settled, turnIntoPhone, useApp } from './harness';
 
 /* The piece's screen: the transport bar, with the bookmarks and the tempo. */
 
@@ -14,6 +14,11 @@ describe('the transport bar', () => {
     button(/Ode to Joy/).click();
     await settled();
     await learn();
+    // These checks exercise manually chosen transport settings, outside the guided task.
+    plan.stop();
+    barLoop.setEnabled(false);
+    playback.setTempo(1);
+    await settled();
   });
 
   it('has what is set once a session beside what is always at hand: the hands, the metronome, the count-in, the pedal', () => {

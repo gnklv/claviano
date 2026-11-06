@@ -32,6 +32,13 @@ played and as written) and its engraving, one line per note, chord or mark. `tes
 compares against them, so any change in reading, playing or engraving shows up line by line. A
 change that is meant is accepted with `npm run test:accept`, and the commit shows what changed.
 
+**Learning a piece.** Enter Learn to begin with a short fragment and highlighted notes. After
+three clean passes, the next task is ready: add bass, play the full fragment, then work up to tempo
+and join fragments. Sound, falling notes and the staff follow the same task; no layer setup is
+needed. The selections are rules-based, not verified melody detection. For development,
+`npm run samples:layers` checks every local score in `samples/` and writes a report to `.layers/`.
+See [layers](docs/layers.md) for the rules and limitations. Private scores and reports stay out of Git.
+
 **Piano sound.** The samples in `public/piano` come from the
 [Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (a Yamaha C5)
 by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
@@ -50,7 +57,7 @@ metronome is a synth's blip.)
 | | |
 |---|---|
 | Listen / Learn | in the piece's header: the player alone, or with the tools of learning (the loop, the hands, the trainer, one's own fingers); what learning had set comes back with it. A piece is listened to first, unless it was left learnt |
-| Plan | (in Learn, over the transport) the piece learnt in steps: its parts by form and phrase, each hand slow to the metronome, then to the other hand heard; both slow, up to tempo by 10%, joined to the part before. A step sets the loop, the tempo and the metronome; what one plays is shown lit and not heard. Play plays the loop once; after each pass, Clean or A slip; three clean in a row and the step is done. The words open the list of every step |
+| Plan | (in Learn, over the transport) a ready task: highlighted notes, bass, the full fragment, tempo work and joins; hand-by-hand preparation where no useful reduction is available. Each task is heard as an example; hands can be muted explicitly. Play plays the fragment once; after each pass, Clean or A slip. Three clean passes finish the task; tempo work counts them at the target tempo. The words open the list of every step |
 | Space | play / pause |
 | ← → | previous / next bar |
 | Home | back to the start (of the loop, when one is on) |

@@ -33,7 +33,7 @@ export function layoutGraces(score: Score, chords: readonly StaffChord[]): Staff
       const soundBeat = sound.beat + slot * sound.each;
       const staff: Clef = grace.staff >= 2 ? 'bass' : 'treble';
       const key = `${written.bar}|${written.beat}|${staff}`;
-      const note: StaffNote = { step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
+      const note: StaffNote = { graceGroup: index, step: staffStep(grace.pitch, grace.clef), accidental: grace.accidental };
       const end = soundBeat + sound.each;
       if (open?.key === key) {
         const group = groups[groups.length - 1]!;

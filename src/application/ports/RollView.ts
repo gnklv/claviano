@@ -15,6 +15,8 @@ export interface RollFrame {
   readonly playing: boolean;
   readonly loop: TimeRange | null;
   readonly isHandEnabled: (hand: Hand) => boolean;
+  /** Events belonging to the current learning layer; original score indices are preserved. */
+  readonly isNoteEnabled?: (index: number) => boolean;
   /** Whether the score's pedal is played; when it is not, the pedal marks are dimmed. */
   readonly pedalEnabled: boolean;
   /** How to label a key on screen; the UI supplies it in the current language. */

@@ -86,8 +86,9 @@ function asFingers(stored: unknown): stored is PieceMemory['fingers'] {
 }
 
 function asPlan(stored: unknown): stored is PieceMemory['plan'] {
-  const done = (stored as { done?: unknown } | null)?.done;
-  return Array.isArray(done) && done.every((index: unknown) => Number.isInteger(index));
+  if (typeof stored !== 'object' || stored === null) return false;
+  const { done, version } = stored as { done?: unknown; version?: unknown };
+  return (version === undefined || (typeof version === 'number' && Number.isInteger(version) && version > 0)) && Array.isArray(done) && done.every((index: unknown) => Number.isInteger(index));
 }
 
 function asBookmarks(stored: unknown): stored is PieceMemory['bookmarks'] {

@@ -47,6 +47,7 @@ function restart(): void {
   }
   sure.value = false;
   plan.restart();
+  emit('done');
 }
 
 const list = useTemplateRef<HTMLElement>('list');

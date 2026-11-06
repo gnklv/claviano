@@ -2,7 +2,7 @@ import { slur } from '../curves';
 import { stepSpan, type StaffGrace } from '../../../domain/notation/engraving';
 import type { StaffContext } from './context';
 import { ACCIDENTAL_GLYPH, FLAG_UP, HEAD_WIDTH, MUSIC_FONT, NOTEHEAD } from './glyphs';
-import { COLORS, group, type GroupShape, type Shape, type TextShape } from './shapes';
+import { COLORS, INACTIVE_NOTE_OPACITY, group, type GroupShape, type Shape, type TextShape } from './shapes';
 
 /*
  * Grace notes: small notes to the left of the note they lead to, stems up. A lone one has a flag
@@ -44,7 +44,7 @@ export function graceWidth(grace: StaffGrace, principalHasAccidental: boolean): 
  * A group of grace notes as one element painted with `currentColor`, so it lights up as a whole
  * while it sounds. It is added to the ink, for what is drawn around the notes to keep clear of it.
  */
-export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): GroupShape {
+export function drawGrace({ geometry, ink, activeGraceGroups }: StaffContext, grace: StaffGrace): GroupShape {
   const { space } = geometry;
   const shapes: Shape[] = [];
   const top = geometry.staffTop(grace.staff);
@@ -91,8 +91,10 @@ export function drawGrace({ geometry, ink }: StaffContext, grace: StaffGrace): G
     }
     for (const note of slot.notes) {
       const y = yOf(note.step);
-      shapes.push(glyph(NOTEHEAD.quarter, leftOf(i), y));
-      if (note.accidental) shapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], leftOf(i) - ACCIDENTAL_ROOM * space, y));
+      const headShapes = [glyph(NOTEHEAD.quarter, leftOf(i), y)];
+      if (note.accidental) headShapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], leftOf(i) - ACCIDENTAL_ROOM * space, y));
+      const inactive = activeGraceGroups && !activeGraceGroups.has(note.graceGroup ?? -1);
+      shapes.push(...headShapes.map((shape): TextShape => inactive ? { ...shape, fill: COLORS.note, opacity: INACTIVE_NOTE_OPACITY } : shape));
     }
     shapes.push({ kind: 'line', x1: stemX(i), x2: stemX(i), y1: lowest[i]! - space * 0.17 * SCALE, y2: stemEnd(i), stroke: 'currentColor', width: stemWidth });
   });

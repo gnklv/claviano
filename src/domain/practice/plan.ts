@@ -1,13 +1,16 @@
 import type { Hand } from '../note';
 import type { Score } from '../score';
+import { layersOf, type WrittenLayer } from './layers';
+import { scoreForLayer } from './layerScore';
 import { partsOf, type Part } from './parts';
 import { musicOf } from './repeats';
 
 /*
  * A plan for learning a piece: the steps a teacher sets, part by part, each with its own tempo.
- * Each hand alone and slow, to the metronome alone, then to the other hand heard; both hands slow,
- * then up to tempo, and the part joined to the one before it; the whole piece at the end. What is
- * played is not heard (the player plays it), but where a step says so. Bars written out again note for note are learnt once
+ * A mapped part begins with its leading line, then its bass, before its complete slow form. Older
+ * scores begin with each hand alone and then together. Each part goes up to tempo and is joined
+ * to the one before it; the whole piece comes at the end. Each task is demonstrated with its
+ * selected notes and hands; muting is the learner's choice. Bars written out again note for note are learnt once
  * (see repeats.ts). The hard places first, hands apart, then together (Chang, Fundamentals of
  * Piano Practice); a step is done when it is played right several times running,
  * not when it has been played long (Duke, Simmons and Cash, 2009: see PracticePlan).
@@ -17,11 +20,11 @@ import { musicOf } from './repeats';
 export type StepHands = Hand | 'both';
 
 /**
- * What a step is: a hand alone, slow, to the metronome (`alone`); a hand slow, the other heard
+ * What a step is: a reduced written layer (`layer`); a hand alone, slow, to the metronome (`alone`); a hand slow, the other heard
  * (`with`); both hands, slow (`together`); up to tempo with the trainer (`up`); a part joined to
  * the one before it, at tempo (`join`); the whole piece (`whole`).
  */
-export type StepKind = 'alone' | 'with' | 'together' | 'up' | 'join' | 'whole';
+export type StepKind = 'layer' | 'alone' | 'with' | 'together' | 'up' | 'join' | 'whole';
 
 export interface PlanStep {
   readonly kind: StepKind;
@@ -34,7 +37,12 @@ export interface PlanStep {
   /** For `up`: the tempo the trainer takes it to, and by how much at a step. */
   readonly aim?: number;
   readonly by?: number;
+  /** A reduced written layer played before the complete part. */
+  readonly layer?: 'lead' | 'lead-bass';
 }
+
+/** Stored step indices belong to this plan generation. Older indices are migrated by meaning. */
+export const PLAN_VERSION = 2;
 
 /** The slow steps are played at this much of the piece's own tempo: slow enough to read the notes and find the fingers, not so slow that the hands move otherwise than at speed. */
 export const SLOW = 0.6;
@@ -45,6 +53,15 @@ export const UP_BY = 0.1;
 
 /** The steps for learning a piece, part by part, in order. */
 export function planOf(score: Score): PlanStep[] {
+  return buildPlan(score, true);
+}
+
+/** The plan whose unversioned progress older versions kept. */
+export function legacyPlanOf(score: Score): PlanStep[] {
+  return buildPlan(score, false);
+}
+
+function buildPlan(score: Score, includeLayers: boolean): PlanStep[] {
   const parts = partsOf(score);
   const steps: PlanStep[] = [];
   // The music of the parts and the hands' lines learnt, and of the joins played: what is written out again is not learnt again.
@@ -57,9 +74,15 @@ export function planOf(score: Score): PlanStep[] {
     if (!learnt.has(music)) {
       learnt.add(music);
       const both: StepHands = hands.length === 2 ? 'both' : hands[0]!;
+      const layers = includeLayers ? preparationLayers(score, part) : [];
       // A hand by itself only where the other plays too (otherwise it is the part itself): alone once
       // for a line, and then to the other hand, which keeps it in time and in the harmony.
-      if (hands.length === 2) {
+      if (layers.length) {
+        for (const layer of layers) {
+          const selectedHands = new Set(layer.notes.map((index) => score.notation.notes[index]!.hand));
+          steps.push({ kind: 'layer', layer: layer.kind as 'lead' | 'lead-bass', ...part, hands: selectedHands.size === 2 ? 'both' : [...selectedHands][0]!, tempo: SLOW });
+        }
+      } else if (hands.length === 2) {
         for (const hand of hands) {
           const line = `${hand} ${musicOf(score, part, hand)}`;
           if (!learnt.has(line)) steps.push({ kind: 'alone', ...part, hands: hand, tempo: SLOW });
@@ -85,6 +108,19 @@ export function planOf(score: Score): PlanStep[] {
     steps.push({ kind: 'whole', from: 0, to: last, hands: handsOf(score, { from: 0, to: last }), tempo: AT_TEMPO });
   }
   return steps;
+}
+
+function preparationLayers(score: Score, part: Part): readonly WrittenLayer[] {
+  try {
+    const layers = layersOf(score, part).layers;
+    const full = layers.find((layer) => layer.kind === 'full');
+    if (!full) return [];
+    // An older score may have notation but no reliable link from it to performed events.
+    scoreForLayer(score, part, full);
+    return layers.filter((layer) => layer.kind !== 'full');
+  } catch {
+    return [];
+  }
 }
 
 /** The hands that play in a part, right first. */

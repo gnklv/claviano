@@ -30,6 +30,7 @@ import { SAME_MOMENT } from '../moment';
 
 /** A note being written down. */
 interface Placed {
+  readonly playedIndex: number;
   readonly staff: Clef;
   readonly hand: Hand;
   readonly bar: number;
@@ -52,16 +53,26 @@ const VOICES: Record<Clef, Record<Hand, string>> = { treble: { right: '1', left:
  * there, from what the performance says of them.
  */
 export function transcribed(score: Score): Score {
-  const { written, octaveShifts } = transcribe(score);
-  return { ...score, notation: { ...score.notation, notes: written, octaveShifts } };
+  const { written, octaveShifts, playedToWritten } = transcriptionOf(score);
+  return {
+    ...score,
+    notes: score.notes.map((note, index) => ({ ...note, sources: [{ kind: 'note', index: playedToWritten[index]! }] })),
+    notation: { ...score.notation, notes: written, octaveShifts },
+  };
 }
 
 /** The played notes of a score as written notes, and the octave shifts they stand under. */
 export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts: OctaveShift[] } {
-  const sounding: Placed[] = score.notes.map((note) => {
+  const { written, octaveShifts } = transcriptionOf(score);
+  return { written, octaveShifts };
+}
+
+function transcriptionOf(score: Score): { written: WrittenNote[]; octaveShifts: OctaveShift[]; playedToWritten: number[] } {
+  const sounding: Placed[] = score.notes.map((note, playedIndex) => {
     const { beat, beats } = quantize(note.beat, note.beats);
     const spelled = spell(note.pitch, keySignatureAt(score, beat).fifths);
     return {
+      playedIndex,
       staff: staffFor(note.hand, spelled),
       hand: note.hand,
       bar: barAtBeat(score, beat),
@@ -149,7 +160,9 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
       };
     }),
   );
-  return { written, octaveShifts: shifts };
+  const playedToWritten: number[] = [];
+  chords.flat().forEach((placed, index) => { playedToWritten[placed.playedIndex] = index; });
+  return { written, octaveShifts: shifts, playedToWritten };
 }
 
 /**

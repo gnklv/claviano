@@ -149,7 +149,11 @@ class CanvasSurface implements StaffSurface {
     const lightUp = (group: GroupShape | undefined, hand: Hand | undefined) => {
       if (!group || !hand) return;
       const colour = this.colours(COLORS.hand[hand]);
-      for (const child of group.children) paintShape(ctx, child, this.colours, colour);
+      for (const child of group.children) {
+        // Fixed-ink heads already sit in the tape: overpainting them would darken the inactive layer.
+        if (child.kind === 'text' && child.fill === COLORS.note) continue;
+        paintShape(ctx, child, this.colours, colour);
+      }
     };
     for (const index of this.lit.chords) lightUp(this.chords[index], this.sounds.chords[index]?.hand);
     for (const index of this.lit.graces) lightUp(this.graces[index], this.sounds.graces[index]?.hand);

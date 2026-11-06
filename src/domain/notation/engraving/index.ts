@@ -32,14 +32,15 @@ export { restsClearOfNotes };
 
 /** Engraves a score: its notation, set on the staves. */
 export function engrave(score: Score): NotationLayout {
-  const layout = layoutWritten(score, printedNotes(score.notation.notes), score.notation.rests);
+  const sources = new Map(score.notation.notes.map((note, index) => [note, index]));
+  const layout = layoutWritten(score, printedNotes(score.notation.notes, sources), score.notation.rests, sources);
   // Stem directions are final only now (beams may have changed them): place the heads of seconds.
   const chords = accidentalsInColumns(shiftVoicesApart(layout.chords.map(withSeconds))).map(withDots);
   return { ...layout, chords, rests: restsClearOfNotes(layout.rests, chords) };
 }
 
 /** The notes that are printed. Where the first note of a chord is hidden, the next one leads the chord. */
-function printedNotes(notes: readonly WrittenNote[]): readonly WrittenNote[] {
+function printedNotes(notes: readonly WrittenNote[], sources: Map<WrittenNote, number>): readonly WrittenNote[] {
   if (!notes.some((note) => note.hidden)) return notes;
   const printed: WrittenNote[] = [];
   let leaderless = false; // the chord being read has lost its first note
@@ -48,7 +49,9 @@ function printedNotes(notes: readonly WrittenNote[]): readonly WrittenNote[] {
     if (note.hidden) {
       leaderless ||= !note.chord;
     } else if (note.chord && leaderless) {
-      printed.push({ ...note, chord: false });
+      const leader = { ...note, chord: false };
+      sources.set(leader, sources.get(note)!);
+      printed.push(leader);
       leaderless = false;
     } else {
       printed.push(note);
@@ -61,7 +64,7 @@ function printedNotes(notes: readonly WrittenNote[]): readonly WrittenNote[] {
  * Lays out printed notes exactly as written: values, accidentals, stems, beams and
  * tuplets come from the file, and pitches sit where the clef in force puts them.
  */
-function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[]): NotationLayout {
+function layoutWritten(score: Score, written: readonly WrittenNote[], rests: readonly WrittenRest[], sources: ReadonlyMap<WrittenNote, number>): NotationLayout {
   // A note marked as a chord shares the stem of the note before it.
   const groups: NonEmpty<WrittenNote>[] = [];
   for (const note of written) {
@@ -77,7 +80,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     const bar = barAtBeat(score, first.beat);
     const notes = group
       // The clef in force (not the staff) decides where a pitch sits.
-      .map((note): StaffNote => ({ step: staffStep(note.pitch, note.clef), accidental: note.accidental, sounding: note.sounding, ...(note.headless ? { headless: true } : {}), ...(note.parenthesized ? { parenthesized: true } : {}) }))
+      .map((note): StaffNote => ({ writtenIndex: sources.get(note), step: staffStep(note.pitch, note.clef), accidental: note.accidental, sounding: note.sounding, ...(note.headless ? { headless: true } : {}), ...(note.parenthesized ? { parenthesized: true } : {}) }))
       .sort((a, b) => a.step - b.step);
     const { top, bottom } = stepSpan(notes);
     const chord: StaffChord = {
@@ -179,7 +182,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     ornaments,
     tremolos: layoutTremolos(groupsInOrder, drawn),
     arpeggios: layoutArpeggios(groupsInOrder, drawn),
-    fingerings: layoutFingerings(groupsInOrder, drawn, marks, ornaments),
+    fingerings: layoutFingerings(groupsInOrder, drawn, marks, ornaments, sources),
   };
 }
 

@@ -26,6 +26,9 @@ export const COLORS = {
   loopEdge: 'loopEdge',
 } as const satisfies Record<string, Paint | Record<Hand, Paint>>;
 
+/** Unplayed heads remain readable as context; stems and beams keep their full ink. */
+export const INACTIVE_NOTE_OPACITY = 0.3;
+
 /** Words, or a glyph of the music font (whose reference line is at `y`). */
 export interface TextShape {
   readonly kind: 'text';

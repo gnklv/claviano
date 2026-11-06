@@ -7,4 +7,6 @@ export interface StaffContext {
   readonly score: Score;
   readonly geometry: StaffGeometry;
   readonly ink: StaffInk;
+  readonly activeNotes?: ReadonlySet<number> | null;
+  readonly activeGraceGroups?: ReadonlySet<number> | null;
 }

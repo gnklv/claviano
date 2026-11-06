@@ -12,6 +12,9 @@ import { Bookmarks } from '../src/application/use-cases/Bookmarks';
 import { OwnFingering } from '../src/application/use-cases/OwnFingering';
 import { PieceWay } from '../src/application/use-cases/PieceWay';
 import { PracticePlan } from '../src/application/use-cases/PracticePlan';
+import { followPlan } from '../src/application/use-cases/followPlan';
+import { PLAN_VERSION } from '../src/domain/practice/plan';
+import { odeToJoy } from '../src/demo/odeToJoy';
 import { contentId } from '../src/domain/contentId';
 import { transcribed } from '../src/domain/notation/transcription';
 import { createScore, type Score } from '../src/domain/score';
@@ -28,6 +31,7 @@ const piece = (title: string): Score =>
     ),
   );
 const tunes: ScoreParser = { canParse: (fileName) => fileName.endsWith('.tune'), parse: (_, title) => piece(title) };
+const mappedTunes: ScoreParser = { canParse: (fileName) => tunes.canParse(fileName), parse: () => odeToJoy('Mapped') };
 const bytes = (text: string): ArrayBuffer => new TextEncoder().encode(text).buffer;
 const ONE = contentId(bytes('one'));
 const TWO = contentId(bytes('two'));
@@ -49,10 +53,10 @@ const practice = () => {
 };
 let writeDown: () => void;
 /** The app starts (again): with the shelf as it was left. */
-const start = async () => {
+const start = async (parser: ScoreParser = tunes) => {
   playback = new Playback(new FakeAudio(), new FakeTicker());
   barLoop = new BarLoop(playback);
-  library = new Library(shelf, new OpenScore(playback, new LoadScore([tunes])), playback, [{ id: 'demo', load: () => piece('Demo') }]);
+  library = new Library(shelf, new OpenScore(playback, new LoadScore([parser])), playback, [{ id: 'demo', load: () => piece('Demo') }]);
   memories = new PieceMemories(shelf);
   trainer = new TempoTrainer(playback);
   bookmarks = new Bookmarks(playback, barLoop);
@@ -115,7 +119,7 @@ describe('remembering pieces', () => {
       trainer: { on: false, from: 0.6, to: 1, step: 0.02, every: 1, back: false },
       bookmarks: [],
       fingers: [],
-      plan: { done: [] },
+      plan: { version: PLAN_VERSION, done: [] },
       way: 'learn',
       bar: 4,
       bars: 8,
@@ -233,12 +237,74 @@ describe('remembering pieces', () => {
     expect(plan.doneSteps).toEqual([0, 1]);
   });
 
-  it('keeps a piece left in a step of its plan with both hands heard, as out of the plan', async () => {
+  it('resumes saved Learn only after its versioned progress has been restored', async () => {
+    shelf.remembered.set(ONE, {
+      position: 0, tempo: 1, hands: { right: true, left: true }, loop: { on: false, from: 1, to: 4 },
+      plan: { version: PLAN_VERSION, done: [0] }, way: 'learn', bar: 1, bars: 8,
+    });
+    await start();
+    followPlan(plan, { playback, barLoop, trainer, way });
     await library.openFile('one.tune', bytes('one'));
+    expect(plan.doneSteps).toEqual([0]);
+    expect(plan.current).toBe(1);
+    expect(playback.playing).toBe(false);
+    expect(memories.memory(ONE)?.plan).toEqual({ version: PLAN_VERSION, done: [0] });
+  });
+
+  it('reopens a later chosen fragment at its unfinished bass step without crediting earlier work', async () => {
+    await start(mappedTunes);
+    followPlan(plan, { playback, barLoop, trainer, way });
+    await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
+    const selected = plan.steps.findIndex((step) => step.kind === 'layer' && step.layer === 'lead' && step.from === 4);
+    plan.start(selected);
+    plan.finish();
+    expect(plan.steps[plan.current!].layer).toBe('lead-bass');
+    await start(mappedTunes);
+    followPlan(plan, { playback, barLoop, trainer, way });
+    await library.open(ONE);
+    expect(plan.current).toBe(selected + 1);
+    expect(plan.steps[plan.current!]).toMatchObject({ kind: 'layer', layer: 'lead-bass', from: 4 });
+    expect(plan.doneSteps).toEqual([selected]);
+    expect(playback.playing).toBe(false);
+  });
+
+  it('keeps a restored manual range in free practice after Listen and back to Learn', async () => {
+    const position = odeToJoy('Mapped').bars[2] + 0.1;
+    shelf.remembered.set(ONE, {
+      position, tempo: 0.7, hands: { right: true, left: false }, loop: { on: true, from: 3, to: 6 },
+      plan: { version: PLAN_VERSION, done: [] }, way: 'learn', bar: 3, bars: 8,
+    });
+    await start(mappedTunes);
+    followPlan(plan, { playback, barLoop, trainer, way });
+    await library.openFile('one.tune', bytes('one'));
+    expect(plan.current).toBeNull();
+    way.set('listen');
+    way.set('learn');
+    expect(plan.current).toBeNull();
+    expect([barLoop.from, barLoop.to, playback.tempo, playback.isHandEnabled('left')]).toEqual([3, 6, 0.7, false]);
+    expect(playback.position).toBeCloseTo(position);
+    expect(plan.doneSteps).toEqual([]);
+  });
+
+  it('keeps unknown plan versions identifiable and drops invalid version fields without reusing their indices', async () => {
+    const kept = { position: 0, tempo: 1, hands: { right: true, left: true }, loop: { on: false, from: 1, to: 4 }, way: 'listen', bar: 1, bars: 8 };
+    shelf.remembered.set(ONE, { ...kept, plan: { version: 99, done: [0, 1] } });
+    shelf.remembered.set(TWO, { ...kept, plan: { version: '2', done: [0, 1] } });
+    await start();
+    expect(memories.memory(ONE)?.plan).toEqual({ version: 99, done: [0, 1] });
+    expect(memories.memory(TWO)?.plan).toBeUndefined();
+    await library.openFile('one.tune', bytes('one'));
+    expect(plan.doneSteps).toEqual([]);
+  });
+
+  it('keeps deliberate hand muting when a guided step is resumed later', async () => {
+    await library.openFile('one.tune', bytes('one'));
+    way.set('learn');
     plan.start(0);
     playback.setHandEnabled('right', false);
     playback.setHandEnabled('left', false);
-    expect(memories.memory(ONE)?.hands).toEqual({ right: true, left: true });
+    expect(memories.memory(ONE)?.hands).toEqual({ right: false, left: false });
   });
 
   it('lets go of fingers at notes the piece no longer has, and of fingers that are not such', async () => {

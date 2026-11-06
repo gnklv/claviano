@@ -41,6 +41,8 @@ const clamp = (value: number, min: number, max: number): number =>
  */
 export class Playback {
   private currentScore: Score | null = null;
+  private selectedNotes: readonly number[] | null = null;
+  private selectedIndices: ReadonlySet<number> | null = null;
   private isPlaying = false;
   /** A pause also cancels starts waiting for the audio output to wake up. */
   private playGeneration = 0;
@@ -71,6 +73,7 @@ export class Playback {
   private loopTempo: number | null = null;
   /** How many times the loop has come round since playing began. */
   private rounds = 0;
+  private completedPassTempo: number | null = null;
   /** A pass of the loop at a time: it stops at the loop's end, at the loop's start, for the next. */
   private onePass = false;
   /** When the pass being played ends, on the audio clock (once it is all handed to the output). */
@@ -90,6 +93,29 @@ export class Playback {
 
   get score(): Score | null {
     return this.currentScore;
+  }
+
+  /** Original performed-note indices heard in a practice layer; null plays the whole score. */
+  get noteSelection(): readonly number[] | null {
+    return this.selectedNotes;
+  }
+
+  isNoteSelected(index: number): boolean {
+    return this.selectedIndices === null || this.selectedIndices.has(index);
+  }
+
+  /** Changing the notes stops the current sound and any start waiting for the instrument. */
+  setNoteSelection(indices: readonly number[] | null): void {
+    const next = indices === null ? null : [...new Set(indices)].sort((a, b) => a - b);
+    if (next?.some((index) => !Number.isInteger(index) || index < 0 || index >= (this.currentScore?.notes.length ?? 0))) {
+      throw new RangeError('A playback selection must contain original score note indices.');
+    }
+    if (next === null ? this.selectedNotes === null : this.selectedNotes !== null && next.length === this.selectedNotes.length && next.every((index, i) => index === this.selectedNotes![i])) return;
+    this.clearCompletedPass();
+    this.pause();
+    this.selectedNotes = next === null ? null : Object.freeze(next);
+    this.selectedIndices = next === null ? null : new Set(next);
+    this.emit();
   }
 
   get playing(): boolean {
@@ -137,6 +163,16 @@ export class Playback {
     return this.rounds;
   }
 
+  /** The tempo just played, before the trainer sets the next pass's tempo. */
+  get lastCompletedPassTempo(): number | null {
+    return this.completedPassTempo;
+  }
+
+  /** An assessment uses this pass once; further physical-piano practice uses the chosen tempo. */
+  clearCompletedPass(): void {
+    this.completedPassTempo = null;
+  }
+
   /** Whether the loop is played a pass at a time: stopping at its end, ready at its start. */
   get passAtATime(): boolean {
     return this.onePass;
@@ -169,6 +205,9 @@ export class Playback {
     for (const listener of this.beforeLoadListeners) listener();
     this.pause();
     this.currentScore = score;
+    this.clearCompletedPass();
+    this.selectedNotes = null;
+    this.selectedIndices = null;
     this.sustained = soundingDurations(score.notes, score.pedal, score.sostenutoPedal);
     this.softened = score.notes.map((note) => pedalDownAt(score.softPedal, note.start));
     this.longestSounding = score.notes.reduce((max, note, i) => Math.max(max, note.duration, this.sustained[i] ?? 0), 0);
@@ -192,6 +231,7 @@ export class Playback {
     await this.audio.resume();
     if (generation !== this.playGeneration || this.isPlaying) return;
 
+    this.clearCompletedPass();
     const range = this.playRange(score);
     const from = this.anchor.score;
     this.isPlaying = true;
@@ -222,6 +262,7 @@ export class Playback {
   }
 
   stop(): void {
+    this.clearCompletedPass();
     this.pause();
     this.anchor = { audio: 0, score: this.currentLoop?.start ?? 0 };
     this.emit();
@@ -230,6 +271,7 @@ export class Playback {
   seek(time: number): void {
     const score = this.currentScore;
     if (!score) return;
+    this.clearCompletedPass();
     const range = this.playRange(score);
     const target = clamp(time, range.start, range.end);
     if (this.isPlaying) {
@@ -242,6 +284,7 @@ export class Playback {
   }
 
   setTempo(tempo: number): void {
+    this.clearCompletedPass();
     const next = clamp(tempo, MIN_TEMPO, MAX_TEMPO);
     // (A tempo set by hand stands for the passes to come too.)
     this.loopTempo = null;
@@ -312,6 +355,7 @@ export class Playback {
   setLoop(range: TimeRange | null): void {
     const score = this.currentScore;
     if (!score) return;
+    this.clearCompletedPass();
     this.currentLoop =
       range && range.end - range.start >= MIN_LOOP_LENGTH
         ? { start: clamp(range.start, 0, score.duration), end: clamp(range.end, 0, score.duration) }
@@ -357,7 +401,7 @@ export class Playback {
     for (let i = firstNoteAtOrAfter(score, position - this.longestSounding); i < notes.length; i++) {
       const note = notes[i]!;
       if (note.start >= position) break;
-      if (!this.enabledHands.has(note.hand)) continue;
+      if (!this.enabledHands.has(note.hand) || !this.isNoteSelected(i)) continue;
       const end = note.start + (this.pedalOn ? (this.sustained[i] ?? note.duration) : note.duration);
       const left = Math.min(end, this.currentLoop?.end ?? end) - position;
       if (left < MIN_RESUMED_SECONDS) continue;
@@ -401,7 +445,7 @@ export class Playback {
       while (this.nextNoteIndex < notes.length && notes[this.nextNoteIndex]!.start < horizon) {
         const index = this.nextNoteIndex++;
         const note = notes[index]!;
-        if (!this.enabledHands.has(note.hand)) continue;
+        if (!this.enabledHands.has(note.hand) || !this.isNoteSelected(index)) continue;
         const sounding = this.pedalOn ? (this.sustained[index] ?? note.duration) : note.duration;
         // A loop cuts what would sound past its end; the end of the piece lets it ring (the last pedalled chord).
         const duration = this.currentLoop ? Math.min(sounding, segmentEnd - note.start) : sounding;
@@ -449,6 +493,7 @@ export class Playback {
    * for the next pass, and the pass is counted as the loop come round (what the trainer steps by).
    */
   private endPass(): void {
+    this.completedPassTempo = this.currentTempo;
     this.halt(false);
     this.rounds++;
     if (this.loopTempo !== null) this.currentTempo = this.loopTempo;

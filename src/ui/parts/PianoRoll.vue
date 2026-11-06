@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { useTemplateRef } from 'vue';
+import { shallowRef, useTemplateRef, watch } from 'vue';
 import { EMPTY_SCORE } from '../../domain/score';
 import type { PedalMove, RollView } from '../../application/ports/RollView';
 import type { Fingering } from '../../domain/fingering/own';
 import { useAnimationFrame } from '../browser/useAnimationFrame';
 import { useDrawnView } from '../browser/useDrawnView';
 import { litHands } from '../app/litHands';
+import { usePlaybackState } from '../app/usePlaybackState';
 import { useDeps } from '../deps';
 import { useGlide } from '../motion/useGlide';
 import { useI18n } from '../i18n/useI18n';
@@ -19,6 +20,12 @@ import { useCanvasColors } from '../theme/useCanvasColors';
 const props = defineProps<{ fingers?: readonly (Fingering | null)[]; fingering?: boolean; picked?: readonly number[] }>();
 const emit = defineEmits<{ pick: [note: number] }>();
 const { playback, barLoop: loop, plan, createRoll } = useDeps();
+const state = usePlaybackState(playback);
+const isNoteEnabled = shallowRef<((index: number) => boolean) | undefined>();
+// A new predicate only when the selection changes also invalidates a paused roll's cached drawing.
+watch(() => state.value.noteSelection, (selection) => {
+  isNoteEnabled.value = selection === null ? undefined : (index) => playback.isNoteSelected(index);
+}, { immediate: true });
 const { noteLabel, t } = useI18n();
 /** The right pedal is just "Pedal": it is the one people mean. */
 const PEDAL_LABELS = {
@@ -56,6 +63,7 @@ function draw(): void {
     playing: playback.playing,
     loop: playback.loop,
     isHandEnabled,
+    isNoteEnabled: isNoteEnabled.value,
     pedalEnabled: playback.pedalEnabled,
     noteLabel,
     pedalLabel,

@@ -97,6 +97,8 @@ export class TapeStaff implements StaffView {
   /** Whether the cursor is in sight now (null: not yet said). */
   private cursorShown: boolean | null = null;
   private selection: { from: number; to: number } | null = null;
+  private activeNotes: ReadonlySet<number> | null = null;
+  private activeGraceGroups: ReadonlySet<number> | null = null;
 
   /** `colors`: the theme's, as the interface reads them (and gives anew on a switch: setColors). */
   constructor(
@@ -150,6 +152,12 @@ export class TapeStaff implements StaffView {
 
   setHandLabels(labels: Record<Hand, string>): void {
     this.handLabels = labels;
+    this.drawTape();
+  }
+
+  setActiveNotes(notes: readonly number[] | null, graceGroups: readonly number[] | null = null): void {
+    this.activeNotes = notes === null ? null : new Set(notes);
+    this.activeGraceGroups = graceGroups === null ? null : new Set(graceGroups);
     this.drawTape();
   }
 
@@ -406,7 +414,7 @@ export class TapeStaff implements StaffView {
       return;
     }
     const { geometry, ink } = this;
-    const drawing = drawTape({ score, geometry, ink }, this.layout, this.handLabels);
+    const drawing = drawTape({ score, geometry, ink, activeNotes: this.activeNotes, activeGraceGroups: this.activeGraceGroups }, this.layout, this.handLabels);
     this.surface.showTape(drawing, { chords: ink.chords, graces: this.layout.graces });
     this.sounding.set(ink.chords, this.layout.graces);
     this.drawOverlay();

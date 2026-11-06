@@ -20,7 +20,7 @@ import {
   tupletDigits,
 } from './glyphs';
 import { STEM_LENGTH, STEM_LENGTH_32ND, type ChordGeometry } from './ink';
-import { COLORS, group, noteGlyph, type GroupShape, type PathShape, type PolygonShape, type Shape, type TextShape } from './shapes';
+import { COLORS, INACTIVE_NOTE_OPACITY, group, noteGlyph, type GroupShape, type PathShape, type PolygonShape, type Shape, type TextShape } from './shapes';
 
 const LEDGER_EXTENSION = 0.4;
 const ACCIDENTAL_OFFSET = 1.3;
@@ -61,7 +61,7 @@ const TIE_OFFSET = 0.6;
  * is a single change of the group's colour. A beamed chord gets its stem end from the beam
  * and no flags.
  */
-export function drawChord({ geometry, ink }: StaffContext, index: number, handLabels: Record<Hand, string>): GroupShape {
+export function drawChord({ geometry, ink, activeNotes }: StaffContext, index: number, handLabels: Record<Hand, string>): GroupShape {
   const { space } = geometry;
   const chord = ink.chord(index);
   const beamEnd = ink.stemEnds.get(index);
@@ -90,21 +90,23 @@ export function drawChord({ geometry, ink }: StaffContext, index: number, handLa
     if (note.headless) continue;
     const y = yOf(note.step);
     const headLeft = note.displaced ? left + shift : left;
-    shapes.push(glyph(NOTEHEAD[value], headLeft, y));
+    const headShapes: TextShape[] = [glyph(NOTEHEAD[value], headLeft, y)];
     if (note.parenthesized) {
-      shapes.push(noteGlyph(size, NOTEHEAD_BRACKETS.left, headLeft - BRACKET_GAP * size, y, 'currentColor', 'end'), glyph(NOTEHEAD_BRACKETS.right, headLeft + headWidth + BRACKET_GAP * size, y));
+      headShapes.push(noteGlyph(size, NOTEHEAD_BRACKETS.left, headLeft - BRACKET_GAP * size, y, 'currentColor', 'end'), glyph(NOTEHEAD_BRACKETS.right, headLeft + headWidth + BRACKET_GAP * size, y));
     }
     // Accidentals keep clear of every head (a voice moved aside for a second keeps them left of the
     // other voice's head too); dots follow the rightmost head.
     if (note.accidental) {
       const clearOf = headsLeft - (chord.voiceShift ? headWidth : 0) - (note.parenthesized ? BRACKET_ROOM * size : 0);
-      shapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - (ACCIDENTAL_OFFSET + (note.accidentalColumn ?? 0) * ACCIDENTAL_COLUMN) * size, y));
+      headShapes.push(glyph(ACCIDENTAL_GLYPH[note.accidental], clearOf - (ACCIDENTAL_OFFSET + (note.accidentalColumn ?? 0) * ACCIDENTAL_COLUMN) * size, y));
     }
     // A dot goes in a space: for a note on a line, in the space just above (or where the engraving put it, clear of another's).
     if (dots) {
       const dotStep = note.dotStep ?? (note.step % 2 === 0 ? note.step - 1 : note.step);
-      shapes.push(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
+      headShapes.push(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
     }
+    const inactive = activeNotes && !activeNotes.has(note.writtenIndex ?? -1);
+    shapes.push(...headShapes.map((shape): TextShape => inactive ? { ...shape, fill: COLORS.note, opacity: INACTIVE_NOTE_OPACITY } : shape));
   }
 
   // "L.H." between the staves under a left-hand note on the treble staff, "R.H." above a
@@ -289,7 +291,7 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): TextShape
 const HINT_OPACITY = 0.45;
 
 /** A fingering number, centred over (or under) its chord's noteheads. */
-export function drawFingering({ geometry: { space }, ink }: StaffContext, fingering: StaffFingering): TextShape {
+export function drawFingering({ geometry: { space }, ink, activeNotes }: StaffContext, fingering: StaffFingering): TextShape {
   const { yOf, left, headWidth } = ink.of(ink.chord(fingering.chord));
   // Its foot stands on the step when above the chord; under it, the number hangs from the step.
   const y = yOf(fingering.step) + (fingering.above ? 0 : FINGERING_SIZE * space);
@@ -298,7 +300,9 @@ export function drawFingering({ geometry: { space }, ink }: StaffContext, finger
     ? noteGlyph(space, digit, left + headWidth / 2, y - 0.75 * space, 'currentColor', 'middle')
     : { kind: 'text', x: left + headWidth / 2, y, text: fingering.text, size: space * FINGERING_SIZE, font: TEXT_FONT, fill: 'currentColor', anchor: 'middle' };
   // A hint is paler than a finger the notes themselves give.
-  const number: TextShape = fingering.hint ? { ...shown, opacity: HINT_OPACITY } : shown;
+  const inactive = activeNotes && !activeNotes.has(fingering.writtenIndex ?? -1);
+  const opacity = (fingering.hint ? HINT_OPACITY : 1) * (inactive ? INACTIVE_NOTE_OPACITY : 1);
+  const number: TextShape = opacity < 1 ? { ...shown, opacity, ...(inactive ? { fill: COLORS.note } : {}) } : shown;
   // Ink of its staff: a bar number, a word or a dynamic set later keeps clear of it.
   const chord = ink.chord(fingering.chord);
   const width = Math.max(1, fingering.text.length) * FINGERING_WIDTH * space;

@@ -210,11 +210,11 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
 13. [x] A plan for learning a piece, out of what is there already: a list of steps, each with its
         own tempo. The piece in parts, by its form (repeats, voltas, changes of key and time) and
         within that by phrases of four to eight bars, taken in order; for each part the steps a
-        teacher sets: each hand slow, to the metronome alone and then to the other hand heard
-        (what one plays is shown, not heard), both hands slow, up to tempo with the trainer (by 10%),
+        teacher sets: each hand slow, then with the other hand, both hands slow, up to tempo with the trainer (by 10%),
         then joined to the parts before it; what is written out again note for note (a part, a
-        hand's line, a join) is learnt once. Each step sets what it needs (the loop on its bars, a
-        hand muted, its tempo, the trainer). A step is done after three clean passes in a row:
+        hand's line, a join) is learnt once. Each step sets what it needs (the loop on its bars,
+        its tempo, the trainer) and demonstrates the notes being learnt. A step is done after three clean passes in a row
+        (at the target tempo for tempo work):
         after each pass one marks it clean or not (a slip starts the count again), or closes the
         step by hand; the microphone will mark the passes itself (step 16). Kept with the piece.
         The trainer gets steps that go two up and one back (60, 64, 62, 66…), a choice beside its
@@ -255,17 +255,29 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         Later: other keys, contrary motion, chromatic scales and further patterns within the
         same three levels. The catalogue, session and interface are implemented; instrument
         validation remains open before treating the patterns as a finished practice routine.
-15. [ ] A piece in layers, from its bones to the whole: the melody (the right hand's top voice),
-        then the bass under it (the left hand's lowest note on the strong beats), then the left
-        hand's chords on the strong beats, then the right hand whole over a simple left hand, then
-        all of it; ornaments and grace notes only at the last. Worked out by rules in the domain,
-        as the fingering is: no trained network. First as a choice of what sounds and falls, the
-        staff showing all of it and what is not in the layer pale (what is around the layer stays
-        in sight); later, perhaps, a simpler piece written out (rests, voices and beams worked out
-        anew, which is harder). With step 13, a part is learnt layer by layer. Seen elsewhere:
-        arrangements by level, made by hand (flowkey: simpler chords and rhythm, the melody first,
-        fewer stretches); simplified scores worked out by statistics or networks, in research
-        only (Nakamura and Yoshii, 2018; Ramoneda and others, 2025)
+15. [ ] A piece in cumulative layers, fragment by fragment; rules in the domain, no trained
+        network. Start with a candidate leading line, add bass pulses, then the whole fragment;
+        additional intermediate layers only where useful. A leading line is not necessarily the
+        right hand's highest voice. Details and limitations: [layers](layers.md).
+        - [x] Written-note candidates with explicit voice override, tie closure inside a fragment,
+          omitted duplicate steps and review diagnostics; a local runner for every score in
+          `samples/`, including alternate file formats. Voice override is a domain inspection
+          option, not a control in the player.
+        - [ ] Review the musical selections across the collection; add focused expected examples
+          for the rules being corrected. Structural checks alone do not establish musical quality.
+        - [x] Link written selections to original played events through ties, repeats, ornaments
+          and graces; retain actual MIDI timing. The full local collection checks every projection.
+        - [x] First source-level review: Czardas, Moonlight and BWV 846;
+          held basses now prevent upper accompaniment being mistaken for fresh bass anchors.
+        - [x] The ordinary Learn mode starts a task automatically. Sound and falling notes agree;
+          the original staff remains readable with inactive notes pale. No layer setup or
+          technical inspection page is exposed to the learner.
+        - [x] Three clean passes prepare the next task, paused: reduced notes, bass, full fragment,
+          tempo work and joins. Old progress migrates by task meaning; returning to a piece keeps
+          the user's practice settings and manual range.
+        Later: undecorated execution, richer intermediate layers and simpler written arrangements.
+        Removing grace notes or ornaments requires restoring the underlying note's timing;
+        turning arpeggios into chords is a separate arrangement problem.
 16. [ ] Listening through the microphone. What can be heard: one note at a time, reliably (a
         pitch detector written here); whether the notes that are expected sound, chords too
         (energy at their pitches and overtones); any chord by ear, not without a trained

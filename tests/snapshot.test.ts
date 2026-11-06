@@ -23,6 +23,8 @@ function tidy(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(tidy);
   if (value && typeof value === 'object') {
     const kept = Object.entries(value)
+      // Source identities do not change the printed geometry; selection tests cover their mapping.
+      .filter(([key]) => key !== 'writtenIndex' && key !== 'graceGroup')
       .map(([key, item]) => [key, tidy(item)] as const)
       .filter(([, item]) => item !== null && item !== false && item !== undefined && !(Array.isArray(item) && item.length === 0));
     return Object.fromEntries(kept);

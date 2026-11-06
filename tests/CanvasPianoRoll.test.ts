@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { RollColors, RollFrame } from '../src/application/ports/RollView';
 import { odeToJoy } from '../src/demo/odeToJoy';
 import { CanvasPianoRoll } from '../src/infrastructure/render/CanvasPianoRoll';
+import { createScore } from '../src/domain/score';
+import { note } from './engravingScores';
 
 /* The falling notes on a canvas: what is drawn, and when nothing need be. */
 
@@ -14,6 +16,7 @@ function countedCanvas() {
   /** The settings put by with `save`, and the line width each rectangle was outlined with. */
   const saved: Record<string | symbol, unknown>[] = [];
   const outlines: unknown[] = [];
+  const tiles: unknown[] = [];
   /** The words written, each with the ink it was written in. */
   const written: { text: string; ink: unknown }[] = [];
   const context = new Proxy(settings, {
@@ -24,13 +27,14 @@ function countedCanvas() {
       if (name === 'save') return () => void saved.push({ ...settings });
       if (name === 'restore') return () => void (settings = saved.pop() ?? settings);
       if (name === 'strokeRect') return () => void outlines.push(settings.lineWidth);
+      if (name === 'roundRect') return () => void tiles.push(settings.fillStyle);
       if (name === 'fillText') return (text: string) => void written.push({ text, ink: settings.fillStyle });
       return () => void (name === 'fillRect' && drawn++);
     },
     set: (_, name, value) => ((settings[name] = value), true),
   });
   const canvas = { clientWidth: 800, clientHeight: 400, width: 0, height: 0, getContext: () => context, getBoundingClientRect: () => ({ left: 0, top: 0 }) } as unknown as HTMLCanvasElement;
-  return { canvas, drawn: () => drawn, outlines, written };
+  return { canvas, drawn: () => drawn, outlines, written, tiles };
 }
 
 const score = odeToJoy('Ode to Joy');
@@ -65,6 +69,24 @@ const frame = (position: number, more: Partial<RollFrame> = {}): RollFrame => ({
 });
 
 describe('the falling notes', () => {
+  it('shows and picks only selected events while keeping their original note indices', () => {
+    const { canvas, tiles, written } = countedCanvas();
+    const roll = new CanvasPianoRoll(canvas, PAPER);
+    const piece = createScore('two notes', [note(60, 0, 2), note(72, 0, 2)], [0]);
+    roll.render(frame(0.1, { score: piece, isNoteEnabled: (index) => index === 1 }));
+    expect(tiles).toHaveLength(1);
+    expect(written.find((label) => label.text === '60')?.ink).toBe(PAPER.keyLabel);
+    expect(written.find((label) => label.text === '72')?.ink).toBe(PAPER.onHand);
+    let rollHeight = 0;
+    while (roll.timeAt(rollHeight + 1) !== null) rollHeight++;
+    const found = new Set(Array.from({ length: 800 }, (_, x) => roll.noteAt(x, rollHeight - 0.1 / roll.secondsPerPixel!)));
+    found.delete(null);
+    expect([...found]).toEqual([1]);
+    tiles.length = 0;
+    roll.render(frame(0.1, { score: piece, isNoteEnabled: () => false }));
+    expect(tiles).toHaveLength(0);
+    expect(roll.noteAt(400, rollHeight - 0.1 / roll.secondsPerPixel!)).toBeNull();
+  });
   it('draw a frame, and do not draw it again while it would show the same', () => {
     const { canvas, drawn } = countedCanvas();
     const roll = new CanvasPianoRoll(canvas, PAPER);

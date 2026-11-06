@@ -12,6 +12,10 @@ import type { Articulation, Clef } from '../written';
 
 /** One notehead of a chord. */
 export interface StaffNote {
+  /** Identity in the original notation, retained when heads are sorted or displaced. */
+  readonly writtenIndex?: number;
+  /** Original grace-group index; engraving may join several groups at the same place. */
+  readonly graceGroup?: number;
   /** Staff step: half spaces from the top line down (see staffPosition). */
   readonly step: number;
   readonly accidental: Accidental | null;
@@ -161,6 +165,7 @@ export interface StaffOrnament {
 
 /** A fingering: the number of the finger, over or under its chord. */
 export interface StaffFingering {
+  readonly writtenIndex?: number;
   readonly chord: number;
   readonly text: string;
   readonly above: boolean;

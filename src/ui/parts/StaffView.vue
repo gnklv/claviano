@@ -25,6 +25,19 @@ const { t, locale } = useI18n();
 const props = defineProps<{ page: Score | null; fingering?: boolean; picked?: NoteOnPage | null; loops?: boolean }>();
 const emit = defineEmits<{ pick: [note: NoteOnPage] }>();
 const page = computed(() => props.page);
+const activeNotes = computed(() => {
+  const selection = state.value.noteSelection;
+  if (selection === null) return { notes: null, graces: null };
+  const notes = new Set<number>();
+  const graces = new Set<number>();
+  for (const index of selection) {
+    for (const source of state.value.score?.notes[index]?.sources ?? []) {
+      if (source.kind === 'note') notes.add(source.index);
+      else graces.add(source.group);
+    }
+  }
+  return { notes: [...notes], graces: [...graces] };
+});
 watch(
   () => props.picked,
   (note) => staff.view?.setPicked(note ?? null),
@@ -37,12 +50,14 @@ const staff = useDrawnView(container, (element): StaffView => {
   const made = createStaff(element, colors());
   made.setHandLabels(handLabels());
   made.setScore(page.value);
+  made.setActiveNotes(activeNotes.value.notes, activeNotes.value.graces);
   made.setLoop(state.value.loop);
   return made;
 });
 
 // The tape is rebuilt only when the score or the loop changes…
 watch(page, (score) => staff.view?.setScore(score));
+watch(activeNotes, (active) => staff.view?.setActiveNotes(active.notes, active.graces));
 watch(
   () => state.value.loop,
   (loop) => staff.view?.setLoop(loop),

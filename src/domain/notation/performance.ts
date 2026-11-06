@@ -1,4 +1,4 @@
-import type { Hand, Note } from '../note';
+import type { Hand, Note, NoteSource } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
 import { createScore, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
 import { firstAtOrAfter, lastAtOrBefore } from '../search';
@@ -32,6 +32,7 @@ const DEFAULT_DYNAMICS = 80;
 
 /** A note as it sounds within its printed bar, before the bars are put in playing order. */
 interface Sound {
+  sources: readonly NoteSource[];
   pitch: number;
   staff: number;
   beat: number;
@@ -65,6 +66,7 @@ interface Measure {
 }
 
 interface PendingNote {
+  sources: readonly NoteSource[];
   pitch: number;
   beat: number;
   beats: number;
@@ -92,16 +94,17 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
   // Grace notes: when each sounds, and how much later the note it leads to comes in.
   const graceSounds: GraceSound[] = [];
   const delays = new Map<number, number>();
-  for (const group of notation.graces) {
+  for (const [groupIndex, group] of notation.graces.entries()) {
     const to = group.leadsTo === null ? null : notation.notes[group.leadsTo];
     const count = group.notes.filter((grace) => !grace.chord).length;
     const timing = graceTiming({ count, slash: group.notes[0]?.slash ?? false }, to ? { beats: to.beats, dotted: to.duration.dots > 0 } : null, group.beat);
     if (group.leadsTo !== null) delays.set(group.leadsTo, timing.delay);
     graceSounds.push({ beat: timing.start, each: timing.each });
     let slot = -1;
-    for (const grace of group.notes) {
+    for (const [index, grace] of group.notes.entries()) {
       if (!grace.chord || slot < 0) slot++;
       measures[group.bar]!.sounds.push({
+        sources: [{ kind: 'grace', group: groupIndex, index }],
         pitch: grace.sounding,
         staff: grace.staff,
         beat: timing.start + slot * timing.each,
@@ -144,6 +147,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
     pieces.forEach((piece, i) => {
       const last = i === pieces.length - 1;
       measures[note.bar]!.sounds.push({
+        sources: [{ kind: 'note', index }],
         pitch: piece.pitch,
         staff: note.staff,
         beat: beat + piece.offset,
@@ -195,6 +199,7 @@ export function performNotation(notation: Notation, pace: PaceDepths = PACE_DEPT
         beats: n.beats,
         velocity: n.velocity,
         hand: n.hand,
+        sources: n.sources,
       }),
     ),
     performance.barBeats.map(performance.toSeconds),
@@ -310,10 +315,15 @@ function perform(measures: readonly Measure[]) {
       if (continued) {
         // The second half of a tie: the note keeps sounding, so lengthen the first one.
         continued.beats = beat + sound.beats - continued.beat;
+        // A repeat reuses the written sounds, so each played tie owns a fresh union.
+        continued.sources = [...new Map([...continued.sources, ...sound.sources].map((source) => [
+          source.kind === 'note' ? `note:${source.index}` : `grace:${source.group}:${source.index}`, source,
+        ])).values()];
         if (!sound.tieStart) openTies.delete(tieKey);
         continue;
       }
       const note: PendingNote = {
+        sources: [...sound.sources],
         pitch: sound.pitch,
         beat,
         beats: sound.beats,
