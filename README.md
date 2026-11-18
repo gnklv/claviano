@@ -17,6 +17,9 @@ npm test
 npm run build
 ```
 
+To enable the pre-push hook in a new clone, run `git config --local core.hooksPath .githooks`.
+Before each push it runs `npm run check` (lint, tests, type checking and a production build).
+
 Every push to `master` runs the tests, builds and deploys to GitHub Pages
 (`.github/workflows/deploy.yml`).
 
