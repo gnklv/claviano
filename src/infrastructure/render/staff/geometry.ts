@@ -19,7 +19,7 @@ const SYSTEM_HEIGHT = 2 * (LINES_PER_STAFF - 1) + STAFF_GAP;
  * line (it stands a little over two spaces up) and a ledger line under the bottom one. What a piece
  * has further out, its notes, words, dynamics and pedal, it has room for by itself (see setScore's
  * reach). Five spaces once, two fifths of the height whatever the piece: three, measured against
- * the Ode, the showcase holding nothing cut off (tests/staffInSight.test.ts).
+ * the Ode, the showcase holding nothing cut off (tests/infrastructure/render/staffInSight.test.ts).
  */
 const ROOM_BEYOND = 3;
 const MIN_SPACE_PX = 6;

@@ -63,7 +63,7 @@ Implemented.
 - `src/domain/exercises/warmup.ts`: a deterministic sequence for a level and 5, 10 or 15 minutes.
   Separate hands receive equal repetitions. Allocation changes the repetitions, not the level;
   estimates are calculated from the generated scores, with no invented transition allowance.
-- `tests/exercises.test.ts` and `tests/warmup.test.ts`: musical examples and all level/time pairs.
+- `tests/domain/exercises/exercises.test.ts` and `tests/domain/exercises/warmup.test.ts`: musical examples and all level/time pairs.
   Check fingers, hand separation, sounding and written time, rests and durations, plus invalid
   choices. Write and observe the failing tests before implementing each behaviour.
 
@@ -89,7 +89,7 @@ window.claviano.warmup.restart();
 
 The implementation covers:
 
-- `src/application/use-cases/WarmupSession.ts` and `tests/WarmupSession.test.ts`: start,
+- `src/application/use-cases/WarmupSession.ts` and `tests/application/practice/WarmupSession.test.ts`: start,
   current task, recommended passes, next, finish, leave and resume. Keep state per instance.
 - Ready-made scores integrated with `OpenScore`, `Library` and `Playback` through explicit
   opening/cancellation contracts. Cancel pending file/demo openings. Generated scores are not

@@ -19,11 +19,11 @@ The local scores below are examples from the working copy’s `samples/` folder.
 
 | Feature | Example outside the showcase |
 | --- | --- |
-| Hidden pitched notes | Moonlight Sonata bar 37 and Golden Brown bar 49. Showcase bar 23 hides a rest. The [clefs and pedals suite](../tests/musicXmlClefsAndPedals.test.ts) checks that a hidden pitched note still sounds. |
+| Hidden pitched notes | Moonlight Sonata bar 37 and Golden Brown bar 49. Showcase bar 23 hides a rest. The [clefs and pedals suite](../tests/infrastructure/musicxml/musicXmlClefsAndPedals.test.ts) checks that a hidden pitched note still sounds. |
 | More dynamics and changes written as words | Moonlight Sonata starts pp and has `cresc.` in bar 25 and `dim.` in bar 27. Still D.R.E. has sf in bar 37. Showcase bars 3 and 5 demonstrate hairpins, with p and f in bars 12 and 13. |
-| More metres and tempo words | Für Elise opens in 3/8, The Pink Panther in 12/8, and the showcase now includes the same 6/8 to 7/8 change heard in Golden Brown at bar 2. Merry-Go-Round of Life opens in 3/4 and has `accel.` in bar 101. The [pace suite](../tests/pace.test.ts) covers accelerando and Tempo I. |
-| D.C. and Fine | The [MusicXML navigation suite](../tests/musicXmlRepeatsAndWords.test.ts) checks a D.C. al Fine performance. The showcase uses D.S. al Coda. |
-| More ornament and register cases | The [ornament suite](../tests/ornaments.test.ts) covers the inverted turn. The [piano sample set](../public/piano/manifest.json) reaches C8. The showcase’s highest sounding note is A6. |
+| More metres and tempo words | Für Elise opens in 3/8, The Pink Panther in 12/8, and the showcase now includes the same 6/8 to 7/8 change heard in Golden Brown at bar 2. Merry-Go-Round of Life opens in 3/4 and has `accel.` in bar 101. The [pace suite](../tests/domain/notation/pace.test.ts) covers accelerando and Tempo I. |
+| D.C. and Fine | The [MusicXML navigation suite](../tests/infrastructure/musicxml/musicXmlRepeatsAndWords.test.ts) checks a D.C. al Fine performance. The showcase uses D.S. al Coda. |
+| More ornament and register cases | The [ornament suite](../tests/domain/notation/ornaments.test.ts) covers the inverted turn. The [piano sample set](../public/piano/manifest.json) reaches C8. The showcase’s highest sounding note is A6. |
 
 ## Limits visible in the import and engraving code
 
@@ -80,5 +80,5 @@ digest stored in the PDF so that the two cannot silently get out of sync.
 Run `npm run showcase` after editing the generator. This rewrites the bundled MusicXML. The command below runs the focused suites and snapshots.
 
 ```sh
-npm test -- --run tests/showcase.test.ts tests/showcasePlaying.test.ts tests/showcaseChanges.test.ts tests/snapshot.test.ts
+npm test -- --run tests/showcase/showcase.test.ts tests/showcase/showcasePlaying.test.ts tests/showcase/showcaseChanges.test.ts tests/showcase/snapshot.test.ts
 ```

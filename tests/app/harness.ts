@@ -35,7 +35,7 @@ import { depsKey } from '../../src/ui/deps';
 import { rereadPreferences } from '../../src/ui/kept/preferences';
 import { listenForInstall } from '../../src/ui/browser/useInstall';
 import { startTheme } from '../../src/ui/theme/useTheme';
-import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from '../fakes';
+import { FakeAudio, FakeInstrument, FakePieceShelf, FakeTicker, fakeView } from '../support/fakes';
 
 /*
  * The app as a whole, for its tests: mounted with stand-ins for sound, drawing and storage, started

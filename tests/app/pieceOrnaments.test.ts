@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { attributes, note, score } from '../musicXmlScore';
+import { attributes, note, score } from '../support/musicXmlScore';
 import { audio, drop, learn, plan, playback, root, settled, turnIntoPhone, useApp, way } from './harness';
 
 useApp();

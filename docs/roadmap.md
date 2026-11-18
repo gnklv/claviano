@@ -203,7 +203,7 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         - [x] both compared on an iPhone, chosen in the address (a headless Chrome, slowed, found no
           long frame with either: the freezes were Safari's): on the canvas the small freezes are
           gone. The SVG renderer is gone with them; the staff's tests read the shapes it hands a
-          surface that keeps them (`tests/drawnStaff.ts`), and so do its reference drawings
+          surface that keeps them (`tests/infrastructure/render/drawnStaff.ts`), and so do its reference drawings
 12. [ ] The library saved out as one file and read back in: the pieces and what is remembered of
         each. A copy against the browser clearing its storage, and the way from a phone to a
         computer (there is no server)

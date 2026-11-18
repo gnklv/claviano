@@ -1,0 +1,167 @@
+// @vitest-environment happy-dom
+/// <reference types="node" />
+import { describe, expect, it } from 'vitest';
+import { pitch } from '../../src/domain/pitch';
+import { barNumber, hasPickup, writtenBarNumber } from '../../src/domain/score';
+import { chordsIn, layout, score } from './showcaseScore';
+
+/**
+ * End-to-end check on the showcase score (public/demos/showcase.musicxml, built by
+ * scripts/showcase.ts): it is parsed and laid out, and every feature it demonstrates shows up.
+ * The notes and rests here; the ways of playing and the pedals in showcasePlaying.test.ts.
+ */
+
+describe('showcase score', () => {
+  it('opens with a pickup and numbers bars 0–35', () => {
+    expect(score.title).toBe('Claviano showcase');
+    expect(hasPickup(score)).toBe(true);
+    expect(barNumber(score, 0)).toBe(0);
+    expect(writtenBarNumber(score, score.notation.bars.length - 1)).toBe(35);
+  });
+
+  it('has every note value, dotted ones and ledger lines', () => {
+    const values = new Set(layout.chords.map((c) => c.duration.value));
+    expect([...values].sort()).toEqual(['eighth', 'half', 'quarter', 'sixteenth', 'thirtySecond', 'whole']);
+    expect(layout.chords.some((c) => c.duration.dots === 1)).toBe(true);
+    expect(chordsIn(1)[0].ledgerSteps.length).toBeGreaterThan(0); // Do6 above the staff
+    expect(chordsIn(1, 'bass')[0].ledgerSteps.length).toBeGreaterThan(0); // Do2 below the staff
+  });
+
+  it('beams as written, up to three levels', () => {
+    const thirtySeconds = chordsIn(2).filter((c) => c.duration.value === 'thirtySecond');
+    expect(thirtySeconds).toHaveLength(8);
+    const beam = thirtySeconds[0].beam;
+    expect(beam).not.toBeNull();
+    expect(thirtySeconds.every((c) => c.beam === beam)).toBe(true);
+  });
+
+  it('keeps the four eighths of bar 33 under one beam across both staves', () => {
+    const chords = [...chordsIn(33, 'bass'), ...chordsIn(33)].filter((c) => c.duration.value === 'eighth');
+    const [first] = chords;
+    expect(first.beam).not.toBeNull();
+    const joined = layout.beams[first.beam!].chords.map((i) => layout.chords[i]);
+    expect(joined).toEqual(chords);
+    expect(joined.map((c) => [c.staff, c.stemUp])).toEqual([
+      ['bass', true],
+      ['bass', true],
+      ['treble', false],
+      ['treble', false],
+    ]);
+  });
+
+  it('keeps both dots and the full duration of the note and rest in bars 34–35', () => {
+    const start = score.notation.bars[34].start;
+    const [half] = chordsIn(35, 'bass');
+    expect(layout.rests.find((r) => r.beat === start && r.staff === 'treble')?.duration).toEqual({ value: 'eighth', dots: 2 });
+    expect(chordsIn(34)[0].beat - start).toBeCloseTo(0.875);
+    expect(half.duration).toEqual({ value: 'half', dots: 2 });
+    const played = score.barBeats[score.barWritten.indexOf(35)];
+    expect(score.notes.find((n) => n.hand === 'left' && n.beat === played)?.beats).toBeCloseTo(3.5);
+  });
+
+  it('prints the accidentals of bar 4 as written', () => {
+    expect(chordsIn(4).map((c) => c.notes[0].accidental)).toEqual([
+      'sharp',
+      null,
+      'natural',
+      'flat',
+      'natural',
+      'double-sharp',
+      'double-flat',
+      'natural',
+    ]);
+  });
+
+  it('shows the tuplets of bar 5: numbers, a hidden one, a quintuplet and a bracket', () => {
+    const inBar5 = layout.tuplets.filter((t) => barNumber(score, layout.chords[t.chords[0]].bar) === 5);
+    const summary = inBar5.map((t) => [t.number, t.showNumber, t.bracket]).sort();
+    expect(summary).toEqual([
+      [3, false, false], // hidden number
+      [3, true, false], // beamed triplet
+      [3, true, true], // quarter triplet in the bass, with a bracket
+      [5, true, false], // quintuplet
+    ]);
+  });
+
+  it('writes two voices with opposite stems in bar 6, and a whole-bar rest below', () => {
+    const [upper] = chordsIn(6).filter((c) => c.notes.length === 3);
+    const lower = chordsIn(6).filter((c) => c.notes.length === 1);
+    expect(upper.stemUp).toBe(true);
+    expect(lower.every((c) => !c.stemUp)).toBe(true);
+    const wholeBar = layout.rests.find((r) => r.staff === 'bass' && r.duration.value === 'whole');
+    expect(wholeBar).toBeDefined();
+  });
+
+  it('moves the up-stem voice right where the voices of bar 6 meet a second apart', () => {
+    const upper = chordsIn(6).filter((c) => c.stemUp);
+    expect(upper.map((c) => !!c.voiceShift)).toEqual([false, true]); // Re5 (with Fa5 Si5) over Do5
+    expect(chordsIn(6).filter((c) => !c.stemUp).every((c) => !c.voiceShift)).toBe(true);
+  });
+
+  it('has rests of every value', () => {
+    const values = new Set(layout.rests.map((r) => r.duration.value));
+    expect(values).toEqual(new Set(['whole', 'half', 'quarter', 'eighth', 'sixteenth', 'thirtySecond']));
+  });
+
+  it('ties notes across a bar line and in a chord, above and below', () => {
+    expect(layout.ties).toHaveLength(4);
+    const chordTies = layout.ties.filter((t) => layout.chords[t.from].notes.length === 2);
+    expect(chordTies.map((t) => t.above).sort()).toEqual([false, true]);
+    // Sounding: the tied Sol4 is one note of 2 + 2 + 1 quarters.
+    const sol = score.notes.find((n) => n.pitch === pitch('Sol', 4) && n.beats === 5);
+    expect(sol).toBeDefined();
+  });
+
+  it('changes key, metre, clef, tempo and loudness along the way', () => {
+    expect(score.notation.keySignatures.map((k) => k.fifths)).toEqual([0, -3, 2]);
+    expect(score.notation.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4', '6/8', '7/8']);
+    expect(score.notation.clefs.filter((c) => c.staff === 2 && c.beat < score.notation.bars[24].start).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
+    // Bars 10 and 12 are both 6/8, but bar 12 is at 60 instead of 90, so it lasts longer.
+    // (With the pickup, a bar's index equals its printed number.)
+    const seconds = (bar: number) => score.bars[bar + 1] - score.bars[bar];
+    expect(seconds(12)).toBeCloseTo(seconds(10) * 1.5);
+    const quiet = score.notes.find((n) => n.pitch === pitch('Sib', 4) && n.beats === 3)!;
+    const loud = score.notes.find((n) => n.pitch === pitch('La', 6))!;
+    expect(loud.velocity).toBeGreaterThan(quiet.velocity);
+  });
+
+  it('spans from La0 to La6, wide enough for the keyboard to scroll on a phone', () => {
+    const pitches = score.notes.map((n) => n.pitch);
+    expect(Math.min(...pitches)).toBe(pitch('La', 0));
+    expect(Math.max(...pitches)).toBe(pitch('La', 6));
+  });
+
+  it('places articulations away from the stems, stacking several outward', () => {
+    const marksIn = (number: number, staff: 'treble' | 'bass') =>
+      layout.marks.filter((m) => layout.chords[m.chord].staff === staff && barNumber(score, layout.chords[m.chord].bar) === number);
+    const upper = marksIn(14, 'treble');
+    expect(upper.map((m) => m.kind)).toEqual(['staccato', 'tenuto', 'accent', 'marcato']);
+    expect(upper.every((m) => m.above)).toBe(true); // stems down
+    const lower = marksIn(14, 'bass');
+    expect(lower.every((m) => !m.above)).toBe(true); // stems up
+    const stacked = lower.filter((m) => m.chord === lower.find((x) => x.kind === 'accent')!.chord);
+    expect(stacked.map((m) => m.kind)).toEqual(['staccato', 'accent']);
+    expect(stacked[1].step).toBeGreaterThan(stacked[0].step); // the accent further out (below)
+  });
+
+  it('draws fermatas over and, inverted, under', () => {
+    const fermatas = layout.marks.filter((m) => m.kind === 'fermata');
+    expect(fermatas.map((m) => m.above).sort()).toEqual([false, true, true]);
+  });
+
+  it('draws slurs above a leaping melody and below the bass, across the bar line', () => {
+    expect(layout.slurs).toHaveLength(2);
+    const [upper, lower] = [...layout.slurs].sort((a, b) => Number(b.above) - Number(a.above));
+    expect(upper.above).toBe(true);
+    expect(upper.between).toHaveLength(2);
+    expect(lower.above).toBe(false);
+    expect(barNumber(score, layout.chords[lower.to].bar)).toBe(16);
+  });
+
+  it('makes staccato sound shorter and accents louder', () => {
+    const inBar14 = score.notes.filter((n) => n.hand === 'right' && n.beat >= score.barBeats[14] && n.beat < score.barBeats[15]);
+    const [staccato, tenuto, accent] = inBar14;
+    expect(staccato.duration).toBeCloseTo(tenuto.duration / 2);
+    expect(accent.velocity).toBeGreaterThan(tenuto.velocity);
+  });
+});

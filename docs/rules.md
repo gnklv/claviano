@@ -48,14 +48,14 @@ copy of something written a month before.
   kept choices (`preference`) it may use. A part of a screen (`ui/parts`) reaches the app: a use
   case, a view drawn through a port. A component goes where it belongs as it changes: one that comes
   to ask for the deps moves to the parts, in that commit, and back. Being used on two screens does
-  not make a part a building component. (A test holds this: `tests/uiParts.test.ts`.)
+  not make a part a building component. (A test holds this: `tests/ui/style/uiParts.test.ts`.)
 - **A component's look is its own.** What holds it says where it stands (its place in a grid or a
   row, the room outside it, its width), and nothing else: not its padding, its colour, its type, its
   corners. What a place needs of it otherwise, it asks for by name, a prop or a slot (a button a
   pill, a sign of one's own in a chip). So a style does not reach into another component (no
   `:deep`), nor name its insides (`.button`, `.words`). (The piece's header had its padding set
   from outside, by the screen: the header could no longer say how it is spaced.) A test holds
-  this: `tests/uiStyling.test.ts`.
+  this: `tests/ui/style/uiStyling.test.ts`.
 - **A use case is mirrored into a component by one helper** (a snapshot, refreshed on its
   `onChange`), not by a composable written anew for each.
 - **Behaviour that appears twice becomes a component or a composable** before the second copy is
@@ -88,7 +88,7 @@ are in [design.md](design.md); these are the ones most easily broken:
 - **Under a finger, everything pressable is 44 px at the least.**
 - **Seen by everyone**: the hands' inks stand at 3:1 against the page, the quiet ink at 4.5:1, in
   both themes; what the keys reach is ringed in ink, one ring for all. Tests hold both
-  (`tests/uiContrast.test.ts`, `tests/uiFocus.test.ts`).
+  (`tests/ui/style/uiContrast.test.ts`, `tests/ui/style/uiFocus.test.ts`).
 - **The interface is built of the components** (`AppButton`, `ToggleChip`, `SegmentedControl`,
   `AppSlider`, `TextField`, `PieceTile`, `ActionTile`, `ScreenHeader`, `SectionHeading`,
   `AppNotice`, `SettingRow`, `SheetDialog`, `PopOver`, `PanelControl`, `MenuList`, `AppIcon`): a
@@ -103,7 +103,7 @@ are in [design.md](design.md); these are the ones most easily broken:
 
 - **What nothing uses is deleted in the commit that stops using it.** Not left "for later".
 - **A feature of notation has its bars in the showcase** (`scripts/showcase.ts`) and its checks in
-  the `tests/showcase*.test.ts` files (notes and rests; ways of playing and pedals; changes along
+  the `tests/showcase/*.test.ts` files (notes and rests; ways of playing and pedals; changes along
   the way).
 - **Comments say why**, in the words of the subject (music, the hand, the page), not what the next
   line does.
@@ -117,7 +117,7 @@ are in [design.md](design.md); these are the ones most easily broken:
 - **By behaviour, in the words of the user**: what the thing does, not how it is built.
 - **One file a screen** for the app's tests (`tests/app`), on a shared harness
   (`tests/app/harness.ts`); a test file past a few hundred lines is split.
-- **Stand-ins for the ports live in `tests/fakes.ts`**, one of each.
+- **Stand-ins for the ports live in `tests/support/fakes.ts`**, one of each.
 - **Nothing is left over from one test to the next**: storage, the address, module state.
 - A test that waits on time uses a clock set by hand, not a real delay.
 

@@ -29,10 +29,10 @@ key/time/clef/tempo/dynamics changes, hairpins, a wide range, articulations, fer
 pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda. See the
 [coverage audit](docs/showcase-coverage.md) for examples and gaps. It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
-the `tests/showcase*.test.ts` files. When you add a feature, add a bar to the showcase.
+the `tests/showcase/*.test.ts` files. When you add a feature, add a bar to the showcase.
 
-**Reference copies.** `tests/snapshots/` holds what the showcase comes out as: its score (notes as
-played and as written) and its engraving, one line per note, chord or mark. `tests/snapshot.test.ts`
+**Reference copies.** `tests/showcase/snapshots/` holds what the showcase comes out as: its score (notes as
+played and as written) and its engraving, one line per note, chord or mark. `tests/showcase/snapshot.test.ts`
 compares against them, so any change in reading, playing or engraving shows up line by line. A
 change that is meant is accepted with `npm run test:accept`, and the commit shows what changed.
 
@@ -222,9 +222,19 @@ src/
                        the canvases (the staff, the falling notes) read them anew on a switch.
   demo/              Built-in "Ode to Joy" for trying the player without a file.
   main.ts            Composition root.
-tests/               By behaviour: use cases with the ports' stand-ins (fakes.ts), parsers with
-                     hand-built files, the screens through a shared harness (app/).
+tests/
+  domain/            Musical rules, notation, fingering and practice.
+  application/       Use cases for playback, the library and practice sessions.
+  infrastructure/    File formats, audio, rendering and offline support.
+  ui/                UI utilities and design rules.
+  app/               User journeys through the mounted app.
+  showcase/          Reference score, end-to-end comparisons and snapshots.
+  scripts/           Project command-line tools.
+  fixtures/          Shared input files.
+  support/           Helpers shared across suites, including fake ports.
 ```
+
+Pass a directory to run one area, for example `npm test -- --run tests/infrastructure/pdf`.
 
 Playback schedules notes ~200 ms ahead on the Web Audio clock, so timing does not depend on
 timer jitter; the view only reads `playback.position` each frame.

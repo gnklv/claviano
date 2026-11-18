@@ -41,7 +41,7 @@ component names the token; it never writes a colour.
 - **Seen, and read, against what they stand on**, in both themes: the hands' inks are graphics (a
   tile, a line, a lit key) and stand at 3:1 at the least against the page and a panel; the quiet ink
   is small words and stands at 4.5:1. (The light theme's sepia was 2.9:1, and was darkened.) A test
-  holds this: `tests/uiContrast.test.ts`, reading the themes from `ui/styles.css`.
+  holds this: `tests/ui/style/uiContrast.test.ts`, reading the themes from `ui/styles.css`.
 - **No blue of a system.** A slider, a field's edge, a selection: each is drawn here, in the
   palette. What a browser would paint in its own colour is restyled.
 - The music's own colours (the staff's ink, the cursor, the pedal, the keys) are tokens too, lower in
@@ -75,12 +75,12 @@ component names the token; it never writes a colour.
   one row of controls: 2 between all of them, groups or not, every one showing its edge (none
   quiet). In the bars along the bottom of a screen (the transport, the step over it) every button
   is a pill, as the chips are: asked for (`AppButton`'s `pill`), not set from outside. No space is
-  written in pixels: a test holds this (`tests/uiSpacing.test.ts`), allowing a number only beside a token in a
+  written in pixels: a test holds this (`tests/ui/style/uiSpacing.test.ts`), allowing a number only beside a token in a
   `calc()` (an edge's pixel taken off).
 - **Sizes are tokens too**, each with its reason beside it in `ui/styles.css`: an edge (`--edge`,
   a hairline), the line a mark is drawn with (`--stroke`), a dot, a tile's sign, a tile's height,
   a menu's width, the column of reading. No width, height, shadow or edge is written in pixels in
-  a component: a test holds this (`tests/uiSizing.test.ts`), with the same allowance in a `calc()`.
+  a component: a test holds this (`tests/ui/style/uiSizing.test.ts`), with the same allowance in a `calc()`.
   What is read out but not seen is one class for all, `.unseen`.
 - **A pop-up stands inside the screen**, clear of its sides by 4: moved along its button's row as far
   as it must.
@@ -115,7 +115,7 @@ What the keys of the computer have reached is ringed, and all of it alike: in in
 finger or the mouse. One rule for everything in `ui/styles.css`; a component whose own box would
 cut the ring off draws it inside itself (segments, a menu's rows), one whose real control is hidden
 rings itself (the tile that chooses a file). The system's own ring is nowhere, and no outline is
-taken away: a test holds this (`tests/uiFocus.test.ts`). Not the accent: that is the main action's.
+taken away: a test holds this (`tests/ui/style/uiFocus.test.ts`). Not the accent: that is the main action's.
 
 ## Icons
 
