@@ -13,6 +13,8 @@ const ERROR_MESSAGES: Record<OpenFailure['reason'], MessageKey> = {
   'unsupported-format': 'errorUnsupportedFormat',
   'invalid-file': 'errorInvalidFile',
   'unsupported-feature': 'errorUnsupportedFeature',
+  'unsupported-pdf': 'errorUnsupportedPdf',
+  'incomplete-score': 'errorIncompleteScore',
   unknown: 'errorUnknown',
 };
 
@@ -36,7 +38,7 @@ export function usePieceText(
     const { failure } = opened.value;
     if (!failure) return null;
     const file = 'file' in failure.source ? failure.source.file : demoTitle(failure.source.demo.id);
-    return t('openError', { file, reason: t(ERROR_MESSAGES[failure.reason]) });
+    return t('openError', { file, reason: t(ERROR_MESSAGES[failure.reason], failure.page ? { page: failure.page } : {}) });
   });
 
   const title = computed(() => {

@@ -3,7 +3,7 @@ import type { BarNavigation } from '../../../domain/notation/navigation';
 import { isWords, type WordsMark } from '../../../domain/notation/words';
 import { softPedalWords, type PedalKind, type PedalMark } from '../../../domain/pedal';
 import type { TempoMark } from '../../../domain/score';
-import { NOTE_TYPES } from './notes';
+import { augmentationDots, NOTE_TYPES } from './notes';
 import { childNumber, childText } from './xml';
 
 /* What a <direction> or a <sound> says: repeats and jumps, dynamics, the metronome mark, pedals. */
@@ -39,7 +39,7 @@ export function readNavigation(element: Element, sound: Element | null | undefin
  */
 export function readWords(direction: Element, sound: Element | null | undefined, beat: number, isJump: boolean): WordsMark[] {
   if (isJump) return [];
-  const below = direction.getAttribute('placement') === 'below';
+  const placement = direction.getAttribute('placement');
   const setsTempo = Number(sound?.getAttribute('tempo')) > 0;
   return [...direction.querySelectorAll(':scope > direction-type > words')].flatMap((words) => {
     const text = words.textContent?.replace(/\s+/g, ' ').trim() ?? '';
@@ -47,6 +47,9 @@ export function readWords(direction: Element, sound: Element | null | undefined,
     // Bold is a tempo; so are plain words that set one ("Adagio"), unless the file prints them as something else.
     const weight = words.getAttribute('font-weight');
     const plain = weight === null && words.getAttribute('font-style') !== 'italic';
+    // The top line is at zero and the bottom line of a piano staff is at -40 tenths.
+    const y = Number(words.getAttribute('default-y')) + Number(words.getAttribute('relative-y'));
+    const below = placement === 'below' || (!placement && words.hasAttribute('default-y') && y < -40);
     return [{ beat, text, tempo: weight === 'bold' || (setsTempo && plain), below }];
   });
 }
@@ -102,7 +105,7 @@ export function metronomeMark(direction: Element, beat: number): TempoMark | nul
   // Sometimes "c. 60" or "60-66": the first number is the one to show.
   const perMinute = parseFloat((childText(metronome, 'per-minute') ?? '').replace(/^[^\d]*/, ''));
   if (!value || !(perMinute > 0)) return null;
-  const dots = metronome.querySelector(':scope > beat-unit-dot') ? 1 : 0;
+  const dots = augmentationDots(metronome, 'beat-unit-dot');
   return { beat, unit: { value, dots }, perMinute: Math.round(perMinute) };
 }
 

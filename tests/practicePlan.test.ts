@@ -26,7 +26,7 @@ describe('a piece in parts', () => {
   });
 
   it('cuts by the form first, a pickup with the first part, a bar or two of a section with the one before', () => {
-    expect(bars(showcase())).toEqual(['0–4', '5–9', '10–12', '13–16', '17–20', '21–24', '25–28', '29–32']);
+    expect(bars(showcase())).toEqual(['0–4', '5–9', '10–12', '13–16', '17–20', '21–24', '25–28', '29–32', '33–35']);
   });
 });
 
@@ -74,7 +74,7 @@ describe('the steps for learning it', () => {
 
   it('ends with the whole piece where the last join is not it', () => {
     const steps = planOf(showcase());
-    expect(steps.at(-1)).toMatchObject({ kind: 'whole', from: 0, to: 32, tempo: AT_TEMPO });
+    expect(steps.at(-1)).toMatchObject({ kind: 'whole', from: 0, to: 35, tempo: AT_TEMPO });
   });
 });
 

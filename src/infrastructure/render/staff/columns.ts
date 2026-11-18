@@ -51,7 +51,7 @@ export function columnsOf(score: Score, layout: NotationLayout): Column[][] {
   }
   for (const rest of layout.rests) {
     const bar = barAtBeat(score, rest.beat);
-    bars[bar]?.push({ at: share(bar, rest.beat), before: 0, after: REST });
+    bars[bar]?.push({ at: share(bar, rest.beat), before: 0, after: REST + rest.duration.dots * DOT });
   }
   return bars;
 }

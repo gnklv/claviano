@@ -32,7 +32,7 @@ const written = useFrameValue(() => {
 /** The tempo the music is played at now, the setting applied: 45 at 50% of a written 90. None without a tempo mark. */
 const mark = computed<TempoReading | null>(() => {
   const at = written.value;
-  return at ? { unit: at.unit.value, dotted: at.unit.dots > 0, perMinute: Math.round(at.perMinute * state.value.tempo) } : null;
+  return at ? { unit: at.unit.value, dots: at.unit.dots, perMinute: Math.round(at.perMinute * state.value.tempo) } : null;
 });
 
 </script>

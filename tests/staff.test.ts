@@ -5,9 +5,10 @@ import { engrave } from '../src/domain/notation/engraving';
 import { scoreFromTake } from '../src/domain/notation/recording';
 import { transcribed } from '../src/domain/notation/transcription';
 import { barRange, createScore, EMPTY_SCORE, secondsAtBeat } from '../src/domain/score';
-import { timeDigits } from '../src/infrastructure/render/staff/glyphs';
+import { AUGMENTATION_DOT, REST, timeDigits } from '../src/infrastructure/render/staff/glyphs';
 import type { LineShape } from '../src/infrastructure/render/staff/shapes';
 import { drawStaff, everything, flat, lit, shaded, texts } from './drawnStaff';
+import { attributes, note, parser, score as musicXml } from './musicXmlScore';
 import { ode, showcase, sounding } from './staffPieces';
 
 /*
@@ -44,6 +45,17 @@ describe('the staff', () => {
     // (On each staff.)
     expect(digits(blank)).toHaveLength(2);
     expect(digits(EMPTY_SCORE)).toEqual([]);
+  });
+
+  it('places both dots of a whole rest below the line it hangs from', () => {
+    const xml = musicXml(`<measure number="1">${attributes(1, 0, 8)}
+      <note><rest/><duration>7</duration><type>whole</type><dot/><dot/></note>
+      ${note('C', 4, 1)}</measure>`);
+    const shapes = texts(drawStaff(parser.parse(xml, 'Whole rest')).shown);
+    const whole = shapes.find((shape) => shape.text === REST.whole)!;
+    const dots = shapes.filter((shape) => shape.text === AUGMENTATION_DOT);
+    expect(dots).toHaveLength(2);
+    for (const dot of dots) expect(dot.y).toBeGreaterThan(whole.y);
   });
 
   it('draws every piece it is given anew', () => {

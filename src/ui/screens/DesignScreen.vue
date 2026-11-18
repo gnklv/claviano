@@ -111,7 +111,7 @@ const finger = ref('');
         </li>
       </ul>
       <p class="about">A tempo written as in the music: its note in the music font, as on the staff.</p>
-      <p><TempoMark unit="quarter" :dotted="false" :per-minute="90" /> · <TempoMark unit="eighth" :dotted="true" :per-minute="60" /></p>
+      <p><TempoMark unit="quarter" :dots="0" :per-minute="90" /> · <TempoMark unit="eighth" :dots="1" :per-minute="60" /></p>
 
       <SectionHeading>Buttons</SectionHeading>
       <p class="about">One primary button on a screen: its main action. A quiet one stands over something else. An icon alone carries a name for a screen reader.</p>

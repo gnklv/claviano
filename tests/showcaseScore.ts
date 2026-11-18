@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { barNumber } from '../src/domain/score';
+import { writtenBarNumber } from '../src/domain/score';
 import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
 import { engrave as layoutNotation } from '../src/domain/notation/engraving';
 
@@ -12,4 +12,4 @@ export const layout = layoutNotation(score);
 
 /** Chords of one bar (by printed number) on one staff, left to right. */
 export const chordsIn = (number: number, staff: 'treble' | 'bass' = 'treble') =>
-  layout.chords.filter((c) => barNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.beat - b.beat);
+  layout.chords.filter((c) => writtenBarNumber(score, c.bar) === number && c.staff === staff).sort((a, b) => a.beat - b.beat);

@@ -1,5 +1,5 @@
 import type { Hand } from '../note';
-import type { SpelledPitch } from './spelling';
+import type { Letter, SpelledPitch } from './spelling';
 import type { Clef } from './written';
 
 /*
@@ -16,6 +16,12 @@ export const BOTTOM_LINE_STEP = 8;
 
 /** Where a pitch sits on a staff with `clef`, in staff steps. */
 export const staffStep = (pitch: SpelledPitch, clef: Clef): number => TOP_LINE[clef] - (pitch.octave * 7 + pitch.letter);
+
+/** The written letter and octave at an integer staff step. */
+export function pitchAtStaffStep(step: number, clef: Clef): Pick<SpelledPitch, 'letter' | 'octave'> {
+  const degree = TOP_LINE[clef] - step;
+  return { letter: ((degree % 7 + 7) % 7) as Letter, octave: Math.floor(degree / 7) };
+}
 
 /** How many ledger lines a note at `step` needs. */
 const ledgerLineCount = (step: number): number =>

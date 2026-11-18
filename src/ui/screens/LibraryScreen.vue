@@ -39,7 +39,7 @@ const exercise = useExerciseWords();
  * own list of kinds, in which ".mxl" is not, and shows such a file greyed out, not to be chosen.
  * There every file is offered, and one that is not music is said to be so when it is opened.
  */
-const FILE_KINDS = '.mid,.midi,.musicxml,.xml,.mxl';
+const FILE_KINDS = '.mid,.midi,.musicxml,.xml,.mxl,.pdf';
 const touch = useMediaQuery(TOUCH_SCREEN);
 const shelf = useLibrary(library);
 /** How each piece was left (as it is remembered now). */

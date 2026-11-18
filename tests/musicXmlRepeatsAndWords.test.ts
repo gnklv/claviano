@@ -139,6 +139,12 @@ describe('MusicXmlParser', () => {
       expect(read(said('con espressione', { attrs: 'font-weight="normal"', sound: '<sound tempo="60"/>' }))[0].tempo).toBe(false);
     });
 
+    it('reads words positioned below the staff by their coordinates', () => {
+      const attrs = 'default-y="-40" relative-y="-27"';
+      const directions = `<direction><direction-type><words ${attrs}>dolce</words></direction-type></direction>`;
+      expect(read(directions + said('rit.', { attrs, placement: 'above' })).map(mark => mark.below)).toEqual([true, false]);
+    });
+
     it('leaves out what has a place of its own, and what is not words at all', () => {
       const jump = '<direction><direction-type><words>D.C. al Fine</words></direction-type><sound dacapo="yes"/></direction>';
       expect(read(said('cresc.') + said('una corda') + jump + said('66', { sound: '<sound tempo="66"/>' }) + said('  ') + said('dolce'))).toEqual([

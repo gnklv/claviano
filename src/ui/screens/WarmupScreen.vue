@@ -76,7 +76,7 @@ function open(): void {
         <section v-else class="task">
           <h2>{{ words.title(chosen.id) }}</h2>
           <p>{{ words.goal(chosen.id) }}</p>
-          <p>{{ t('warmupStartingTempo') }}: <TempoMark unit="quarter" :dotted="false" :per-minute="chosen.tempo" /> · {{ words.hands(hands) }} · {{ words.repetitions(1) }}</p>
+          <p>{{ t('warmupStartingTempo') }}: <TempoMark unit="quarter" :dots="0" :per-minute="chosen.tempo" /> · {{ words.hands(hands) }} · {{ words.repetitions(1) }}</p>
         </section>
       </div>
     </main>

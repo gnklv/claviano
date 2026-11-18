@@ -214,8 +214,8 @@ describe('showcase score', () => {
   it('plays repeats, voltas, D.S. and the coda in order, while the page keeps each bar once', () => {
     // Printed bars are played in this order from bar 28 on (the pickup is bar 0, so index = number).
     const tail = score.barWritten.slice(score.barWritten.indexOf(28));
-    expect(tail).toEqual([28, 29, 28, 30, 31, 28, 30, 32]);
-    expect(score.notation.bars).toHaveLength(33);
+    expect(tail).toEqual([28, 29, 28, 30, 31, 28, 30, 32, 33, 34, 35]);
+    expect(score.notation.bars).toHaveLength(36);
     expect(score.notation.bars[28].navigation).toMatchObject({ repeatStart: true, segno: true, segnoSign: true });
     expect(score.notation.bars[29].navigation).toMatchObject({ ending: [1], endingLabel: '1.', repeatEnd: { times: 2 } });
     expect(score.notation.bars[30].navigation).toMatchObject({ ending: [2], toCoda: true, text: 'To Coda' });

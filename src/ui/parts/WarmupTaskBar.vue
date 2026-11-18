@@ -45,7 +45,7 @@ function finish(): void {
       <h2 class="task-title">{{ words.title(state.step.exerciseId) }}</h2>
       <p class="goal">{{ words.goal(state.step.exerciseId) }}</p>
       <p class="detail">{{ words.hands(state.step.hands) }} · {{ words.repetitions(state.step.repetitions) }}</p>
-      <p class="detail">{{ t('warmupStartingTempo') }} <TempoMark unit="quarter" :dotted="false" :per-minute="task.tempo" /></p>
+      <p class="detail">{{ t('warmupStartingTempo') }} <TempoMark unit="quarter" :dots="0" :per-minute="task.tempo" /></p>
       <ExerciseSequence v-if="!single" :rows="words.sequence(state.steps)" :current="state.current" :label="t('warmupSequence')" />
       <p v-if="!single" class="detail">{{ t('warmupEstimateNote') }}</p>
       <AppButton @click="finish">{{ t(single ? 'exerciseFinish' : last ? 'warmupFinish' : 'warmupFinishEarly') }}</AppButton>

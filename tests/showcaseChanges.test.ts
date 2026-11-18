@@ -3,15 +3,26 @@
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
 import { signatureChanges } from '../src/domain/notation/signatures';
-import { layout, score } from './showcaseScore';
+import { chordsIn, layout, score } from './showcaseScore';
 
 describe('showcase score: changes along the way', () => {
-  it('prints the key and time changes of bars 10 and 13 where they happen', () => {
+  it('prints each key and time change where it happens', () => {
     const changes = signatureChanges(score).filter((c) => c.key || c.time);
     expect(changes.map((c) => [c.bar, c.key, c.time && `${c.time.numerator}/${c.time.denominator}`])).toEqual([
       [10, { from: 0, to: -3 }, '6/8'],
       [13, { from: -3, to: 2 }, '4/4'],
+      [34, null, '6/8'],
+      [35, null, '7/8'],
     ]);
+  });
+
+  it('groups the seven eighths of bar 35 as 2 + 2 + 3', () => {
+    const bar = score.notation.bars[35];
+    expect(bar.length).toBeCloseTo(3.5);
+    const chords = chordsIn(35);
+    const groups = [...new Set(chords.map((c) => c.beam))];
+    expect(groups.map((id) => chords.filter((c) => c.beam === id).length)).toEqual([2, 2, 3]);
+    expect(groups).not.toContain(null);
   });
 
   it('prints the tempo: 90 at the start, a dotted quarter in 6/8, 60 in bar 12, 90 again in bar 13', () => {

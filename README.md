@@ -1,6 +1,6 @@
 # Claviano
 
-A self-written web player for learning piano pieces: open a MIDI or MusicXML file, read it on the
+A self-written web player for learning piano pieces: open a MIDI, MusicXML or supported vector PDF file, read it on the
 staff or watch the notes fall onto the keyboard, slow it down, loop the hard bars, practice one
 hand at a time; or play something of one's own and have it written down.
 
@@ -20,10 +20,11 @@ npm run build
 Every push to `master` runs the tests, builds and deploys to GitHub Pages
 (`.github/workflows/deploy.yml`).
 
-**Showcase.** "Demo → Showcase" opens a short score that uses every feature the staff and
-playback support (pickup, all note values, beams, accidentals, tuplets, voices, rests, ties, grace notes, ornaments, tremolos, rolled chords,
+**Showcase.** "Demo → Showcase" opens a piano test score with a pickup and 35 numbered bars.
+It covers note values from whole to thirty-second, beams, accidentals, tuplets, voices, rests, ties, grace notes, ornaments, tremolos, rolled chords,
 key/time/clef/tempo/dynamics changes, hairpins, a wide range, articulations, fermatas, slurs, the sustain
-pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda). It is built by `scripts/showcase.ts`
+pedal and the soft and sostenuto pedals, repeats with voltas and D.S. al Coda. See the
+[coverage audit](docs/showcase-coverage.md) for examples and gaps. It is built by `scripts/showcase.ts`
 (`npm run showcase` rewrites `public/demos/showcase.musicxml`) and checked end to end by
 the `tests/showcase*.test.ts` files. When you add a feature, add a bar to the showcase.
 
@@ -42,6 +43,20 @@ the next full task brings the original ornaments back. Tremolos and rolled chord
 The selections are rules-based, not verified melody detection. For development,
 `npm run samples:layers` checks every local score in `samples/` and writes a report to `.layers/`.
 See [layers](docs/layers.md) for the rules and limitations. Private scores and reports stay out of Git.
+
+**PDF import.** Open a vector piano score in the library to play or learn it. If recognition stops partway, the library reports the page and keeps the previous piece open. Run `npm run samples:pdf` to check the
+[printed showcase](tests/fixtures/pdf/showcase.pdf) and any local vector scores in `samples/`.
+The showcase also runs in a checkout without private files. Its PDF embeds Bravura music glyphs.
+The report checks the printed staff pairs against the MusicXML bar count and locates directions
+throughout the score. It reports note recognition separately.
+The reader reconstructs the full two-page showcase (36 bars and 263 principal notes) and both
+five-page MuseScore samples: Czardas (134 bars and 1,794 principal notes) and Golden Hour
+(104 bars and 1,895 principal notes). Recognition uses the PDF alone.
+Each run writes MusicXML files and a JSON report under `.pdf-samples/`. Open the MusicXML in
+Claviano to play it. The script reopens each export and checks its voices, notes, markings
+and repeat order against the separate MusicXML reference when available. The report includes
+bar coverage, played attacks and differences between the printed edition and the reference.
+The reader works with vector scores containing supported music fonts. Scans are outside its scope.
 
 **Piano sound.** The samples in `public/piano` come from the
 [Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (a Yamaha C5)

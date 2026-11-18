@@ -7,11 +7,11 @@ export type NoteValue = 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 
 
 export interface WrittenDuration {
   readonly value: NoteValue;
-  /** 0 or 1: a dot adds half the value. */
-  readonly dots: 0 | 1;
+  /** Each dot adds half as much as the preceding one. */
+  readonly dots: 0 | 1 | 2;
 }
 
-const BEATS: Record<NoteValue, number> = {
+export const BEATS: Readonly<Record<NoteValue, number>> = {
   whole: 4,
   half: 2,
   quarter: 1,
@@ -20,12 +20,13 @@ const BEATS: Record<NoteValue, number> = {
   thirtySecond: 0.125,
 };
 
+export function durationBeats({ value, dots }: WrittenDuration): number {
+  return BEATS[value] * (2 - 2 ** -dots);
+}
+
 /** Every duration level 1 can write, longest first. */
 const WRITABLE: (WrittenDuration & { beats: number })[] = (Object.keys(BEATS) as NoteValue[])
-  .flatMap((value) => [
-    { value, dots: 1 as const, beats: BEATS[value] * 1.5 },
-    { value, dots: 0 as const, beats: BEATS[value] },
-  ])
+  .flatMap((value) => ([0, 1, 2] as const).map((dots) => ({ value, dots, beats: durationBeats({ value, dots }) })))
   .sort((a, b) => b.beats - a.beats);
 
 /**

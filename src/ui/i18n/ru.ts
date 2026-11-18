@@ -164,7 +164,7 @@ export const ru: Dictionary = {
   removeConfirm: 'Точно убрать?',
   demoOde: 'Ода к радости',
   demoShowcase: 'Витрина: всё, что умеет плеер',
-  openFormats: 'MIDI, MusicXML, MXL',
+  openFormats: 'MIDI, MusicXML, MXL, PDF',
   backToLibrary: 'К библиотеке',
   dropHint: 'Отпустите, чтобы открыть',
 
@@ -244,8 +244,10 @@ export const ru: Dictionary = {
   loopBars: 'Цикл тактов',
 
   openError: 'Не удалось открыть «{file}»: {reason}',
-  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите MIDI (.mid) или MusicXML (.musicxml, .mxl)',
-  errorInvalidFile: 'файл повреждён или это не MIDI / MusicXML',
+  errorUnsupportedFormat: 'такой тип файла не поддерживается, выберите MIDI (.mid), MusicXML (.musicxml, .mxl) или PDF',
+  errorInvalidFile: 'не удалось прочитать файл, проверьте его содержимое',
+  errorUnsupportedPdf: 'не удалось распознать фортепианные ноты. Выберите PDF, сохранённый из нотного редактора',
+  errorIncompleteScore: 'распознавание остановилось на странице {page}. Для полной пьесы попробуйте MusicXML',
   errorUnsupportedFeature: 'такой вид файлов пока не поддерживается',
   errorUnknown: 'непредвиденная ошибка',
 };

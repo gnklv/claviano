@@ -170,7 +170,7 @@ export const en = {
   removeConfirm: 'Remove for good?',
   demoOde: 'Ode to Joy',
   demoShowcase: 'Showcase: everything the player can do',
-  openFormats: 'MIDI, MusicXML, MXL',
+  openFormats: 'MIDI, MusicXML, MXL, PDF',
   backToLibrary: 'Back to the library',
   dropHint: 'Release to open',
 
@@ -250,8 +250,10 @@ export const en = {
   loopBars: 'Loop bars',
 
   openError: 'Could not open “{file}”: {reason}',
-  errorUnsupportedFormat: 'this file type is not supported, choose MIDI (.mid) or MusicXML (.musicxml, .mxl)',
-  errorInvalidFile: 'the file is damaged or is not MIDI / MusicXML',
+  errorUnsupportedFormat: 'this file type is not supported, choose MIDI (.mid), MusicXML (.musicxml, .mxl), or PDF',
+  errorInvalidFile: 'the file could not be read. Check its contents',
+  errorUnsupportedPdf: 'no piano notation could be read. Choose a PDF saved from a notation editor',
+  errorIncompleteScore: 'reading stopped on page {page}. Try MusicXML for the complete piece',
   errorUnsupportedFeature: 'this kind of file is not supported yet',
   errorUnknown: 'unexpected error',
 } satisfies Record<string, Message>;

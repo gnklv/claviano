@@ -10,3 +10,5 @@ samples/
 .engraving/
 # Local layer diagnostics include note selections from the private sample collection.
 .layers/
+# Private PDF comparison reports and MusicXML previews
+.pdf-samples/

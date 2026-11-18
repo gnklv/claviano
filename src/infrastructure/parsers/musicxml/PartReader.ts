@@ -76,7 +76,9 @@ export class PartReader {
   constructor(private readonly title: string) {}
 
   read(part: Element): Notation {
-    for (const measure of part.querySelectorAll(':scope > measure')) this.readMeasure(measure);
+    const measures = part.querySelectorAll(':scope > measure');
+    for (const measure of measures) this.readMeasure(measure);
+    const first = measures[0];
 
     // A shift or a hairpin the file never stops ends with the music.
     for (const [staff, open] of this.openShifts) this.octaveShifts.push({ staff, start: open.start, end: this.barStart, octaves: open.octaves });
@@ -84,6 +86,7 @@ export class PartReader {
 
     return {
       title: this.title,
+      ...(first?.getAttribute('implicit') === 'yes' && first.getAttribute('number') === '0' && { pickup: true as const }),
       bars: this.bars,
       notes: this.notes,
       graces: this.graces,

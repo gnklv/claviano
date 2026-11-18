@@ -330,8 +330,8 @@ export function drawTempoMarks({ score, geometry, ink }: StaffContext, brackets:
     if (mark) {
       // (A metronome mark at a bar's start stands after the bar's number, not on it.)
       if (here.length === 0) x = pastNumbers(x, 5 * space, y);
-      const note: TextShape = { kind: 'text', x, y, text: METRONOME_NOTE[mark.unit.value] + (mark.unit.dots ? METRONOME_DOT : ''), size: space * TEMPO_NOTE_SIZE, font: MUSIC_FONT, fill: COLORS.note };
-      shapes.push(note, words(`= ${mark.perMinute}`, x + (TEMPO_NOTE_WIDTH + (mark.unit.dots ? TEMPO_DOT_WIDTH : 0)) * space, y, true));
+      const note: TextShape = { kind: 'text', x, y, text: METRONOME_NOTE[mark.unit.value] + METRONOME_DOT.repeat(mark.unit.dots), size: space * TEMPO_NOTE_SIZE, font: MUSIC_FONT, fill: COLORS.note };
+      shapes.push(note, words(`= ${mark.perMinute}`, x + (TEMPO_NOTE_WIDTH + mark.unit.dots * TEMPO_DOT_WIDTH) * space, y, true));
     }
     standing.push({ left, right: left + width, y });
   }

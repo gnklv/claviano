@@ -14,6 +14,7 @@ export interface OpenFailure {
   /** The file's name, or the demo that failed to load. */
   readonly source: { readonly file: string } | { readonly demo: DemoPiece };
   readonly reason: ScoreLoadErrorCode | 'unknown';
+  readonly page?: number;
 }
 
 /**
@@ -103,7 +104,7 @@ export class OpenScore {
     const known = error instanceof ScoreLoadError;
     // Not one of the reasons a file can be wrong for: something of ours broke, worth a look.
     if (!known) console.error(error);
-    this.failed = { source, reason: known ? error.code : 'unknown' };
+    this.failed = { source, reason: known ? error.code : 'unknown', ...(known && error.page ? { page: error.page } : {}) };
     this.emit();
   }
 

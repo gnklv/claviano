@@ -1,0 +1,245 @@
+// @vitest-environment happy-dom
+import { existsSync, readFileSync } from 'node:fs';
+import { expect, test } from 'vitest';
+import { performNotation } from '../src/domain/notation/performance';
+import type { WrittenNote } from '../src/domain/notation/written';
+import { MusicXmlParser } from '../src/infrastructure/parsers/MusicXmlParser';
+import { readPdf, type PdfContent } from '../src/infrastructure/parsers/pdf/document';
+import { extractPdfGeometry } from '../src/infrastructure/parsers/pdf/geometry';
+import { readMuseScorePiano } from '../src/infrastructure/parsers/pdf/museScorePiano';
+import { readPianoDocumentPreview, readPianoPreview } from '../src/infrastructure/parsers/pdf/pianoPreview';
+import { writePdfPreviewMusicXml } from '../src/infrastructure/writers/pdfPreviewMusicXml';
+import { bytes } from './musicXmlScore';
+
+const symbols = new Map([
+  [1, '\ue050'], // treble
+  [2, '\ue062'], // bass
+  [3, '\ue084'], // 4
+  [4, '\ue0a4'], // filled head
+  [5, '\ue261'], // natural
+  [6, '\ue262'], // sharp
+  [7, '\ueca5'], // metronome quarter
+  [8, '\uecb7'], // metronome dot
+  [9, '='],
+  [10, '8'],
+  [11, '0'],
+  [12, '\ue650'], // sustain pedal
+  [13, '\ue520'], // piano dynamic
+  [14, '\ue4e3'], // whole-measure rest
+]);
+
+function engraving(missingStem = false, barCount = 5, musicFont = 'Example music font', damagedBar = 0): PdfContent {
+  const ops = ['1 w'];
+  const stroke = (x1: number, y1: number, x2: number, y2: number): void => {
+    ops.push(`${x1} ${y1} m ${x2} ${y2} l S`);
+  };
+  const glyph = (code: number, x: number, y: number): void => {
+    ops.push(`BT /Music 20 Tf 1 0 0 1 ${x} ${y} Tm <${code.toString(16).padStart(2, '0')}> Tj ET`);
+  };
+  glyph(7, 38, 185);
+  glyph(8, 44, 185);
+  glyph(9, 49, 185);
+  glyph(10, 54, 185);
+  glyph(11, 59, 185);
+  glyph(13, 40, 135);
+  for (const [i, letter] of [...'dolce'].entries()) {
+    ops.push(`BT /Text 10 Tf 1 0 0 1 ${48 + i * 5} 135 Tm (${letter}) Tj ET`);
+  }
+  for (const y of [150, 100]) {
+    glyph(y === 150 ? 1 : 2, 12, y + 5);
+    glyph(6, 21, y + (y === 150 ? 20 : 15));
+    glyph(3, 29, y + 15);
+    glyph(3, 29, y + 5);
+  }
+  for (let bar = 0; bar < barCount; bar++) {
+    const left = 10 + 110 * bar;
+    const right = left + 110;
+    for (const bottom of [150, 100]) {
+      for (let line = 0; line < 5; line++) {
+        stroke(left, bottom + line * 5, right, bottom + line * 5);
+      }
+      for (let beat = 0; beat < 4; beat++) {
+        const x = left + 30 + beat * 18;
+        const y = bottom + (bottom === 150 ? 2.5 : 15);
+        if (bar === 1 && beat === 1) glyph(5, x - 5, y);
+        glyph(4, x, y);
+        if (!missingStem || bar !== damagedBar || beat !== 0) stroke(x + 6.25, y, x + 6.25, y + 15);
+      }
+    }
+    stroke(right, 170, right, 120);
+    stroke(right, 120, right, 100);
+    if (bar < 2) {
+      glyph(12, left + 30, 85);
+      stroke(left + 41, 85, right, 85);
+    }
+  }
+  return {
+    operators: ops.join('\n'),
+    fonts: new Map([
+      ['Music', { name: musicFont, unicode: symbols, codeBytes: 1 }],
+      ['Text', { name: 'Example-Italic', unicode: new Map(), codeBytes: 1 }],
+    ]),
+    form: () => undefined,
+  };
+}
+
+test('derives pitches, signatures and durations from four bars of piano vector marks', () => {
+  const notation = readPianoPreview(engraving(), 'Vector exercise')!;
+  expect(notation.bars.map(({ start, length }) => [start, length])).toEqual([[0, 4], [4, 4], [8, 4], [12, 4]]);
+  expect(notation.timeSignatures).toEqual([{ beat: 0, numerator: 4, denominator: 4 }]);
+  expect(notation.keySignatures).toEqual([{ beat: 0, fifths: 1, minor: false }]);
+  expect(notation.notes).toHaveLength(32);
+  expect(notation.notes.filter((note) => note.bar === 1).map(({ sounding, accidental, beats }) => [sounding, accidental, beats]))
+    .toEqual([
+      [66, null, 1], [65, 'natural', 1], [65, null, 1], [65, null, 1],
+      [54, null, 1], [53, 'natural', 1], [53, null, 1], [53, null, 1],
+    ]);
+  expect(performNotation(notation).endBeat).toBe(16);
+});
+
+test('declines a bar whose stem geometry cannot be read', () => {
+  expect(readPianoPreview(engraving(true), 'Incomplete')).toBeNull();
+});
+
+test('reads consecutive pages and rejects incomplete staff timelines in the full-document reader', () => {
+  const page = engraving();
+  const opening = readPianoPreview(page, 'Exercise')!;
+  const geometry = extractPdfGeometry(page);
+  const complete = readMuseScorePiano([geometry, geometry], opening)!.notation;
+  expect(complete.bars).toHaveLength(10);
+  expect(complete.notes).toHaveLength(80);
+  expect(complete.notes.at(-1)?.beat).toBe(39);
+  expect(readMuseScorePiano([geometry, extractPdfGeometry(engraving(true))], opening)).toBeNull();
+  expect(readMuseScorePiano([geometry, { ...geometry, segments: [] }], opening)).toBeNull();
+  const wrongSystemNumber = { x: 10, y: 181, size: 8, font: 'Example', text: '9', code: 57 };
+  const wrongPage = { ...geometry, glyphs: [...geometry.glyphs, wrongSystemNumber] };
+  expect(readMuseScorePiano([geometry, wrongPage], opening)).toBeNull();
+});
+
+test('applies a cancelled key from the start of the measure and carries the new key forward', () => {
+  const page = engraving();
+  const opening = readPianoPreview(page, 'Change of key')!;
+  const geometry = extractPdfGeometry(page);
+  const printed = (y: number) => ({ x: 236, y, font: 'Example music font', size: 20, code: 5, text: '\ue261' });
+  geometry.glyphs.push(printed(170), printed(115));
+  const result = readMuseScorePiano([geometry], opening)!.notation;
+  expect(result.keySignatures.map(({ beat, fifths }) => [beat, fifths])).toEqual([[0, 1], [8, 0]]);
+  const upper = result.notes.filter(note => note.staff === 1);
+  expect(upper.find(note => note.beat === 0)?.sounding).toBe(66);
+  expect(upper.filter(note => note.beat >= 8).map(note => [note.sounding, note.accidental]))
+    .toEqual(Array(12).fill([65, null]));
+  geometry.glyphs.pop();
+  expect(readMuseScorePiano([geometry], opening)).toBeNull();
+});
+
+test.each(['Leland', 'Example music font'])('reports document coverage independently of a four-bar opening in %s', font => {
+  const page = engraving(false, 2, font);
+  const doc = { pageCount: 2, page: () => page };
+  const full = readPianoDocumentPreview(doc, 'Short systems');
+  expect(full?.coverage).toBe('full');
+  expect(full?.notation.bars).toHaveLength(4);
+  const partial = readPianoDocumentPreview({ ...doc, page: i => i ? engraving(true, 2, font, 1) : page }, 'Damaged ending');
+  expect(partial).toMatchObject({ coverage: 'partial', stoppedAtPage: 2 });
+  expect(partial?.notation.bars).toHaveLength(3);
+  expect(readPianoDocumentPreview({ pageCount: 1, page: () => engraving(true, 2, font) }, 'Unreadable')).toBeNull();
+});
+
+test('keeps preceding bars when a later page contains an unsupported drawing', () => {
+  const page = engraving(false, 1);
+  const reading = readPianoDocumentPreview({ pageCount: 2,
+    page: i => i ? { ...page, operators: 'BI' } : page }, 'Inline image');
+  expect(reading).toMatchObject({ coverage: 'partial', stoppedAtPage: 2 });
+  expect(reading?.notation.bars).toHaveLength(1);
+});
+
+test('routes a Leland score whose first bar contains a full-measure rest', () => {
+  const page = engraving(false, 1, 'Leland');
+  // Replace the four lower-staff attacks with a centered rest.
+  const operators = page.operators.split('\n').filter(line =>
+    !/ 115 Tm <04>/.test(line) && !/ 115 m [0-9.]+ 130 l S$/.test(line));
+  operators.push('BT /Music 20 Tf 1 0 0 1 65 115 Tm <0e> Tj ET');
+  const doc = { pageCount: 1, page: () => ({ ...page, operators: operators.join('\n') }) };
+  const result = readPianoDocumentPreview(doc, 'Opening rest');
+  expect(result?.coverage).toBe('full');
+  expect(result?.notation.notes).toHaveLength(4);
+  expect(result?.notation.rests).toMatchObject([{ staff: 2, measure: true }]);
+});
+
+test.each(['Leland', 'Example music font'])('stops at an unpaired staff with noteheads in %s', font => {
+  const page = engraving(false, 3, font);
+  // Remove the lower staff rulings of the middle bar while leaving its notes.
+  const operators = page.operators.split('\n').filter(line =>
+    !/^120 (100|105|110|115|120) m 230 \1 l S$/.test(line)).join('\n');
+  const result = readPianoDocumentPreview({ pageCount: 1, page: () => ({ ...page, operators }) }, 'Unpaired staff');
+  expect(result).toMatchObject({ coverage: 'partial', stoppedAtPage: 1 });
+  expect(result?.notation.bars).toHaveLength(1);
+});
+
+function expectMusicXmlRoundTrip(preview: NonNullable<ReturnType<typeof readPianoPreview>>): void {
+  const reopened = new MusicXmlParser().parse(bytes(writePdfPreviewMusicXml(preview)), 'File name');
+  const scored = performNotation(preview);
+  const notes = (written: readonly WrittenNote[]) => written.map((note) => ({ ...note, headless: !!note.headless }));
+
+  expect(reopened.title).toBe(preview.title);
+  expect(reopened.notation.bars).toEqual(preview.bars);
+  expect(notes(reopened.notation.notes)).toEqual(notes(preview.notes));
+  expect(reopened.notation.clefs).toEqual(preview.clefs);
+  expect(reopened.notation.timeSignatures).toEqual(preview.timeSignatures);
+  expect(reopened.notation.keySignatures).toEqual(preview.keySignatures);
+  expect(reopened.notation.tempos).toEqual(preview.tempos);
+  expect(reopened.notation.tempoMarks).toEqual(scored.notation.tempoMarks);
+  expect(reopened.notation.pedalMoves).toEqual(preview.pedalMoves);
+  expect(reopened.notation.pedalMarks).toEqual(preview.pedalMarks);
+  expect(reopened.notation.dynamics).toEqual(preview.dynamics);
+  expect(reopened.notation.words).toEqual(preview.words);
+  expect(reopened.notes).toEqual(scored.notes);
+  expect(reopened.pedal).toEqual(scored.pedal);
+  expect(reopened.endBeat).toBe(scored.endBeat);
+}
+
+test('round-trips a synthetic two-staff PDF preview with tempo, dynamics and pedal changes', () => {
+  const preview = readPianoPreview(engraving(), 'Vector exercise <F♯> & piano')!;
+  expect(preview.tempoMarks).toEqual([
+    { beat: 0, unit: { value: 'quarter', dots: 1 }, perMinute: 80, printed: true },
+  ]);
+  expect(preview.pedalMoves.map(({ beat, down }) => [beat, down])).toEqual([
+    [0, true], [4, false], [4, true], [8, false],
+  ]);
+  expect(preview.dynamics).toEqual([{ beat: 0, below: false, text: 'p', letters: true }]);
+  expect(preview.words).toEqual([{ beat: 0, below: true, tempo: false, text: 'dolce' }]);
+  expectMusicXmlRoundTrip(preview);
+});
+
+const pdf = 'samples/golden-hour-jvke-updated-ver.pdf';
+const mxl = 'samples/golden-hour-jvke-updated-ver.mxl';
+
+test.skipIf(!existsSync(pdf) || !existsSync(mxl))('matches the local Golden Hour edition for the first four bars', () => {
+  const page = readPdf(readFileSync(pdf)).page(0);
+  const preview = readPianoPreview(page, 'Golden Hour')!;
+  const reference = new MusicXmlParser().parse(Uint8Array.from(readFileSync(mxl)).buffer, 'Golden Hour');
+  const noteData = ({ bar, staff, pitch, beat, beats, duration, beams, accidental, stem, headless }: WrittenNote) =>
+    JSON.stringify([bar, staff, pitch, beat, beats, duration, beams, accidental, stem, !!headless]);
+  expect(preview.notes.map(noteData).sort()).toEqual(reference.notation.notes.filter((note) => note.bar < 4).map(noteData).sort());
+  expect(preview.clefs).toEqual(reference.notation.clefs.filter(({ beat }) => beat === 0));
+  expect(preview.timeSignatures).toEqual(reference.notation.timeSignatures.filter(({ beat }) => beat === 0));
+  expect(preview.keySignatures).toEqual(reference.notation.keySignatures.filter(({ beat }) => beat === 0));
+  expect(preview.tempoMarks).toEqual(reference.notation.tempoMarks.filter(({ beat }) => beat === 0).map((mark) => ({ ...mark, printed: true })));
+  const scored = performNotation(preview);
+  expect(scored.notes).toEqual(reference.notes.filter((note) => note.beat < 12));
+  expect(scored.pedal).toEqual(reference.pedal.slice(0, 4));
+  expectMusicXmlRoundTrip(preview);
+});
+
+test.skipIf(!existsSync(pdf) || !existsSync(mxl))('reads noteheads, voices and playing instructions throughout Golden Hour', () => {
+  const actual = readPianoDocumentPreview(readPdf(readFileSync(pdf)), 'Golden Hour')!.notation;
+  const reference = new MusicXmlParser().parse(Uint8Array.from(readFileSync(mxl)).buffer, 'Golden Hour').notation;
+  const symbols = (notes: readonly WrittenNote[]) => notes.map(n => JSON.stringify([
+    n.bar, n.staff, n.voice, n.beat, n.beats, n.pitch, n.sounding, n.duration, n.tieStart, n.tieStop,
+    n.chord, n.clef, n.stem, n.beams, n.accidental, !!n.headless, n.articulations, n.arpeggio,
+    n.fingering, n.parenthesized, n.fermata, n.tremolo, n.tuplet,
+  ])).sort();
+  expect(actual.bars).toHaveLength(reference.bars.length);
+  expect(symbols(actual.notes)).toEqual(symbols(reference.notes));
+  expect(actual.rests).toEqual(reference.rests);
+  expect(actual.clefs).toEqual(reference.clefs);
+});

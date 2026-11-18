@@ -7,6 +7,11 @@ import { childNumber, childText, InvalidMusicXmlError } from './xml';
 
 /* What a <note> says: a printed note with its signs, a rest, the pitch that sounds. */
 
+export function augmentationDots(element: Element, tag: 'dot' | 'beat-unit-dot'): 0 | 1 | 2 {
+  const count = element.querySelectorAll(`:scope > ${tag}`).length;
+  return count >= 2 ? 2 : count === 1 ? 1 : 0;
+}
+
 const STEP_SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const STEP_LETTERS: Record<string, Letter> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
 
@@ -67,7 +72,7 @@ export function readWritten(
   if (letter === undefined) throw new InvalidMusicXmlError('A note without a valid pitch');
   const alter = Math.max(-2, Math.min(2, Math.round(childNumber(pitchElement, 'alter') ?? 0))) as Alteration;
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
-  const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;
+  const dots = augmentationDots(element, 'dot');
 
   const modification = element.querySelector(':scope > time-modification');
   const actual = modification && childNumber(modification, 'actual-notes');
@@ -189,7 +194,7 @@ export function readRest(
   at: { staff: number; clef: Clef; beat: number; beats: number },
 ): WrittenRest {
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
-  const dots = element.querySelectorAll(':scope > dot').length > 0 ? 1 : 0;
+  const dots = augmentationDots(element, 'dot');
   const step = childText(rest, 'display-step');
   const octave = childNumber(rest, 'display-octave');
   return {

@@ -1,4 +1,4 @@
-chords: 215
+chords: 232
   {"staff":"treble","hand":"right","beat":0,"beats":0.5,"bar":0,"beam":0,"notes":[{"step":6,"sounding":67}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":0.5,"beats":0.5,"bar":0,"beam":0,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":1,"beats":2,"bar":1,"notes":[{"step":-4,"sounding":84}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2,-4]}
@@ -84,13 +84,13 @@ chords: 215
   {"staff":"treble","hand":"right","beat":39,"beats":0.5,"bar":10,"beam":16,"notes":[{"step":0,"sounding":77}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":39.5,"beats":0.5,"bar":10,"beam":16,"notes":[{"step":-1,"sounding":79}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":40,"beats":1.5,"bar":11,"notes":[{"step":-6,"sounding":87}],"duration":{"value":"quarter","dots":1},"ledgerSteps":[-2,-4,-6]}
-  {"staff":"bass","hand":"left","beat":40,"beats":0.5,"bar":11,"beam":21,"notes":[{"step":6,"sounding":67}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":40.5,"beats":0.5,"bar":11,"beam":21,"notes":[{"step":5,"sounding":68}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":41,"beats":0.5,"bar":11,"beam":21,"notes":[{"step":4,"sounding":70}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":40,"beats":0.5,"bar":11,"beam":25,"notes":[{"step":6,"sounding":67}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":40.5,"beats":0.5,"bar":11,"beam":25,"notes":[{"step":5,"sounding":68}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":41,"beats":0.5,"bar":11,"beam":25,"notes":[{"step":4,"sounding":70}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":41.5,"beats":1.5,"bar":11,"notes":[{"step":-1,"sounding":79}],"duration":{"value":"quarter","dots":1}}
-  {"staff":"bass","hand":"left","beat":41.5,"beats":0.5,"bar":11,"beam":22,"notes":[{"step":3,"sounding":72}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"bass","hand":"left","beat":42,"beats":0.5,"bar":11,"beam":22,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"bass","hand":"left","beat":42.5,"beats":0.5,"bar":11,"beam":22,"notes":[{"step":1,"sounding":75}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"bass","hand":"left","beat":41.5,"beats":0.5,"bar":11,"beam":26,"notes":[{"step":3,"sounding":72}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"bass","hand":"left","beat":42,"beats":0.5,"bar":11,"beam":26,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"bass","hand":"left","beat":42.5,"beats":0.5,"bar":11,"beam":26,"notes":[{"step":1,"sounding":75}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":43,"beats":3,"bar":12,"notes":[{"step":4,"sounding":70}],"duration":{"value":"half","dots":1}}
   {"staff":"bass","hand":"left","beat":43,"beats":3,"bar":12,"notes":[{"step":10,"sounding":39}],"duration":{"value":"half","dots":1},"stemUp":true,"ledgerSteps":[10]}
   {"staff":"treble","hand":"right","beat":46,"beats":1,"bar":13,"notes":[{"step":2,"sounding":86}],"duration":{"value":"quarter","dots":0}}
@@ -116,16 +116,16 @@ chords: 215
   {"staff":"bass","hand":"left","beat":56,"beats":1,"bar":15,"notes":[{"step":6,"sounding":47}],"duration":{"value":"quarter","dots":0},"stemUp":true}
   {"staff":"bass","hand":"left","beat":57,"beats":1,"bar":15,"notes":[{"step":5,"sounding":49}],"duration":{"value":"quarter","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":58,"beats":1,"bar":16,"notes":[{"step":0,"sounding":78}],"duration":{"value":"quarter","dots":0}}
-  {"staff":"bass","hand":"left","beat":58,"beats":0.5,"bar":16,"beam":23,"notes":[{"step":7,"sounding":45}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":58.5,"beats":0.5,"bar":16,"beam":23,"notes":[{"step":4,"sounding":50}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":58,"beats":0.5,"bar":16,"beam":27,"notes":[{"step":7,"sounding":45}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":58.5,"beats":0.5,"bar":16,"beam":27,"notes":[{"step":4,"sounding":50}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":59,"beats":1,"bar":16,"notes":[{"step":-2,"sounding":81}],"duration":{"value":"quarter","dots":0},"ledgerSteps":[-2]}
-  {"staff":"bass","hand":"left","beat":59,"beats":0.5,"bar":16,"beam":23,"notes":[{"step":2,"sounding":54}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":59.5,"beats":0.5,"bar":16,"beam":23,"notes":[{"step":0,"sounding":57}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":59,"beats":0.5,"bar":16,"beam":27,"notes":[{"step":2,"sounding":54}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":59.5,"beats":0.5,"bar":16,"beam":27,"notes":[{"step":0,"sounding":57}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":60,"beats":2,"bar":16,"notes":[{"step":-5,"sounding":86}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2,-4]}
-  {"staff":"bass","hand":"left","beat":60,"beats":0.5,"bar":16,"beam":24,"notes":[{"step":-3,"sounding":62}],"duration":{"value":"eighth","dots":0},"stemUp":true,"ledgerSteps":[-2]}
-  {"staff":"bass","hand":"left","beat":60.5,"beats":0.5,"bar":16,"beam":24,"notes":[{"step":0,"sounding":57}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":61,"beats":0.5,"bar":16,"beam":24,"notes":[{"step":2,"sounding":54}],"duration":{"value":"eighth","dots":0},"stemUp":true}
-  {"staff":"bass","hand":"left","beat":61.5,"beats":0.5,"bar":16,"beam":24,"notes":[{"step":4,"sounding":50}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":60,"beats":0.5,"bar":16,"beam":28,"notes":[{"step":-3,"sounding":62}],"duration":{"value":"eighth","dots":0},"stemUp":true,"ledgerSteps":[-2]}
+  {"staff":"bass","hand":"left","beat":60.5,"beats":0.5,"bar":16,"beam":28,"notes":[{"step":0,"sounding":57}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":61,"beats":0.5,"bar":16,"beam":28,"notes":[{"step":2,"sounding":54}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":61.5,"beats":0.5,"bar":16,"beam":28,"notes":[{"step":4,"sounding":50}],"duration":{"value":"eighth","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":62,"beats":2,"bar":17,"notes":[{"step":-1,"sounding":79},{"step":2,"sounding":74},{"step":4,"sounding":71}],"duration":{"value":"half","dots":0}}
   {"staff":"bass","hand":"left","beat":62,"beats":1,"bar":17,"notes":[{"step":8,"sounding":43}],"duration":{"value":"quarter","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":64,"beats":2,"bar":17,"notes":[{"step":-2,"sounding":81},{"step":1,"sounding":76},{"step":3,"sounding":73}],"duration":{"value":"half","dots":0},"ledgerSteps":[-2]}
@@ -154,16 +154,16 @@ chords: 215
   {"staff":"treble","hand":"right","beat":84,"beats":2,"bar":22,"notes":[{"step":2,"sounding":74},{"step":5,"sounding":69},{"step":7,"sounding":66}],"duration":{"value":"half","dots":0},"stemUp":true}
   {"staff":"bass","hand":"left","beat":84,"beats":2,"bar":22,"notes":[{"step":2,"sounding":54},{"step":7,"sounding":45},{"step":11,"sounding":38}],"duration":{"value":"half","dots":0},"stemUp":true,"ledgerSteps":[10]}
   {"staff":"treble","hand":"right","beat":86,"beats":2,"bar":23,"notes":[{"step":2,"sounding":74}],"duration":{"value":"half","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":86,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":2,"sounding":74,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
-  {"staff":"treble","hand":"right","beat":86.5,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"treble","hand":"right","beat":87,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":7,"sounding":66}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"treble","hand":"right","beat":87.5,"beats":0.5,"bar":23,"beam":25,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":86,"beats":0.5,"bar":23,"beam":29,"notes":[{"step":2,"sounding":74,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
+  {"staff":"treble","hand":"right","beat":86.5,"beats":0.5,"bar":23,"beam":29,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":87,"beats":0.5,"bar":23,"beam":29,"notes":[{"step":7,"sounding":66}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":87.5,"beats":0.5,"bar":23,"beam":29,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":88,"beats":2,"bar":23,"notes":[{"step":1,"sounding":76}],"duration":{"value":"half","dots":0},"stemUp":true}
-  {"staff":"treble","hand":"right","beat":88,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":1,"sounding":76,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
+  {"staff":"treble","hand":"right","beat":88,"beats":0.5,"bar":23,"beam":30,"notes":[{"step":1,"sounding":76,"headless":true}],"duration":{"value":"eighth","dots":0},"voiceShift":true}
   {"staff":"bass","hand":"left","beat":88,"beats":2,"bar":23,"notes":[{"step":4,"sounding":50}],"duration":{"value":"half","dots":0}}
-  {"staff":"treble","hand":"right","beat":88.5,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"treble","hand":"right","beat":89,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":6,"sounding":67}],"duration":{"value":"eighth","dots":0}}
-  {"staff":"treble","hand":"right","beat":89.5,"beats":0.5,"bar":23,"beam":26,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":88.5,"beats":0.5,"bar":23,"beam":30,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":89,"beats":0.5,"bar":23,"beam":30,"notes":[{"step":6,"sounding":67}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":89.5,"beats":0.5,"bar":23,"beam":30,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":90,"beats":1,"bar":24,"notes":[{"step":2,"sounding":86}],"duration":{"value":"quarter","dots":0}}
   {"staff":"bass","hand":"left","beat":90,"beats":2,"bar":24,"notes":[{"step":4,"sounding":38}],"duration":{"value":"half","dots":0}}
   {"staff":"treble","hand":"right","beat":91,"beats":1,"bar":24,"notes":[{"step":0,"sounding":90}],"duration":{"value":"quarter","dots":0}}
@@ -171,9 +171,9 @@ chords: 215
   {"staff":"bass","hand":"left","beat":92,"beats":2,"bar":24,"notes":[{"step":7,"sounding":33}],"duration":{"value":"half","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":93,"beats":1,"bar":24,"notes":[{"step":0,"sounding":90}],"duration":{"value":"quarter","dots":0}}
   {"staff":"treble","hand":"right","beat":94,"beats":1,"bar":25,"notes":[{"step":-2,"sounding":81}],"duration":{"value":"quarter","dots":0},"stemUp":true,"ledgerSteps":[-2]}
-  {"staff":"treble","hand":"right","beat":94,"beats":0.5,"bar":25,"beam":27,"small":true,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":94,"beats":0.5,"bar":25,"beam":31,"small":true,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
   {"staff":"bass","hand":"left","beat":94,"beats":4,"bar":25,"notes":[{"step":4,"sounding":50}],"duration":{"value":"whole","dots":0}}
-  {"staff":"treble","hand":"right","beat":94.5,"beats":0.5,"bar":25,"beam":27,"small":true,"notes":[{"step":3,"sounding":73}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":94.5,"beats":0.5,"bar":25,"beam":31,"small":true,"notes":[{"step":3,"sounding":73}],"duration":{"value":"eighth","dots":0}}
   {"staff":"treble","hand":"right","beat":95,"beats":1,"bar":25,"notes":[{"step":0,"sounding":78}],"duration":{"value":"quarter","dots":0},"stemUp":true}
   {"staff":"treble","hand":"right","beat":95,"beats":1.5,"bar":25,"small":true,"notes":[{"step":2,"sounding":74}],"duration":{"value":"quarter","dots":1}}
   {"staff":"treble","hand":"right","beat":96,"beats":1,"bar":25,"notes":[{"step":-2,"sounding":81}],"duration":{"value":"quarter","dots":0},"stemUp":true,"ledgerSteps":[-2]}
@@ -214,10 +214,27 @@ chords: 215
   {"staff":"treble","hand":"right","beat":120,"beats":2,"bar":31,"notes":[{"step":3,"sounding":73}],"duration":{"value":"half","dots":0}}
   {"staff":"treble","hand":"right","beat":122,"beats":4,"bar":32,"notes":[{"step":-2,"sounding":81},{"step":0,"sounding":78},{"step":2,"sounding":74}],"duration":{"value":"whole","dots":0},"ledgerSteps":[-2]}
   {"staff":"bass","hand":"left","beat":122,"beats":4,"bar":32,"notes":[{"step":4,"sounding":50},{"step":11,"sounding":38}],"duration":{"value":"whole","dots":0},"stemUp":true,"ledgerSteps":[10]}
+  {"staff":"bass","hand":"left","beat":126,"beats":0.5,"bar":33,"beam":21,"notes":[{"step":4,"sounding":50}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"bass","hand":"left","beat":126.5,"beats":0.5,"bar":33,"beam":21,"notes":[{"step":0,"sounding":57}],"duration":{"value":"eighth","dots":0},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":127,"beats":0.5,"bar":33,"beam":21,"notes":[{"step":7,"sounding":66}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":127.5,"beats":0.5,"bar":33,"beam":21,"notes":[{"step":5,"sounding":69}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":128,"beats":2,"bar":33,"notes":[{"step":2,"sounding":74}],"duration":{"value":"half","dots":0}}
+  {"staff":"bass","hand":"left","beat":130,"beats":3,"bar":34,"notes":[{"step":7,"sounding":45}],"duration":{"value":"half","dots":1},"stemUp":true}
+  {"staff":"treble","hand":"right","beat":130.875,"beats":0.125,"bar":34,"notes":[{"step":0,"sounding":78}],"duration":{"value":"thirtySecond","dots":0}}
+  {"staff":"treble","hand":"right","beat":131,"beats":0.5,"bar":34,"notes":[{"step":1,"sounding":76}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":131.5,"beats":1.5,"bar":34,"notes":[{"step":2,"sounding":74}],"duration":{"value":"quarter","dots":1}}
+  {"staff":"treble","hand":"right","beat":133,"beats":0.5,"bar":35,"beam":22,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"bass","hand":"left","beat":133,"beats":3.5,"bar":35,"notes":[{"step":4,"sounding":50}],"duration":{"value":"half","dots":2}}
+  {"staff":"treble","hand":"right","beat":133.5,"beats":0.5,"bar":35,"beam":22,"notes":[{"step":1,"sounding":76}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":134,"beats":0.5,"bar":35,"beam":23,"notes":[{"step":0,"sounding":78}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":134.5,"beats":0.5,"bar":35,"beam":23,"notes":[{"step":-1,"sounding":79}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":135,"beats":0.5,"bar":35,"beam":24,"notes":[{"step":0,"sounding":78}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":135.5,"beats":0.5,"bar":35,"beam":24,"notes":[{"step":1,"sounding":76}],"duration":{"value":"eighth","dots":0}}
+  {"staff":"treble","hand":"right","beat":136,"beats":0.5,"bar":35,"beam":24,"notes":[{"step":2,"sounding":74}],"duration":{"value":"eighth","dots":0}}
 octaveShifts: 2
   {"staff":"treble","start":46,"end":50,"octaves":1}
   {"staff":"bass","start":48,"end":50,"octaves":-1}
-beams: 28
+beams: 32
   {"chords":[0,1],"stemUp":true}
   {"chords":[6,8,9,10]}
   {"chords":[11,12]}
@@ -239,6 +256,10 @@ beams: 28
   {"chords":[110,112]}
   {"chords":[188,190,191,192]}
   {"chords":[193,195,196,197]}
+  {"chords":[215,216,217,218],"stemUp":true}
+  {"chords":[224,226]}
+  {"chords":[227,228]}
+  {"chords":[229,230,231]}
   {"chords":[85,86,87],"stemUp":true}
   {"chords":[89,90,91]}
   {"chords":[117,118,120,121],"stemUp":true}
@@ -251,7 +272,7 @@ tuplets: 4
   {"chords":[51,52,54],"number":3,"above":true}
   {"chords":[55,57,58,59,60],"number":5,"showNumber":true,"above":true}
   {"chords":[47,50,53],"number":3,"showNumber":true,"bracket":true,"above":true}
-rests: 15
+rests: 16
   {"staff":"bass","beat":0,"step":4,"duration":{"value":"quarter","dots":0}}
   {"staff":"bass","beat":8,"step":4,"duration":{"value":"quarter","dots":0}}
   {"staff":"treble","beat":22,"step":8,"duration":{"value":"quarter","dots":0}}
@@ -267,6 +288,7 @@ rests: 15
   {"staff":"treble","beat":66,"step":4,"duration":{"value":"quarter","dots":0}}
   {"staff":"bass","beat":67,"step":4,"duration":{"value":"quarter","dots":0}}
   {"staff":"bass","beat":68,"step":4,"duration":{"value":"half","dots":0}}
+  {"staff":"treble","beat":130,"step":4,"duration":{"value":"eighth","dots":2}}
 ties: 4
   {"from":70,"to":72,"step":6}
   {"from":72,"to":73,"step":6}

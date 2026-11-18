@@ -296,7 +296,10 @@ Left: a slur under a run that goes down to the lower staff can still touch a ste
         judged instead of marked done, the layers of a piece heard through one by one
 17. [ ] How it was played, once the microphone hears a piece through: how many of the notes
         were there, and how even the time
-18. [ ] Sheet music from PDF (to research first): reading printed notes into the notation
+18. [ ] Sheet music from PDF. The library opens supported vector piano scores. The comparison suite
+        covers the showcase (36 bars across two pages), Golden Hour (104 bars) and Czardas (134 bars).
+        Run `npm run samples:pdf` to compare exported MusicXML with the reference editions.
+        Next, broaden coverage with additional vector engravings.
 19. [ ] Pieces found from the library (to research first). Not a search of the web: the sites
         with scores do not let a page read them (IMSLP and Mutopia send no CORS headers), most of
         IMSLP is scanned PDF, MuseScore.com has no open way in, and music under copyright cannot

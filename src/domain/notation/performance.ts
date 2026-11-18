@@ -221,6 +221,7 @@ function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): 
     ),
     performance.barBeats.map(toSeconds),
     {
+      pickup: notation.pickup,
       barBeats: performance.barBeats,
       barWritten: performance.barWritten,
       writtenBarBeats: measures.map((m) => m.start),

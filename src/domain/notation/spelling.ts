@@ -40,6 +40,10 @@ export function spell(midi: number, fifths: number): SpelledPitch {
 const SHARP_ORDER: Letter[] = [3, 0, 4, 1, 5, 2, 6];
 const FLAT_ORDER: Letter[] = [6, 2, 5, 1, 4, 0, 3];
 
+export function keySignatureLetters(fifths: number): Letter[] {
+  return (fifths < 0 ? FLAT_ORDER : SHARP_ORDER).slice(0, Math.abs(fifths));
+}
+
 /** How the key signature alters a letter: in Sol major (1 sharp) Fa is +1, everything else 0. */
 export function keyAlteration(letter: Letter, fifths: number): Alteration {
   if (fifths > 0 && SHARP_ORDER.slice(0, fifths).includes(letter)) return 1;

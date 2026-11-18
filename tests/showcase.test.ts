@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { describe, expect, it } from 'vitest';
 import { pitch } from '../src/domain/pitch';
-import { barNumber, hasPickup } from '../src/domain/score';
+import { barNumber, hasPickup, writtenBarNumber } from '../src/domain/score';
 import { chordsIn, layout, score } from './showcaseScore';
 
 /**
@@ -12,11 +12,11 @@ import { chordsIn, layout, score } from './showcaseScore';
  */
 
 describe('showcase score', () => {
-  it('opens with a pickup and numbers bars 0–32', () => {
+  it('opens with a pickup and numbers bars 0–35', () => {
     expect(score.title).toBe('Claviano showcase');
     expect(hasPickup(score)).toBe(true);
     expect(barNumber(score, 0)).toBe(0);
-    expect(barNumber(score, score.bars.length - 1)).toBe(32);
+    expect(writtenBarNumber(score, score.notation.bars.length - 1)).toBe(35);
   });
 
   it('has every note value, dotted ones and ledger lines', () => {
@@ -33,6 +33,30 @@ describe('showcase score', () => {
     const beam = thirtySeconds[0].beam;
     expect(beam).not.toBeNull();
     expect(thirtySeconds.every((c) => c.beam === beam)).toBe(true);
+  });
+
+  it('keeps the four eighths of bar 33 under one beam across both staves', () => {
+    const chords = [...chordsIn(33, 'bass'), ...chordsIn(33)].filter((c) => c.duration.value === 'eighth');
+    const [first] = chords;
+    expect(first.beam).not.toBeNull();
+    const joined = layout.beams[first.beam!].chords.map((i) => layout.chords[i]);
+    expect(joined).toEqual(chords);
+    expect(joined.map((c) => [c.staff, c.stemUp])).toEqual([
+      ['bass', true],
+      ['bass', true],
+      ['treble', false],
+      ['treble', false],
+    ]);
+  });
+
+  it('keeps both dots and the full duration of the note and rest in bars 34–35', () => {
+    const start = score.notation.bars[34].start;
+    const [half] = chordsIn(35, 'bass');
+    expect(layout.rests.find((r) => r.beat === start && r.staff === 'treble')?.duration).toEqual({ value: 'eighth', dots: 2 });
+    expect(chordsIn(34)[0].beat - start).toBeCloseTo(0.875);
+    expect(half.duration).toEqual({ value: 'half', dots: 2 });
+    const played = score.barBeats[score.barWritten.indexOf(35)];
+    expect(score.notes.find((n) => n.hand === 'left' && n.beat === played)?.beats).toBeCloseTo(3.5);
   });
 
   it('prints the accidentals of bar 4 as written', () => {
@@ -90,7 +114,7 @@ describe('showcase score', () => {
 
   it('changes key, metre, clef, tempo and loudness along the way', () => {
     expect(score.notation.keySignatures.map((k) => k.fifths)).toEqual([0, -3, 2]);
-    expect(score.notation.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4']);
+    expect(score.notation.timeSignatures.map((t) => `${t.numerator}/${t.denominator}`)).toEqual(['4/4', '6/8', '4/4', '6/8', '7/8']);
     expect(score.notation.clefs.filter((c) => c.staff === 2 && c.beat < score.notation.bars[24].start).map((c) => c.clef)).toEqual(['bass', 'treble', 'bass']);
     // Bars 10 and 12 are both 6/8, but bar 12 is at 60 instead of 90, so it lasts longer.
     // (With the pickup, a bar's index equals its printed number.)

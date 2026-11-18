@@ -115,6 +115,7 @@ export interface Score {
 
 /** Musical details a source may or may not provide; sensible defaults fill the gaps. */
 export interface ScoreMusic {
+  readonly pickup?: true;
   /** Same length and order as the bars passed to createScore. Default: every bar is 4 quarters. */
   readonly barBeats?: readonly number[];
   readonly timeSignatures?: readonly TimeSignature[];
@@ -223,6 +224,7 @@ export function createScore(
     notation: {
       title,
       bars: writtenBars,
+      ...(music.pickup && { pickup: true as const }),
       notes: music.written ?? [],
       graces: music.graces ?? [],
       rests: music.rests ?? [],
@@ -320,7 +322,7 @@ export function pageEnd(score: Score): number {
  * like the two sixteenths before the first full bar of Für Elise.
  */
 export const hasPickup = (score: Score): boolean =>
-  score.notation.bars.length > 1 && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - SAME_MOMENT;
+  (score.notation.pickup === true || score.notation.bars.length > 1) && barLength(score, 0) < barLengthInBeats(timeSignatureAt(score, 0)) - SAME_MOMENT;
 
 /** The number printed on printed bar `written`: a pickup is bar 0, the first full bar is 1. */
 export const writtenBarNumber = (score: Score, written: number): number => written + (hasPickup(score) ? 0 : 1);

@@ -7,12 +7,14 @@ import type { ClefChange, WrittenGraces, WrittenNote, WrittenRest } from './writ
 
 /*
  * The notation of a piece: everything that is printed on its pages, and nothing about how it
- * sounds in time. A reader of any notation format (MusicXML today) fills this in; performNotation
+ * sounds in time. A reader of any notation format (MusicXML or vector PDF) fills this in; performNotation
  * (see performance.ts) then plays it, by the rules of music theory. Places along the page are in
  * quarter notes from the start, as if every bar were printed once and played once.
  */
 export interface Notation {
   readonly title: string;
+  /** The source explicitly identifies the opening bar as a pickup. */
+  readonly pickup?: true;
   /** The printed bars, in page order. */
   readonly bars: readonly WrittenBar[];
   /** The notes in the order they are written down, voice by voice within a bar (a chord's notes together). */

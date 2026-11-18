@@ -110,7 +110,7 @@ const status = computed(() => {
       <!-- (On a phone the beat stands after it, and stays whole: the words give way first.) -->
       <span class="status" :class="{ live: state.state === 'recording', unseen: narrow && state.state === 'recorded', blank: status === '' }" role="status"
         ><span class="said">{{ status }}</span
-        ><span v-if="narrow && busy" class="beat-said">&nbsp;· <TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /> · {{ state.meter }}</span></span
+        ><span v-if="narrow && busy" class="beat-said">&nbsp;· <TempoMark unit="quarter" :dots="0" :per-minute="state.tempo" /> · {{ state.meter }}</span></span
       >
     </div>
 
@@ -125,7 +125,7 @@ const status = computed(() => {
       <ToggleChip :pressed="state.metronome" :disabled="busy" @update:pressed="recorder.setMetronome($event)">{{ t('metronome') }}</ToggleChip>
       <div class="tempo" role="group" :aria-label="t('tempo')">
         <AppButton class="act" icon="minus" :disabled="busy || state.tempo <= RECORDING_TEMPO.min" :label="t('tempoSlower')" @click="recorder.setTempo(state.tempo - RECORDING_TEMPO.step)" />
-        <output class="bpm"><TempoMark unit="quarter" :dotted="false" :per-minute="state.tempo" /></output>
+        <output class="bpm"><TempoMark unit="quarter" :dots="0" :per-minute="state.tempo" /></output>
         <AppButton class="act" icon="plus" :disabled="busy || state.tempo >= RECORDING_TEMPO.max" :label="t('tempoFaster')" @click="recorder.setTempo(state.tempo + RECORDING_TEMPO.step)" />
       </div>
       <SegmentedControl v-model="meter" class="meter" wide :disabled="busy" :options="meters" :label="t('timeSignature')" />

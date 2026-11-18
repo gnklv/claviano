@@ -19,6 +19,7 @@ it('starts in the library: a file to open, free play, and the demos', () => {
 it('offers the chooser its kinds of file, but every file on a touch screen: an iPhone does not know ".mxl" and would not let it be chosen', async () => {
   const chooser = () => root.querySelector<HTMLInputElement>('input[type=file]')!;
   expect(chooser().accept).toContain('.mxl');
+  expect(chooser().accept).toContain('.pdf');
   screen.touch = true;
   screen.listeners.forEach((listener) => listener());
   await settled();

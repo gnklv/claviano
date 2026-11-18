@@ -28,6 +28,7 @@ import { odeToJoy } from '../../src/demo/odeToJoy';
 import type { Score } from '../../src/domain/score';
 import { MidiFileParser } from '../../src/infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from '../../src/infrastructure/parsers/MusicXmlParser';
+import { PdfScoreParser } from '../../src/infrastructure/parsers/PdfScoreParser';
 import { MidiFileWriter } from '../../src/infrastructure/writers/MidiFileWriter';
 import App from '../../src/ui/App.vue';
 import { depsKey } from '../../src/ui/deps';
@@ -91,7 +92,7 @@ export const learn = async () => {
   [...root.querySelectorAll<HTMLElement>('.piece header [role=group] button')].find((choice) => named(choice) === 'Learn')!.click();
   await settled();
 };
-export const drop = async (name: string, content: string) => {
+export const drop = async (name: string, content: BlobPart) => {
   const event = new Event('drop', { bubbles: true, cancelable: true });
   Object.assign(event, { dataTransfer: { files: [new File([content], name)] } });
   root.querySelector('.app')!.dispatchEvent(event);
@@ -161,7 +162,7 @@ export function useApp(): void {
       { id: 'ode', title: 'demoOde', load: () => odeToJoy('Ode to Joy') },
       { id: 'lost', title: 'demoShowcase', load: () => Promise.reject(new Error('HTTP 404')) },
     ] as const;
-    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser(), new MidiFileParser()]));
+    const openScore = new OpenScore(playback, new LoadScore([new MusicXmlParser(), new MidiFileParser(), new PdfScoreParser()]));
     const library = new Library(shelf, openScore, playback, demos);
     void library.load();
     const memories = new PieceMemories(shelf);

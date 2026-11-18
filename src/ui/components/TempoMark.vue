@@ -24,7 +24,7 @@ defineProps<TempoReading>();
 
 <template>
   <span class="tempo-mark"
-    ><span class="note" aria-hidden="true">{{ NOTES[unit] }}{{ dotted ? DOT : '' }}</span> = {{ perMinute }}</span
+    ><span class="note" aria-hidden="true">{{ NOTES[unit] }}{{ DOT.repeat(dots) }}</span> = {{ perMinute }}</span
   >
 </template>
 

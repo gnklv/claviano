@@ -27,6 +27,7 @@ const ACCIDENTAL_OFFSET = 1.3;
 /** One column of accidentals from the next. */
 export const ACCIDENTAL_COLUMN = 1.15;
 const DOT_OFFSET = 0.35;
+const DOT_SPACING = 0.75;
 /** Brackets stand this far from their notehead, and take this much room (an accidental moves out of their way). */
 const BRACKET_GAP = 0.08;
 const BRACKET_ROOM = 0.55;
@@ -103,7 +104,10 @@ export function drawChord({ geometry, ink, activeNotes }: StaffContext, index: n
     // A dot goes in a space: for a note on a line, in the space just above (or where the engraving put it, clear of another's).
     if (dots) {
       const dotStep = note.dotStep ?? (note.step % 2 === 0 ? note.step - 1 : note.step);
-      headShapes.push(glyph(AUGMENTATION_DOT, headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size, yOf(dotStep)));
+      const first = headsRight + (chord.dotsPastVoice ? headWidth : 0) + DOT_OFFSET * size;
+      for (let dot = 0; dot < dots; dot++) {
+        headShapes.push(glyph(AUGMENTATION_DOT, first + dot * DOT_SPACING * size, yOf(dotStep)));
+      }
     }
     const inactive = activeNotes && !activeNotes.has(note.writtenIndex ?? -1);
     shapes.push(...headShapes.map((shape): TextShape => inactive ? { ...shape, fill: COLORS.note, opacity: INACTIVE_NOTE_OPACITY } : shape));
@@ -283,7 +287,13 @@ export function drawRest({ geometry }: StaffContext, rest: StaffRest): TextShape
   const left = geometry.at(rest.beat) - width / 2;
   const y = top + (rest.step * space) / 2;
   const glyphs = [noteGlyph(space, REST[value], left, y)];
-  if (dots) glyphs.push(noteGlyph(space, AUGMENTATION_DOT, left + width + DOT_OFFSET * space, top + 1.5 * space));
+  // A whole rest hangs below its line; a half rest sits above it.
+  const spaceOffset = value === 'whole' ? 1 : -1;
+  const dotStep = rest.step % 2 === 0 ? rest.step + spaceOffset : rest.step;
+  for (let dot = 0; dot < dots; dot++) {
+    const x = left + width + (DOT_OFFSET + dot * DOT_SPACING) * space;
+    glyphs.push(noteGlyph(space, AUGMENTATION_DOT, x, top + dotStep * space / 2));
+  }
   return glyphs;
 }
 

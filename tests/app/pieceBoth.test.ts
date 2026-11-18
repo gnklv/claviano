@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { rereadPreferences } from '../../src/ui/kept/preferences';
 import { button, named, restart, root, settled, turnIntoPhone, useApp } from './harness';
 
@@ -43,6 +43,8 @@ describe('the staff and the keys together', () => {
   });
 
   it('takes the keys when pressed: the arrows move it next', async () => {
+    // The gesture follows mounting the separator. Vue skips bubbling events dated at listener attachment.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 1);
     line()!.setPointerCapture = () => {};
     line()!.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 1, bubbles: true }));
     line()!.dispatchEvent(new PointerEvent('pointerup', { button: 0, pointerId: 1, bubbles: true }));

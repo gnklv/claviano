@@ -1,6 +1,7 @@
 /**
- * Builds public/demos/showcase.musicxml: a short score that shows everything the player can draw
- * and play, bar by bar. Not music, a test card. Run: npm run showcase
+ * Builds public/demos/showcase.musicxml, the piano notation test score. For the bar-by-bar
+ * coverage and examples found only in other scores, see docs/showcase-coverage.md.
+ * Run: npm run showcase
  *
  * Durations are in divisions of 120 per quarter note: divisible by 8 (thirty-seconds),
  * 3 (triplets) and 5 (quintuplets), so every value is a whole number.
@@ -14,6 +15,7 @@ const E = Q / 2;
 const S = Q / 4;
 const T = Q / 8;
 const dotted = (value: number) => value * 1.5;
+const doubleDotted = (value: number) => value * 1.75;
 
 type Tie = 'start' | 'stop' | 'both';
 
@@ -499,12 +501,41 @@ const measures: string[] = [
     ${backup(W)}${note('A2', W, { type: 'whole', staff: 2 })}
   </measure>`,
 
-  // 32: the coda — the end, with fermatas over and (inverted) under the last chords, and the pedal
+  // 32: the coda opens with fermatas over and (inverted) under the chords, and the pedal
   // printed both ways at once: "Ped." and a line.
   `<measure number="32">
     ${sign('coda')}
     ${chord(['D5', 'F#5', 'A5'], W, { type: 'whole', fermata: 'upright' })}
     ${backup(W)}${pedal('start', 'both')}${chord(['D2', 'D3'], W, { type: 'whole', staff: 2, fermata: 'inverted' })}${pedal('stop', 'both')}
+  </measure>`,
+
+  // 33: a single voice crosses from bass to treble within one beam.
+  `<measure number="33">
+    ${direction('Cross-staff beam', '')}
+    ${note('D3', E, { type: 'eighth', staff: 2, voice: 1, stem: 'up', beams: ['begin'] })}
+    ${note('A3', E, { type: 'eighth', staff: 2, voice: 1, stem: 'up', beams: ['continue'] })}
+    ${note('F#4', E, { type: 'eighth', stem: 'down', beams: ['continue'] })}
+    ${note('A4', E, { type: 'eighth', stem: 'down', beams: ['end'] })}
+    ${note('D5', H, { type: 'half' })}
+  </measure>`,
+
+  // 34–35: two dotted-quarter beats in 6/8, then eighths grouped 2+2+3 in 7/8.
+  // The double-dotted eighth rest leaves one thirty-second to complete a quarter, and the
+  // double-dotted half note lasts the entire 7/8 bar.
+  `<measure number="34">
+    ${attributes(time(6, 8))}
+    ${direction('Double dots', '')}
+    ${rest(doubleDotted(E), { type: 'eighth', dots: 2 })}${note('F#5', T, { type: '32nd' })}
+    ${note('E5', E, { type: 'eighth' })}${note('D5', dotted(Q), { type: 'quarter', dots: 1 })}
+    ${backup(dotted(H))}${note('A2', dotted(H), { type: 'half', dots: 1, staff: 2 })}
+  </measure>`,
+  `<measure number="35">
+    ${attributes(time(7, 8))}
+    ${direction('2 + 2 + 3', '')}
+    ${['D5', 'E5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(2)[i]] })).join('')}
+    ${['F#5', 'G5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(2)[i]] })).join('')}
+    ${['F#5', 'E5', 'D5'].map((n, i) => note(n, E, { type: 'eighth', beams: [run(3)[i]] })).join('')}
+    ${backup(doubleDotted(H))}${note('D3', doubleDotted(H), { type: 'half', dots: 2, staff: 2 })}
     <barline location="right"><bar-style>light-heavy</bar-style></barline>
   </measure>`,
 ];

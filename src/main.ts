@@ -30,6 +30,7 @@ import { startOfflineCache } from './infrastructure/offline/offlineCache';
 import { fetchScore } from './infrastructure/parsers/fetchScore';
 import { MidiFileParser } from './infrastructure/parsers/MidiFileParser';
 import { MusicXmlParser } from './infrastructure/parsers/MusicXmlParser';
+import { PdfScoreParser } from './infrastructure/parsers/PdfScoreParser';
 import { CanvasPianoRoll } from './infrastructure/render/CanvasPianoRoll';
 import { CanvasPlayedTiles } from './infrastructure/render/CanvasPlayedTiles';
 import { CanvasStaff } from './infrastructure/render/CanvasStaff';
@@ -61,7 +62,7 @@ const demos: Demo[] = [
   // Fetched only when chosen; public/ files are served under the site's base path.
   { id: 'showcase', title: 'demoShowcase', load: () => fetchScore(`${import.meta.env.BASE_URL}demos/showcase.musicxml`, musicXml, 'showcase') },
 ];
-const openScore = new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml]));
+const openScore = new OpenScore(playback, new LoadScore([new MidiFileParser(), musicXml, new PdfScoreParser()]));
 const shelf = new IndexedDbPieceShelf();
 const library = new Library(shelf, openScore, playback, demos);
 void library.load();
