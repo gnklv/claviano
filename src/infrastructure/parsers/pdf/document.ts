@@ -1,5 +1,6 @@
 import { ScoreLoadError } from '../../../application/ports/ScoreParser';
 import { inflate } from '../inflate';
+import { emmentalerDigits, emmentalerGlyph, isEmmentalerFont } from './emmentalerGlyphs';
 
 type PdfName = { name: string };
 type Reference = { ref: string };
@@ -183,6 +184,28 @@ function isCid(value: Value | undefined): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffff;
 }
 
+function emmentalerEncoding(encoding: Value | undefined, differences: Value | undefined): Map<number, string> {
+  const unicode = new Map<number, string>();
+  if (['WinAnsiEncoding', 'MacRomanEncoding', 'StandardEncoding'].includes(name(encoding) ?? '')) {
+    for (const [digit, glyph] of emmentalerDigits.entries()) {
+      unicode.set(0x30 + digit, emmentalerGlyph(glyph));
+    }
+  }
+  if (Array.isArray(differences)) {
+    let code = -1;
+    for (const entry of differences) {
+      if (isCid(entry)) {
+        code = entry;
+      } else {
+        const glyph = name(entry);
+        if (glyph === undefined || code < 0 || code > 255) invalid('invalid Emmentaler encoding difference');
+        unicode.set(code++, emmentalerGlyph(glyph));
+      }
+    }
+  }
+  return unicode;
+}
+
 const MAX_STREAM_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 64 * 1024 * 1024;
 
@@ -324,6 +347,12 @@ export function readPdf(bytes: Uint8Array): { pageCount: number; page(index: num
       value.defaultWidth = typeof defaultWidth === 'number' ? defaultWidth : 1000;
     }
     if (value.codeBytes === 1) {
+      if (toUnicode === undefined && isEmmentalerFont(value.name)) {
+        const encoding = resolve(data.get('Encoding'));
+        value.unicode = encoding instanceof Map
+          ? emmentalerEncoding(resolve(encoding.get('BaseEncoding')), resolve(encoding.get('Differences')))
+          : emmentalerEncoding(encoding, undefined);
+      }
       const widths = resolve(data.get('Widths'));
       if (widths !== undefined) {
         const first = resolve(data.get('FirstChar'));

@@ -94,6 +94,15 @@ export function plainNotesOf(score: Score): readonly Note[] {
   return playNotation(score.notation, PACE_DEPTHS, score).notes;
 }
 
+// A single tremolo belongs to the stem. MusicXML can put it on any head of the chord.
+function singleTremoloStrokes(notes: Notation['notes'], first: number): number | null {
+  for (let i = first; i < notes.length && (i === first || notes[i]!.chord); i++) {
+    const mark = notes[i]!.tremolo;
+    if (mark?.type === 'single') return mark.strokes;
+  }
+  return null;
+}
+
 function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): Score {
   const measures: Measure[] = notation.bars.map((bar) => ({
     start: bar.start,
@@ -140,8 +149,13 @@ function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): 
   // The notes themselves: one sound each, or the several quick ones an ornament or a tremolo stands for.
   const keys = [...notation.keySignatures].sort((a, b) => a.beat - b.beat);
   let delay = 0; // of the chord being read: every note of it comes in after the appoggiatura
+  let chordStrokes: number | null = null;
   notation.notes.forEach((note, index) => {
-    if (!note.chord) delay = delays.get(index) ?? 0;
+    if (!note.chord) {
+      delay = delays.get(index) ?? 0;
+      chordStrokes = singleTremoloStrokes(notation.notes, index);
+    }
+    const strokes = note.tremolo?.type === 'single' ? note.tremolo.strokes : chordStrokes;
     const effect = articulationEffect(note.articulations);
     const beat = note.beat + delay;
     const beats = note.beats - delay;
@@ -157,8 +171,8 @@ function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): 
           neighbour(spelled, 1, fifths, ornament.accidentalAbove),
           neighbour(spelled, -1, fifths, ornament.accidentalBelow),
         )
-      : note.tremolo?.type === 'single'
-        ? playTremolo(note.sounding, beats, note.tremolo.strokes)
+      : strokes !== null
+        ? playTremolo(note.sounding, beats, strokes)
         : [{ pitch: note.sounding, offset: 0, beats }];
     pieces.forEach((piece, i) => {
       const last = i === pieces.length - 1;
@@ -181,7 +195,14 @@ function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): 
       });
     });
   });
-  for (const measure of measures) measure.sounds = rollChords(alternateTremolos(measure.sounds));
+  for (const measure of measures) {
+    measure.sounds = rollChords(alternateTremolos(measure.sounds));
+    // MusicXML can serialize entire voices successively using <backup>. Tie
+    // continuations must be visited in performance order across those voices.
+    if (measure.sounds.some(sound => sound.tieStart || sound.tieStop)) {
+      measure.sounds.sort((a, b) => a.beat - b.beat || Number(b.tieStop) - Number(a.tieStop));
+    }
+  }
 
   // How loud each note is: its own level, a stress written at it, or the level in force along the page.
   const dynamics = dynamicsAlongPage(notation.dynamics, notation.dynamicLevels, notation.hairpins);

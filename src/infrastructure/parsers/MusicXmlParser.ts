@@ -28,6 +28,10 @@ export class MusicXmlParser implements ScoreParser {
   }
 
   parse(data: ArrayBuffer, title: string): Score {
+    return performNotation(this.readNotation(data, title), this.pace);
+  }
+
+  readNotation(data: ArrayBuffer, title: string) {
     const xml = new TextDecoder().decode(isZip(data) ? scoreInArchive(data) : data);
     const document = new DOMParser().parseFromString(xml, 'application/xml');
     if (document.querySelector('parsererror')) throw new InvalidMusicXmlError('Not well-formed XML');
@@ -39,7 +43,7 @@ export class MusicXmlParser implements ScoreParser {
 
     const part = pianoPart(root);
     if (!part) throw new InvalidMusicXmlError('The score has no parts');
-    return performNotation(new PartReader(workTitle(root) ?? title).read(part), this.pace);
+    return new PartReader(workTitle(root) ?? title).read(part);
   }
 }
 

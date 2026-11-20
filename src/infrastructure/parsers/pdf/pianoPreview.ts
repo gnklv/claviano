@@ -1,12 +1,15 @@
+import { documentCoverage, type PdfPianoPreview, type PdfDocumentReading } from './pianoReading';
+import { isLilyPondPage, lilyPondPagePrefix } from './lilyPondMeasures';
+import { readLilyPondPiano } from './lilyPondPiano';
 import { pianoCoverage } from './pianoCoverage';
 import { ScoreLoadError } from '../../../application/ports/ScoreParser';
 import { museScoreMeasures } from './museScoreMeasures';
 import { museScoreKey } from './pianoKey';
-import { isLegacyMusicGlyph } from './musicGlyphs';
+import { identifyMusicEncoding, isLegacyMusicGlyph } from './musicGlyphs';
 import { readMuseScorePiano } from './museScorePiano';
 import { applyMuseScoreDirections } from './museScoreDirections';
 import { readLegacyDocument, readLegacyPiano } from './legacyPiano';
-import { readPickupPreview, type PdfPianoPreview } from './pianoPickup';
+import { readPickupPreview } from './pianoPickup';
 import { readEvents, readVoice, type TimedNote } from './pianoNotes';
 import type { Notation, WrittenBar } from '../../../domain/notation/notation';
 import type { Clef, WrittenNote } from '../../../domain/notation/written';
@@ -15,7 +18,7 @@ import { extractPdfGeometry, type PdfGeometry, type PdfGlyph } from './geometry'
 import {
   PREVIEW_BARS, TREBLE, BASS, PEDAL, PIANO,
   codePoint, within, sortedX, isHead, isAccidental, type Measure, type Staff, type BeamStrip, top, center,
-  pianoMeasures, musicGlyphs, keyOf, timeOf, strips, startingTempo,
+  pianoMeasures, musicGlyphs, printedClef, keyOf, isTimeSymbol, timeOf, strips, startingTempo,
 } from './pianoGeometry';
 
 function staffNotes(
@@ -43,22 +46,21 @@ function staffNotes(
 
 /** Reads a supported opening fragment from a vector piano engraving. */
 export function readPianoPreview(content: PdfContent, title: string): Notation | null {
-  const geometry = extractPdfGeometry(content);
+  const geometry = identifyMusicEncoding(extractPdfGeometry(content));
+  if (isLilyPondPage(geometry)) {
+    return readLilyPondPiano([geometry], [lilyPondPagePrefix(geometry).bars.slice(0, PREVIEW_BARS)], title)?.notation ?? null;
+  }
   const measures = pianoMeasures(geometry.segments).slice(0, PREVIEW_BARS);
   if (geometry.glyphs.some(isLegacyMusicGlyph)) return readLegacyPiano(geometry, measures, title);
   return readCompleteBars(geometry, measures, title) ?? readPickupPreview(geometry, title)?.notation ?? null;
 }
-
-export type PdfDocumentReading = PdfPianoPreview & (
-  { coverage: 'full'; stoppedAtPage?: never } | { coverage: 'partial'; stoppedAtPage: number }
-);
 
 export function readPianoDocumentPreview(doc: ReturnType<typeof readPdf>, title: string): PdfDocumentReading | null {
   if (!doc.pageCount) return null;
   const pages: PdfGeometry[] = [];
   for (let i = 0; i < doc.pageCount; i++) {
     try {
-      pages.push(extractPdfGeometry(doc.page(i)));
+      pages.push(identifyMusicEncoding(extractPdfGeometry(doc.page(i))));
     } catch (error) {
       if (!(error instanceof ScoreLoadError)) throw error;
       if (error.code !== 'unsupported-feature') throw new ScoreLoadError(error.code, error.message, i + 1);
@@ -67,6 +69,13 @@ export function readPianoDocumentPreview(doc: ReturnType<typeof readPdf>, title:
     }
   }
   const first = pages[0]!;
+  if (isLilyPondPage(first)) {
+    const prefixes = pages.map(page => isLilyPondPage(page) ? lilyPondPagePrefix(page) : { bars: [], complete: false });
+    const gap = prefixes.findIndex(prefix => !prefix.complete);
+    const measures = prefixes.slice(0, gap < 0 ? prefixes.length : gap + 1).map(prefix => prefix.bars);
+    const preview = readLilyPondPiano(pages, measures, title, gap < 0 && pages.length === doc.pageCount);
+    return preview && documentCoverage(preview, measures, doc.pageCount, gap < 0 ? undefined : gap + 1);
+  }
   const measures = pages.map(museScoreMeasures);
   let limit = 0;
   let gapPage: number | undefined;
@@ -79,18 +88,10 @@ export function readPianoDocumentPreview(doc: ReturnType<typeof readPdf>, title:
     }
   }
   if (!limit) return null;
-  function withCoverage(preview: PdfPianoPreview): PdfDocumentReading {
-    let remaining = preview.notation.bars.length;
-    for (const [index, page] of measures.entries()) {
-      if (gapPage === index + 1 || !page.length || remaining < page.length) return { ...preview, coverage: 'partial', stoppedAtPage: index + 1 };
-      remaining -= page.length;
-    }
-    if (pages.length < doc.pageCount) return { ...preview, coverage: 'partial', stoppedAtPage: pages.length + 1 };
-    return { ...preview, coverage: 'full' };
-  }
+  const withCoverage = (preview: PdfPianoPreview) => documentCoverage(preview, measures, doc.pageCount, gapPage);
 
   const legacy = first.glyphs.some(isLegacyMusicGlyph);
-  const leland = first.glyphs.some(g => g.font === 'Leland');
+  const leland = first.glyphs.some(g => g.font === 'Leland' || g.musicEncoding === 'smufl');
   if (legacy || leland) {
     const seed = measures[0]?.[0] && readHeader(first, measures[0][0], title);
     function read(limit?: number) {
@@ -98,7 +99,8 @@ export function readPianoDocumentPreview(doc: ReturnType<typeof readPdf>, title:
         const notation = readLegacyDocument(first, title, pages.slice(1), limit);
         return notation && { notation, issues: [] };
       }
-      return seed ? readMuseScorePiano(pages, seed, applyMuseScoreDirections, limit) : null;
+      return seed ? readMuseScorePiano(pages, seed, applyMuseScoreDirections, limit,
+        gapPage === undefined && pages.length === doc.pageCount) : null;
     }
     const complete = read(limit);
     if (complete) return withCoverage(complete);
@@ -151,18 +153,18 @@ export function readPianoDocumentPreview(doc: ReturnType<typeof readPdf>, title:
 function readHeader(geometry: PdfGeometry, first: Measure, title: string): Notation | null {
   const initial = first.staves.map((staff) => musicGlyphs(geometry.glyphs, first, staff));
   const clefs = initial.map((glyphs) => {
-    const glyph = glyphs.find((item) => [TREBLE, BASS].includes(codePoint(item)));
-    return glyph ? codePoint(glyph) === TREBLE ? 'treble' as const : 'bass' as const : null;
+    const glyph = glyphs.find(item => printedClef(codePoint(item)));
+    return glyph && printedClef(codePoint(glyph));
   });
   const time = timeOf(initial[0]!, first.staves[0]);
   const lowerTime = timeOf(initial[1]!, first.staves[1]);
   if (!time || time.numerator !== lowerTime?.numerator || time.denominator !== lowerTime.denominator) return null;
-  const keys = initial.map(row => keyOf(row, row.find(g => codePoint(g) >= 0xe080 && codePoint(g) <= 0xe089)!.x));
+  const keys = initial.map(row => keyOf(row, row.find(isTimeSymbol)!.x));
   if (clefs.some(c => !c) || keys[0] == null || keys[0] !== keys[1]) return null;
   return { title, bars: [], notes: [], rests: [], graces: [], dynamics: [], dynamicLevels: [], words: [],
     hairpins: [], pedalMoves: [], pedalMarks: [], octaveShifts: [], tempos: [], tempoMarks: [],
     keySignatures: [{ beat: 0, fifths: keys[0], minor: false }], timeSignatures: [time],
-    clefs: clefs.flatMap((clef, i) => clef ? [{ clef, beat: 0, staff: i + 1 }] : []) };
+    clefs: clefs.flatMap((clef, i) => clef ? [{ ...clef, beat: 0, staff: i + 1 }] : []) };
 }
 
 function readCompleteBars(geometry: PdfGeometry, measures: readonly Measure[], title: string,
@@ -248,7 +250,7 @@ function readCompleteBars(geometry: PdfGeometry, measures: readonly Measure[], t
     && within(glyph.y, dynamic.y, first.staves[0].space * 0.12)
     && /^[\p{L} ,.'-]$/u.test(glyph.text))).map((glyph) => glyph.text).join('').trim();
   return {
-    title, bars, notes, clefs: clefs.flatMap((clef, i) => clef ? [{ clef, beat: 0, staff: i + 1 }] : []),
+    title, bars, notes, clefs: header.clefs,
     keySignatures, timeSignatures: [time], tempos: tempo ? [tempo.change] : [],
     tempoMarks: tempo ? [tempo.mark] : [], pedalMoves, pedalMarks, graces: [], rests: [],
     octaveShifts: [], dynamics: dynamic ? [{ beat: 0, below: false, text: 'p', letters: true }] : [],

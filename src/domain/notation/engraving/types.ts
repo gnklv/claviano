@@ -88,6 +88,9 @@ export interface Beam {
 
 /** A tuplet group: "3" over three notes played in the time of two. */
 export interface Tuplet {
+  /** Index into NotationLayout.rests when the group ends on a rest. */
+  readonly startRest?: number;
+  readonly endRest?: number;
   /** Indices into NotationLayout.chords, left to right. */
   readonly chords: readonly number[];
   /** The number shown, e.g. 3 for a triplet. */

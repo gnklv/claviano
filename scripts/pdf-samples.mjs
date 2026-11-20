@@ -2,6 +2,7 @@
 import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 import { compareCzardasPrint, czardasPlaybackTiming } from './czardas-pdf-comparison.mjs';
 import { expectedShowcaseBar, inspectShowcaseBar } from './showcase-pdf-bars.mjs';
 import { Window } from 'happy-dom';
@@ -38,6 +39,81 @@ function difference(expected, actual) {
     else remaining.splice(index, 1);
   }
   return { missing: remaining.map(item => item.value), extra };
+}
+
+// Check the finger assigned to each key independently of its printed side.
+function compareFingerings(reference, pdf, barCount, engrave) {
+  const marks = notes => notes.filter(n => n.bar < barCount && n.fingering).map(n => ({
+    measure: n.bar + 1, staff: n.staff, beat: n.beat, sounding: n.sounding,
+    text: n.fingering.text, below: n.fingering.below,
+  }));
+  const expected = marks(reference.notation.notes), actual = marks(pdf.notation.notes);
+  if (!expected.length && !actual.length) return undefined;
+  const assignment = ({ below, ...mark }) => mark;
+  const drawn = score => engrave(score).fingerings.flatMap(finger => {
+    const note = score.notation.notes[finger.writtenIndex];
+    return note && note.bar < barCount ? [{ measure: note.bar + 1, staff: note.staff,
+      beat: note.beat, sounding: note.sounding, text: finger.text, below: !finger.above }] : [];
+  });
+  return {
+    referenceMarks: expected.length, pdfMarks: actual.length,
+    unspecifiedReferenceSides: expected.filter(mark => mark.below === null).length,
+    assignments: difference(expected.map(assignment), actual.map(assignment)),
+    placements: difference(expected, actual),
+    engraved: difference(drawn(reference), drawn(pdf)),
+  };
+}
+
+// A changed mark makes the entire voice differ. Break down unambiguous
+// note pairs for diagnosis while retaining the complete strict comparison.
+function noteFieldDifferences(voices) {
+  const byPosition = groups => {
+    const positions = new Map();
+    for (const note of groups.flat()) {
+      const position = [note.bar, note.staff, note.beat, note.sounding, note.beats].join('/');
+      // A unison can occur in two voices. Its field differences cannot be
+      // assigned to a particular head from the position alone.
+      positions.set(position, positions.has(position) ? null : note);
+    }
+    return positions;
+  };
+  const actual = byPosition(voices.extra);
+  const fields = {};
+  for (const [position, expected] of byPosition(voices.missing)) {
+    const note = actual.get(position);
+    if (!expected || !note) continue;
+    for (const field of new Set([...Object.keys(expected), ...Object.keys(note)])) {
+      if (isDeepStrictEqual(expected[field], note[field])) continue;
+      const entry = fields[field] ??= { count: 0, first: {
+        measure: expected.bar + 1, staff: expected.staff, beat: expected.beat, sounding: expected.sounding,
+        reference: expected[field] ?? null, pdf: note[field] ?? null,
+      } };
+      entry.count++;
+    }
+  }
+  return fields;
+}
+
+// A different inferred side can make one phrase look like two distinct
+// missing/extra arcs. Keep the strict result and pair these by endpoints.
+function slurDifferences(diff, notes) {
+  const extra = [...diff.extra], missing = [], placement = [];
+  for (const expected of diff.missing) {
+    const index = extra.findIndex(mark => mark.staff === expected.staff && mark.start === expected.start
+      && mark.end === expected.end && mark.above !== expected.above);
+    if (index < 0) {
+      missing.push(expected);
+      continue;
+    }
+    const [actual] = extra.splice(index, 1);
+    // When multiple slurs open on this chord, only claim a default side if
+    // every opening leaves it unspecified.
+    const openings = notes.filter(n => (n.staff >= 2 ? 'bass' : 'treble') === expected.staff && n.beat === expected.start)
+      .flatMap(n => n.slurs.filter(m => m.type === 'start'));
+    placement.push({ ...expected, pdfAbove: actual.above,
+      inferredReferenceSide: openings.length > 0 && openings.every(m => m.placement == null) });
+  }
+  return { placement, missing, extra };
 }
 
 // Match only a complete missing bracket at the diagnosed endpoints. Any unexpected
@@ -96,10 +172,10 @@ function writtenFragment(score, count, engrave, inferredStems = new Map()) {
 }
 
 // The performance score merges printed metronome marks with playback tempos.
-// Re-read the two plain XML files before that merge to retain their provenance.
-async function sourceDirections(path, PartReader, end) {
-  const xml = new DOMParser().parseFromString(await readFile(path, 'utf8'), 'application/xml');
-  const part = new PartReader('').read(xml.querySelector('part'));
+// Read the source notation before that merge to retain its provenance.
+async function sourceDirections(path, parser, end) {
+  const data = Uint8Array.from(await readFile(path)).buffer;
+  const part = parser.readNotation(data, basename(path));
   const beforeEnd = marks => marks.filter(mark => mark.beat < end);
   return {
     printedTempo: beforeEnd(part.tempoMarks).filter(mark => mark.printed),
@@ -114,6 +190,22 @@ function playbackComparison(reference, actual, timingExceptions) {
   const sorted = score => score.notes.map(({ beat, beats, hand, pitch }) => ({ beat, beats, hand, pitch }))
     .sort((a, b) => a.beat - b.beat || a.pitch - b.pitch || a.hand.localeCompare(b.hand) || a.beats - b.beats);
   const expected = sorted(reference), played = sorted(actual);
+  // A missing attack shifts array indices for the remainder of a piece.
+  // Count identical musical events independently of their position in that array.
+  const eventKey = n => [n.hand, n.pitch, n.beat.toFixed(8), n.beats.toFixed(8)].join('/');
+  const remaining = new Map();
+  for (const n of expected) {
+    const key = eventKey(n);
+    remaining.set(key, (remaining.get(key) ?? 0) + 1);
+  }
+  let matchedAttacks = 0;
+  for (const n of played) {
+    const key = eventKey(n), count = remaining.get(key);
+    if (count) {
+      matchedAttacks++;
+      remaining.set(key, count - 1);
+    }
+  }
   let differingAttacks = 0, pitchOrHandDifferences = 0;
   let maxOnsetErrorBeats = 0, maxDurationErrorBeats = 0;
   const explainedTimingDifferences = [];
@@ -139,7 +231,7 @@ function playbackComparison(reference, actual, timingExceptions) {
     maxOnsetErrorBeats = Math.max(maxOnsetErrorBeats, onset);
     maxDurationErrorBeats = Math.max(maxDurationErrorBeats, duration);
   }
-  return { expectedAttacks: expected.length, actualAttacks: played.length, differingAttacks, pitchOrHandDifferences,
+  return { expectedAttacks: expected.length, actualAttacks: played.length, matchedAttacks, differingAttacks, pitchOrHandDifferences,
     maxOnsetErrorBeats, maxDurationErrorBeats, explainedTimingDifferences, unexplained };
 }
 
@@ -169,12 +261,12 @@ try {
     optimizeDeps: { noDiscovery: true, include: [] } });
   const load = path => server.ssrLoadModule('/src/' + path);
   const [{ readPdf }, { extractPdfGeometry }, { readPianoDocumentPreview }, { pianoStaffPairs, strips, timeOf }, { roundDotCenter }, { MusicXmlParser },
-    { writePdfPreviewMusicXml }, { engrave }, { PartReader }] =
+    { writePdfPreviewMusicXml }, { engrave }] =
     await Promise.all([load('infrastructure/parsers/pdf/document.ts'), load('infrastructure/parsers/pdf/geometry.ts'),
       load('infrastructure/parsers/pdf/pianoPreview.ts'), load('infrastructure/parsers/pdf/pianoGeometry.ts'),
       load('infrastructure/parsers/pdf/curves.ts'),
       load('infrastructure/parsers/MusicXmlParser.ts'), load('infrastructure/writers/pdfPreviewMusicXml.ts'),
-      load('domain/notation/engraving/index.ts'), load('infrastructure/parsers/musicxml/PartReader.ts')]);
+      load('domain/notation/engraving/index.ts')]);
   const reports = [];
   for (const sample of samples) {
     const { file, reference, source } = sample;
@@ -303,16 +395,18 @@ try {
               return { ...note, fingering: { ...fingering, below: false } };
             }));
             report.printedDifferences = printedDifferences;
-            const last = expected.bars.at(-1);
-            const end = last.start + last.length;
-            const [referenceDirections, previewDirections] = await Promise.all(
-              [reference, path].map(file => sourceDirections(file, PartReader, end)));
+          }
+          const last = expected.bars.at(-1);
+          const end = last.start + last.length;
+          const [referenceDirections, previewDirections] = await Promise.all(
+            [reference, path].map(file => sourceDirections(file, parser, end)));
+          report.playbackOnly = {
+            tempo: difference(referenceDirections.playbackTempo, previewDirections.playbackTempo),
+            dynamics: difference(referenceDirections.playbackDynamics, previewDirections.playbackDynamics),
+          };
+          if (sample === showcase) {
             expected.tempoMarks = referenceDirections.printedTempo;
             actual.tempoMarks = previewDirections.printedTempo;
-            report.playbackOnly = {
-              tempo: difference(referenceDirections.playbackTempo, previewDirections.playbackTempo),
-              dynamics: difference(referenceDirections.playbackDynamics, previewDirections.playbackDynamics),
-            };
           }
           const compareCzardas = file === 'czardas.pdf' && !report.coverage.partial;
           if (compareCzardas) compareCzardasPrint(expected, actual, report, edition);
@@ -332,6 +426,9 @@ try {
           if (report.issues) report.issues = report.issues.map(issue => explainPedalIssue(issue, differences));
           report.comparison = { reference: basename(reference), expectedNotes: expected.voices.flat().length,
             actualNotes: reopened.notation.notes.length, differences };
+          report.comparison.fingerings = compareFingerings(edition, reopened, expectedBarCount, engrave);
+          if (differences.slurs) report.comparison.slurDifferences = slurDifferences(differences.slurs, edition.notation.notes);
+          if (differences.voices) report.comparison.noteFieldDifferences = noteFieldDifferences(differences.voices);
           if (sample === showcase && (report.coverage.partial || report.bars !== 36
               || report.comparison.expectedNotes !== 263 || report.comparison.actualNotes !== 263)) {
             throw Error('Expected all 36 written bars and 263 principal notes of the showcase');

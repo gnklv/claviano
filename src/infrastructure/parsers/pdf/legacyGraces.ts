@@ -1,5 +1,5 @@
 import type { Notation } from '../../../domain/notation/notation';
-import { keyAlteration, midiOf } from '../../../domain/notation/spelling';
+import { keyAlteration, midiOf, type Alteration } from '../../../domain/notation/spelling';
 import type { PdfGeometry, PdfGlyph } from './geometry';
 import { musicGlyphCode as code } from './musicGlyphs';
 import { ACCIDENTALS, BEAM_VALUES, beamMarks, strips, pitchAt, type Measure } from './pianoGeometry';
@@ -21,7 +21,14 @@ export function readLegacyGraces(
     const small = glyphs.filter((g) => g.size < space * 3.7 && (j === 0 ? g.y > boundary : g.y <= boundary));
     const heads = small.filter(isHead).sort((a, b) => a.x - b.x);
     const graceBeams = strips(geometry.fills, space * 0.7, 1);
+    const marks = barNotes.filter(n => n.note.staff === j + 1 && n.note.accidental).sort((a, b) => a.x - b.x);
+    const alterations = new Map<number, Alteration>();
+    let markIndex = 0;
     for (const head of heads) {
+      while (markIndex < marks.length && marks[markIndex]!.x < head.x) {
+        const pitch = marks[markIndex++]!.note.pitch;
+        alterations.set(pitch.octave * 7 + pitch.letter, pitch.alteration);
+      }
       const target = barNotes.filter((n) => n.note.staff === j + 1 && n.x > head.x).sort((a, b) => a.x - b.x)[0];
       if (!target) return false;
       const clef = target.note.clef,
@@ -36,7 +43,9 @@ export function readLegacyGraces(
           head.x - g.x < space * 2,
       );
       const accidental = printed && ACCIDENTALS[code(printed) - 0xe260];
-      const pitch = { ...pos, alteration: accidental?.[1] ?? keyAlteration(pos.letter, fifths) };
+      const degree = pos.octave * 7 + pos.letter;
+      if (accidental) alterations.set(degree, accidental[1]);
+      const pitch = { ...pos, alteration: alterations.get(degree) ?? keyAlteration(pos.letter, fifths) };
       const stem = stemFor(
         head,
         geometry.segments.filter((s) => close(s.x1, s.x2, 0.02) && Math.abs(s.y1 - s.y2) < space * 5),

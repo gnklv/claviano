@@ -83,4 +83,56 @@ test('applies a printed octave line over one staff and preserves its written pit
   expect(result.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
   expect(result.notes.map(n => n.sounding)).toEqual([72, 72, 60, 60]);
   expect(result.notes.map(n => n.pitch)).toEqual(notes.map(t => t.note.pitch));
+  const throughRest = applyMuseScoreNavigation(notation(bars, notes.map(t => t.note)), [
+    { geometry, measure: { left: 10, right: 100, staves }, notes, index: 0, columns: [
+      { x: 40, beat: 0 }, { x: 55, beat: 1 },
+      { x: 63, beat: 2, rest: { staff: 1, beats: 0.5 } },
+      { x: 68, beat: 2, rest: { staff: 2, beats: 2 } },
+      { x: 85, beat: 3, rest: { staff: 1, beats: 1 } },
+    ] },
+  ]);
+  expect(throughRest.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2.5, octaves: 1 }]);
+  const withMarginHook = applyMuseScoreNavigation(notation(bars, notes.map(t => t.note)), [
+    { geometry: { ...geometry, segments: [
+      { ...geometry.segments[0], x2: 107 },
+      { ...geometry.segments[1], x1: 107, x2: 107 },
+    ] }, measure: { left: 10, right: 100, staves }, notes, index: 0 },
+  ]);
+  expect(withMarginHook.octaveShifts).toEqual([{ staff: 1, start: 0, end: 3, octaves: 1 }]);
+});
+
+test('joins matching octave lines across systems and preserves a change of direction', () => {
+  const staves = [{ bottom: 110, space: 5 }, { bottom: 60, space: 5 }] as const;
+  const bars = [0, 4].map(start => ({ start, length: 4, navigation: {} }));
+  function read(secondDirection: number) {
+    const positions = bars.map(({ start }, index): MuseScoreDirectionBar => {
+      const octaves = index === 0 ? -1 : secondDirection;
+      const y = octaves > 0 ? 85 : 50;
+      const railY = y + 4;
+      const right = index === 0 ? 100 : 75;
+      const geometry: PdfGeometry = {
+        glyphs: [{ x: 40, y, font: 'Leland', size: 20, code: 1, text: octaves > 0 ? '\ue511' : '\ue510' }],
+        segments: [{ x1: octaves > 0 ? 59.5 : 48.75, x2: right, y1: railY, y2: railY, width: 0.5 }],
+        fills: [], curvedFills: [],
+      };
+      if (index === 1) geometry.segments.push({ x1: right, x2: right, y1: railY, y2: railY - octaves * 5, width: 0.5 });
+      const note: WrittenNote = {
+        bar: index, beat: start, beats: 1, staff: 2, voice: '5', hand: 'left', clef: 'bass',
+        pitch: { letter: 0, octave: 3, alteration: 0 }, sounding: 48,
+        duration: { value: 'quarter', dots: 0 }, chord: false,
+        accidental: null, stem: null, beams: [], articulations: [], fermata: null, slurs: [], dynamics: null,
+        ornaments: [], trillLine: false, tremolo: null, arpeggio: null, tieStart: false, tieStop: false,
+        tuplet: null, tupletStart: null, tupletStop: false,
+      };
+      return { geometry, measure: { left: 10, right: 100, staves }, notes: [{ x: 40, y: 70, note }], index };
+    });
+    return applyMuseScoreNavigation(notation(bars, positions.flatMap(p => p.notes.map(n => n.note))), positions);
+  }
+  expect(read(-1).octaveShifts).toEqual([{ staff: 2, start: 0, end: 5, octaves: -1 }]);
+  const changed = read(1);
+  expect(changed.octaveShifts).toEqual([
+    { staff: 2, start: 0, end: 4, octaves: -1 },
+    { staff: 2, start: 4, end: 5, octaves: 1 },
+  ]);
+  expect(changed.notes.map(note => note.sounding)).toEqual([36, 60]);
 });

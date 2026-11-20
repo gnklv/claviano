@@ -4,6 +4,7 @@ import { expect, test } from 'vitest';
 import { readPdf } from '../../../src/infrastructure/parsers/pdf/document';
 import { extractPdfGeometry } from '../../../src/infrastructure/parsers/pdf/geometry';
 import { roundDotCenter } from '../../../src/infrastructure/parsers/pdf/curves';
+import { readPianoNoteMarks } from '../../../src/infrastructure/parsers/pdf/pianoNoteMarks';
 import {
   isArticulationGlyph, isFermataGlyph, readBarArticulations, readBarFermatas,
 } from '../../../src/infrastructure/parsers/pdf/pianoArticulations';
@@ -34,6 +35,31 @@ test('reads the engraved articulations on both staves, including detached legato
   expect(readBarArticulations(symbols, [], positioned, space)?.map(entry => entry.note)).toEqual(expected);
   expect(readBarArticulations([...symbols, symbols[0]], [], positioned, space)).toBeNull();
   expect(readBarArticulations(symbols, [], positioned.slice(1), space)).toBeNull();
+});
+
+test.each([1, -1])('reads MuseScore articulation stacks from the chord outward on side %i', side => {
+  const p = positioned[0];
+  const marks = [
+    { code: 0xe4a6, distance: 1.5 },
+    { code: 0xe4a2, distance: 0.8 },
+  ].map(({ code: above, distance }) => {
+    const code = above + Number(side < 0);
+    return { code, text: String.fromCodePoint(code), font: 'Leland', size: space * 4,
+      x: p.x + space * 0.4, y: p.y + side * space * distance };
+  });
+  const [entry] = readPianoNoteMarks(marks, [p], space);
+  expect(entry.note.articulations).toEqual(['staccato', 'staccatissimo']);
+});
+
+test.each([1, -1])('reads the MuseScore tenuto-staccato glyph on side %i as one portato', side => {
+  const lower = positioned[0];
+  const upper = { ...lower, y: lower.y + 3.5 * space, note: { ...lower.note, chord: true } };
+  const code = 0xe4b2 + Number(side < 0);
+  const mark = { code, text: String.fromCodePoint(code), font: 'Leland', size: space * 4,
+    x: lower.x + space * 0.017, y: (side > 0 ? upper.y : lower.y) + side * space * 0.93 };
+  const oppositeStaff = { ...lower, y: lower.y - 9.8 * space, note: { ...lower.note, staff: 2 } };
+  const result = readPianoNoteMarks([mark], [lower, upper, oppositeStaff], space);
+  expect(result.map(entry => entry.note.articulations)).toEqual([['portato'], [], []]);
 });
 
 test('attaches a drawn staccato dot without changing the duration or consuming an augmentation dot', () => {
@@ -86,4 +112,17 @@ test('applies the engraved stack of staccato marks to both members of each chord
   expect(marks).toHaveLength(6);
   expect(readBarArticulations(marks, [], positioned, space)?.map(entry => entry.note)).toEqual(expected);
   expect(readBarArticulations([...marks, marks[0]], [], positioned, space)).toBeNull();
+});
+
+test('assigns an inter-staff finger number only to the closer chord', () => {
+  const upper = positioned[0];
+  const bass = { ...upper, y: upper.y - 7 * space, note: { ...upper.note, staff: 2, voice: '5' } };
+  const mark = { text: '3', code: 51, font: 'Edwin-Roman', size: 1.6 * space,
+    x: upper.x + 0.2 * space, y: bass.y + 2 * space };
+  const read = (y: number) => readPianoNoteMarks([{ ...mark, y }], [upper, bass], space).map(n => n.note.fingering);
+  expect(read(mark.y)).toEqual([undefined, { text: '3', below: false }]);
+  expect(read((upper.y + bass.y) / 2)).toEqual([undefined, undefined]);
+  const upperMark = { ...mark, text: '2', y: upper.y - 2 * space };
+  const both = readPianoNoteMarks([mark, upperMark], [upper, bass], space);
+  expect(both.map(n => n.note.fingering)).toEqual([{ text: '2', below: true }, { text: '3', below: false }]);
 });

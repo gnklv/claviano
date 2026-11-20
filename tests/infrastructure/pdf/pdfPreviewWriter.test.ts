@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { writtenBarNumber } from '../../../src/domain/score';
 import { writePdfPreviewMusicXml } from '../../../src/infrastructure/writers/pdfPreviewMusicXml';
-import { AUGMENTATION_DOT } from '../../../src/infrastructure/render/staff/glyphs';
+import { AUGMENTATION_DOT, tupletDigits } from '../../../src/infrastructure/render/staff/glyphs';
 import { drawStaff, texts } from '../render/drawnStaff';
 import { attributes, bytes, note, parser, score } from '../../support/musicXmlScore';
 import { score as showcase } from '../../showcase/showcaseScore';
@@ -189,4 +189,32 @@ test('reopens below-staff ornament placement and both neighbor accidentals', () 
   expect(reopened.notation.notes[0].ornaments).toEqual([
     { kind: 'inverted-turn', accidentalAbove: 'double-flat', accidentalBelow: 'double-sharp', below: true },
   ]);
+});
+
+test('preserves a triplet ending in a rest at its performed length', () => {
+  const ratio = '<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>';
+  const source = parser.parse(score(`<measure number="1">${attributes(12)}
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>eighth</type>${ratio}</note>
+    <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>eighth</type>${ratio}</note>
+    <note><rest/><duration>4</duration><type>eighth</type>${ratio}<notations><tuplet type="stop"/></notations></note>
+    </measure>`), 'Triplet');
+  const xml = writePdfPreviewMusicXml(source.notation);
+  expect(xml).toContain('<rest></rest><duration>1120</duration>');
+  const result = parser.parse(bytes(xml), 'Triplet').notation;
+  expect(result.rests[0]).toMatchObject({ beat: 2 / 3, tuplet: { actual: 3, normal: 2 }, tupletStop: true });
+});
+
+test.each([true, false])('round-trips and draws a rest-first triplet (only rests: %s)', onlyRests => {
+  const ratio = '<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>';
+  const rest = '<rest/>';
+  const pitched = '<pitch><step>D</step><octave>4</octave></pitch>';
+  const events = [rest, onlyRests ? rest : pitched, onlyRests ? rest : pitched].map((head, i) => {
+    const boundary = ['<tuplet type="start" bracket="yes"/>', '', '<tuplet type="stop"/>'][i];
+    return `<note>${head}<duration>4</duration><type>eighth</type>${ratio}<notations>${boundary}</notations></note>`;
+  });
+  const source = parser.readNotation(score(`<measure number="1">${attributes(12)}${events.join('')}${note('G', 4, 12)}</measure>`), 'Triplet');
+  const reopened = parser.parse(bytes(writePdfPreviewMusicXml(source)), 'Reopened');
+  expect(reopened.notation.rests[0]?.tupletStart).toEqual({ showNumber: true, bracket: true });
+  const { shown } = drawStaff(reopened);
+  expect(texts(shown).some(shape => shape.text === tupletDigits(3) && Number.isFinite(shape.x) && Number.isFinite(shape.y))).toBe(true);
 });

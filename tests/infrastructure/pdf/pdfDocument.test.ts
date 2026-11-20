@@ -83,6 +83,22 @@ describe('readPdf', () => {
     expect(extractPdfGeometry(readPdf(bytes).page(0)).glyphs.map(g => g.x)).toEqual([0, 5, 11, 15]);
   });
 
+  it('decodes Emmentaler subset glyph names and base digits without ToUnicode', () => {
+    const bytes = pdf([
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F 5 0 R >> >> >>',
+      stream('BT /F 10 Tf <00013334DD> Tj ET'),
+      '<< /Subtype /Type1 /BaseFont /ABCDEF+Emmentaler-20 /Encoding 6 0 R /FirstChar 0 /Widths [329 299] >>',
+      '<< /BaseEncoding /WinAnsiEncoding /Differences [0 /noteheads.s2 /rests.4 52 /unsupported 221 /rests.2] >>',
+    ]);
+    const glyphs = extractPdfGeometry(readPdf(bytes).page(0)).glyphs;
+    expect(glyphs.map(g => [g.code, g.text])).toEqual([
+      [0, '\uE0A4'], [1, '\uE4E7'], [51, '\uE083'], [52, ''], [221, '\uE4E5'],
+    ]);
+    expect(glyphs[1]?.x).toBeCloseTo(3.29);
+  });
+
   it('rejects a broken content stream length before decoding', () => {
     const bytes = pdf([
       '<< /Type /Catalog /Pages 2 0 R >>',

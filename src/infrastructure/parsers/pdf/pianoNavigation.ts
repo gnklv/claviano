@@ -16,7 +16,7 @@ export function isNavigationGlyph(glyph: PdfGlyph, measure: Measure): boolean {
   return (code === SEGNO || code === CODA) && glyph.y > top(upper) && glyph.y < top(upper) + upper.space * 8;
 }
 
-function jumpWords(text: string): BarNavigation | undefined {
+export function jumpWords(text: string): BarNavigation | undefined {
   if (/^To Coda$/i.test(text)) return { toCoda: true, text };
   if (/^D\.S\.( al (Coda|Fine))?$/i.test(text)) return { jump: 'dalsegno', text };
   if (/^D\.C\.( al (Coda|Fine))?$/i.test(text)) return { jump: 'dacapo', text };

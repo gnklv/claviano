@@ -149,6 +149,9 @@ export interface WrittenGraces {
 
 /** A printed rest. */
 export interface WrittenRest {
+  readonly tuplet?: TupletRatio;
+  readonly tupletStart?: TupletStart | null;
+  readonly tupletStop?: boolean;
   readonly staff: number;
   readonly voice: string;
   readonly beat: number;

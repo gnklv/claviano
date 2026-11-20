@@ -113,6 +113,18 @@ describe('MusicXmlParser', () => {
       expect(s.notation.notes[0].tremolo).toEqual({ type: 'single', strokes: 2 });
     });
 
+    it.each([0, 1, 2])('repeats the whole chord when member %i carries the tremolo', marked => {
+      const chord = ['C', 'E', 'G'].map((step, index) => {
+        const written = index === marked ? ornamented(step, 4, 2, '<tremolo type="single">1</tremolo>') : note(step, 4, 2);
+        return index === 0 ? written : written.replace('<note>', '<note><chord/>');
+      }).join('');
+      const s = parser.parse(score(`<measure>${attributes()}${chord}${note('D', 4, 2)}${rest(4)}</measure>`), 'test');
+      expect(sounds(s)).toEqual([
+        [60, 0, 0.5], [64, 0, 0.5], [67, 0, 0.5],
+        [60, 0.5, 0.5], [64, 0.5, 0.5], [67, 0.5, 0.5], [62, 1, 1],
+      ]);
+    });
+
     it('plays the two notes of a tremolo in turn over both their lengths', () => {
       const s = parser.parse(
         score(`<measure number="1">${attributes()}

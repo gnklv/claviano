@@ -5,7 +5,7 @@ import { engrave } from '../../../src/domain/notation/engraving';
 import { scoreFromTake } from '../../../src/domain/notation/recording';
 import { transcribed } from '../../../src/domain/notation/transcription';
 import { barRange, createScore, EMPTY_SCORE, secondsAtBeat } from '../../../src/domain/score';
-import { AUGMENTATION_DOT, REST, timeDigits } from '../../../src/infrastructure/render/staff/glyphs';
+import { AUGMENTATION_DOT, REST, timeDigits, tupletDigits } from '../../../src/infrastructure/render/staff/glyphs';
 import type { LineShape } from '../../../src/infrastructure/render/staff/shapes';
 import { drawStaff, everything, flat, lit, shaded, texts } from './drawnStaff';
 import { attributes, note, parser, score as musicXml } from '../../support/musicXmlScore';
@@ -56,6 +56,24 @@ describe('the staff', () => {
     const dots = shapes.filter((shape) => shape.text === AUGMENTATION_DOT);
     expect(dots).toHaveLength(2);
     for (const dot of dots) expect(dot.y).toBeGreaterThan(whole.y);
+  });
+
+  it('centres a triplet number over the bracket extending through its final rest', () => {
+    const eighth = '<type>eighth</type><time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>';
+    const xml = musicXml(`<measure number="1">${attributes(12)}
+      ${note('C', 4, 4, { extra: eighth + '<notations><tuplet type="start"/></notations>' })}
+      ${note('D', 4, 4, { extra: eighth })}
+      <note><rest/><duration>4</duration>${eighth}<notations><tuplet type="stop"/></notations></note>
+      ${note('E', 4, 12)}</measure>`);
+    const { shown } = drawStaff(parser.parse(xml, 'Rest triplet'));
+    const rest = texts(shown).find((shape) => shape.text === REST.eighth)!;
+    const number = texts(shown).find((shape) => shape.text === tupletDigits(3))!;
+    const hooks = shown.tape!.beams.children.filter((shape) => shape.kind === 'polyline');
+    expect(hooks).toHaveLength(2);
+    const left = hooks[0].points[0];
+    const right = hooks[1].points[2];
+    expect(right).toBeGreaterThan(rest.x);
+    expect(number.x).toBeCloseTo((left + right) / 2);
   });
 
   it('draws every piece it is given anew', () => {

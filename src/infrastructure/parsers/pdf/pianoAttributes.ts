@@ -3,7 +3,7 @@ import type { Notation } from '../../../domain/notation/notation';
 import type { Clef } from '../../../domain/notation/written';
 import type { PdfGeometry, PdfGlyph } from './geometry';
 import {
-  BASS, TREBLE, codePoint, isAccidental, isHead, sortedX, timeOf, top, within, type Measure, type Staff,
+  BASS, TREBLE, codePoint, isAccidental, isHead, sortedX, isTimeSymbol, timeOf, top, within, type Measure, type Staff,
 } from './pianoGeometry';
 
 const SMALL_TREBLE = 0xe07a;
@@ -13,11 +13,6 @@ const METRONOME_QUARTER = 0xeca5;
 function isRhythm(glyph: PdfGlyph): boolean {
   const code = codePoint(glyph);
   return isHead(glyph) || (code >= 0xe4e3 && code <= 0xe4e8);
-}
-
-function isTimeDigit(glyph: PdfGlyph): boolean {
-  const code = codePoint(glyph);
-  return code >= 0xe080 && code <= 0xe089;
 }
 
 function fullClef(glyph: PdfGlyph): boolean {
@@ -63,6 +58,11 @@ function aligned(upper: PdfGlyph[], lower: PdfGlyph[], space: number): boolean {
 }
 
 function readMeter(digits: PdfGlyph[], staff: Staff): ReturnType<typeof timeOf> {
+  if (digits.length === 1 && codePoint(digits[0]!) >= 0xe08a) {
+    const sign = digits[0]!;
+    return within(sign.y, staff.bottom + 2 * staff.space, staff.space * 0.15)
+      && within(sign.size, 4 * staff.space, staff.space * 0.2) ? timeOf(digits, staff) : null;
+  }
   if (digits.some(g => !within(g.size, staff.space * 4, staff.space * 0.2)
     || ![1, 3].some(line => within(g.y, staff.bottom + line * staff.space, staff.space * 0.15)))) return null;
   const upper = digits.filter(g => g.y > staff.bottom + staff.space * 2);
@@ -148,7 +148,7 @@ export function readBarAttributes(geometry: PdfGeometry, measure: Measure, print
     if (clef !== currentClef || octaves !== (current?.octaves ?? 0))
       clefChanges.push({ staff: i + 1, beat, clef, ...(octaves ? { octaves } : {}) });
 
-    const digits = symbols.filter(isTimeDigit);
+    const digits = symbols.filter(isTimeSymbol);
     const firstDigit = digits[0]?.x ?? firstRhythm.x;
     if (digits.some(g => g.x >= firstRhythm.x || (sign && g.x <= sign.x))
       || (i > 0 && !aligned(upperDigits, digits, staff.space))) return null;

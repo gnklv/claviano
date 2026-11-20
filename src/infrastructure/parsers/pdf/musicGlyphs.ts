@@ -1,9 +1,11 @@
-import type { PdfGlyph } from './geometry';
+import type { PdfGeometry, PdfGlyph } from './geometry';
 
 // MuseScore 2 Emmentaler codepoints, matched by glyph name to the SMuFL registry.
 // https://github.com/musescore/MuseScore/blob/v2.3.2/fonts/mscore/glyphnames.json
 // https://github.com/w3c/smufl/blob/gh-pages/metadata/glyphnames.json
 const mscoreToSmufl = new Map([
+  [0xe843, 0xe843], // guitarFadeIn
+  [0xe844, 0xe844], // guitarFadeOut
   [0xe043, 0xe044], // repeatDot
   [0xe09a, 0xe08a], // timeSigCommon
   [0xe09b, 0xe08b], // timeSigCutCommon
@@ -26,6 +28,8 @@ const mscoreToSmufl = new Map([
   [0xe12d, 0xe0a4], // noteheadBlack
   [0xe158, 0xe4c0], // fermataAbove
   [0xe159, 0xe4c1], // fermataBelow
+  [0xe171, 0xe566], // ornamentTrill
+  [0xe181, 0xeaad], // wiggleArpeggiatoUpArrow
   [0xe17e, 0xeaa9], // wiggleArpeggiatoUp (shared with wiggleArpeggiatoDown in Emmentaler)
   [0xe190, 0xe240], // flag8thUp
   [0xe191, 0xe242], // flag16thUp
@@ -43,7 +47,7 @@ const mscoreToSmufl = new Map([
 ]);
 
 export function isLegacyMusicGlyph(glyph: PdfGlyph): boolean {
-  return glyph.font === 'MScore';
+  return glyph.font === 'MScore' && glyph.musicEncoding !== 'smufl';
 }
 
 /** Decode the music symbol from the PDF's Unicode mapping, independent of subset character IDs. */
@@ -54,4 +58,16 @@ export function musicGlyphCode(glyph: PdfGlyph): number {
   // Accent, staccato, and tenuto use the same assignments in Emmentaler and SMuFL.
   if (code >= 0xe4a0 && code <= 0xe4a5) return code;
   return mscoreToSmufl.get(code) ?? 0;
+}
+
+/** MuseScore exports exist with both the historical and SMuFL character sets under
+ * the MScore family name. Identify the encoding by the printed clefs and heads. */
+export function identifyMusicEncoding(page: PdfGeometry): PdfGeometry {
+  const symbols = page.glyphs.filter(g => g.font === 'MScore');
+  const codes = new Set(symbols.map(g => g.text.codePointAt(0)));
+  if ((codes.has(0xe050) || codes.has(0xe062)) && !codes.has(0xe19e) && !codes.has(0xe19c)
+    && (codes.has(0xe0a4) || codes.has(0xe0a3) || codes.has(0xe0a2))) {
+    for (const glyph of symbols) glyph.musicEncoding = 'smufl';
+  }
+  return page;
 }

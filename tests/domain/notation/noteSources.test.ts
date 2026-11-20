@@ -25,6 +25,16 @@ describe('played-note sources', () => {
     ]);
   });
 
+  it('repeats each head of a chord sharing a tremolo stem', () => {
+    const score = performNotation(notation([
+      written(0, 60, { tremolo: { type: 'single', strokes: 1 } }),
+      written(0, 64, { chord: true }), written(1, 67),
+    ]));
+    expect(score.notes.map(n => [n.pitch, n.beat, n.beats])).toEqual([
+      [60, 0, 0.5], [64, 0, 0.5], [60, 0.5, 0.5], [64, 0.5, 0.5], [67, 1, 1],
+    ]);
+  });
+
   it('keeps the originating side of a tremolo between two notes', () => {
     const score = performNotation(notation([
       written(0, 60, { tremolo: { type: 'start', strokes: 1 } }),

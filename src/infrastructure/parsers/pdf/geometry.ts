@@ -12,6 +12,8 @@ export interface PdfGlyph extends PdfPoint {
   /** Glyphs painted in the same PDF text object may form one direction. */
   textObject?: number;
   font: string;
+  /** MScore was published with two different music character maps. */
+  musicEncoding?: 'smufl';
   size: number;
 }
 

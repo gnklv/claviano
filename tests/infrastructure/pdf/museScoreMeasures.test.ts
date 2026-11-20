@@ -16,20 +16,23 @@ test('reads joined staff spans, keeping a measure even when its terminal barline
   }
   page.segments.push({ x1: 199.5, x2: 199.5, y1: 520, y2: 440, width: 1 });
   page.glyphs.push(
-    { x: 38, y: 380, font: 'Edwin-Italic', size: 8, code: 1, text: '1' },
-    { x: 42, y: 380, font: 'Edwin-Italic', size: 8, code: 0, text: '0' },
+    { x: 39.6, y: 380, font: 'Edwin-Italic', size: 8, code: 1, text: '1' },
+    { x: 44.1, y: 380, font: 'Edwin-Italic', size: 8, code: 0, text: '0' },
+    { x: 48.6, y: 380, font: 'Edwin-Italic', size: 8, code: 3, text: '3' },
+    { x: 70, y: 380, font: 'Edwin-Italic', size: 8, code: 4, text: '4' },
     { x: 50, y: 365, font: 'Leland', size: 20, code: 2, text: '2' },
   );
   expect(museScoreMeasures(page).map(({ left, right, system, systemStart, printedNumber }) =>
     [left, right, system, systemStart, printedNumber])).toEqual([
     [40, 200, 0, true, undefined], [200, 600, 0, false, undefined],
-    [40, 200, 1, true, 10], [200, 600, 1, false, undefined],
+    [40, 200, 1, true, 103], [200, 600, 1, false, undefined],
   ]);
 });
 
 const samples = [
   ['czardas', [20, 28, 32, 24, 30]],
   ['golden-hour-jvke-updated-ver', [18, 17, 20, 16, 33]],
+  ['comptine-dun-autre-ete-yann-tiersen-yann-tiersen-comptine-dun-autre-ete', [22, 18, 14, 14, 16, 18, 7]],
 ] as const;
 
 for (const [name, pageLengths] of samples) {

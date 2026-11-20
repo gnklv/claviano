@@ -62,6 +62,22 @@ const ARTICULATIONS: Record<string, Articulation> = {
   'strong-accent': 'marcato',
 };
 
+function readTuplet(element: Element) {
+  const modification = element.querySelector(':scope > time-modification');
+  const actual = modification && childNumber(modification, 'actual-notes');
+  const normal = modification && childNumber(modification, 'normal-notes');
+  const tuplets = [...element.querySelectorAll(':scope > notations > tuplet')];
+  const start = tuplets.find((t) => t.getAttribute('type') === 'start');
+  const bracket = start?.getAttribute('bracket');
+  return {
+    tuplet: actual && normal ? { actual, normal } : null,
+    tupletStart: start
+      ? { showNumber: start.getAttribute('show-number') !== 'none', bracket: bracket === 'yes' ? true : bracket === 'no' ? false : null }
+      : null,
+    tupletStop: tuplets.some((t) => t.getAttribute('type') === 'stop'),
+  };
+}
+
 /** The printed side of a <note>: what the engraver wrote, taken as is. */
 export function readWritten(
   element: Element,
@@ -74,12 +90,7 @@ export function readWritten(
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
   const dots = augmentationDots(element, 'dot');
 
-  const modification = element.querySelector(':scope > time-modification');
-  const actual = modification && childNumber(modification, 'actual-notes');
-  const normal = modification && childNumber(modification, 'normal-notes');
-  const tuplets = [...element.querySelectorAll(':scope > notations > tuplet')];
-  const start = tuplets.find((t) => t.getAttribute('type') === 'start');
-  const bracket = start?.getAttribute('bracket');
+  const tupletMarks = readTuplet(element);
 
   const beams: BeamMark[] = [];
   for (const beam of element.querySelectorAll(':scope > beam')) {
@@ -103,12 +114,8 @@ export function readWritten(
     beat: at.beat,
     beats: at.beats,
     // Without <type>, fall back to the value its length suggests (undoing any tuplet squeeze).
-    duration: type ? { value: type, dots } : writtenDuration(at.beats * (actual && normal ? actual / normal : 1)),
-    tuplet: actual && normal ? { actual, normal } : null,
-    tupletStart: start
-      ? { showNumber: start.getAttribute('show-number') !== 'none', bracket: bracket === 'yes' ? true : bracket === 'no' ? false : null }
-      : null,
-    tupletStop: tuplets.some((t) => t.getAttribute('type') === 'stop'),
+    duration: type ? { value: type, dots } : writtenDuration(at.beats * (tupletMarks.tuplet ? tupletMarks.tuplet.actual / tupletMarks.tuplet.normal : 1)),
+    ...tupletMarks,
     accidental: ACCIDENTALS[childText(element, 'accidental') ?? ''] ?? null,
     stem: stem === 'up' || stem === 'down' ? stem : null,
     beams: [...beams].map((mark) => mark ?? 'continue'),
@@ -195,6 +202,7 @@ export function readRest(
 ): WrittenRest {
   const type = NOTE_TYPES[childText(element, 'type') ?? ''];
   const dots = augmentationDots(element, 'dot');
+  const { tuplet, tupletStart, tupletStop } = readTuplet(element);
   const step = childText(rest, 'display-step');
   const octave = childNumber(rest, 'display-octave');
   return {
@@ -202,6 +210,9 @@ export function readRest(
     voice: childText(element, 'voice') ?? '1',
     beat: at.beat,
     duration: type ? { value: type, dots } : writtenDuration(at.beats),
+    ...(tuplet ? { tuplet } : {}),
+    ...(tupletStart ? { tupletStart } : {}),
+    ...(tupletStop ? { tupletStop } : {}),
     // Some editors mark whole-bar rests explicitly, others just leave out the type.
     measure: rest.getAttribute('measure') === 'yes' || !type,
     displayPitch: step && octave !== null && STEP_LETTERS[step] !== undefined ? { letter: STEP_LETTERS[step], octave } : null,

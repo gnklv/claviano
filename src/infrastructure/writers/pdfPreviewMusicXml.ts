@@ -64,6 +64,20 @@ function graceGroupXml(notes: readonly WrittenGrace[], principal: WrittenNote): 
   }).join('');
 }
 
+function timeModificationXml(tuplet: WrittenNote['tuplet'] | undefined): string {
+  return tuplet ? `<time-modification><actual-notes>${tuplet.actual}</actual-notes><normal-notes>${tuplet.normal}</normal-notes></time-modification>` : '';
+}
+
+function tupletMarks(note: Pick<WrittenRest, 'tupletStart' | 'tupletStop'>): string[] {
+  const marks = [];
+  if (note.tupletStart) {
+    const { bracket, showNumber } = note.tupletStart;
+    marks.push(`<tuplet type="start" show-number="${showNumber ? 'actual' : 'none'}"${bracket === null ? '' : ` bracket="${bracket ? 'yes' : 'no'}"`}/>`);
+  }
+  if (note.tupletStop) marks.push('<tuplet type="stop"/>');
+  return marks;
+}
+
 function noteXml(note: WrittenNote): string {
   const { duration } = note;
   const parts = [note.hidden ? '<note print-object="no">' : '<note>', note.chord ? '<chord/>' : '', pitchXml(note),
@@ -71,7 +85,7 @@ function noteXml(note: WrittenNote): string {
     note.tieStop ? '<tie type="stop"/>' : '', note.tieStart ? '<tie type="start"/>' : '',
     `<voice>${xmlText(note.voice)}</voice><type${note.small ? ' size="cue"' : ''}>${TYPES[duration.value]}</type>`, '<dot/>'.repeat(duration.dots),
     accidentalXml(note.accidental)];
-  if (note.tuplet) parts.push(`<time-modification><actual-notes>${note.tuplet.actual}</actual-notes><normal-notes>${note.tuplet.normal}</normal-notes></time-modification>`);
+  parts.push(timeModificationXml(note.tuplet));
   if (note.stem) parts.push(`<stem>${note.stem}</stem>`);
   if (note.headless || note.parenthesized) parts.push(`<notehead${note.parenthesized ? ' parentheses="yes"' : ''}>${note.headless ? 'none' : 'normal'}</notehead>`);
   parts.push(`<staff>${note.staff}</staff>`);
@@ -79,11 +93,7 @@ function noteXml(note: WrittenNote): string {
   const marks = [];
   if (note.tieStop) marks.push('<tied type="stop"/>');
   if (note.tieStart) marks.push('<tied type="start"/>');
-  if (note.tupletStart) {
-    const { bracket, showNumber } = note.tupletStart;
-    marks.push(`<tuplet type="start" show-number="${showNumber ? 'actual' : 'none'}"${bracket === null ? '' : ` bracket="${bracket ? 'yes' : 'no'}"`}/>`);
-  }
-  if (note.tupletStop) marks.push('<tuplet type="stop"/>');
+  marks.push(...tupletMarks(note));
   for (const slur of note.slurs) {
     marks.push(`<slur type="${slur.type}" number="${slur.number}"${slur.placement ? ` placement="${slur.placement}"` : ''}/>`);
   }
@@ -118,7 +128,11 @@ function attributesXml(notation: Notation, beat: number, first: boolean): string
   if (first) parts.push(`<divisions>${DIVISIONS}</divisions>`);
   if (key) parts.push(`<key><fifths>${key.fifths}</fifths><mode>${key.minor ? 'minor' : 'major'}</mode></key>`);
   if (time) parts.push(`<time><beats>${time.numerator}</beats><beat-type>${time.denominator}</beat-type></time>`);
-  if (first) parts.push('<staves>2</staves>');
+  if (first) {
+    const lowerStaff = notation.clefs.some(clef => clef.staff === 2) || notation.notes.some(note => note.staff === 2)
+      || notation.rests.some(rest => rest.staff === 2);
+    parts.push(`<staves>${lowerStaff ? 2 : 1}</staves>`);
+  }
   for (const { staff, clef, octaves } of notation.clefs.filter(atStart)) {
     parts.push(clefXml({ staff, clef, octaves }));
   }
@@ -139,9 +153,11 @@ function tempoXml(notation: Notation, bar: number, beat: number, start: number):
 function restXml(rest: WrittenRest, length: number): string {
   const pitch = rest.displayPitch;
   const position = pitch ? `<display-step>${'CDEFGAB'[pitch.letter]}</display-step><display-octave>${pitch.octave}</display-octave>` : '';
+  const marks = tupletMarks(rest);
   return `<note><rest${rest.measure ? ' measure="yes"' : ''}>${position}</rest><duration>${length}</duration>`
     + `<voice>${xmlText(rest.voice)}</voice><type>${TYPES[rest.duration.value]}</type>`
-    + '<dot/>'.repeat(rest.duration.dots) + `<staff>${rest.staff}</staff></note>`;
+    + '<dot/>'.repeat(rest.duration.dots) + timeModificationXml(rest.tuplet) + `<staff>${rest.staff}</staff>`
+    + (marks.length ? `<notations>${marks.join('')}</notations>` : '') + '</note>';
 }
 
 function navigationBarline(nav: BarNavigation, left: boolean): string {
@@ -176,7 +192,7 @@ function navigationJump(nav: BarNavigation): string {
   return nav.text ? `<direction placement="above"><direction-type><words>${xmlText(nav.text)}</words></direction-type>${sound}</direction>` : sound;
 }
 
-/** Serializes the two-staff, complete-voice subset produced by readPianoPreview. */
+/** Serializes the written score reconstructed from the PDF. */
 export function writePdfPreviewMusicXml(notation: Notation): string {
   const parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<score-partwise version="4.0">',
     `<work><work-title>${xmlText(notation.title)}</work-title></work>`,
@@ -304,7 +320,8 @@ export function writePdfPreviewMusicXml(notation: Notation): string {
           parts.push(noteXml(event));
           cursor = onset + Math.round(event.beats * DIVISIONS);
         } else {
-          const beats = event.measure ? bar.length : durationBeats(event.duration);
+          const beats = event.measure ? bar.length : durationBeats(event.duration)
+            * (event.tuplet ? event.tuplet.normal / event.tuplet.actual : 1);
           const length = Math.round(beats * DIVISIONS);
           parts.push(restXml(event, length));
           cursor = onset + length;

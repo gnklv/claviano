@@ -73,7 +73,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
     else groups.push([note]);
   }
 
-  const voiceOf = voiceKeys(written);
+  const voiceOf = voiceKeys([...written, ...rests]);
   const entries = groups.map((group) => {
     const first = group[0];
     const staff: Clef = first.staff >= 2 ? 'bass' : 'treble';
@@ -106,14 +106,12 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
 
   // Walk each voice in order, following the file's beam and tuplet marks.
   const beams: Beam[] = [];
-  const tuplets: Tuplet[] = [];
   const byVoice = groupBy(
     entries.map((entry, index) => ({ ...entry, index })),
     (entry) => entry.voice,
   );
   for (const voice of byVoice.values()) {
     let beam: number[] = [];
-    let tuplet: { chords: number[]; number: number; showNumber: boolean; bracket: boolean | null } | null = null;
     const closeBeam = () => {
       if (beam.length >= 2) {
         const index = beams.length;
@@ -137,21 +135,6 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       if (mark === 'begin' || mark === 'continue' || mark === 'end') beam.push(index);
       else closeBeam();
       if (mark === 'end') closeBeam();
-
-      const start = group.find((n) => n.tupletStart)?.tupletStart;
-      if (start) {
-        tuplet = {
-          chords: [],
-          number: group.find((n) => n.tuplet)?.tuplet?.actual ?? 3,
-          showNumber: start.showNumber,
-          bracket: start.bracket,
-        };
-      }
-      tuplet?.chords.push(index);
-      if (tuplet && group.some((n) => n.tupletStop)) {
-        tuplets.push(finishTuplet(tuplet, chords));
-        tuplet = null;
-      }
     }
     closeBeam();
   }
@@ -173,7 +156,7 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
       }),
     ),
     beams: untangled.beams,
-    tuplets: tuplets.map((tuplet) => ({ ...tuplet, above: drawn[tuplet.chords[0]!]!.stemUp })),
+    tuplets: layoutTuplets(entries, rests, drawn, voiceOf),
     rests: layoutRests(score, rests, written),
     ties: layoutTies(groupsInOrder, drawn),
     marks,
@@ -186,18 +169,57 @@ function layoutWritten(score: Score, written: readonly WrittenNote[], rests: rea
   };
 }
 
-/** A bracket unless the whole group hangs from one beam; the number goes on the stem side. */
-function finishTuplet(
-  tuplet: { chords: number[]; number: number; showNumber: boolean; bracket: boolean | null },
+/** Follow tuplet boundaries in voice order, including stops printed on rests. */
+function layoutTuplets(
+  entries: readonly { group: NonEmpty<WrittenNote>; voice: string }[],
+  rests: readonly WrittenRest[],
   chords: readonly StaffChord[],
-): Tuplet {
-  const first = chords[tuplet.chords[0]!]!;
-  const oneBeam = first.beam !== null && tuplet.chords.every((i) => chords[i]?.beam === first.beam);
-  return {
-    chords: tuplet.chords,
-    number: tuplet.number,
-    showNumber: tuplet.showNumber,
-    bracket: tuplet.bracket ?? !oneBeam,
-    above: first.stemUp,
-  };
+  voiceOf: (rest: WrittenRest) => string,
+): Tuplet[] {
+  const events = [
+    ...entries.map(({ group, voice }, index) => ({
+      index, voice, beat: group[0].beat, rest: false,
+      start: group.find(note => note.tupletStart)?.tupletStart,
+      ratio: group.find(note => note.tuplet)?.tuplet,
+      stop: group.some(note => note.tupletStop),
+    })),
+    ...rests.map((rest, index) => ({
+      index, voice: voiceOf(rest), beat: rest.beat, rest: true,
+      start: rest.tupletStart, ratio: rest.tuplet, stop: rest.tupletStop,
+    })),
+  ].sort((a, b) => a.beat - b.beat);
+  const tuplets: Tuplet[] = [];
+  for (const voice of groupBy(events, (event) => event.voice).values()) {
+    let members: number[] = [];
+    let start: WrittenNote['tupletStart'] = null;
+    let startRest: number | undefined;
+    let number = 3;
+    let hasRest = false;
+    for (const event of voice) {
+      if (event.start) {
+        start = event.start;
+        startRest = event.rest ? event.index : undefined;
+        number = event.ratio?.actual ?? 3;
+        members = [];
+        hasRest = false;
+      }
+      if (!start) continue;
+      if (event.rest) hasRest = true;
+      else members.push(event.index);
+      if (!event.stop) continue;
+      const first = members.length ? chords[members[0]!] : undefined;
+      const oneBeam = !hasRest && first && first.beam !== null && members.every(i => chords[i]!.beam === first.beam);
+      tuplets.push({
+        chords: members,
+        ...(startRest === undefined ? {} : { startRest }),
+        ...(event.rest ? { endRest: event.index } : {}),
+        number,
+        showNumber: start.showNumber,
+        bracket: start.bracket ?? !oneBeam,
+        above: first?.stemUp ?? true,
+      });
+      start = null;
+    }
+  }
+  return tuplets;
 }

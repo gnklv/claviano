@@ -46,13 +46,15 @@ export function withSeconds(chord: StaffChord): StaffChord {
   return { ...chord, notes: chord.stemUp ? placed.reverse() : placed };
 }
 
+type VoiceEvent = Pick<WrittenNote, 'voice' | 'staff' | 'beat'>;
+
 /**
  * How to tell voices apart. Most files number the voices of the two staves apart (MuseScore 1–4
  * and 5–8), and a voice may cross to the other staff inside one beam, as the Moonlight Sonata's
  * triplets do: then the number alone is the voice. Other files start from 1 on each staff; a
  * number heard on both staves at the same moment is such a per-staff number, and goes with its staff.
  */
-export function voiceKeys(written: readonly WrittenNote[]): (note: WrittenNote) => string {
+export function voiceKeys(written: readonly VoiceEvent[]): (note: VoiceEvent) => string {
   const stavesAt = new Map<string, Set<number>>(); // "voice|beat" → staves
   for (const note of written) {
     const key = `${note.voice}|${note.beat}`;

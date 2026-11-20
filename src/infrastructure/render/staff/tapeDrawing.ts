@@ -36,7 +36,7 @@ export function drawTape(context: StaffContext, layout: NotationLayout, handLabe
   const beams = group([], COLORS.note);
   for (const beam of layout.beams) beams.children.push(...drawBeam(context, beam));
   for (const tuplet of layout.tuplets) {
-    if (tuplet.showNumber || tuplet.bracket) beams.children.push(...drawTuplet(context, tuplet));
+    if (tuplet.showNumber || tuplet.bracket) beams.children.push(...drawTuplet(context, tuplet, layout.rests));
   }
 
   const chords = context.ink.chords.map((_, index) => drawChord(context, index, handLabels));

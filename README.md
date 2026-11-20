@@ -52,13 +52,18 @@ See [layers](docs/layers.md) for the rules and limitations. Private scores and r
 The showcase also runs in a checkout without private files. Its PDF embeds Bravura music glyphs.
 The report checks the printed staff pairs against the MusicXML bar count and locates directions
 throughout the score. It reports note recognition separately.
-The reader reconstructs the full two-page showcase (36 bars and 263 principal notes) and both
-five-page MuseScore samples: Czardas (134 bars and 1,794 principal notes) and Golden Hour
+The reader reconstructs the full two-page showcase (36 bars and 263 principal notes) and the
+five-page MuseScore samples Czardas (134 bars and 1,794 principal notes) and Golden Hour
 (104 bars and 1,895 principal notes). Recognition uses the PDF alone.
+Three public-domain LilyPond editions (BWV 999, 928 and 870) also have offline import and
+MusicXML round-trip tests. They cover single-staff octave clefs, piano staves and overlapping
+voices. Per-measure references check the sounding pitch, staff, onset and written duration
+of each visible note. The [fixture sources](tests/fixtures/pdf/lilypond/README.md) identify the editions.
 Each run writes MusicXML files and a JSON report under `.pdf-samples/`. Open the MusicXML in
 Claviano to play it. The script reopens each export and checks its voices, notes, markings
 and repeat order against the separate MusicXML reference when available. The report includes
-bar coverage, played attacks and differences between the printed edition and the reference.
+bar coverage, matching played attacks (pitch, hand, onset and duration), and differences between the printed edition and the reference.
+A complete reading can still differ in its notes, ties or expression marks.
 The reader works with vector scores containing supported music fonts. Scans are outside its scope.
 
 **Piano sound.** The samples in `public/piano` come from the

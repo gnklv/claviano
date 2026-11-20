@@ -241,7 +241,8 @@ function otherVoiceHeads({ geometry: { space }, ink }: StaffContext, beam: Beam,
  * A tuplet's number (and bracket, if it has one) beyond the stems on their side: over a beam,
  * or over the notes of an unbeamed group.
  */
-export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: Tuplet): Shape[] {
+export function drawTuplet({ geometry: staff, ink }: StaffContext, tuplet: Tuplet, rests: readonly StaffRest[] = []): Shape[] {
+  const { space } = staff;
   const chords = tuplet.chords.map((index) => ink.chord(index));
   const geometry = chords.map((chord) => ink.of(chord));
   // The outermost point of each chord on the tuplet's side: its stem end, or the notehead.
@@ -254,10 +255,15 @@ export function drawTuplet({ geometry: { space }, ink }: StaffContext, tuplet: T
   });
   const first = geometry[0]!;
   const last = geometry.at(-1)!;
-  const left = first.left;
-  const right = last.left + last.headWidth;
+  const startRest = tuplet.startRest === undefined ? undefined : rests[tuplet.startRest];
+  const endRest = tuplet.endRest === undefined ? undefined : rests[tuplet.endRest];
+  const left = startRest ? staff.at(startRest.beat) - REST_WIDTH[startRest.duration.value] * space / 2 : first.left;
+  const right = endRest ? staff.at(endRest.beat) + REST_WIDTH[endRest.duration.value] * space / 2 : last.left + last.headWidth;
   const center = (left + right) / 2;
   const direction = tuplet.above ? -1 : 1;
+  for (const rest of [startRest, endRest]) {
+    if (rest) outer.push(staff.staffTop(rest.staff) + (rest.step / 2 + direction * 2) * space);
+  }
   // The line the number and bracket sit on, a little clear of the stems.
   const y = (tuplet.above ? Math.min(...outer) : Math.max(...outer)) + direction * 1.4 * space;
 

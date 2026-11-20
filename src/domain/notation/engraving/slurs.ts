@@ -52,15 +52,30 @@ export function layoutTies(groups: readonly WrittenChord[], chords: readonly Sta
  * otherwise a slur goes under the noteheads when all its stems point up, and above when not.
  */
 export function layoutSlurs(groups: readonly WrittenChord[], chords: readonly StaffChord[]): StaffSlur[] {
-  const open = new Map<number, { from: number; placement: 'above' | 'below' | null }>();
+  type OpenSlur = { from: number; placement: 'above' | 'below' | null };
+  const open = new Map<number, Map<StaffChord['staff'], OpenSlur>>();
   const slurs: StaffSlur[] = [];
-  groups.forEach((group, index) => {
-    const marks = group.flatMap((note) => note.slurs);
-    // A chord can end one slur and start the next: close first.
-    for (const mark of marks.filter((m) => m.type === 'stop')) {
-      const start = open.get(mark.number);
+  // Close phrases on every staff and voice at this beat before opening any
+  // new ones. The XML order of simultaneous chords can differ by edition.
+  for (let firstIndex = 0; firstIndex < groups.length;) {
+    let nextIndex = firstIndex + 1;
+    while (nextIndex < chords.length && chords[nextIndex]!.beat === chords[firstIndex]!.beat) nextIndex++;
+    const marks = groups.slice(firstIndex, nextIndex).flatMap((group, offset) =>
+      group.flatMap(note => note.slurs.map(mark => ({ index: firstIndex + offset, mark }))));
+    const stops = marks.filter(entry => entry.mark.type === 'stop');
+    const onOwnStaff = ({ index, mark }: (typeof stops)[number]) =>
+      Number(open.get(mark.number)?.has(chords[index]!.staff) ?? false);
+    // Give each staff its own stops before matching a cross-staff ending.
+    stops.sort((a, b) => onOwnStaff(b) - onOwnStaff(a));
+    for (const { index, mark } of stops) {
+      const pending = open.get(mark.number);
+      if (!pending) continue;
+      const staff = chords[index]!.staff;
+      // Piano exports may reuse a number simultaneously on the two staves.
+      // A lone start on the opposite staff can still end a cross-staff phrase.
+      const start = pending.get(staff) ?? (pending.size === 1 ? [...pending.values()][0] : undefined);
       if (!start) continue;
-      open.delete(mark.number);
+      pending.delete(chords[start.from]!.staff);
       const first = chords[start.from]!;
       const last = chords[index]!;
       // The chords after its first beat and before its last (chords are in the order of their beats).
@@ -76,7 +91,12 @@ export function layoutSlurs(groups: readonly WrittenChord[], chords: readonly St
         between,
       });
     }
-    for (const mark of marks.filter((m) => m.type === 'start')) open.set(mark.number, { from: index, placement: mark.placement });
-  });
+    for (const { index, mark } of marks.filter(entry => entry.mark.type === 'start')) {
+      const pending = open.get(mark.number) ?? new Map<StaffChord['staff'], OpenSlur>();
+      pending.set(chords[index]!.staff, { from: index, placement: mark.placement });
+      open.set(mark.number, pending);
+    }
+    firstIndex = nextIndex;
+  }
   return slurs;
 }

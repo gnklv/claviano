@@ -6,6 +6,7 @@ import { readBarNavigation } from '../../../src/infrastructure/parsers/pdf/piano
 import { dynamicsAlongPage } from '../../../src/domain/notation/dynamics';
 import { readPdf } from '../../../src/infrastructure/parsers/pdf/document';
 import { extractPdfGeometry } from '../../../src/infrastructure/parsers/pdf/geometry';
+import { applyMuseScoreDirections } from '../../../src/infrastructure/parsers/pdf/museScoreDirections';
 import { readBarDirections } from '../../../src/infrastructure/parsers/pdf/pianoDirections';
 import { codePoint, isHead, pianoStaffPairs, sortedX, top } from '../../../src/infrastructure/parsers/pdf/pianoGeometry';
 import { bytes, parser } from '../../support/musicXmlScore';
@@ -25,6 +26,70 @@ function inputs(index: number) {
   expect(heads).toHaveLength(notes.length);
   return { measure, bar, columns: heads.map(({ x }, i) => ({ x, beat: notes[i].beat })) };
 }
+
+test('reads a bold direction above the staff beside a bold metronome marking', () => {
+  const { bar, measure, columns } = inputs(0);
+  const [upper] = measure.staves;
+  const y = top(upper) + upper.space * 2;
+  const x = columns[0].x;
+  const size = upper.space * 2.4;
+  const printed = [
+    ...Array.from('rall.', (text, i) => ({ text, x: x + i * size * 0.4, font: 'Edwin-Bold' })),
+    { text: '\ueca5', x: x + size * 2.2, font: 'Leland' },
+    ...Array.from('=80', (text, i) => ({ text, x: x + (3 + i * 0.6) * size, font: 'Edwin-Bold' })),
+  ].map(glyph => ({ ...glyph, y, size, code: glyph.text.codePointAt(0)! }));
+  const result = applyMuseScoreDirections(reference, [{
+    geometry: { ...geometry, glyphs: printed }, measure, index: 0, notes: [], columns,
+  }]);
+  expect(result.words).toEqual([{ beat: bar.start, text: 'rall.', below: false, tempo: false }]);
+  expect(result.tempoMarks).toEqual([
+    { beat: bar.start, unit: { value: 'quarter', dots: 0 }, perMinute: 80, printed: true },
+  ]);
+});
+
+test('keeps two painted directions at one position and skips credits in the title text object', () => {
+  const { bar, measure, columns } = inputs(0);
+  const [upper] = measure.staves;
+  const { space } = upper;
+  const y = top(upper) + space * 2;
+  const x = columns[0].x;
+  const textRun = (text: string, baseline: number, size: number, font: string, textObject: number) =>
+    Array.from(text, (character, i) => ({
+      text: character, x: x + i * size * 0.5, y: baseline, size, font, textObject, code: character.codePointAt(0)!,
+    }));
+  const result = applyMuseScoreDirections(reference, [{
+    geometry: { ...geometry, glyphs: [
+      ...textRun('Song', y + space * 6, space * 4, 'FreeSerif', 1),
+      ...textRun('Arranger', y, space * 2.4, 'FreeSerif', 1),
+      ...textRun('Rit.', y, space * 2.4, 'TimesNewRomanPS-BoldMT', 2),
+      ...textRun('Rit.', y, space * 2.4, 'TimesNewRomanPS-BoldMT', 2),
+    ] }, measure, index: 0, notes: [], columns,
+  }]);
+  expect(result.words).toEqual([
+    { beat: bar.start, text: 'Rit.', below: false, tempo: true },
+    { beat: bar.start, text: 'Rit.', below: false, tempo: true },
+  ]);
+});
+
+test('reads a large opening direction centered over an entry after a rest', () => {
+  const { bar, measure } = inputs(0);
+  const [upper] = measure.staves;
+  const { space } = upper;
+  const glyphs = Array.from('With expression', (text, i) => ({
+    text, x: measure.left + i * space, y: top(upper) + space * 3,
+    size: space * 2.8, font: 'FreeSerif', code: text.codePointAt(0)!,
+  }));
+  const columns = [
+    { x: measure.left + 4 * space, beat: bar.start },
+    { x: measure.left + 8 * space, beat: bar.start + 2 },
+    { x: measure.left + 11 * space, beat: bar.start + 3 },
+  ];
+  const result = applyMuseScoreDirections(reference, [{
+    geometry: { ...geometry, glyphs }, measure: { ...measure, right: measure.left + 18 * space },
+    index: 0, notes: [], columns,
+  }]);
+  expect(result.words).toEqual([{ beat: bar.start + 2, text: 'With expression', below: false, tempo: false }]);
+});
 
 test('reads the quiet and loud dynamics and the soft and sustain markings from the showcase', () => {
   for (const index of [12, 13]) {
@@ -129,4 +194,134 @@ test('recovers the printed repeat route and distinguishes open and closed volta 
     { coda: true, codaSign: true },
   ]);
   expect(performanceOrder(navigation)).toEqual([0, 1, 0, 2, 3, 0, 2, 4]);
+});
+
+test('reads a compact piano dynamic below the lower staff and its neighbouring change of level', () => {
+  const { measure, columns } = inputs(0);
+  const lower = measure.staves[1];
+  const marks = columns.slice(0, 2).map(({ x }, index) => ({
+    text: index ? '\ue535' : '\ue52a', x, y: lower.bottom - lower.space * 2,
+    font: 'LelandText', size: lower.space * 4, code: index,
+  }));
+  const result = applyMuseScoreDirections(reference, [{
+    geometry: { ...geometry, glyphs: marks }, measure, index: 0, notes: [], columns,
+  }]);
+  expect(result.dynamics).toEqual(columns.slice(0, 2).map(({ beat }, i) => ({
+    beat, text: i ? 'fz' : 'ppp', below: true, letters: true,
+  })));
+});
+
+test('closes a hairpin in the space after the last attack at the end of its bar', () => {
+  const { measure, bar } = inputs(0);
+  const [upper] = measure.staves;
+  const { space } = upper;
+  const left = measure.left + space * 2, right = measure.right - space * 2.9;
+  const y = upper.bottom - space * 2;
+  const segments = [-1, 1].map(side => ({ x1: left, y1: y, x2: right, y2: y + side * space * 0.6, width: 0.5 }));
+  const read = (last: number) => applyMuseScoreDirections(reference, [{
+    geometry: { glyphs: [], curvedFills: [], fills: [], segments }, measure, index: 0, notes: [],
+    columns: [{ x: left, beat: bar.start }, { x: last, beat: bar.start + bar.length / 2 }],
+  }]).hairpins;
+  expect(read(right - space * 2)[0]?.end).toBe(bar.start + bar.length);
+  expect(read(right)[0]?.end).toBe(bar.start + bar.length / 2);
+});
+
+test('joins a hairpin that extends slightly beyond a system barline to its printed continuation', () => {
+  const systems = [0, 1].map(index => {
+    const { measure, bar } = inputs(index);
+    const { bottom, space } = measure.staves[0];
+    const y = bottom - space * 2;
+    const left = measure.left + space * 5;
+    const right = measure.right + space * (index === 0 ? 0.85 : -0.25);
+    const segments = [-1, 1].map(side => ({
+      x1: left, y1: y + side * space * (index === 0 ? 0 : 0.25),
+      x2: right, y2: y + side * space * 0.6, width: 0.5,
+    }));
+    return {
+      geometry: { glyphs: [], curvedFills: [], fills: [], segments },
+      measure, index, notes: [], columns: [{ x: left, beat: bar.start }],
+    };
+  });
+  expect(applyMuseScoreDirections(reference, systems).hairpins).toEqual([
+    { start: 0, end: reference.bars[1].start + reference.bars[1].length, type: 'crescendo', below: false, drawn: true },
+  ]);
+});
+
+test('joins a hairpin that stops before the final barline and opens on the next system', () => {
+  const systems = [0, 1].map(index => {
+    const { measure, bar } = inputs(index);
+    const { bottom, space } = measure.staves[0];
+    const y = bottom - space * 2;
+    const left = measure.left + space * 5;
+    const right = measure.right - space * (index === 0 ? 2.9 : 0.25);
+    const segments = [-1, 1].map(side => ({
+      x1: left, y1: y + side * space * (index === 0 ? 0 : 0.25),
+      x2: right, y2: y + side * space * 0.6, width: 0.5,
+    }));
+    return {
+      geometry: { glyphs: [], curvedFills: [], fills: [], segments },
+      measure, index, notes: [], columns: [
+        { x: left, beat: bar.start },
+        { x: right, beat: bar.start + bar.length - 0.5 },
+      ],
+    };
+  });
+  expect(applyMuseScoreDirections(reference, systems).hairpins).toEqual([
+    { start: 0, end: reference.bars[1].start + reference.bars[1].length, type: 'crescendo', below: false, drawn: true },
+  ]);
+});
+
+test('uses the barline for a hairpin that ends in the open space after a held note', () => {
+  const { measure, bar } = inputs(0);
+  const { bottom, space } = measure.staves[0];
+  const y = bottom - space * 2;
+  const left = measure.left + space * 5;
+  const right = measure.right - space * 4;
+  const segments = [-1, 1].map(side => ({ x1: left, y1: y + side * space * 0.6, x2: right, y2: y, width: 0.5 }));
+  const read = (beats: number) => applyMuseScoreDirections(reference, [{
+    geometry: { glyphs: [], curvedFills: [], fills: [], segments }, measure, index: 0,
+    notes: [{ x: left, y: bottom, note: { ...reference.notes[0], beat: bar.start, beats } }],
+    columns: [{ x: left, beat: bar.start }],
+  }]).hairpins;
+  expect(read(bar.length)).toEqual([
+    { start: bar.start, end: bar.start + bar.length, type: 'diminuendo', below: false, drawn: true },
+  ]);
+  expect(read(bar.length / 2)).toEqual([]);
+});
+
+test('reads a tilted hairpin whose arms slope in the same direction', () => {
+  const { measure, bar } = inputs(1);
+  const { bottom, space } = measure.staves[0];
+  const y = bottom - space * 2;
+  const left = measure.left + space * 2;
+  const right = measure.right - space * 1.5;
+  const segments = [0.28, 1.12].map(drop => ({
+    x1: left, y1: y, x2: right, y2: y - drop * space, width: 0.5,
+  }));
+  expect(applyMuseScoreDirections(reference, [{
+    geometry: { glyphs: [], curvedFills: [], fills: [], segments }, measure, index: 1, notes: [],
+    columns: [{ x: left, beat: bar.start }],
+  }]).hairpins).toEqual([
+    { start: bar.start, end: bar.start + bar.length, type: 'crescendo', below: false, drawn: true },
+  ]);
+});
+
+test('anchors a hairpin displaced by a dynamic on the same line', () => {
+  const { measure, bar } = inputs(1);
+  const { bottom, space } = measure.staves[0];
+  const y = bottom - space * 2;
+  const first = measure.left + space * 2;
+  const left = first + space * 3.75;
+  const right = measure.right - space;
+  const segments = [-1, 1].map(side => ({ x1: left, y1: y, x2: right, y2: y + side * space * 0.6, width: 0.5 }));
+  const glyphs = [0xe521, 0xe522].map((code, index) => ({
+    x: first + space * 1.8 * index, y: y - space * 0.5, size: space * 2.4,
+    text: String.fromCodePoint(code), code, font: 'Leland',
+  }));
+  expect(applyMuseScoreDirections(reference, [{
+    geometry: { glyphs, curvedFills: [], fills: [], segments }, measure, index: 1, notes: [],
+    columns: [{ x: first, beat: bar.start }, { x: left, beat: bar.start + 1 }],
+  }]).hairpins).toEqual([
+    { start: bar.start, end: bar.start + bar.length, type: 'crescendo', below: false, drawn: true },
+  ]);
 });

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { existsSync, readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
+import { ScoreLoadError } from '../../../src/application/ports/ScoreParser';
 import { performNotation } from '../../../src/domain/notation/performance';
 import type { WrittenNote } from '../../../src/domain/notation/written';
 import { MusicXmlParser } from '../../../src/infrastructure/parsers/MusicXmlParser';
@@ -116,6 +117,48 @@ test('reads consecutive pages and rejects incomplete staff timelines in the full
   expect(readMuseScorePiano([geometry, wrongPage], opening)).toBeNull();
 });
 
+test('takes a pickup measure rest from the sounding staff and follows consistent printed numbering', () => {
+  const page = engraving(false, 1, 'Leland');
+  const opening = readPianoPreview(engraving(), 'Pickup')!;
+  const full = extractPdfGeometry(page);
+  const pickup = {
+    ...full,
+    glyphs: [
+      ...full.glyphs.filter(g => g.text !== '\ue0a4' || g.x === 40 && g.y > 150),
+      { x: 80, y: 115, font: 'Leland', size: 20, code: 14, text: '\ue4e3' },
+    ],
+    segments: full.segments.filter(s => s.x1 !== s.x2 || s.x1 === 120 || s.x1 === 46.25 && s.y1 > 150),
+  };
+  const numbered = (number: number) => ({
+    ...full,
+    glyphs: [...full.glyphs, { x: 10, y: 181, size: 8, font: 'Edwin-Italic', text: String(number), code: number }],
+  });
+  for (const [second, third] of [[1, 2], [2, 3]] as const) {
+    const result = readMuseScorePiano([pickup, numbered(second), numbered(third)], opening)?.notation;
+    expect(result?.bars.map(({ start, length }) => [start, length])).toEqual([[0, 1], [1, 4], [5, 4]]);
+    expect(result?.rests).toMatchObject([{
+      staff: 2, beat: 0, measure: true, duration: { value: 'quarter', dots: 0 },
+    }]);
+  }
+  expect(readMuseScorePiano([pickup, numbered(1), numbered(3)], opening)).toBeNull();
+});
+
+test('requires the true last page for a short bar that complements a MuseScore pickup', () => {
+  const full = engraving(false, 2, 'Leland');
+  const page = { ...full, operators: full.operators.split('\n').filter(line => {
+    // Leave one quarter in the first bar and three in the second on both staves.
+    return ![58, 76, 94, 204].some(x => line.includes(` ${x} `) && line.includes('<04>'));
+  }).join('\n') };
+  const complete = readPianoDocumentPreview({ pageCount: 1, page: () => page }, 'Complete');
+  expect(complete?.notation.bars.map(b => b.length)).toEqual([1, 3]);
+  const partial = readPianoDocumentPreview({ pageCount: 2, page: i => {
+    if (!i) return page;
+    throw new ScoreLoadError('unsupported-feature', 'Unreadable page');
+  } }, 'Partial');
+  expect(partial?.coverage).toBe('partial');
+  expect(partial?.notation.bars.map(b => b.length)).toEqual([1]);
+});
+
 test('applies a cancelled key from the start of the measure and carries the new key forward', () => {
   const page = engraving();
   const opening = readPianoPreview(page, 'Change of key')!;
@@ -213,6 +256,36 @@ test('round-trips a synthetic two-staff PDF preview with tempo, dynamics and ped
 const pdf = 'samples/golden-hour-jvke-updated-ver.pdf';
 const mxl = 'samples/golden-hour-jvke-updated-ver.mxl';
 
+const frolic = 'samples/directed-by-robert-b-weide-from-curb-your-enthusiasm-frolic-by-luciano-michelini.pdf';
+test.skipIf(!existsSync(frolic))('reads the three-beat pickup and its one-beat closing bar', () => {
+  const result = readPianoDocumentPreview(readPdf(readFileSync(frolic)), 'Frolic');
+  expect(result?.coverage).toBe('full');
+  const bars = result!.notation.bars;
+  expect(bars).toHaveLength(17);
+  expect(bars[0]?.length).toBe(3);
+  expect(bars[1]?.start).toBe(3);
+  expect(bars.at(-1)?.length).toBe(1);
+});
+
+const entertainer = 'samples/the-entertainer-scott-joplin-1902.pdf';
+test.skipIf(!existsSync(entertainer))('reads a blank lower staff and retains voice identity across staves', () => {
+  const result = readPianoDocumentPreview(readPdf(readFileSync(entertainer)), 'The Entertainer');
+  const notes = result?.notation.notes ?? [];
+  expect(notes.filter(note => note.bar === 0 && note.staff === 1)).toHaveLength(14);
+  expect(notes.some(note => note.bar === 0 && note.staff === 2)).toBe(false);
+  expect(notes).toContainEqual(expect.objectContaining({
+    bar: 2, staff: 2, beat: 4.75, sounding: 57, voice: '1', beams: ['end', 'end'],
+  }));
+  const pairedRests = result?.notation.rests.filter(rest => rest.beat === 6.5);
+  expect(pairedRests?.map(rest => [rest.staff, rest.voice])).toEqual([[1, '1'], [2, '5']]);
+  expect(pairedRests?.map(rest => rest.displayPitch)).toEqual([{ letter: 3, octave: 5 }, { letter: 4, octave: 2 }]);
+  expect(result?.notation.rests).toContainEqual(expect.objectContaining({
+    staff: 1, voice: '2', beat: 114, displayPitch: { letter: 4, octave: 4 },
+  }));
+  const coincidentHeads = notes.filter(note => note.bar === 61 && note.staff === 2 && note.beat === 123 && note.sounding === 55);
+  expect(coincidentHeads.map(note => [note.beats, note.stem, note.chord])).toEqual([[0.5, 'down', false], [1, 'up', false]]);
+});
+
 test.skipIf(!existsSync(pdf) || !existsSync(mxl))('matches the local Golden Hour edition for the first four bars', () => {
   const page = readPdf(readFileSync(pdf)).page(0);
   const preview = readPianoPreview(page, 'Golden Hour')!;
@@ -242,4 +315,16 @@ test.skipIf(!existsSync(pdf) || !existsSync(mxl))('reads noteheads, voices and p
   expect(symbols(actual.notes)).toEqual(symbols(reference.notes));
   expect(actual.rests).toEqual(reference.rests);
   expect(actual.clefs).toEqual(reference.clefs);
+});
+
+test.each([['\ue08a', 4], ['\ue08b', 2]] as const)('reads common-time symbols in a SMuFL-encoded MScore subset (%s)', (meter, unit) => {
+  const page = engraving(false, 3, 'MScore');
+  const operators = page.operators.replace(/BT \/Music 20 Tf 1 0 0 1 29 (?:155|105) Tm <03> Tj ET/g, '');
+  const music = page.fonts.get('Music')!;
+  const fonts = new Map(page.fonts);
+  fonts.set('Music', { ...music, unicode: new Map(music.unicode).set(3, meter) });
+  const result = readPianoDocumentPreview({ pageCount: 1, page: () => ({ ...page, operators, fonts }) }, 'Study');
+  expect(result?.coverage).toBe('full');
+  expect(result?.notation.timeSignatures).toEqual([{ beat: 0, numerator: unit, denominator: unit }]);
+  expect(result?.notation.notes).toHaveLength(24);
 });

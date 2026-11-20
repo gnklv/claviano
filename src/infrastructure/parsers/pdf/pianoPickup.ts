@@ -1,3 +1,4 @@
+import type { PdfPianoPreview } from './pianoReading';
 import type { UnresolvedPedal } from './pianoPedalLines';
 import { OTTAVA, readBarOctaves } from './pianoOctaves';
 import { isBarDirectionGlyph, readBarDirections, readBarWords } from './pianoDirections';
@@ -13,7 +14,7 @@ import type { Notation, WrittenBar } from '../../../domain/notation/notation';
 import type { Clef, WrittenNote, WrittenRest } from '../../../domain/notation/written';
 import type { PdfGeometry, PdfGlyph, PdfPoint } from './geometry';
 import {
-  TREBLE, BASS, pianoStaffPairs, musicGlyphs, timeOf, keyOf, strips, sortedX,
+  TREBLE, BASS, pianoStaffPairs, musicGlyphs, isTimeSymbol, timeOf, keyOf, strips, sortedX,
   codePoint, within, top, center, isHead, isAccidental, type BeamStrip, type Measure, type Staff,
 } from './pianoGeometry';
 import { isNoteParenthesis, timedCueGlyphs, readNoteDetails } from './pianoDetails';
@@ -80,7 +81,7 @@ function openingPickup(geometry: PdfGeometry, measure: Measure, title: string): 
     if (!closedAtRight(geometry, measure, staff)) return null;
     const glyphs = glyphsByStaff[i]!;
     const signs = glyphs.filter(g => [TREBLE, BASS].includes(codePoint(g)));
-    const digits = glyphs.filter(g => codePoint(g) >= 0xe080 && codePoint(g) <= 0xe089);
+    const digits = glyphs.filter(isTimeSymbol);
     const signature = timeOf(digits, staff);
     if (signs.length !== 1 || !signature || !digits.length || digits[0]!.x <= signs[0]!.x) return null;
     const firstDigit = digits[0]!.x;
@@ -155,11 +156,6 @@ function openingPickup(geometry: PdfGeometry, measure: Measure, title: string): 
   return { title, pickup: true, bars: [{ start: 0, length, navigation: {} }], notes, rests, clefs, timeSignatures: [time],
     keySignatures: [{ beat: 0, fifths, minor: false }], tempos: [], tempoMarks: [], pedalMoves: [], pedalMarks: [],
     graces: [], octaveShifts: [], dynamics: [], hairpins: [], dynamicLevels: [], words };
-}
-
-export interface PdfPianoPreview {
-  notation: Notation;
-  issues: UnresolvedPedal[];
 }
 
 export function readPickup(geometry: PdfGeometry, title: string): Notation | null {

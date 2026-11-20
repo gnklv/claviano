@@ -4,11 +4,18 @@ import { BOTTOM_LINE_STEP, pitchAtStaffStep } from '../../../domain/notation/sta
 import type { Accidental, Alteration, Letter } from '../../../domain/notation/spelling';
 import type { BeamMark, Clef } from '../../../domain/notation/written';
 import type { TempoMark, TimeSignature } from '../../../domain/score';
-import type { PdfGlyph, PdfPoint, PdfSegment } from './geometry';
+import type { PdfGeometry, PdfGlyph, PdfPoint, PdfSegment } from './geometry';
 
 export const PREVIEW_BARS = 4;
 export const TREBLE = 0xe050;
 export const BASS = 0xe062;
+const CLEFS: Readonly<Record<number, { clef: Clef; octaves?: number } | undefined>> = {
+  [TREBLE]: { clef: 'treble' }, [BASS]: { clef: 'bass' },
+  0xe052: { clef: 'treble', octaves: -1 }, 0xe053: { clef: 'treble', octaves: 1 },
+  0xe064: { clef: 'bass', octaves: -1 }, 0xe065: { clef: 'bass', octaves: 1 },
+};
+export function printedClef(code: number) { return CLEFS[code]; }
+
 export const WHOLE = 0xe0a2;
 export const HALF = 0xe0a3;
 export const BLACK = 0xe0a4;
@@ -143,10 +150,19 @@ export function keyOf(glyphs: readonly PdfGlyph[], firstHead: number): number | 
   return null;
 }
 
+export const isTimeSymbol = (glyph: PdfGlyph): boolean =>
+  codePoint(glyph) >= DIGIT_ZERO && codePoint(glyph) <= 0xe08b;
+
 export function timeOf(glyphs: readonly PdfGlyph[], staff: Staff): TimeSignature | null {
   const digits = glyphs.filter((glyph) => codePoint(glyph) >= DIGIT_ZERO && codePoint(glyph) < DIGIT_ZERO + 10);
+  const common = glyphs.filter(g => codePoint(g) === 0xe08a || codePoint(g) === 0xe08b);
+  if (common.length) {
+    if (digits.length || common.length !== 1) return null;
+    const value = codePoint(common[0]!) === 0xe08a ? 4 : 2;
+    return { beat: 0, numerator: value, denominator: value };
+  }
   const read = (above: boolean): number =>
-    Number(digits.filter((digit) => (digit.y > center(staff)) === above)
+    Number(sortedX(digits.filter((digit) => (digit.y > center(staff)) === above))
       .map((digit) => codePoint(digit) - DIGIT_ZERO).join(''));
   const numerator = read(true);
   const denominator = read(false);
@@ -227,3 +243,27 @@ export const ACCIDENTALS: readonly [Accidental, Alteration][] = [
   ['flat', -1], ['natural', 0], ['sharp', 1], ['double-sharp', 2], ['double-flat', -2],
 ];
 
+function staffDistance(glyph: PdfGlyph, staff: Staff): number {
+  const halfSpaces = (glyph.y - staff.bottom) * 2 / staff.space;
+  const rounding = Math.abs(halfSpaces - Math.round(halfSpaces));
+  return Math.abs(glyph.y - center(staff)) / staff.space + (rounding > 0.025 ? 20 : 0);
+}
+
+/** Assign ledger-line heads by staff grid. Where both grids coincide between
+ * staves, the stem points back to the staff containing the rest of its chord. */
+export function owningStaff(glyph: PdfGlyph, candidates: Staff[], geometry: PdfGeometry): Staff {
+  const owner = candidates.reduce((best, staff) =>
+    staffDistance(glyph, staff) < staffDistance(glyph, best) ? staff : best);
+  if (!isHead(glyph)) return owner;
+  const alternate = candidates.find(staff => staff !== owner
+    && staffDistance(glyph, staff) - staffDistance(glyph, owner) < 3);
+  if (!alternate) return owner;
+  const space = owner.space;
+  const stem = geometry.segments.find(line =>
+    within(line.x1, line.x2, 0.02) && Math.abs(line.y1 - line.y2) > space * 2
+    && [0.055, 1.24].some(offset => within(line.x1 - glyph.x, offset * space, space * 0.1))
+    && [line.y1, line.y2].some(y => within(y, glyph.y, space * 0.2)));
+  if (!stem) return owner;
+  const middle = (stem.y1 + stem.y2) / 2;
+  return Math.abs(middle - center(owner)) < Math.abs(middle - center(alternate)) ? owner : alternate;
+}

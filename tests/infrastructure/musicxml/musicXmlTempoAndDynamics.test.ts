@@ -42,6 +42,17 @@ describe('MusicXmlParser', () => {
     expect(s.notation.octaveShifts).toEqual([{ staff: 1, start: 0, end: 2, octaves: 1 }]);
   });
 
+  it('retains a closed octave shift when a later voice backs up into it', () => {
+    const shift = (type: string) => `<direction><direction-type><octave-shift type="${type}" size="8"/></direction-type><staff>2</staff></direction>`;
+    const bass = (step: string, octave: number, voice: number) => note(step, octave, 4, { staff: 2, extra: `<voice>${voice}</voice>` });
+    const s = parser.parse(
+      score(`<measure number="1">${attributes()}${shift('down')}${bass('C', 4, 5)}${shift('stop')}${bass('D', 3, 5)}
+        <backup><duration>8</duration></backup>${bass('E', 4, 6)}${bass('F', 3, 6)}</measure>`),
+      'test',
+    );
+    expect(s.notation.notes.map(({ beat, pitch }) => [beat, pitch.octave])).toEqual([[0, 3], [2, 3], [0, 3], [2, 3]]);
+  });
+
   it('points all stems of a beamed group on one staff the same way when the file does not say', () => {
     // G4 A♭4 B♭4 on the treble staff: alone, the lower notes would take stems up and B♭4 down.
     const eighth = (step: string, alter: number, beam: string) =>

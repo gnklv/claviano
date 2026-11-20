@@ -13,15 +13,20 @@ function systemNumber(glyphs: readonly PdfGlyph[], measure: Measure): number | u
   const space = upper.space;
   const digits = sortedX(glyphs.filter(glyph => /^\d$/.test(glyph.text)
     && within(glyph.size, space * 1.6, space * 0.22)
-    && within(glyph.x, measure.left, space * 1.4)
+    && glyph.x >= measure.left - space * 1.4
+    && glyph.x < measure.right
     && within(glyph.y - top(upper), space * 2.2, space * 0.35)));
   const first = digits[0];
-  if (!first || !digits.every((digit, index) => digit.font === first.font
-    && within(digit.y, first.y, space * 0.1)
-    && (index === 0 || within(digit.x - digits[index - 1]!.x, space * 0.85, space * 0.2)))) {
-    return undefined;
+  if (!first || !within(first.x, measure.left, space * 1.4)) return undefined;
+  let label = first.text;
+  let previous = first;
+  for (const digit of digits.slice(1)) {
+    if (!within(digit.x - previous.x, space * 0.85, space * 0.2)
+      || digit.font !== first.font || !within(digit.y, first.y, space * 0.1)) break;
+    label += digit.text;
+    previous = digit;
   }
-  return Number(digits.map(digit => digit.text).join('')) || undefined;
+  return Number(label) || undefined;
 }
 
 /** MuseScore draws each written measure as a pair of five-line staff spans.

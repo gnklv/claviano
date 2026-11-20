@@ -144,6 +144,41 @@ describe('articulations and slurs (MusicXML)', () => {
     expect(marks[0].step).toBeLessThan(0);
   });
 
+  it('keeps simultaneous slurs with the same number on separate staves', () => {
+    const start = { type: 'start', number: 1, placement: 'above' } as const;
+    const stop = { type: 'stop', number: 1, placement: null } as const;
+    const bass = { staff: 2, hand: 'left', clef: 'bass', voice: '5' } as const;
+    const layout = layoutOf([
+      at(0, Sol4, { slurs: [start] }), at(1, Sol4, { ...bass, slurs: [start] }),
+      at(2, Sol4, { slurs: [stop] }), at(3, Sol4, { ...bass, slurs: [stop] }),
+    ]);
+    expect(layout.slurs.map(({ from, to }) => [layout.chords[from].beat, layout.chords[to].beat]))
+      .toEqual([[0, 2], [1, 3]]);
+  });
+
+  it('closes the old phrase before another voice reuses its number on the same beat', () => {
+    const start = { type: 'start', number: 1, placement: 'above' } as const;
+    const stop = { type: 'stop', number: 1, placement: null } as const;
+    const layout = layoutOf([
+      at(0, Sol4, { voice: '2', slurs: [start] }),
+      at(1, Sol4, { slurs: [start] }), at(1, Sol4, { voice: '2', slurs: [stop] }),
+      at(2, Sol4, { slurs: [stop] }),
+    ]);
+    expect(layout.slurs.map(({ from, to }) => [layout.chords[from].beat, layout.chords[to].beat]))
+      .toEqual([[0, 1], [1, 2]]);
+  });
+
+  it('prefers a same-staff ending when a second staff has a simultaneous orphan stop', () => {
+    const start = { type: 'start', number: 1, placement: 'above' } as const;
+    const stop = { type: 'stop', number: 1, placement: null } as const;
+    const layout = layoutOf([
+      at(0, Sol4, { slurs: [start] }),
+      at(1, Sol4, { staff: 2, hand: 'left', clef: 'bass', voice: '5', slurs: [stop] }),
+      at(1, Sol4, { slurs: [stop] }),
+    ]);
+    expect(layout.slurs.map(({ to }) => layout.chords[to].staff)).toEqual(['treble']);
+  });
+
   it('follows the slur placement given in the file', () => {
     const { slurs } = layoutOf([
       at(0, Sol4, { slurs: [{ type: 'start', number: 1, placement: 'above' }] }),

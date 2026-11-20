@@ -284,8 +284,12 @@ export class PartReader {
    * How many octaves lower than they sound the notes of a staff are printed now: under an 8va
    * bracket, and in a clef with an 8 over it (negative: printed higher).
    */
-  private printedLower(staff: number): number {
-    return (this.openShifts.get(staff)?.octaves ?? 0) + (this.clefOctaves.get(staff) ?? 0);
+  private printedLower(staff: number, beat: number): number {
+    const open = this.openShifts.get(staff);
+    // A later voice can back up into a bracket whose stop the reader has passed.
+    const shift = open && open.start <= beat ? open : this.octaveShifts.find(span =>
+      span.staff === staff && span.start <= beat && beat < span.end);
+    return (shift?.octaves ?? 0) + (this.clefOctaves.get(staff) ?? 0);
   }
 
   /** The staff a <note> is on, with the hand that plays it and the clef it is read in. */
@@ -305,7 +309,7 @@ export class PartReader {
     const place = this.placeOf(element);
     const read = readWritten(element, pitch, { ...place, isChord: false, beat: 0, beats: 0, ties: [] });
     // <pitch> is what sounds; under an octave shift or in a clef with an 8 the note is printed octaves away from it.
-    const shiftBy = this.printedLower(place.staff);
+    const shiftBy = this.printedLower(place.staff, this.beatAt(this.bar.cursor));
     this.bar.graces.push({
       ...place,
       pitch: { ...read.pitch, octave: read.pitch.octave - shiftBy },
@@ -349,7 +353,7 @@ export class PartReader {
     const ties = [...element.querySelectorAll(':scope > tie')].map((tie) => tie.getAttribute('type'));
     const written = readWritten(element, pitch, { ...place, isChord, beat, beats, ties });
     // <pitch> is what sounds; under an octave shift or in a clef with an 8 the note is printed octaves away from it.
-    const shiftBy = this.printedLower(place.staff);
+    const shiftBy = this.printedLower(place.staff, beat);
     const ownDynamics = Number(element.getAttribute('dynamics'));
     this.notes.push({
       ...written,

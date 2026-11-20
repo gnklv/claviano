@@ -1,156 +1,39 @@
-import { writtenDuration } from '../../../domain/notation/noteValue';
+import { timeAttacks, type TimedAttack, type AttackTiming } from './pianoAttackTiming';
 import type { Notation } from '../../../domain/notation/notation';
-import { keyAlteration, midiOf, type Alteration } from '../../../domain/notation/spelling';
+import { readAttackStaff } from './pianoAttackStaff';
 import type { Clef, WrittenRest } from '../../../domain/notation/written';
 import type { PdfGeometry, PdfGlyph } from './geometry';
-import { museScoreAttacks, type MuseScoreAttack } from './museScoreAttacks';
-import { museScoreNoteMarks } from './museScoreNoteMarks';
+import { attachedBeams, readPianoAttacks, type PianoAttack } from './pianoAttacks';
+import { readPianoNoteMarks } from './pianoNoteMarks';
 import { applyMuseScoreCurves } from './museScoreCurves';
+import type { MuseScoreDirectionBar } from './museScoreDirections';
 import { museScoreKey } from './pianoKey';
 import { museScoreMeasures } from './museScoreMeasures';
-import { ACCIDENTALS, BASS, FLAT, TREBLE, center, codePoint, isAccidental, isHead, pitchAt, strips, timeOf, within, type BeamStrip, type Measure, type Staff } from './pianoGeometry';
+import { center, codePoint, owningStaff, strips, timeOf, within, type BeamStrip, type Measure } from './pianoGeometry';
 import type { TimedNote } from './pianoNotes';
-import type { PdfPianoPreview } from './pianoPickup';
+import type { PdfPianoPreview } from './pianoReading';
 
 export interface MuseScoreBar {
   geometry: PdfGeometry;
   measure: Measure;
   notes: TimedNote[];
-  columns: { x: number; beat: number }[];
+  columns: NonNullable<MuseScoreDirectionBar['columns']>[number][];
   index: number;
 }
 
-function staffDistance(glyph: PdfGlyph, staff: Staff): number {
-  const halfSpaces = (glyph.y - staff.bottom) * 2 / staff.space;
-  const rounding = Math.abs(halfSpaces - Math.round(halfSpaces));
-  return Math.abs(glyph.y - center(staff)) / staff.space + (rounding > 0.025 ? 20 : 0);
-}
-
-/** Assign ledger-line heads by staff grid. Where both grids coincide between
- * staves, the stem points back to the staff containing the rest of its chord. */
-function owningStaff(glyph: PdfGlyph, candidates: Staff[], geometry: PdfGeometry): Staff {
-  const owner = candidates.reduce((best, staff) =>
-    staffDistance(glyph, staff) < staffDistance(glyph, best) ? staff : best);
-  if (!isHead(glyph)) return owner;
-  const alternate = candidates.find(staff => staff !== owner
-    && staffDistance(glyph, staff) - staffDistance(glyph, owner) < 1.5);
-  if (!alternate) return owner;
-  const space = owner.space;
-  const stem = geometry.segments.find(line =>
-    within(line.x1, line.x2, 0.02) && Math.abs(line.y1 - line.y2) > space * 2
-    && [0.055, 1.24].some(offset => within(line.x1 - glyph.x, offset * space, space * 0.1))
-    && [line.y1, line.y2].some(y => within(y, glyph.y, space * 0.2)));
-  if (!stem) return owner;
-  const middle = (stem.y1 + stem.y2) / 2;
-  return Math.abs(middle - center(owner)) < Math.abs(middle - center(alternate)) ? owner : alternate;
-}
-
-/** Concurrent voices start together. The next printed column belongs to the
- * voice whose preceding value finishes first. A shared head carries both attacks. */
-function timeAttacks(attacks: MuseScoreAttack[], space: number, length: number) {
-  const clocks: number[] = [0];
-  const timed: { attack: MuseScoreAttack; beat: number; voice: number }[] = [];
-  for (let i = 0; i < attacks.length;) {
-    const first = attacks[i]!;
-    let end = i + 1;
-    while (end < attacks.length && within(first.x, attacks[end]!.x, space * 0.17)) end++;
-    const column = attacks.slice(i, end).sort((a, b) => a.beats - b.beats);
-    if (column.length > 1 && !column.some(attack => attack.hiddenHead)) {
-      column.sort((a, b) => Number(b.stem?.up ?? false) - Number(a.stem?.up ?? false));
-    }
-    const beat = Math.min(...clocks);
-    const available = clocks.flatMap((value, index) => value === beat ? [index] : []);
-    for (const attack of column) {
-      const voice = available.shift() ?? clocks.length;
-      clocks[voice] = beat + attack.beats;
-      timed.push({ attack, beat, voice });
-    }
-    i = end;
-  }
-  if (clocks.every(c => c === length)) return timed;
-  // MuseScore omits invisible rests from the PDF. In a regular beamed
-  // subdivision, an independently stemmed sustained attack can occupy the
-  // column of that rest. Accept it only if the inferred grid fills the bar.
-  const step = Math.min(...attacks.map(a => a.beats));
-  const regular = attacks.every(a => a.beats === step || a.beats > step && !a.beams.length);
-  if (regular && attacks.length * step === length && attacks.some(a => a.beams.length)) {
-    const layered = attacks.map((attack, i) => ({ attack, beat: i * step, voice: attack.beats > step ? 1 : 0 }));
-    if (layered.every((t, i) => t.voice === 0 || t.beat + t.attack.beats <= (layered.slice(i + 1).find(n => n.voice === 1)?.beat ?? length))) {
-      return layered;
-    }
-  }
-  return null;
-}
-
-interface StaffState {
-  current: Clef[];
-  clefs: Notation['clefs'][number][];
-  rests: WrittenRest[];
-}
-
-function readStaff(
-  positioned: MuseScoreBar, j: number, glyphs: PdfGlyph[], beams: BeamStrip[],
-  start: number, length: number, key: number, state: StaffState,
-): boolean {
-  const staff = positioned.measure.staves[j]!;
-  const space = staff.space;
-  const geometry = positioned.geometry;
-  const clefMarks = glyphs.filter(g => [TREBLE, BASS].includes(codePoint(g))).sort((a, b) => a.x - b.x);
-  const change = (mark: PdfGlyph, beat: number) => {
-    const clef = codePoint(mark) === TREBLE ? 'treble' : 'bass';
-    if (state.current[j] !== clef || mark.size < space * 3.5) {
-      state.current[j] = clef;
-      state.clefs.push({ staff: j + 1, beat, clef });
-    }
-  };
-  const attacks = museScoreAttacks(geometry, glyphs, staff, beams, length);
-  if (!attacks) return false;
-  const timed = timeAttacks(attacks, space, length);
-  if (!timed) return false;
-  const accidentals = new Map<number, Alteration>();
-  const heads = glyphs.filter(isHead);
-  for (const { attack, beat: offset, voice } of timed) {
-    const beat = start + offset;
-    while (clefMarks[0] && clefMarks[0].x < attack.x) change(clefMarks.shift()!, beat);
-    const clef = state.current[j]!;
-    const voiceNumber = String(voice + 1 + 4 * j);
-    positioned.columns.push({ x: attack.x, beat });
-    if (attack.rest) {
-      const wholeBar = attack.duration.value === 'whole' && !heads.length;
-      state.rests.push({ staff: j + 1, voice: voiceNumber, beat, clef, displayPitch: null,
-        measure: wholeBar, duration: wholeBar ? writtenDuration(length) : attack.duration });
-    }
-    const chord = [...attack.heads].sort((a, b) => a.y - b.y);
-    for (const [member, head] of chord.entries()) {
-      const position = pitchAt(head.y, staff, clef);
-      if (!position) return false;
-      const degree = position.octave * 7 + position.letter;
-      const mark = glyphs.filter(g => isAccidental(g) && within(g.y, head.y, space * 0.08) && g.x < head.x && head.x - g.x < space * 2.2)
-        .sort((a, b) => b.x - a.x)[0];
-      const accidental = mark && ACCIDENTALS[codePoint(mark) - FLAT];
-      if (accidental) accidentals.set(degree, accidental[1]);
-      const pitch = { ...position, alteration: accidentals.get(degree) ?? keyAlteration(position.letter, key) };
-      const shared = attacks.some(other => other.hiddenHead === head && other !== attack);
-      positioned.notes.push({
-        x: head.x, y: head.y, columnX: attack.x, note: {
-          bar: positioned.index, staff: j + 1, voice: voiceNumber, hand: j ? 'left' : 'right',
-          chord: member > 0, clef, pitch, sounding: midiOf(pitch), beat, beats: attack.beats, duration: attack.duration,
-          tuplet: attack.tremolo ? { actual: 2, normal: 1 } : null, tupletStart: null, tupletStop: false,
-          accidental: !shared && accidental ? accidental[0] : null,
-          stem: attack.stem ? (attack.stem.up ? 'up' : 'down') : null,
-          beams: member === 0 ? attack.beams : [], tieStart: false, tieStop: false,
-          articulations: [], fermata: null, slurs: [], dynamics: null, ornaments: [], trillLine: false,
-          tremolo: member === 0 ? attack.tremolo ?? null : null, arpeggio: null, ...(attack.hiddenHead === head ? { headless: true } : {}),
-        }
-      });
-    }
-  }
-  for (const mark of clefMarks) change(mark, start + length);
-  return true;
+function crossStaffBeams(upper: PianoAttack[], lower: PianoAttack[], beams: BeamStrip[], space: number) {
+  return beams.flatMap(beam => {
+    const touches = ({ stem, beams: marks }: PianoAttack) => stem && marks.length
+      && stem.x >= beam.left - space * 0.1 && stem.x <= beam.right + space * 0.1
+      && within(stem.far, beam.yAt(stem.x), space * 0.4);
+    const above = upper.filter(touches);
+    const below = lower.filter(touches);
+    return above.length && below.length ? [[...above, ...below]] : [];
+  });
 }
 
 export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notation,
-  decorate?: (notation: Notation, bars: readonly MuseScoreBar[]) => Notation, limit = Infinity): PdfPianoPreview | null {
+  decorate?: (notation: Notation, bars: readonly MuseScoreBar[]) => Notation, limit = Infinity, completeDocument = true): PdfPianoPreview | null {
   const bars: Notation['bars'][number][] = [];
   const rests: WrittenRest[] = [];
   const positions: MuseScoreBar[] = [];
@@ -161,19 +44,30 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
   let time = signatures[0];
   if (!time) return null;
   let start = 0;
+  let pickupLength = 0;
+  let pickupNumberOffset: number | undefined;
+  let precedingCrossStaffBeam = false;
   const current: Clef[] = [clefs.find(c => c.staff === 1)?.clef ?? 'treble', clefs.find(c => c.staff === 2)?.clef ?? 'bass'];
-  const state = { current, clefs, rests };
+  const state = { current, octaves: [1, 2].map(staff => clefs.find(c => c.staff === staff)?.octaves ?? 0), clefs, rests };
   if (!pages.length) return null;
   for (const geometry of pages) {
     if (bars.length === limit) break;
     const measures = museScoreMeasures(geometry);
     const first = measures[0];
     if (!first) return null;
-    const beams = strips(geometry.fills, first.staves[0].space);
+    const beams = strips(geometry.fills, first.staves[0].space, 1);
     for (const measure of measures) {
       if (bars.length === limit) break;
       const index = bars.length;
-      if (measure.printedNumber !== undefined && measure.printedNumber !== index + 1) return null;
+      if (measure.printedNumber !== undefined) {
+        const offset = index + 1 - measure.printedNumber;
+        if (index > 0 && pickupLength > 0) {
+          // Editions can count the pickup as measure one or omit it from numbering.
+          if (offset !== 0 && offset !== 1) return null;
+          pickupNumberOffset ??= offset;
+          if (offset !== pickupNumberOffset) return null;
+        } else if (offset !== 0) return null;
+      }
       const space = measure.staves[0].space;
       const nearby = measures.filter(other => other.left < measure.right && other.right > measure.left);
       const inBar = geometry.glyphs.filter(glyph => glyph.x > measure.left && glyph.x < measure.right);
@@ -185,23 +79,81 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
         if (owner === measure.staves[0]) staffGlyphs[0].push(glyph);
         if (owner === measure.staves[1]) staffGlyphs[1].push(glyph);
       }
-      const signature = museScoreKey(staffGlyphs, measure, current, key);
+      const signature = museScoreKey(staffGlyphs, measure, current, key, measure.systemStart);
       if (!signature) return null;
       if (signature.fifths !== key) {
         key = signature.fifths;
         keySignatures.push({ beat: start, fifths: key, minor: false });
       }
-      const printedTime = timeOf(staffGlyphs[0], measure.staves[0]);
+      const upperStaff = measure.staves[0];
+      const printedTime = timeOf(inBar.filter(g => within(g.y, center(upperStaff), space * 1.25)
+        && within(g.size, space * 4, space * 0.3)), upperStaff);
       if (printedTime && (time.numerator !== printedTime.numerator || time.denominator !== printedTime.denominator)) {
         time = { ...printedTime, beat: start };
         signatures.push(time);
       }
-      const length = time.numerator * 4 / time.denominator;
+      const nominalLength = time.numerator * 4 / time.denominator;
       const positioned: MuseScoreBar = { index, geometry, measure, notes: [], columns: [] };
-      for (const [j, glyphs] of staffGlyphs.entries()) {
-        if (!readStaff(positioned, j, glyphs.filter(g => !signature.marks[j]!.includes(g)), beams, start, length, key, state)) return null;
+      const rows = staffGlyphs.map((glyphs, j) => glyphs.filter(g => !signature.marks[j]!.includes(g)));
+      const attacks = rows.map((glyphs, j) => readPianoAttacks(geometry, glyphs, measure.staves[j]!, beams, nominalLength));
+      const [upper, lower] = attacks;
+      if (!upper || !lower || rows.some((row, j) => !attacks[j]!.length && row.some(g => {
+        const code = codePoint(g);
+        return code >= 0xe0a0 && code <= 0xe0af || code >= 0xe4e3 && code <= 0xe4ef;
+      }))) return null;
+      const joined = crossStaffBeams(upper, lower, beams, space);
+      const closing = completeDocument && geometry === pages.at(-1) && measure === measures.at(-1) && pickupLength > 0;
+      const separate = [upper, lower].map(staff => {
+        const lone = staff.length === 1 ? staff[0] : undefined;
+        // A centered measure rest follows the bar length supplied by the other staff.
+        if (lone?.rest && lone.duration.value === 'whole' && lone.duration.dots === 0) {
+          return { timed: [{ attack: lone, beat: 0, voice: 0 }], length: 0 };
+        }
+        return staff.length ? timeAttacks(staff, space, nominalLength, index === 0 || closing)
+          : { timed: [], length: 0 };
+      });
+      // A voice can finish its cross-staff phrase in the next bar without
+      // another shared beam. Require complete clocks across the two staves.
+      const together: AttackTiming | null = joined.length || precedingCrossStaffBeam && separate.some(timing => !timing)
+        ? timeAttacks([...upper, ...lower].sort((a, b) => a.x - b.x), space, nominalLength, false)
+        : null;
+      const crossed: boolean = !!together && joined.every(group =>
+        new Set(together.timed.filter(item => group.includes(item.attack)).map(item => item.voice)).size === 1);
+      if (crossed) {
+        for (const group of joined) {
+          const stems = group.map(attack => attack.stem!);
+          for (const attack of group) {
+            const marks = attachedBeams(attack.stem!, beams, stems, space);
+            if (marks.length === attack.beams.length) attack.beams = marks;
+          }
+        }
       }
-      positioned.notes = museScoreNoteMarks(inBar, positioned.notes, space);
+      const lowerRests = crossed && together
+        ? together.timed.filter(item => item.attack.rest && lower.includes(item.attack))
+        : [];
+      const pairedRests = lowerRests.filter(item => item.voice <= 1 && lowerRests.some(other =>
+        other.voice === 1 - item.voice && within(item.beat, other.beat, 1e-8)));
+      const crossedStaff = (item: TimedAttack) =>
+        upper.includes(item.attack) || item.voice === 0 && pairedRests.includes(item) ? 0 : 1;
+      const timings = crossed && together
+        ? [0, 1].map(staff => ({ timed: together.timed.filter(item => crossedStaff(item) === staff), length: nominalLength }))
+        : separate;
+      precedingCrossStaffBeam = crossed && joined.length > 0;
+      const length = timings.find(timing => timing?.length)?.length
+        ?? (timings.some(timing => timing?.timed.length) ? nominalLength : 0);
+      if (!length || timings.some(timing => !timing || timing.length > 0 && !within(timing.length, length, 1e-8))) return null;
+      if (length < nominalLength - 1e-8) {
+        if (index === 0) pickupLength = length;
+        else if (!closing || !within(length + pickupLength, nominalLength, 1e-8)) return null;
+      }
+      for (const [j, row] of rows.entries()) {
+        if (!readAttackStaff({
+          barIndex: index, staffIndex: j, staff: measure.staves[j]!, glyphs: row,
+          timed: timings[j]!.timed, start, length, key,
+          crossStaff: crossed ? { lowerStaff: measure.staves[1], pairedRests } : undefined,
+        }, { ...state, notes: positioned.notes, columns: positioned.columns })) return null;
+      }
+      positioned.notes = readPianoNoteMarks(inBar, positioned.notes, space);
       bars.push({ start, length, navigation: {} });
       positions.push(positioned);
       start += length;
