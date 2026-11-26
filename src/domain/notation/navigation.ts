@@ -43,7 +43,7 @@ const MAX_REPEAT_FACTOR = 16;
  *
  * The usual conventions: a repeat goes back to the last ‖: (or to the start); in a volta, a bar is
  * played on the passes its ending lists; after D.C. or D.S. repeats are not taken again, the last
- * ending is played, and Fine / To Coda come into force.
+ * ending is played, and Fine / To Coda come into force. A transfer to the coda starts a fresh passage.
  */
 export function performanceOrder(bars: readonly BarNavigation[]): number[] {
   const order: number[] = [];
@@ -55,7 +55,7 @@ export function performanceOrder(bars: readonly BarNavigation[]): number[] {
   let repeatStart = 0;
   let pass = 1;
   const timesPlayed = new Map<number, number>(); // repeat end bar → passes played so far
-  let jumped = false; // a D.C. / D.S. has been taken
+  let phase: 'initial' | 'return' | 'coda' = 'initial';
   let wentBack = false; // we just returned here from a :‖
 
   while (index < bars.length && order.length < bars.length * MAX_REPEAT_FACTOR) {
@@ -69,7 +69,7 @@ export function performanceOrder(bars: readonly BarNavigation[]): number[] {
 
     // A volta bar is skipped on passes it does not belong to; after a jump only the last ending plays.
     if (bar.ending) {
-      const plays = jumped ? bar.ending.includes(lastEnding.get(index) ?? Math.max(...bar.ending)) : bar.ending.includes(pass);
+      const plays = phase === 'return' ? bar.ending.includes(lastEnding.get(index) ?? Math.max(...bar.ending)) : bar.ending.includes(pass);
       if (!plays) {
         index++;
         continue;
@@ -78,13 +78,17 @@ export function performanceOrder(bars: readonly BarNavigation[]): number[] {
 
     order.push(index);
 
-    if (jumped && bar.fine) break;
-    if (jumped && bar.toCoda && coda >= 0) {
+    if (phase !== 'initial' && bar.fine) break;
+    if (phase === 'return' && bar.toCoda && coda >= 0) {
+      phase = 'coda';
+      repeatStart = coda;
+      pass = 1;
+      timesPlayed.clear();
       index = coda;
       continue;
     }
 
-    if (bar.repeatEnd && !jumped) {
+    if (bar.repeatEnd && phase !== 'return') {
       const played = timesPlayed.get(index) ?? 1;
       if (played < bar.repeatEnd.times) {
         timesPlayed.set(index, played + 1);
@@ -99,8 +103,8 @@ export function performanceOrder(bars: readonly BarNavigation[]): number[] {
       pass = 1;
     }
 
-    if (bar.jump && !jumped) {
-      jumped = true;
+    if (bar.jump && phase === 'initial') {
+      phase = 'return';
       pass = 1;
       index = bar.jump === 'dalsegno' && segno >= 0 ? segno : 0;
       continue;

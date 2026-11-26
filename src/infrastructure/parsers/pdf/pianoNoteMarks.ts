@@ -1,12 +1,14 @@
+import { isEmmentalerFont } from './emmentalerGlyphs';
+import { flagCount } from '../../../domain/notation/noteValue';
 import type { Articulation } from '../../../domain/notation/written';
 import type { PdfGlyph } from './geometry';
 import { codePoint, within } from './pianoGeometry';
 import type { TimedNote } from './pianoNotes';
 
-const ARTICULATIONS = new Map<number, Articulation>([
-  [0xe4a0, 'accent'], [0xe4a2, 'staccato'], [0xe4a4, 'tenuto'],
-  [0xe4a6, 'staccatissimo'], [0xe4ac, 'marcato'],
-  [0xe4b2, 'portato'],
+const ARTICULATIONS = new Map<number, readonly Articulation[]>([
+  [0xe4a0, ['accent']], [0xe4a2, ['staccato']], [0xe4a4, ['tenuto']],
+  [0xe4a6, ['staccatissimo']], [0xe4ac, ['marcato']],
+  [0xe4ae, ['staccato', 'marcato']], [0xe4b2, ['portato']],
 ]);
 
 /** MuseScore places a chord's marks relative to its outer heads or to its
@@ -27,7 +29,7 @@ export function readPianoNoteMarks(glyphs: readonly PdfGlyph[], notes: TimedNote
     const x = Math.min(...chord.map(i => output[i]!.x));
     for (const index of chord) {
       const entry = output[index]!;
-      if (wiggles.some(w => x - w.x >= space * .35 && x - w.x < space * 2.3
+      if (wiggles.some(w => x - w.x >= space * .2 && x - w.x < space * 2.3
         && within(w.y, entry.y, space * .93))) {
         output[index] = { ...entry, note: { ...entry.note, arpeggio: 'up' } };
       }
@@ -70,6 +72,24 @@ export function readPianoNoteMarks(glyphs: readonly PdfGlyph[], notes: TimedNote
       output[index] = { ...entry, note: { ...entry.note, parenthesized: true } };
     }
   }
+  // Leland centers the inverted mordent over the column, including below a
+  // down-stemmed beam. A chord's closest outer head determines placement.
+  for (const sign of glyphs.filter(g => codePoint(g) === 0xe56c && within(g.size, 4 * space, .2 * space))) {
+    const candidates = chords.flatMap(chord => {
+      const first = output[chord[0]!]!;
+      if (!within(sign.x - (first.columnX ?? first.x), -.3 * space, .2 * space)) return [];
+      const ys = chord.map(i => output[i]!.y);
+      const below = sign.y < Math.min(...ys);
+      const distance = below ? Math.min(...ys) - sign.y : sign.y - Math.max(...ys);
+      return distance >= .45 * space && distance <= 8 * space ? [{ chord, distance, below }] : [];
+    }).sort((a, b) => a.distance - b.distance);
+    const closest = candidates[0];
+    if (!closest || candidates[1] && within(candidates[1].distance, closest.distance, .1 * space)) continue;
+    const index = closest.chord[0]!;
+    const entry = output[index]!;
+    output[index] = { ...entry, note: { ...entry.note, ornaments: [...entry.note.ornaments,
+      { kind: 'inverted-mordent', below: closest.below, accidentalAbove: null, accidentalBelow: null }] } };
+  }
   const marks = glyphs.filter(g => {
     const code = codePoint(g);
     return ARTICULATIONS.has(code - code % 2) || code === 0xe4c0 || code === 0xe4c1;
@@ -77,23 +97,42 @@ export function readPianoNoteMarks(glyphs: readonly PdfGlyph[], notes: TimedNote
   const stacks = new Map<number, { kind: Articulation; distance: number }[]>();
   for (const mark of marks) {
     const code = codePoint(mark);
-    const kind = ARTICULATIONS.get(code - code % 2);
+    const kinds = ARTICULATIONS.get(code - code % 2);
     const sign = code % 2 ? -1 : 1;
     const candidates = chords.flatMap(chord => {
       const entries = chord.map(i => output[i]!);
       const x = entries[0]!.columnX ?? entries[0]!.x;
       const deltaX = (mark.x - x) / space;
-      if (deltaX < -.72 || deltaX > .76) return [];
+      // Emmentaler uses one staccato glyph on both sides of the note.
+      // Stem-side dots shift horizontally toward the stem in opposing voices.
+      if (code === 0xe4a2 && isEmmentalerFont(mark.font)) {
+        const signed = entries.map(n => (mark.y - n.y) / space);
+        const above = signed.every(y => y > 0);
+        if (!above && !signed.every(y => y < 0)) return [];
+        const distance = Math.min(...signed.map(Math.abs));
+        const shifted = Math.abs(deltaX - .66) > .15;
+        const direction = above ? 'up' : 'down';
+        const expectedX = shifted ? above ? .95 : .37 : .66;
+        if (distance > 8 || !within(deltaX, expectedX, .15)
+          || shifted && entries[0]!.note.stem !== direction) return [];
+        return [{ chord, distance, stemSide: false }];
+      }
       const distance = Math.min(...entries.map(n => (mark.y - n.y) * sign / space));
       if (distance < .08 || distance > 8) return [];
-      return [{ chord, distance }];
-    }).sort((a, b) => a.distance - b.distance);
+      // A dot centered above an up-stem can align with its flag or beam.
+      const stemSide = code === 0xe4a2 && distance >= 3
+        && entries.some(({ note }) => note.stem === 'up'
+          && (note.beams.length > 0 || flagCount(note.duration.value) > 0))
+        && within(deltaX, 1.09, 0.2);
+      if (!stemSide && (deltaX < -.72 || deltaX > .76)) return [];
+      return [{ chord, distance, stemSide }];
+    }).sort((a, b) => Number(b.stemSide) - Number(a.stemSide) || a.distance - b.distance);
     const closest = candidates[0];
     if (!closest) continue;
     const index = closest.chord[0]!;
-    if (kind) {
+    if (kinds) {
       const stack = stacks.get(index) ?? [];
-      stack.push({ kind, distance: closest.distance });
+      for (const kind of kinds) stack.push({ kind, distance: closest.distance });
       stacks.set(index, stack);
     } else {
       const entry = output[index]!;

@@ -11,7 +11,7 @@ import {
   REPEAT_GLYPH_WIDTH,
   SHARP_ADVANCE,
   SIGNATURE_GAP,
-  keySignatureWidth,
+  keyChangeWidth,
   timeSignatureWidth,
 } from './geometry';
 import {
@@ -132,7 +132,7 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): Shape[]
     const line = geometry.barLineX(change.bar);
     const beat = writtenBarStart(score, change.bar);
     // A ‖: draws its own thick line; otherwise a new key gets a double bar line.
-    if (change.key && !score.notation.bars[change.bar]?.navigation.repeatStart) {
+    if (change.keys.some(Boolean) && !score.notation.bars[change.bar]?.navigation.repeatStart) {
       const x = line - 0.5 * space;
       shapes.push({ kind: 'line', x1: x, x2: x, y1: top, y2: bottom, stroke: COLORS.barLine, width: 1 });
     }
@@ -140,26 +140,24 @@ export function drawSignatureChanges({ score, geometry }: StaffContext): Shape[]
       [clefAt(score, 1, beat), top],
       [clefAt(score, 2, beat), geometry.bassTop()],
     ];
-    let x = line + (score.notation.bars[change.bar]?.navigation.repeatStart ? REPEAT_GLYPH_WIDTH * space : 0) + CHANGE_GAP_BEFORE * space;
-    if (change.key) {
-      const { from, to } = change.key;
-      const naturals = cancelledSteps(from, to, 'treble').length;
-      for (const [clef, staffTop] of staves) {
-        cancelledSteps(from, to, clef).forEach((step, i) => {
-          shapes.push(inked(space, NATURAL, x + i * NATURAL_ADVANCE * space, staffTop + (step * space) / 2));
-        });
-      }
-      x += naturals * NATURAL_ADVANCE * space + (naturals > 0 ? SIGNATURE_GAP * space : 0);
-      const advance = (to >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
-      for (const [clef, staffTop] of staves) {
-        keySignatureSteps(to, clef).forEach((step, i) => {
-          shapes.push(inked(space, to > 0 ? SHARP : FLAT, x + i * advance, staffTop + (step * space) / 2));
-        });
-      }
-      x += keySignatureWidth({ fifths: to }) * space;
+    const start = line + (score.notation.bars[change.bar]?.navigation.repeatStart ? REPEAT_GLYPH_WIDTH * space : 0) + CHANGE_GAP_BEFORE * space;
+    const accidentals: Shape[] = [];
+    for (const [index, [clef, staffTop]] of staves.entries()) {
+      const key = change.keys[index];
+      if (!key) continue;
+      const naturals = cancelledSteps(key.from, key.to, clef);
+      naturals.forEach((step, i) => {
+        shapes.push(inked(space, NATURAL, start + i * NATURAL_ADVANCE * space, staffTop + (step * space) / 2));
+      });
+      const x = start + (naturals.length * NATURAL_ADVANCE + (naturals.length ? SIGNATURE_GAP : 0)) * space;
+      const advance = (key.to >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
+      keySignatureSteps(key.to, clef).forEach((step, i) => {
+        accidentals.push(inked(space, key.to > 0 ? SHARP : FLAT, x + i * advance, staffTop + (step * space) / 2));
+      });
     }
+    shapes.push(...accidentals);
     if (change.time) {
-      const center = x + (timeSignatureWidth(change.time) * space) / 2;
+      const center = start + (Math.max(...change.keys.map(keyChangeWidth)) + timeSignatureWidth(change.time) / 2) * space;
       for (const [, staffTop] of staves) {
         shapes.push(inked(space, timeDigits(change.time.numerator), center, staffTop + space, 'middle'), inked(space, timeDigits(change.time.denominator), center, staffTop + 3 * space, 'middle'));
       }

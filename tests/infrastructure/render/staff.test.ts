@@ -5,8 +5,8 @@ import { engrave } from '../../../src/domain/notation/engraving';
 import { scoreFromTake } from '../../../src/domain/notation/recording';
 import { transcribed } from '../../../src/domain/notation/transcription';
 import { barRange, createScore, EMPTY_SCORE, secondsAtBeat } from '../../../src/domain/score';
-import { AUGMENTATION_DOT, REST, timeDigits, tupletDigits } from '../../../src/infrastructure/render/staff/glyphs';
-import type { LineShape } from '../../../src/infrastructure/render/staff/shapes';
+import { AUGMENTATION_DOT, FLAT, NATURAL, REST, SHARP, timeDigits, tupletDigits } from '../../../src/infrastructure/render/staff/glyphs';
+import type { LineShape, Shape } from '../../../src/infrastructure/render/staff/shapes';
 import { drawStaff, everything, flat, lit, shaded, texts } from './drawnStaff';
 import { attributes, note, parser, score as musicXml } from '../../support/musicXmlScore';
 import { ode, showcase, sounding } from './staffPieces';
@@ -285,6 +285,27 @@ describe('the staff', () => {
     expect(column()).not.toBe(opening);
     staff.render(at(change.beat / 2));
     expect(column()).toBe(opening);
+  });
+
+  it('prints and updates independent keys on the two staves', () => {
+    const score = transcribed(createScore('independent keys', [
+      { pitch: 60, start: 0, duration: 8, beat: 0, beats: 8, velocity: 1, hand: 'right' },
+    ], [0, 4], { barBeats: [0, 4], keySignatures: [
+      { beat: 0, fifths: 1, minor: false, staff: 1 },
+      { beat: 0, fifths: -2, minor: false, staff: 2 },
+      { beat: 4, fifths: 0, minor: false, staff: 2 },
+    ] }));
+    const { staff, shown } = drawStaff(score);
+    const signs = (shapes: readonly Shape[]) => shapes.flatMap(s =>
+      s.kind === 'text' && [SHARP, FLAT, NATURAL].includes(s.text) ? [s] : []);
+    const opening = signs(shown.column);
+    expect(opening.map(s => s.text)).toEqual([SHARP, FLAT, FLAT]);
+    const cancellations = signs(shown.tape!.lines);
+    expect(cancellations.map(s => [s.text, s.y])).toEqual(opening.slice(1).map(s => [NATURAL, s.y]));
+    staff.render(4.01);
+    expect(signs(shown.column)).toEqual(opening.slice(0, 1));
+    staff.render(0);
+    expect(signs(shown.column)).toEqual(opening);
   });
 
   it('draws small notes smaller: heads, stems and beams', () => {

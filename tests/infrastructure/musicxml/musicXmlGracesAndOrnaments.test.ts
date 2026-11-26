@@ -88,6 +88,16 @@ describe('MusicXmlParser', () => {
       note(step, octave, duration, { extra: `${extra}<notations><ornaments>${ornaments}</ornaments></notations>` });
     const sounds = (s: ReturnType<typeof parser.parse>) => s.notes.map((n) => [n.pitch, n.beat, n.beats]);
 
+    it('uses the local key of each staff for the neighbouring pitch of a trill', () => {
+      const keys = '<attributes><divisions>1</divisions><key number="1"><fifths>1</fifths></key>'
+        + '<key number="2"><fifths>0</fifths></key><staves>2</staves></attributes>';
+      const extra = '<notations><ornaments><trill-mark/></ornaments></notations>';
+      const s = parser.parse(score(`<measure>${keys}${note('E', 5, 1, { staff: 1, extra })}
+        <backup><duration>1</duration></backup>${note('E', 3, 1, { staff: 2, extra })}</measure>`), 'Keys');
+      expect(new Set(s.notes.filter(n => n.hand === 'right').map(n => n.pitch))).toEqual(new Set([76, 78]));
+      expect(new Set(s.notes.filter(n => n.hand === 'left').map(n => n.pitch))).toEqual(new Set([52, 53]));
+    });
+
     it('plays a trill with the note above in the key, and keeps the printed note whole', () => {
       // Two sharps: the note above B is C sharp.
       const s = parser.parse(score(`<measure number="1">${attributes(2, 2)}${ornamented('B', 4, 2, '<trill-mark/>')}${rest(6)}</measure>`), 'test');

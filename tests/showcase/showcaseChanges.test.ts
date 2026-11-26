@@ -7,12 +7,12 @@ import { chordsIn, layout, score } from './showcaseScore';
 
 describe('showcase score: changes along the way', () => {
   it('prints each key and time change where it happens', () => {
-    const changes = signatureChanges(score).filter((c) => c.key || c.time);
-    expect(changes.map((c) => [c.bar, c.key, c.time && `${c.time.numerator}/${c.time.denominator}`])).toEqual([
-      [10, { from: 0, to: -3 }, '6/8'],
-      [13, { from: -3, to: 2 }, '4/4'],
-      [34, null, '6/8'],
-      [35, null, '7/8'],
+    const changes = signatureChanges(score);
+    expect(changes.map((c) => [c.bar, ...c.keys, c.time && `${c.time.numerator}/${c.time.denominator}`])).toEqual([
+      [10, { from: 0, to: -3 }, { from: 0, to: -3 }, '6/8'],
+      [13, { from: -3, to: 2 }, { from: -3, to: 2 }, '4/4'],
+      [34, null, null, '6/8'],
+      [35, null, null, '7/8'],
     ]);
   });
 

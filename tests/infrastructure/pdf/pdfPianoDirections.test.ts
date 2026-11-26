@@ -325,3 +325,29 @@ test('anchors a hairpin displaced by a dynamic on the same line', () => {
     { start: bar.start, end: bar.start + bar.length, type: 'crescendo', below: false, drawn: true },
   ]);
 });
+
+test('keeps an inline dynamic in a direction and preserves a separate dynamic', () => {
+  const { bar, measure, columns } = inputs(0);
+  const [upper] = measure.staves;
+  const { space } = upper;
+  const x = columns[0].x;
+  const y = upper.bottom - 2 * space;
+  const size = 2 * space;
+  const run = (text: string, offset: number, baseline: number, textObject: number) =>
+    Array.from(text, (letter, i) => ({
+      x: x + (offset + i) * space, y: baseline, text: letter, code: letter.codePointAt(0)!,
+      size, font: 'Edwin-Italic', textObject,
+    }));
+  const printed = [
+    ...run('2nd time', 0, y, 1),
+    ...run('più ', 9, y + space * 0.03, 2),
+    { x: x + 13 * space, y: y + space * 0.03, text: '\ue522', code: 0xe522, size, font: 'LelandText', textObject: 3 },
+    { x, y: y - space, text: '\ue520', code: 0xe520, size, font: 'LelandText', textObject: 4 },
+  ];
+  const result = applyMuseScoreDirections(reference, [{
+    geometry: { ...geometry, glyphs: printed },
+    measure: { ...measure, right: Math.max(measure.right, x + 15 * space) }, index: 0, notes: [], columns,
+  }]);
+  expect(result.words).toEqual([{ beat: bar.start, text: '2nd time più f', below: true, tempo: false }]);
+  expect(result.dynamics).toEqual([{ beat: bar.start, text: 'p', below: false, letters: true }]);
+});

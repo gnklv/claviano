@@ -16,6 +16,19 @@ export function lilyPondAttacks(geometry: PdfGeometry, glyphs: PdfGlyph[], staff
     if (head && !attacks.some(other => other.hiddenHead !== head && other.heads.includes(head)))
       delete attack.hiddenHead;
   }
+  // Four equal notes filling three written values, with a centered italic 4.
+  if (attacks.length === 4 && attacks.every(a => a.stem && !a.tupletPart && a.beats === attacks[0]!.beats)
+    && within(3 * attacks[0]!.beats, length, 1e-6)
+    && glyphs.some(g => g.text === '4' && /ital/i.test(g.font)
+      && within(g.x + .5 * staff.space, (attacks[0]!.x + attacks[3]!.x) / 2, staff.space)
+      && within(g.y, attacks[1]!.stem!.far, 4 * staff.space))) {
+    for (const [i, a] of attacks.entries()) {
+      a.tupletPart = i === 0 ? 'start' : i === 3 ? 'stop' : 'continue';
+      a.tupletBracket = true;
+      a.tupletRatio = { actual: 4, normal: 3 };
+      a.beats *= 3 / 4;
+    }
+  }
   if (!dots.length) return attacks;
   const { space } = staff;
   const groups = new Map<typeof attacks[number], PdfGlyph[]>();
@@ -39,7 +52,7 @@ export function lilyPondAttacks(geometry: PdfGeometry, glyphs: PdfGlyph[], staff
     const levels = marks.some(dot => marks.some(other => within(dot.y, other.y, space * 0.1)
       && other.x - dot.x > space * 0.4)) ? 2 : 1;
     attack.duration = { ...attack.duration, dots: levels };
-    attack.beats = durationBeats(attack.duration) * (attack.triplet ? 2 / 3 : 1);
+    attack.beats = durationBeats(attack.duration) * (attack.tupletRatio ? attack.tupletRatio.normal / attack.tupletRatio.actual : 1);
   }
   return attacks;
 }

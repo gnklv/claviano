@@ -1,4 +1,4 @@
-import { barAtBeat, type Score, type TimeSignature } from '../score';
+import { barAtBeat, keySignatureAt, type Score, type TimeSignature } from '../score';
 import type { Clef } from './written';
 import { SAME_MOMENT } from '../moment';
 
@@ -35,9 +35,11 @@ export function cancelledSteps(from: number, to: number, clef: Clef): number[] {
 }
 
 /** What changes at the start of a printed bar: the key (from, to) and/or the time signature. */
+export type KeyChange = { readonly from: number; readonly to: number };
+
 export interface SignatureChange {
   readonly bar: number;
-  readonly key: { readonly from: number; readonly to: number } | null;
+  readonly keys: readonly [KeyChange | null, KeyChange | null];
   readonly time: TimeSignature | null;
 }
 
@@ -46,18 +48,27 @@ export interface SignatureChange {
  * changes; a change inside a bar (rare) is shown at the start of that bar.
  */
 export function signatureChanges(score: Score): SignatureChange[] {
-  const byBar = new Map<number, { key: SignatureChange['key']; time: TimeSignature | null }>();
+  const byBar = new Map<number, { keys: [KeyChange | null, KeyChange | null]; time: TimeSignature | null }>();
   const at = (beat: number) => {
     const bar = barAtBeat(score, beat);
-    const entry = byBar.get(bar) ?? { key: null, time: null };
+    const entry = byBar.get(bar) ?? { keys: [null, null] as [KeyChange | null, KeyChange | null], time: null };
     byBar.set(bar, entry);
     return entry;
   };
-  score.notation.keySignatures.forEach((key, i) => {
-    if (i > 0 && key.beat > SAME_MOMENT) at(key.beat).key = { from: score.notation.keySignatures[i - 1]!.fifths, to: key.fifths };
-  });
+  const previous = [keySignatureAt(score, 0, 1).fifths, keySignatureAt(score, 0, 2).fifths];
+  for (const beat of new Set(score.notation.keySignatures.map(key => key.beat))) {
+    if (beat <= SAME_MOMENT) continue;
+    for (const index of [0, 1] as const) {
+      const to = keySignatureAt(score, beat, index + 1).fifths;
+      if (to === previous[index]) continue;
+      const entry = at(beat);
+      const from = entry.keys[index]?.from ?? previous[index]!;
+      entry.keys[index] = from === to ? null : { from, to };
+      previous[index] = to;
+    }
+  }
   score.notation.timeSignatures.forEach((time, i) => {
     if (i > 0 && time.beat > SAME_MOMENT) at(time.beat).time = time;
   });
-  return [...byBar].sort((a, b) => a[0] - b[0]).map(([bar, change]) => ({ bar, ...change }));
+  return [...byBar].filter(([, entry]) => entry.time || entry.keys.some(Boolean)).sort((a, b) => a[0] - b[0]).map(([bar, change]) => ({ bar, ...change }));
 }

@@ -137,6 +137,14 @@ describe('MusicXmlParser', () => {
       expect(s.notes[1].velocity).toBeGreaterThan(s.notes[2].velocity);
     });
 
+    it('releases every head of a staccato chord without shortening the next note', () => {
+      const staccato = '<notations><articulations><staccato/></articulations></notations>';
+      const s = parser.parse(score(`<measure>${attributes()}${tempo(60)}
+        ${note('C', 5, 2, { extra: staccato })}${note('E', 5, 2, { extra: '<chord/>' })}
+        ${note('D', 5, 2)}</measure>`), 'Staccato chord');
+      expect(s.notes.map(n => n.duration)).toEqual([0.5, 0.5, 1]);
+    });
+
     it('follows clef changes on a staff', () => {
       const s = parser.parse(
         score(`

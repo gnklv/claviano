@@ -1,6 +1,6 @@
 import type { Hand } from '../note';
 import type { WrittenNote } from '../notation/written';
-import type { Score } from '../score';
+import { keySignatureAt, type Score } from '../score';
 import type { Finger } from './hand';
 import { fingerPassage, samePosition } from './passage';
 import type { Key } from './scales';
@@ -23,9 +23,8 @@ import { SAME_MOMENT, sameMoment } from '../moment';
 const REST = 1;
 
 /** The key a piece is in at its start, from its key signature. */
-function keyOf(score: Score): Key | undefined {
-  const signature = score.notation.keySignatures[0];
-  if (!signature) return undefined;
+function keyOf(score: Score, hand: Hand): Key {
+  const signature = keySignatureAt(score, 0, hand === 'right' ? 1 : 2);
   // Each sharp is a fifth up from Do; a minor key's tonic is a minor third under its major's.
   const major = (((signature.fifths * 7) % 12) + 12) % 12;
   return { tonic: signature.minor ? (major + 9) % 12 : major, minor: signature.minor };
@@ -48,9 +47,9 @@ export interface FingerHint {
 export function fingerHints(score: Score): (FingerHint | null)[] {
   const notes = score.notation.notes;
   const hints: (FingerHint | null)[] = notes.map(() => null);
-  const key = keyOf(score);
 
   for (const hand of ['right', 'left'] as Hand[]) {
+    const key = keyOf(score, hand);
     // The hand's notes that are struck, by when: together as chords.
     const own = notes
       .map((note, index) => ({ note, index }))

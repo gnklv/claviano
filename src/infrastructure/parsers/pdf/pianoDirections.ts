@@ -113,6 +113,8 @@ export function readBarDirections(
     pedalMarks: pedalMarks.sort((a, b) => a.beat - b.beat), readText, pedalContinues: lines.pedalContinues, pedalFromPrevious: lines.pedalFromPrevious };
 }
 
+export const tempoWord = /^(?:grave|largo|larghetto|lento|adagio|adagietto|andante|andantino|moderato|allegretto|allegro|vivace|presto|prestissimo)\b/i;
+
 export function textRuns(row: PdfGlyph[], space: number): PdfGlyph[][] {
   const runs: PdfGlyph[][] = [];
   for (const glyph of sortedX(row)) {

@@ -138,8 +138,8 @@ describe('signatureChanges', () => {
       },
     );
     expect(signatureChanges(changing)).toEqual([
-      { bar: 1, key: { from: 1, to: -2 }, time: null },
-      { bar: 2, key: null, time: { beat: 8, numerator: 3, denominator: 4 } },
+      { bar: 1, keys: [{ from: 1, to: -2 }, { from: 1, to: -2 }], time: null },
+      { bar: 2, keys: [null, null], time: { beat: 8, numerator: 3, denominator: 4 } },
     ]);
   });
 });

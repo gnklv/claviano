@@ -58,6 +58,8 @@ export interface TimeSignature {
 
 /** Key from `beat` on, written as the number of sharps or flats at the clef. */
 export interface KeySignature {
+  /** One-based staff number for a local signature. Omitted when all staves share the key. */
+  readonly staff?: number;
   /** Where it starts, in quarter notes. */
   readonly beat: number;
   /** Positive: that many sharps; negative: flats; 0: none (Do major / La minor). */
@@ -172,6 +174,17 @@ function fromBeatZero<T extends { readonly beat: number }>(
   return result;
 }
 
+export function normalizedKeys(keys: readonly KeySignature[] = []): KeySignature[] {
+  if (!keys.some(key => key.staff !== undefined)) {
+    return fromBeatZero(keys, DEFAULT_KEY_SIGNATURE, (a, b) => a.fifths === b.fifths && a.minor === b.minor);
+  }
+  // At the same beat apply a shared key first, then any staff overrides.
+  const sorted = [...keys].sort((a, b) => a.beat - b.beat || (a.staff ?? 0) - (b.staff ?? 0));
+  const changes = sorted.filter((key, i) => sorted[i + 1]?.beat !== key.beat || sorted[i + 1]?.staff !== key.staff);
+  if (changes[0]!.beat > 0) changes.unshift(DEFAULT_KEY_SIGNATURE);
+  return changes;
+}
+
 export function createScore(
   title: string,
   notes: readonly Note[],
@@ -229,7 +242,7 @@ export function createScore(
       graces: music.graces ?? [],
       rests: music.rests ?? [],
       clefs: [...(music.clefs ?? [])].sort((a, b) => a.beat - b.beat),
-      keySignatures: fromBeatZero(music.keySignatures, DEFAULT_KEY_SIGNATURE, (a, b) => a.fifths === b.fifths && a.minor === b.minor),
+      keySignatures: normalizedKeys(music.keySignatures),
       timeSignatures,
       tempos: music.tempos ?? [],
       tempoMarks: [...(music.tempoMarks ?? [])].sort((a, b) => a.beat - b.beat),
@@ -386,9 +399,17 @@ export function tempoMarkAt(score: Score, beat: number): TempoMark | null {
   return score.notation.tempoMarks[Math.max(0, index)] ?? null;
 }
 
-/** The key signature in force at `beat`. */
-export const keySignatureAt = (score: Score, beat: number): KeySignature =>
-  score.notation.keySignatures[Math.max(0, lastAtOrBefore(score.notation.keySignatures, beat, (s) => s.beat))]!;
+/** The last shared or staff-specific key at a written beat, in a sorted timeline. */
+export function writtenKeyAt(keys: readonly KeySignature[], beat: number, staff: number): KeySignature {
+  for (let i = lastAtOrBefore(keys, beat, key => key.beat); i >= 0; i--) {
+    const key = keys[i]!;
+    if (key.staff === undefined || key.staff === staff) return key;
+  }
+  return DEFAULT_KEY_SIGNATURE;
+}
+
+export const keySignatureAt = (score: Score, beat: number, staff = 1): KeySignature =>
+  writtenKeyAt(score.notation.keySignatures, beat, staff);
 
 /** How far through played bar `index` `time` is, from 0 to 1. */
 function throughBar(score: Score, index: number, time: number): number {

@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { expect, test } from 'vitest';
-import { applyMuseScoreCurves } from '../../../src/infrastructure/parsers/pdf/museScoreCurves';
+import { performNotation } from '../../../src/domain/notation/performance';
+
+import { applyMuseScoreCurves, applyMuseScoreJumpTies } from '../../../src/infrastructure/parsers/pdf/museScoreCurves';
 import type { PdfGeometry } from '../../../src/infrastructure/parsers/pdf/geometry';
 import type { MuseScoreDirectionBar } from '../../../src/infrastructure/parsers/pdf/museScoreDirections';
 import { attributes, note, parser, score } from '../../support/musicXmlScore';
@@ -119,4 +121,91 @@ test('anchors a displaced phrase over a held chord using an intervening bass att
     { ...notation, notes: unison.map(h => h.note) }).notes;
   expect(recovered.slice(0, 2).map(n => [n.tieStart, n.tieStop, n.slurs.map(m => m.type)]))
     .toEqual([[false, false, ['start']], [false, false, ['stop']]]);
+});
+
+test('joins a level outgoing tie only when the jump lands on a matching tie stop', () => {
+  const source = parser.parse(score(`<measure number="1">${attributes(1)}${note('D', 5, 4)}</measure>
+    <measure number="2">${note('D', 5, 4)}</measure>`), 'Jump').notation;
+  const notation = { ...source,
+    bars: source.bars.map((bar, index) => ({ ...bar,
+      navigation: index ? { jump: 'dalsegno' as const } : { segno: true } })),
+    notes: source.notes.map((n, i) => ({ ...n, tieStop: i === 0 })),
+  };
+  const geometry: PdfGeometry = { curvedFills: [arc(6.46, 12, 0.39)], fills: [], segments: [], glyphs: [] };
+  const positions = notation.notes.map((note, index) => ({ index, geometry,
+    measure: { left: 0, right: 15, staves: [{ bottom: 0, space: 1 }, { bottom: -8, space: 1 }] },
+    notes: [{ note, x: 5, y: 0 }],
+  })) satisfies MuseScoreDirectionBar[];
+  const read = () => applyMuseScoreJumpTies(notation, positions).notes[1].tieStart;
+  expect(read()).toBe(true);
+  notation.notes[0].tieStop = false;
+  expect(read()).toBe(false);
+  notation.notes[0].tieStop = true;
+  geometry.curvedFills[0] = arc(5.65, 12, 0.9);
+  expect(read()).toBe(false);
+});
+
+test('joins short outgoing ties across a repeat barline, even when the arc starts level with the head', () => {
+  const source = parser.parse(score(`<measure number="1">${attributes(1)}${note('D', 5, 4)}</measure>
+    <measure number="2">${note('D', 5, 4)}</measure>`), 'Repeat').notation;
+  const notation = { ...source,
+    bars: source.bars.map((bar, index) => ({ ...bar,
+      navigation: index ? { repeatEnd: { times: 2 } } : { repeatStart: true } })),
+    notes: source.notes.map((n, i) => ({ ...n, voice: String(i + 1), tieStop: i === 0 })),
+  };
+  const geometries: PdfGeometry[] = [
+    { curvedFills: [], fills: [], segments: [], glyphs: [] },
+    { curvedFills: [arc(6.46, 7.63, 0)], fills: [], segments: [], glyphs: [] },
+  ];
+  const positions = notation.notes.map((note, index) => ({ index, geometry: geometries[index],
+    measure: { left: 0, right: 15, staves: [{ bottom: 0, space: 1 }, { bottom: -8, space: 1 }] },
+    notes: [{ note, x: 5, y: 0 }],
+  })) satisfies MuseScoreDirectionBar[];
+  const read = () => performNotation(applyMuseScoreJumpTies(notation, positions)).notes.map(n => [n.beat, n.beats]);
+  expect(read()).toEqual([[0, 4], [4, 8], [12, 4]]);
+  geometries[1].curvedFills.pop();
+  expect(read()).toEqual([[0, 4], [4, 4], [8, 4], [12, 4]]);
+});
+
+test('uses the tied head position when unisons in two voices follow on the same beat', () => {
+  const source = parser.parse(score(`<measure number="1">${attributes(1)}${note('D', 5, 4)}</measure>
+    <measure number="2">${note('D', 5, 4)}</measure>`), 'Unison').notation;
+  const [start, first] = source.notes;
+  const second = { ...first, voice: '2' };
+  const notation = { ...source, notes: [start, first, second] };
+  const geometry: PdfGeometry = { curvedFills: [arc(6.46, 14.85, 0.4)], fills: [], segments: [], glyphs: [] };
+  const positions: MuseScoreDirectionBar[] = [
+    { index: 0, geometry, measure: { left: 0, right: 12, staves: [{ bottom: 0, space: 1 }, { bottom: -8, space: 1 }] },
+      notes: [{ note: start, x: 5, y: 0 }] },
+    { index: 1, geometry, measure: { left: 12, right: 20, staves: [{ bottom: 0, space: 1 }, { bottom: -8, space: 1 }] },
+      notes: [{ note: first, x: 13.3, columnX: 15, y: 0 }, { note: second, x: 15, columnX: 15, y: 0 }] },
+  ];
+  const result = applyMuseScoreCurves(positions, notation);
+  expect(result.notes.map(n => [n.tieStart, n.tieStop])).toEqual([[true, false], [false, false], [false, true]]);
+});
+
+test('anchors nested slurs to an upstem unison and a raised beam-side endpoint', () => {
+  const source = parser.parse(score(`<measure number="1">${attributes(1)}${note('C', 5, 1)}
+    ${note('D', 5, 1)}${note('G', 4, 2)}</measure>`), 'Nested slurs').notation;
+  const [first, second, last] = source.notes;
+  const upper = { ...first, stem: 'up' as const, voice: '1' };
+  const lower = { ...first, stem: 'down' as const, voice: '2' };
+  const notes = [lower, upper, { ...second, stem: 'down' as const }, { ...last, stem: 'up' as const }];
+  const sloped = (x1: number, y1: number, x2: number, y2: number) => arc(x1, x2, y1).map(segment => {
+    const raise = (p: { x: number; y: number }) => ({ ...p, y: p.y + (y2 - y1) * (p.x - x1) / (x2 - x1) });
+    return { from: raise(segment.from), to: raise(segment.to), control1: raise(segment.control1), control2: raise(segment.control2) };
+  });
+  const geometry: PdfGeometry = { curvedFills: [sloped(4.87, 3.65, 9.84, 3.9), sloped(4.87, 4.32, 25.48, 6.65)],
+    fills: [], glyphs: [], segments: [
+      { x1: 4.51, x2: 4.51, y1: 2.63, y2: 5.5, width: 0.1 },
+      { x1: 25.48, x2: 25.48, y1: 1.13, y2: 4.75, width: 0.1 },
+    ] };
+  const [lowerHead, upperHead, middleHead, lastHead] = notes;
+  const bar = { index: 0, geometry, measure: { left: 0, right: 27, staves: [{ bottom: 0, space: 1 }, { bottom: -9, space: 1 }] },
+    notes: [
+      { note: lowerHead, x: 3.27, y: 2.5 }, { note: upperHead, x: 3.27, y: 2.5 },
+      { note: middleHead, x: 9.19, y: 3 }, { note: lastHead, x: 24.23, y: 1 },
+    ] } satisfies MuseScoreDirectionBar;
+  expect(applyMuseScoreCurves([bar], { ...source, notes }).notes.map(n => n.slurs.map(s => s.type)))
+    .toEqual([[], ['start', 'start'], ['stop'], ['stop']]);
 });

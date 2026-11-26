@@ -61,6 +61,19 @@ describe('signature lookup', () => {
     expect(timeSignatureAt(score, 8)).toMatchObject({ numerator: 3 });
   });
 
+  it('keeps simultaneous staff keys and applies later shared changes to both staves', () => {
+    const s = createScore('Keys', [note], [0], { keySignatures: [
+      { beat: 0, staff: 2, fifths: -2, minor: true },
+      { beat: 4, staff: 1, fifths: 3, minor: false },
+      { beat: 4, fifths: 1, minor: false },
+      { beat: 8, fifths: -1, minor: false },
+    ] });
+    const fifths = (beat: number) => [1, 2].map(staff => keySignatureAt(s, beat, staff).fifths);
+    expect(fifths(0)).toEqual([0, -2]);
+    expect(fifths(4)).toEqual([3, 1]);
+    expect(fifths(8)).toEqual([-1, -1]);
+  });
+
   it('finds the key signature in force at a beat', () => {
     expect(keySignatureAt(score, 2).fifths).toBe(0);
     expect(keySignatureAt(score, 5).fifths).toBe(1);

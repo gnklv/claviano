@@ -51,6 +51,12 @@ const symbols = new Map<string, number>([
   ['flags.d10', 0xe24f],
   ['flags.ugrace', 0xe564],
   ['flags.dgrace', 0xe565],
+  // Early Emmentaler editions name accidentals in quarter-tone steps.
+  ['accidentals.M4', 0xe264],
+  ['accidentals.M2', 0xe260],
+  ['accidentals.0', 0xe261],
+  ['accidentals.2', 0xe262],
+  ['accidentals.4', 0xe263],
   ['accidentals.flat', 0xe260],
   ['accidentals.natural', 0xe261],
   ['accidentals.sharp', 0xe262],

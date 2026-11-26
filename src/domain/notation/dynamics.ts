@@ -131,6 +131,7 @@ const STRESS_MARKS: Readonly<Record<string, { factor: number; level?: string; af
   rf: { factor: 1.25 },
   rfz: { factor: 1.25 },
   fp: { factor: 1, level: 'f', after: 'p' },
+  fpp: { factor: 1, level: 'f', after: 'pp' },
   sfp: { factor: 1.35, level: 'f', after: 'p' },
   sfpp: { factor: 1.35, level: 'f', after: 'pp' },
 };

@@ -1,14 +1,17 @@
-import { timeAttacks, type TimedAttack, type AttackTiming } from './pianoAttackTiming';
+import { timeAttacks, timeSparseVoice, type TimedAttack, type AttackTiming } from './pianoAttackTiming';
 import type { Notation } from '../../../domain/notation/notation';
+import { orderPrintedVoices, timePianoColumns } from './museScoreVoiceColumns';
 import { readAttackStaff } from './pianoAttackStaff';
 import type { Clef, WrittenRest } from '../../../domain/notation/written';
 import type { PdfGeometry, PdfGlyph } from './geometry';
 import { attachedBeams, readPianoAttacks, type PianoAttack } from './pianoAttacks';
 import { readPianoNoteMarks } from './pianoNoteMarks';
-import { applyMuseScoreCurves } from './museScoreCurves';
+import { measuredCueGlyphs, readCueTiming } from './museScoreCues';
+import { applyMuseScoreCurves, applyMuseScoreJumpTies } from './museScoreCurves';
 import type { MuseScoreDirectionBar } from './museScoreDirections';
 import { museScoreKey } from './pianoKey';
 import { museScoreMeasures } from './museScoreMeasures';
+import { museScoreGraceGlyphs, readBarGraces } from './pianoGraces';
 import { center, codePoint, owningStaff, strips, timeOf, within, type BeamStrip, type Measure } from './pianoGeometry';
 import type { TimedNote } from './pianoNotes';
 import type { PdfPianoPreview } from './pianoReading';
@@ -37,6 +40,9 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
   const bars: Notation['bars'][number][] = [];
   const rests: WrittenRest[] = [];
   const positions: MuseScoreBar[] = [];
+  const graces: Notation['graces'][number][] = [];
+  const graceCurves = new Set<PdfGeometry['curvedFills'][number]>();
+  const graceTargets: TimedNote[] = [];
   const clefs = [...opening.clefs];
   const signatures = [...opening.timeSignatures];
   const keySignatures = opening.keySignatures.filter(change => change.beat === 0);
@@ -44,6 +50,7 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
   let time = signatures[0];
   if (!time) return null;
   let start = 0;
+  let noteOffset = 0;
   let pickupLength = 0;
   let pickupNumberOffset: number | undefined;
   let precedingCrossStaffBeam = false;
@@ -94,8 +101,11 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
       }
       const nominalLength = time.numerator * 4 / time.denominator;
       const positioned: MuseScoreBar = { index, geometry, measure, notes: [], columns: [] };
-      const rows = staffGlyphs.map((glyphs, j) => glyphs.filter(g => !signature.marks[j]!.includes(g)));
-      const attacks = rows.map((glyphs, j) => readPianoAttacks(geometry, glyphs, measure.staves[j]!, beams, nominalLength));
+      const content = staffGlyphs.map((glyphs, j) => glyphs.filter(g => !signature.marks[j]!.includes(g)));
+      const cueRows = content.map(row => measuredCueGlyphs(row, space));
+      const graceRows = content.map((row, j) => cueRows[j]!.length ? [] : museScoreGraceGlyphs(geometry, row, space));
+      const rows = content.map((row, j) => row.filter(g => !graceRows[j]!.includes(g)));
+      const attacks = rows.map((glyphs, j) => readPianoAttacks(geometry, glyphs.filter(g => !cueRows[j]!.includes(g)), measure.staves[j]!, beams, nominalLength));
       const [upper, lower] = attacks;
       if (!upper || !lower || rows.some((row, j) => !attacks[j]!.length && row.some(g => {
         const code = codePoint(g);
@@ -103,7 +113,8 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
       }))) return null;
       const joined = crossStaffBeams(upper, lower, beams, space);
       const closing = completeDocument && geometry === pages.at(-1) && measure === measures.at(-1) && pickupLength > 0;
-      const separate = [upper, lower].map(staff => {
+      const separate = [upper, lower].map((staff, j) => {
+        if (cueRows[j]!.length) return readCueTiming(geometry, cueRows[j]!, measure.staves[j]!, staff, nominalLength);
         const lone = staff.length === 1 ? staff[0] : undefined;
         // A centered measure rest follows the bar length supplied by the other staff.
         if (lone?.rest && lone.duration.value === 'whole' && lone.duration.dots === 0) {
@@ -135,9 +146,15 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
         other.voice === 1 - item.voice && within(item.beat, other.beat, 1e-8)));
       const crossedStaff = (item: TimedAttack) =>
         upper.includes(item.attack) || item.voice === 0 && pairedRests.includes(item) ? 0 : 1;
-      const timings = crossed && together
+      let timings = crossed && together
         ? [0, 1].map(staff => ({ timed: together.timed.filter(item => crossedStaff(item) === staff), length: nominalLength }))
-        : separate;
+        : separate.map((timing, staff) => {
+          const reference = separate[1 - staff];
+          return timing ?? (!cueRows[staff]!.length && reference ? timeSparseVoice(attacks[staff]!, space, nominalLength, reference) : null);
+        });
+      if (timings.some(t => !t) && cueRows.every(row => !row.length) && !joined.length) {
+        timings = timePianoColumns([upper, lower], timings, space, nominalLength) ?? timings;
+      }
       precedingCrossStaffBeam = crossed && joined.length > 0;
       const length = timings.find(timing => timing?.length)?.length
         ?? (timings.some(timing => timing?.timed.length) ? nominalLength : 0);
@@ -148,18 +165,24 @@ export function readMuseScorePiano(pages: readonly PdfGeometry[], opening: Notat
       }
       for (const [j, row] of rows.entries()) {
         if (!readAttackStaff({
-          barIndex: index, staffIndex: j, staff: measure.staves[j]!, glyphs: row,
-          timed: timings[j]!.timed, start, length, key,
+          barIndex: index, staffIndex: j, staff: measure.staves[j]!, glyphs: row, graceGlyphs: graceRows[j],
+          timed: (crossed ? timings[j]! : orderPrintedVoices(timings[j]!)).timed, start, length, key,
           crossStaff: crossed ? { lowerStaff: measure.staves[1], pairedRests } : undefined,
         }, { ...state, notes: positioned.notes, columns: positioned.columns })) return null;
       }
       positioned.notes = readPianoNoteMarks(inBar, positioned.notes, space);
+      const grace = readBarGraces(geometry, measure, [], positioned.notes, key, noteOffset, graceRows);
+      if (!grace) return null;
+      graces.push(...grace.graces);
+      graceTargets.push(...grace.slurTargets);
+      for (const curve of grace.curves) graceCurves.add(curve);
+      noteOffset += positioned.notes.length;
       bars.push({ start, length, navigation: {} });
       positions.push(positioned);
       start += length;
     }
   }
-  const notation = { ...opening, bars, notes: positions.flatMap(p => p.notes.map(n => n.note)), rests, clefs, keySignatures, timeSignatures: signatures };
-  const curved = applyMuseScoreCurves(positions, notation);
-  return { notation: decorate ? decorate(curved, positions) : curved, issues: [] };
+  const notation = { ...opening, bars, notes: positions.flatMap(p => p.notes.map(n => n.note)), rests, clefs, keySignatures, timeSignatures: signatures, graces };
+  const curved = applyMuseScoreCurves(positions, notation, { contours: graceCurves, targets: graceTargets.map(target => target.note) });
+  return { notation: decorate ? applyMuseScoreJumpTies(decorate(curved, positions), positions) : curved, issues: [] };
 }

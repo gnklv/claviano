@@ -171,10 +171,12 @@ export class PartReader {
     this.divisions = childNumber(element, 'divisions') ?? this.divisions;
     this.staves = childNumber(element, 'staves') ?? this.staves;
 
-    const key = element.querySelector(':scope > key');
-    const fifths = key && childNumber(key, 'fifths');
-    if (key && fifths !== null) {
-      this.keySignatures.push({ beat: beat(), fifths, minor: childText(key, 'mode') === 'minor' });
+    for (const key of element.querySelectorAll(':scope > key')) {
+      const fifths = childNumber(key, 'fifths');
+      if (fifths === null) continue;
+      const staff = Number(key.getAttribute('number'));
+      this.keySignatures.push({ beat: beat(), fifths, minor: childText(key, 'mode') === 'minor',
+        ...(Number.isInteger(staff) && staff > 0 && { staff }) });
     }
 
     for (const clef of element.querySelectorAll(':scope > clef')) {

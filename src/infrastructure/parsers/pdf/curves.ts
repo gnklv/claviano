@@ -96,13 +96,14 @@ export function applyPdfCurves(
   function atMuseScoreEnd(p: PdfPoint, placement: SlurMark['placement']): number {
     let best = -1,
       distance = Infinity;
+    const onSlurSide = (head: PositionedNote) => head.note.stem === (placement === 'above' ? 'up' : 'down');
     for (const [i, n] of notes.entries()) {
       const dx = (p.x - n.x) / space;
       if (dx < -0.65 || dx > 2.2) continue;
       const side = placement === 'above' ? 1 : -1;
       const dy = ((p.y - n.y) / space) * side;
       let score = dy > -0.05 && dy < 3.5 ? Math.hypot((dx - 0.65) * 1.4, dy - 0.88) : Infinity;
-      if (side > 0 === (n.note.stem === 'up')) {
+      if (onSlurSide(n)) {
         const sx = n.note.stem === 'up' ? 1.25 : 0.05;
         for (const stem of stems) {
           if (
@@ -113,10 +114,14 @@ export function applyPdfCurves(
             continue;
           const far = side > 0 ? Math.max(stem.y1, stem.y2) : Math.min(stem.y1, stem.y2);
           const gap = ((p.y - far) / space) * side;
-          if (gap >= -0.4 && gap <= 1.8) score = Math.min(score, Math.hypot((dx - sx) * 1.4, gap - 0.55) + 0.25);
+          const maxGap = Math.abs(dx - sx) < 0.16 ? 2 : 1.8;
+          if (gap >= -0.4 && gap <= maxGap) score = Math.min(score, Math.hypot((dx - sx) * 1.4, gap - 0.55) + 0.25);
         }
       }
-      if (score < distance) {
+      const current = notes[best];
+      const alignedUnison = current && score === distance && near(n, current, space * 0.06)
+        && onSlurSide(n) && !onSlurSide(current);
+      if (score < distance || alignedUnison) {
         best = i;
         distance = score;
       }

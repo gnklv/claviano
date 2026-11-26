@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import type { PdfGeometry, PdfGlyph } from '../../../src/infrastructure/parsers/pdf/geometry';
+import { lilyGraceAnchors } from '../../../src/infrastructure/parsers/pdf/lilyPondGraces';
 import { lilyPondAttacks } from '../../../src/infrastructure/parsers/pdf/lilyPondAttacks';
 import { timeLilyPondStaves } from '../../../src/infrastructure/parsers/pdf/lilyPondTiming';
 import type { PianoAttack } from '../../../src/infrastructure/parsers/pdf/pianoAttacks';
@@ -31,4 +32,30 @@ test('opposing stems preserve the onset of a displaced second and the rest in it
   ];
   expect(timeLilyPondStaves([attacks], 1, 2, false)?.[0]?.timed.map(t => [t.beat, t.voice]))
     .toEqual([[0, 0], [0, 1], [1, 1]]);
+});
+
+test('gives each flagged stem its own copy when two unison heads are overprinted', () => {
+  const head = glyph(0, 0, 0xe0a4);
+  const double = { ...head };
+  const geometry: PdfGeometry = {
+    glyphs: [head, double, glyph(1.24, 3.5, 0xe240), glyph(.055, -3.5, 0xe241)],
+    fills: [], curvedFills: [],
+    segments: [{ x1: 1.24, x2: 1.24, y1: .16, y2: 3.5, width: .07 },
+      { x1: .055, x2: .055, y1: -.16, y2: -3.5, width: .07 }],
+  };
+  const attacks = lilyPondAttacks(geometry, geometry.glyphs, { bottom: 0, space: 1 }, [], 4);
+  expect(attacks?.map(a => a.beats)).toEqual([.5, .5]);
+  expect(new Set(attacks?.flatMap(a => a.heads)).size).toBe(2);
+});
+
+test('assigns an outlying grace flag to the head attached to its stem', () => {
+  const head = { ...glyph(1, 0, 0xe0a4), size: 2.83 };
+  const flag = { ...glyph(1.93, 2.36, 0xe240), size: 2.83 };
+  const slash = { ...flag, text: '\ue564' };
+  const other = { ...flag, x: 3 };
+  const marks = lilyGraceAnchors({ glyphs: [head, flag, slash, other], fills: [], curvedFills: [],
+    segments: [{ x1: 1.88, x2: 1.88, y1: .16, y2: 2.36, width: .08 }] }, 1);
+  expect(marks.get(flag)).toBe(head);
+  expect(marks.get(slash)).toBe(head);
+  expect(marks.has(other)).toBe(false);
 });

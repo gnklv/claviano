@@ -48,6 +48,20 @@ function engraving(barLengths: number[], options: { meterChange?: boolean; keyAn
     fonts: new Map([['Music', { name: 'Emmentaler-20', unicode, codeBytes: 1 }]]), form: () => undefined };
 }
 
+test('reads Feta alphabet meter digits and the thin and thick closing strokes as one barline', () => {
+  const page = engraving([4]);
+  const fonts = new Map(page.fonts);
+  fonts.set('Digits', { name: 'feta-alphabet20', unicode: new Map([[52, '4']]), codeBytes: 1 });
+  const operators = page.operators.replace('BT /Music 20 Tf 1 0 0 1 29 110 Tm <03> Tj ET',
+    'BT /Digits 20 Tf 1 0 0 1 29 114 Tm <34> Tj ET BT /Digits 20 Tf 1 0 0 1 29 104 Tm <34> Tj ET')
+    + '\n104.6 100 0.7 20 re f 107.5 100 2.5 20 re f';
+  const reading = readPianoDocumentPreview({ pageCount: 1, page: () => ({ ...page, fonts, operators }) }, 'Final barline');
+  expect(reading?.coverage).toBe('full');
+  expect(reading?.notation.bars).toHaveLength(1);
+  expect(reading?.notation.notes).toHaveLength(4);
+  expect(reading?.notation.timeSignatures).toEqual([{ beat: 0, numerator: 4, denominator: 4 }]);
+});
+
 test('keeps the active key through a mid-system meter change', () => {
   const page = engraving([4, 3], { meterChange: true });
   const reading = readPianoDocumentPreview({ pageCount: 1, page: () => page }, 'Meter change');
@@ -81,6 +95,23 @@ test('accepts a final short measure that complements the opening pickup', () => 
   const mismatch = readPianoDocumentPreview({ pageCount: 1, page: () => engraving([1, 4, 2]) }, 'Pickup');
   expect(mismatch?.coverage).toBe('partial');
   expect(mismatch?.notation.bars.map(bar => bar.length)).toEqual([1, 4]);
+});
+
+test('rejoins the two fragments of a measure at an interior repeat', () => {
+  const withRepeat = (lengths: number[]) => {
+    const page = engraving(lengths);
+    const fonts = new Map(page.fonts);
+    fonts.set('Dot', { name: 'Emmentaler-20', unicode: new Map([[1, '\ue1e7']]), codeBytes: 1 });
+    const dots = [107.5, 112.5].map(y => `BT /Dot 20 Tf 1 0 0 1 306 ${y} Tm <01> Tj ET`);
+    return { ...page, fonts, operators: [page.operators, '309 100 2 20 re f', ...dots].join('\n') };
+  };
+  const read = (lengths: number[]) => readPianoDocumentPreview({ pageCount: 1, page: () => withRepeat(lengths) }, 'Repeat');
+  const piece = read([1, 4, 3, 1, 4]);
+  expect(piece?.coverage).toBe('full');
+  expect(piece?.notation.bars.map(b => b.length)).toEqual([1, 4, 3, 1, 4]);
+  expect(piece?.notation.bars[2]?.navigation.repeatEnd).toEqual({ times: 2 });
+  expect(read([1, 4, 2, 1, 4])?.notation.bars).toHaveLength(2);
+  expect(read([1, 4, 3, 2, 4])?.notation.bars).toHaveLength(3);
 });
 
 test('does not count a complementary short measure at a preview or extraction cutoff', () => {
@@ -133,4 +164,59 @@ test('stops at a partially ruled system before accepting a closing pickup', () =
   expect(late?.stoppedAtPage).toBe(1);
   expect(late?.notation.bars.map(bar => bar.length)).toEqual([1, 4]);
   expect(read(90)).toBeNull();
+});
+
+test('reads a slashed grace and carries its printed natural through the following notes', () => {
+  const page = engraving([4, 4]);
+  const fonts = new Map(page.fonts);
+  fonts.set('Grace', { name: 'Emmentaler-14', codeBytes: 1, unicode: new Map([
+    [1, '\ue0a4'], [2, '\ue240'], [3, '\ue564'], [4, '\ue261'],
+  ]) });
+  const operators = page.operators + [
+    'BT /Grace 14 Tf 1 0 0 1 138 120 Tm <04> Tj ET',
+    'BT /Grace 14 Tf 1 0 0 1 142 120 Tm <01> Tj ET',
+    '146.2 120.8 0.4 11 re f',
+    'BT /Grace 14 Tf 1 0 0 1 146.5 131.8 Tm <02> Tj ET',
+    'BT /Grace 14 Tf 1 0 0 1 146.5 131.8 Tm <03> Tj ET',
+    '144 115 m 145 113 146.5 113 147.5 114.5 c 146.5 112.5 145 112.5 144 115 c f',
+  ].join('\n');
+  const read = (ops: string) => readPianoDocumentPreview({ pageCount: 1,
+    page: () => ({ ...page, fonts, operators: ops }) }, 'Grace');
+  const reading = read(operators);
+  expect(reading?.coverage).toBe('full');
+  expect(reading?.notation.graces).toMatchObject([{ bar: 1, beat: 4, leadsTo: 4,
+    notes: [{ sounding: 77, accidental: 'natural', slash: true, slur: true, value: 'eighth' }] }]);
+  expect(reading?.notation.notes.slice(4).map(note => note.sounding)).toEqual([77, 77, 77, 77]);
+  expect(read(operators.replace('146.2 120.8 0.4 11 re f', ''))?.notation.bars).toHaveLength(1);
+});
+
+test('counts three closed grace beams independently of the principal rhythm', () => {
+  const page = engraving([4, 4]);
+  const operators = page.operators + [
+    'BT /Music 14 Tf 1 0 0 1 130 115 Tm <04> Tj ET',
+    'BT /Music 14 Tf 1 0 0 1 138 117.5 Tm <04> Tj ET',
+    '134.2 115.8 0.4 17 re f 142.2 118.3 0.4 14.5 re f',
+    '134.2 132 8.4 1.6 re f 134.2 128.6 8.4 1.6 re f 134.2 125.2 8.4 1.6 re f',
+  ].join('\n');
+  const read = (ops: string) => readPianoDocumentPreview({ pageCount: 1,
+    page: () => ({ ...page, operators: ops }) }, 'Beamed grace');
+  expect(read(operators)?.notation.graces).toMatchObject([{ leadsTo: 4, beat: 4,
+    notes: [{ sounding: 74, value: 'thirtySecond' }, { sounding: 76, value: 'thirtySecond' }] }]);
+  expect(read(operators.replace('142.2 118.3 0.4 14.5 re f', ''))?.notation.bars).toHaveLength(1);
+});
+
+test('applies a textual 8va across a barline only when its rail has a closing hook', () => {
+  const page = engraving([4, 4]);
+  const fonts = new Map(page.fonts);
+  fonts.set('Text', { name: 'Text-Italic', unicode: new Map([[56, '8'], [118, 'v'], [97, 'a']]), codeBytes: 1 });
+  const label = 'BT /Text 10 Tf 1 0 0 1 90 133 Tm <38> Tj 1 0 0 1 95 133 Tm <76> Tj 1 0 0 1 100 133 Tm <61> Tj ET';
+  const rail = '106 137 m 153 137 l S';
+  const hook = '153 137 m 153 131 l S';
+  for (const hooked of [true, false]) {
+    const operators = [page.operators, label, rail, hooked ? hook : ''].join('\n');
+    const reading = readPianoDocumentPreview({ pageCount: 1, page: () => ({ ...page, fonts, operators }) }, 'Octave');
+    expect(reading?.notation.octaveShifts).toEqual(hooked ? [{ staff: 1, start: 3, end: 5, octaves: 1 }] : []);
+    expect(reading?.notation.notes.map(n => n.sounding)).toEqual(
+      hooked ? [78, 78, 78, 90, 90, 78, 78, 78] : Array(8).fill(78));
+  }
 });

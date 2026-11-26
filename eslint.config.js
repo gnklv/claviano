@@ -25,7 +25,7 @@ const ICON_CHARACTERS = '/[←→‹›✕×⚙▶■❚⏸⋯↻＋−♪♩☀
 const ICONS_FROM_THE_SET = 'An icon comes from the set (AppIcon), not from the characters of a font.';
 
 export default ts.config(
-  { ignores: ['dist', 'public/piano', 'public/demos', 'samples', '.engraving'] },
+  { ignores: ['dist', 'public/piano', 'public/demos', 'samples', '.engraving', '.pdf-samples'] },
   js.configs.recommended,
   ...ts.configs.recommendedTypeChecked,
   { languageOptions: { parserOptions: { projectService: true, extraFileExtensions: ['.vue'] } } },

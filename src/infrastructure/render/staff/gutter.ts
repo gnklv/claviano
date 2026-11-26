@@ -8,7 +8,7 @@ import { COLORS, noteGlyph, type Shape } from './shapes';
 /** What the left column shows: the clefs in force (upper, lower) and, with music, the signatures. */
 export interface GutterContent {
   clefs: [ClefSign, ClefSign];
-  signatures: { key: KeySignature; time: TimeSignature } | null;
+  signatures: { keys: [KeySignature, KeySignature]; time: TimeSignature } | null;
 }
 
 /**
@@ -39,7 +39,7 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
   );
 
   if (!signatures) return shapes;
-  const { key, time } = signatures;
+  const { keys, time } = signatures;
   const staves: [Clef, number][] = [
     [upper.clef, geometry.trebleTop()],
     [lower.clef, geometry.bassTop()],
@@ -47,8 +47,9 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
 
   // Each accidental sits on its line or space: a step is half a staff space.
   const keyX = CLEF_AREA * space;
-  const advance = (key.fifths >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
-  for (const [clef, top] of staves) {
+  for (const [index, [clef, top]] of staves.entries()) {
+    const key = keys[index]!;
+    const advance = (key.fifths >= 0 ? SHARP_ADVANCE : FLAT_ADVANCE) * space;
     keySignatureSteps(key.fifths, clef).forEach((step, index) => {
       shapes.push(glyph(key.fifths > 0 ? SHARP : FLAT, keyX + index * advance, top + (step * space) / 2));
     });
@@ -56,7 +57,7 @@ export function drawGutter(geometry: StaffGeometry, { clefs, signatures }: Gutte
 
   // Time signature digits are two spaces tall and centred on their baseline:
   // the numerator fills the upper half of the staff, the denominator the lower half.
-  const timeCenter = keyX + keySignatureWidth(key) * space + (timeSignatureWidth(time) * space) / 2;
+  const timeCenter = keyX + Math.max(...keys.map(keySignatureWidth)) * space + (timeSignatureWidth(time) * space) / 2;
   for (const [, top] of staves) {
     shapes.push(glyph(timeDigits(time.numerator), timeCenter, top + space, 'middle'), glyph(timeDigits(time.denominator), timeCenter, top + 3 * space, 'middle'));
   }

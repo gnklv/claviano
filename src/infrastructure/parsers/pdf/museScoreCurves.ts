@@ -1,3 +1,4 @@
+import { performanceOrder } from '../../../domain/notation/navigation';
 import type { Notation } from '../../../domain/notation/notation';
 import type { PdfGeometry, PdfPoint } from './geometry';
 import { systemsOf, type MuseScoreDirectionBar } from './museScoreDirections';
@@ -5,7 +6,8 @@ import { applyPdfCurves, centeredSlurEnd, insetChordSlur, isCurveRibbon } from '
 
 /** Match MuseScore's horizontally offset chord ties, including the two pieces
  * drawn when a sustained chord crosses to a different system or page. */
-export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], notation: Notation): Notation {
+export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], notation: Notation,
+  graceSlurs?: { contours: ReadonlySet<Contour>; targets: readonly Head['note'][] }): Notation {
   const notes = [...notation.notes];
   const indexes = new Map(notes.map((n, i) => [n, i]));
   const heads = new Map(bars.flatMap((bar) => bar.notes.map((head) => [head.note, head] as const)));
@@ -25,11 +27,12 @@ export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], not
     page.push(bar);
     pages.set(bar.geometry, page);
   }
-  const consumed = new Set<PdfGeometry['curvedFills'][number]>();
+  const consumed = new Set(graceSlurs?.contours);
   for (const [page, measures] of pages) {
     const placed = measures.flatMap((m) => m.notes);
     const space = measures[0]!.measure.staves[0].space;
     for (const contour of page.curvedFills) {
+      if (graceSlurs?.contours.has(contour)) continue;
       const c = contour[0],
         back = contour[1];
       if (
@@ -53,9 +56,7 @@ export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], not
         const next = continuations.get(tieKey(start.note, start.note.beat + start.note.beats)) ?? [];
         for (const j of next) {
           const target = notation.notes[j]!;
-          // In a polyphonic passage the continuation can move to another voice.
-          if ((next.length > 1 && start.note.voice !== target.voice)
-            || (target.accidental && target.sounding !== start.note.sounding)) continue;
+          if (target.accidental && target.sounding !== start.note.sounding) continue;
           const dest = bars[target.bar]!,
             src = bars[start.note.bar]!;
           const head = heads.get(target)!;
@@ -70,15 +71,25 @@ export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], not
               && (sameSystem || Math.abs(dy - (left.y - start.y) * side / space) < 0.50);
           };
           if (sameSystem) {
+            const distance = Math.abs(right.x - head.x);
+            const closerHead = next.some(candidate => {
+              const other = notation.notes[candidate]!;
+              if (candidate === j || (other.accidental && other.sounding !== start.note.sounding)) return false;
+              const otherDistance = Math.abs(right.x - heads.get(other)!.x);
+              return otherDistance + 0.05 * space < distance
+                || (Math.abs(otherDistance - distance) <= 0.05 * space
+                  && other.voice === start.note.voice && target.voice !== start.note.voice);
+            });
             // A grace slur can bridge the gap before a repeated pitch.
             // Its closing arc belongs to the ornament, not to the preceding full-size head.
-            if (!endsAt(right) || insetChordSlur(c, start, head, space)) continue;
+            if (closerHead || !endsAt(right) || insetChordSlur(c, start, head, space)) continue;
             if (centeredSlurEnd(right, head, space)) {
               const fromGrace = notation.graces.some(group =>
                 group.leadsTo === j && group.notes.some(note => note.slur));
               if (fromGrace || centeredSlurEnd(left, start, space)) continue;
             }
           } else {
+            if (next.length > 1 && start.note.voice !== target.voice) continue;
             if (Math.abs(right.x - src.measure.right) > space) continue;
             const continuation = dest.geometry.curvedFills.find(part => part.length === 2 && part[0]
               && Math.abs(part[0].from.y - part[0].to.y) < space * 0.06
@@ -119,8 +130,13 @@ export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], not
   // MusicXML numbers identify concurrent slurs. Reuse a number only after
   // its previous phrase has ended, including when two phrases share a head.
   const endsByStaff = new Map<number, number[]>();
-  slurs.sort((a, b) => a.start.beat - b.start.beat || b.end.beat - a.end.beat);
-  for (const { start, end, side } of slurs) {
+  const phrases = [
+    ...slurs.map(slur => ({ ...slur, fromGrace: false })),
+    ...(graceSlurs?.targets ?? []).map(end => ({ start: end, end, side: 0, fromGrace: true })),
+  ];
+  phrases.sort((a, b) => a.start.beat - b.start.beat || Number(b.fromGrace) - Number(a.fromGrace)
+    || b.end.beat - a.end.beat);
+  for (const { start, end, side, fromGrace } of phrases) {
     const ends = endsByStaff.get(start.staff) ?? [];
     endsByStaff.set(start.staff, ends);
     const free = ends.findIndex(beat => beat <= start.beat);
@@ -128,7 +144,7 @@ export function applyMuseScoreCurves(bars: readonly MuseScoreDirectionBar[], not
     ends[slot] = end.beat;
     const number = slot + 1;
     const i = indexes.get(start)!, j = indexes.get(end)!;
-    notes[i] = { ...notes[i]!, slurs: [...notes[i]!.slurs, { type: 'start', number, placement: side > 0 ? 'above' : 'below' }] };
+    if (!fromGrace) notes[i] = { ...notes[i]!, slurs: [...notes[i]!.slurs, { type: 'start', number, placement: side > 0 ? 'above' : 'below' }] };
     notes[j] = { ...notes[j]!, slurs: [...notes[j]!.slurs, { type: 'stop', number, placement: null }] };
   }
   for (const [j, i] of [...tiedFrom].sort(([a], [b]) => notes[a]!.beat - notes[b]!.beat)) {
@@ -147,6 +163,50 @@ function archSide(contour: Contour, space: number): number {
   const slope = (to.y - from.y) / (to.x - from.x);
   const bend = (p: PdfPoint) => Math.sign(p.y - from.y - (p.x - from.x) * slope);
   return bend(control1) === bend(control2) ? bend(control1) : 0;
+}
+
+/** At a written transfer a tie can end in empty space. The already tied
+ * receiving note identifies the other end on the playback route. */
+export function applyMuseScoreJumpTies(notation: Notation, bars: readonly MuseScoreDirectionBar[]): Notation {
+  if (!notation.bars.some(bar => bar.navigation.jump || bar.navigation.repeatEnd)) return notation;
+  const order = performanceOrder(notation.bars.map(bar => bar.navigation));
+  const notes = [...notation.notes];
+  const heads = bars.flatMap(bar => bar.notes);
+  const indexOf = new Map(heads.map((head, index) => [head, index]));
+  for (const [i, source] of order.entries()) {
+    const destination = order[i + 1];
+    const written = notation.bars[source]!;
+    const repeat = written.navigation.repeatEnd && destination !== undefined && destination <= source;
+    if ((!written.navigation.jump && !repeat) || destination === undefined || destination === source + 1) continue;
+    const bar = bars[source]!, receiving = notation.bars[destination]!;
+    const space = bar.measure.staves[0].space;
+    for (const head of bar.notes) {
+      const index = indexOf.get(head)!;
+      const note = notes[index]!;
+      if (note.tieStart || Math.abs(note.beat + note.beats - written.start - written.length) > 1e-8) continue;
+      const targets = bars[destination]!.notes.filter(next => {
+        const n = notes[indexOf.get(next)!]!;
+        return n.tieStop && n.beat === receiving.start && n.staff === note.staff
+          && n.sounding === note.sounding && n.pitch.letter === note.pitch.letter;
+      });
+      if (!targets.length || (!repeat || targets.length > 1)
+        && !targets.some(next => notes[indexOf.get(next)!]!.voice === note.voice)) continue;
+      const outgoing = bar.geometry.curvedFills.some(contour => {
+        const side = archSide(contour, space);
+        if (!side) return false;
+        const { from, to } = contour[0]!;
+        const dx = (from.x - head.x) / space, dy = (from.y - head.y) * side / space;
+        const width = (to.x - from.x) / space;
+        const minOffset = repeat && width < 2 ? -0.06 : 0.15;
+        return dx > 1.1 && dx < 1.85 && dy > minOffset && dy < 0.75
+          && Math.abs(from.y - to.y) < 0.06 * space && width > 1
+          && to.x <= bar.measure.right + 0.1 * space
+          && !bar.notes.some(h => Math.abs(h.x - to.x) < space && Math.abs(h.y - to.y) < space);
+      });
+      if (outgoing) notes[index] = { ...note, tieStart: true };
+    }
+  }
+  return { ...notation, notes };
 }
 
 // A slur attaches near the head center or to the side of its stem. Opposing

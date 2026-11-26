@@ -51,6 +51,24 @@ test.each([1, -1])('reads MuseScore articulation stacks from the chord outward o
   expect(entry.note.articulations).toEqual(['staccato', 'staccatissimo']);
 });
 
+test('attaches staccato dots above the stems of closely spaced beamed notes', () => {
+  const first = positioned[0];
+  const heads = [0, 1, 2].map(i => ({
+    x: first.x + i * 1.807 * space,
+    y: first.y - (i === 2 ? space : 0),
+    note: {
+      ...first.note, beat: first.note.beat + i * 0.25,
+      stem: 'up' as const, beams: ['continue', 'continue'] as const,
+    },
+  }));
+  const marks = [1, 0].map(i => ({
+    code: 0xe4a2, text: String.fromCodePoint(0xe4a2), font: 'Leland', size: space * 4,
+    x: heads[i].x + space * 1.089, y: heads[i].y + space * 4.094,
+  }));
+  const output = readPianoNoteMarks(marks, heads, space);
+  expect(output.map(entry => entry.note.articulations)).toEqual([['staccato'], ['staccato'], []]);
+});
+
 test.each([1, -1])('reads the MuseScore tenuto-staccato glyph on side %i as one portato', side => {
   const lower = positioned[0];
   const upper = { ...lower, y: lower.y + 3.5 * space, note: { ...lower.note, chord: true } };
@@ -125,4 +143,14 @@ test('assigns an inter-staff finger number only to the closer chord', () => {
   const upperMark = { ...mark, text: '2', y: upper.y - 2 * space };
   const both = readPianoNoteMarks([mark, upperMark], [upper, bass], space);
   expect(both.map(n => n.note.fingering)).toEqual([{ text: '2', below: true }, { text: '3', below: false }]);
+});
+
+test('assigns the Leland inverted mordent beneath a beamed note in the upper staff', () => {
+  const first = positioned[0];
+  const bass = { ...first, y: first.y - 13 * space, note: { ...first.note, staff: 2, voice: '5' } };
+  const sign = { text: '\ue56c', code: 0xe56c, font: 'Leland', size: 4 * space,
+    x: first.x - .3 * space, y: first.y - 5.5 * space };
+  const read = (y: number) => readPianoNoteMarks([{ ...sign, y }], [first, bass], space).map(n => n.note.ornaments);
+  expect(read(sign.y)).toEqual([[{ kind: 'inverted-mordent', below: true, accidentalAbove: null, accidentalBelow: null }], []]);
+  expect(read(first.y - 6.5 * space)).toEqual([[], []]);
 });

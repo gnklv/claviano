@@ -1,6 +1,6 @@
 import { barAtBeat, type KeySignature, type Score, type TimeSignature } from '../../../domain/score';
 import { lastAtOrBefore } from '../../../domain/search';
-import { cancelledSteps, signatureChanges, type SignatureChange } from '../../../domain/notation/signatures';
+import { cancelledSteps, signatureChanges, type KeyChange, type SignatureChange } from '../../../domain/notation/signatures';
 import { momentIn, placeIn, spaceBar, type BarSpacing, type Column } from '../../../domain/notation/spacing';
 import { beatAtPosition, beatPosition, tapeBars, type Clef } from '../staffLayout';
 import { SAME_MOMENT, sameMoment } from '../../../domain/moment';
@@ -297,16 +297,16 @@ function fitGutter(score: Score | null): number {
   return CLEF_AREA + keyWidth + timeWidth + GUTTER_END_GAP;
 }
 
+export function keyChangeWidth(key: KeyChange | null): number {
+  if (!key) return 0;
+  const naturals = cancelledSteps(key.from, key.to, 'treble').length;
+  return naturals * NATURAL_ADVANCE + (naturals ? SIGNATURE_GAP : 0) + keySignatureWidth({ fifths: key.to });
+}
+
 /** The room a key or time change needs before the bar's first note, in staff spaces. */
 function signatureChangeWidth(change: SignatureChange): number {
-  let width = CHANGE_GAP_BEFORE + CHANGE_GAP_AFTER;
-  if (change.key) {
-    const naturals = cancelledSteps(change.key.from, change.key.to, 'treble').length;
-    width += naturals * NATURAL_ADVANCE + (naturals > 0 ? SIGNATURE_GAP : 0);
-    width += keySignatureWidth({ fifths: change.key.to });
-  }
-  if (change.time) width += timeSignatureWidth(change.time) + SIGNATURE_GAP;
-  return width;
+  return CHANGE_GAP_BEFORE + Math.max(...change.keys.map(keyChangeWidth)) + CHANGE_GAP_AFTER
+    + (change.time ? timeSignatureWidth(change.time) + SIGNATURE_GAP : 0);
 }
 
 /** The bar (index into `starts`) whose start is at or before `x` on the tape (the first one before it). */

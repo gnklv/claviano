@@ -5,7 +5,7 @@ import type { Notation, WrittenBar } from '../../../src/domain/notation/notation
 import type { WrittenNote } from '../../../src/domain/notation/written';
 import { readPdf } from '../../../src/infrastructure/parsers/pdf/document';
 import { extractPdfGeometry, type PdfGeometry } from '../../../src/infrastructure/parsers/pdf/geometry';
-import type { MuseScoreDirectionBar } from '../../../src/infrastructure/parsers/pdf/museScoreDirections';
+import { applyMuseScoreDirections, type MuseScoreDirectionBar } from '../../../src/infrastructure/parsers/pdf/museScoreDirections';
 import { museScoreMeasures } from '../../../src/infrastructure/parsers/pdf/museScoreMeasures';
 import { applyMuseScoreNavigation } from '../../../src/infrastructure/parsers/pdf/museScoreNavigation';
 import type { TimedNote } from '../../../src/infrastructure/parsers/pdf/pianoNotes';
@@ -51,6 +51,20 @@ for (const [name, expected, playedBars] of [
     expect(performanceOrder(actual)).toHaveLength(playedBars);
   });
 }
+
+test('assigns a centred segno to the following repeat and a coda sign to the first bar of its system', () => {
+  const space = 5;
+  const glyph = (x: number, y: number, text: string) => ({ x, y, text, code: text.codePointAt(0)!, font: 'Leland', size: 20 });
+  const geometry: PdfGeometry = { fills: [], curvedFills: [], segments: [],
+    glyphs: [glyph(56, 130, '\ue047'), glyph(23, 62, '\ue048')] };
+  const positions = [[30, 60, 100], [60, 100, 100], [30, 100, 30]].map(([left, right, bottom], index) => ({
+    index, geometry, notes: [], measure: { left, right,
+      staves: [{ bottom, space }, { bottom: bottom - 35, space }] as const },
+  }));
+  const bars = positions.map(({ index }) => ({ start: 4 * index, length: 4, navigation: {} }));
+  expect(applyMuseScoreDirections(notation(bars), positions).bars.map(b => b.navigation))
+    .toEqual([{}, { segno: true, segnoSign: true }, { coda: true, codaSign: true }]);
+});
 
 test('applies a printed octave line over one staff and preserves its written pitches', () => {
   const geometry: PdfGeometry = {

@@ -12,6 +12,7 @@ interface TimedStaff {
   staff: Staff;
   glyphs: readonly PdfGlyph[];
   timed: readonly TimedAttack[];
+  graceGlyphs?: readonly PdfGlyph[];
   start: number;
   length: number;
   key: number;
@@ -28,7 +29,7 @@ interface StaffNotation {
 }
 
 export function readAttackStaff(
-  { barIndex, staffIndex: j, staff, glyphs, timed, start, length, key, crossStaff }: TimedStaff,
+  { barIndex, staffIndex: j, staff, glyphs, timed, start, length, key, crossStaff, graceGlyphs = [] }: TimedStaff,
   output: StaffNotation,
 ): boolean {
   const space = staff.space;
@@ -43,11 +44,19 @@ export function readAttackStaff(
   };
   const accidentals = new Map<number, Alteration>();
   const heads = glyphs.filter(isHead);
+  const graceMarks = graceGlyphs.filter(isAccidental).sort((a, b) => a.x - b.x);
   const layered = timed.some(item => item.voice === 0) && timed.some(item => item.voice > 0);
   for (const { attack, beat: offset, voice } of timed) {
     const beat = start + offset;
     while (clefMarks[0] && clefMarks[0].x < attack.x) change(clefMarks.shift()!, beat);
     const clef = output.current[j]!;
+    while (graceMarks[0] && graceMarks[0].x < attack.x) {
+      const mark = graceMarks.shift()!;
+      const position = pitchAt(mark.y, staff, clef);
+      const alteration = ACCIDENTALS[codePoint(mark) - FLAT];
+      if (!position || !alteration) return false;
+      accidentals.set(position.octave * 7 + position.letter, alteration[1]);
+    }
     const voiceNumber = String(crossStaff ? voice + (voice === 0 ? 1 : 4) : voice + 1 + 4 * j);
     if (attack.rest) {
       const wholeBar = attack.duration.value === 'whole' && !heads.length;
@@ -63,18 +72,21 @@ export function readAttackStaff(
         ? pitchAt(staff.bottom + attack.rest.y - crossStaff.lowerStaff.bottom, staff, clef)
         : raisedEighth ?? loweredEighth;
       output.rests.push({ staff: j + 1, voice: voiceNumber, beat, clef, displayPitch: display,
-        measure: wholeBar, ...(attack.triplet ? {
-          tuplet: { actual: 3, normal: 2 },
-          tupletStart: attack.triplet === 'start' ? { showNumber: true, bracket: attack.tripletBracket ?? false } : null,
-          tupletStop: attack.triplet === 'stop' } : {}),
+        measure: wholeBar, ...(attack.tupletPart ? {
+          tuplet: attack.tupletRatio!,
+          tupletStart: attack.tupletPart === 'start' ? { showNumber: true, bracket: attack.tupletBracket ?? false } : null,
+          tupletStop: attack.tupletPart === 'stop' } : {}),
         duration: wholeBar ? writtenDuration(length) : attack.duration });
     } else output.columns?.push({ x: attack.x, beat });
     const chord = [...attack.heads].sort((a, b) => a.y - b.y);
+    // Seconds and thirds can require several staggered accidental columns.
+    // Allow another column only when the chord has at least three members.
+    const accidentalReach = chord.length >= 3 ? 5.2 : chord.length === 2 ? 4 : 2.2;
     for (const [member, head] of chord.entries()) {
       const position = pitchAt(head.y, staff, clef);
       if (!position) return false;
       const degree = position.octave * 7 + position.letter;
-      const mark = glyphs.filter(g => isAccidental(g) && within(g.y, head.y, space * 0.08) && g.x < head.x && head.x - g.x < space * (chord.length > 1 ? 4 : 2.2)
+      const mark = glyphs.filter(g => isAccidental(g) && within(g.y, head.y, space * 0.08) && g.x < head.x && head.x - g.x < space * accidentalReach
         && !heads.some(other => other.x > g.x && other.x < head.x - space * 1.4))
         .sort((a, b) => b.x - a.x)[0];
       const accidental = mark && ACCIDENTALS[codePoint(mark) - FLAT];
@@ -85,13 +97,15 @@ export function readAttackStaff(
         x: head.x, y: head.y, columnX: attack.x, note: {
           bar: barIndex, staff: j + 1, voice: voiceNumber, hand: j ? 'left' : 'right',
           chord: member > 0, clef, pitch, sounding: midiOf(pitch) + 12 * output.octaves[j]!, beat, beats: attack.beats, duration: attack.duration,
-          tuplet: attack.triplet ? { actual: 3, normal: 2 } : attack.tremolo ? { actual: 2, normal: 1 } : null,
-          tupletStart: !member && attack.triplet === 'start' ? { showNumber: true, bracket: attack.tripletBracket ?? false } : null,
-          tupletStop: !member && attack.triplet === 'stop',
+          tuplet: attack.tupletRatio ?? (attack.tremolo ? { actual: 2, normal: 1 } : null),
+          tupletStart: !member && attack.tupletPart === 'start' ? { showNumber: true, bracket: attack.tupletBracket ?? false } : null,
+          tupletStop: !member && attack.tupletPart === 'stop',
           accidental: !shared && accidental ? accidental[0] : null,
           stem: attack.stem ? (attack.stem.up ? 'up' : 'down') : null,
           beams: member === 0 ? attack.beams : [], tieStart: false, tieStop: false,
           articulations: [], fermata: null, slurs: [], dynamics: null, ornaments: [], trillLine: false,
+          ...(within(head.size, space * 2.8, space * 0.08)
+            ? { small: true } : {}),
           tremolo: member === 0 ? attack.tremolo ?? null : null, arpeggio: null, ...(attack.hiddenHead === head ? { headless: true } : {}),
         }
       });

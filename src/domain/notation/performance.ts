@@ -1,6 +1,6 @@
 import type { Hand, Note, NoteSource } from '../note';
 import { pedalSpans, type PedalKind } from '../pedal';
-import { createScore, secondsAtBeat, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
+import { createScore, normalizedKeys, writtenKeyAt, secondsAtBeat, type GraceSound, type Score, type TempoMark, type TimePoint } from '../score';
 import { scoreForLayer } from '../practice/layerScore';
 import { firstAtOrAfter, lastAtOrBefore } from '../search';
 import { dynamicsAlongPage, levelCurve, withHairpinLevels } from './dynamics';
@@ -147,20 +147,23 @@ function playNotation(notation: Notation, pace: PaceDepths, plainFrom?: Score): 
   }
 
   // The notes themselves: one sound each, or the several quick ones an ornament or a tremolo stands for.
-  const keys = [...notation.keySignatures].sort((a, b) => a.beat - b.beat);
+  const keys = normalizedKeys(notation.keySignatures);
   let delay = 0; // of the chord being read: every note of it comes in after the appoggiatura
   let chordStrokes: number | null = null;
+  let chordMarks: readonly Articulation[] = [];
   notation.notes.forEach((note, index) => {
     if (!note.chord) {
       delay = delays.get(index) ?? 0;
+      chordMarks = note.articulations;
       chordStrokes = singleTremoloStrokes(notation.notes, index);
     }
     const strokes = note.tremolo?.type === 'single' ? note.tremolo.strokes : chordStrokes;
-    const effect = articulationEffect(note.articulations);
+    // One articulation printed on the leading head belongs to the chord.
+    const effect = articulationEffect(note.articulations.length ? note.articulations : chordMarks);
     const beat = note.beat + delay;
     const beats = note.beats - delay;
     const [ornament] = plainFrom ? [] : note.ornaments;
-    const fifths = keys[lastAtOrBefore(keys, note.beat + SAME_MOMENT, (key) => key.beat)]?.fifths ?? 0;
+    const fifths = ornament ? writtenKeyAt(keys, note.beat + SAME_MOMENT, note.staff).fifths : 0;
     // Under an octave shift the note is printed octaves away from where it sounds; its neighbours are counted from there.
     const spelled = { ...note.pitch, octave: note.pitch.octave + Math.round((note.sounding - midiOf(note.pitch)) / 12) };
     const pieces = ornament

@@ -49,6 +49,15 @@ describe('performanceOrder', () => {
     expect(performanceOrder(bars)).toEqual([0, 1, 2, 3, 1, 2, 4]);
   });
 
+  it('skips repeats on the D.S. return and plays both endings of a new repeat in the coda', () => {
+    const bars: BarNavigation[] = [
+      { segno: true, repeatStart: true }, { repeatEnd: { times: 2 } }, { toCoda: true },
+      { jump: 'dalsegno' }, { coda: true }, { repeatStart: true },
+      { ending: [1], repeatEnd: { times: 2 } }, { ending: [2] },
+    ];
+    expect(performanceOrder(bars)).toEqual([0, 1, 0, 1, 2, 3, 0, 1, 2, 4, 5, 6, 5, 7]);
+  });
+
   it('after a jump, plays only the last ending', () => {
     // 𝄋 ‖: 0 |1. 1 :‖ |2. 2 | 3 D.S. al Fine … with Fine at 2
     const bars: BarNavigation[] = [

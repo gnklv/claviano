@@ -122,11 +122,11 @@ function clefXml({ staff, clef, octaves }: Pick<Notation['clefs'][number], 'staf
 
 function attributesXml(notation: Notation, beat: number, first: boolean): string {
   const atStart = (item: { beat: number }) => sameMoment(item.beat, beat);
-  const key = notation.keySignatures.find(atStart);
+  const keys = notation.keySignatures.filter(atStart);
   const time = notation.timeSignatures.find(atStart);
   const parts = [];
   if (first) parts.push(`<divisions>${DIVISIONS}</divisions>`);
-  if (key) parts.push(`<key><fifths>${key.fifths}</fifths><mode>${key.minor ? 'minor' : 'major'}</mode></key>`);
+  for (const key of keys) parts.push(`<key${key.staff === undefined ? '' : ` number="${key.staff}"`}><fifths>${key.fifths}</fifths><mode>${key.minor ? 'minor' : 'major'}</mode></key>`);
   if (time) parts.push(`<time><beats>${time.numerator}</beats><beat-type>${time.denominator}</beat-type></time>`);
   if (first) {
     const lowerStaff = notation.clefs.some(clef => clef.staff === 2) || notation.notes.some(note => note.staff === 2)

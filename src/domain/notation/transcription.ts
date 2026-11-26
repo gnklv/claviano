@@ -70,10 +70,14 @@ export function transcribe(score: Score): { written: WrittenNote[]; octaveShifts
 function transcriptionOf(score: Score): { written: WrittenNote[]; octaveShifts: OctaveShift[]; playedToWritten: number[] } {
   const sounding: Placed[] = score.notes.map((note, playedIndex) => {
     const { beat, beats } = quantize(note.beat, note.beats);
-    const spelled = spell(note.pitch, keySignatureAt(score, beat).fifths);
+    const ownKey = keySignatureAt(score, beat, note.hand === 'right' ? 1 : 2);
+    const ownSpelling = spell(note.pitch, ownKey.fifths);
+    const staff = staffFor(note.hand, ownSpelling);
+    const staffKey = keySignatureAt(score, beat, staff === 'treble' ? 1 : 2);
+    const spelled = staffKey.fifths === ownKey.fifths ? ownSpelling : spell(note.pitch, staffKey.fifths);
     return {
       playedIndex,
-      staff: staffFor(note.hand, spelled),
+      staff,
       hand: note.hand,
       bar: barAtBeat(score, beat),
       beat,
@@ -90,7 +94,7 @@ function transcriptionOf(score: Score): { written: WrittenNote[]; octaveShifts: 
   // Accidentals follow the rules per bar and per staff, in time order.
   for (const group of groupBy(placed, (p) => `${p.staff}|${p.bar}`).values()) {
     group.sort((a, b) => a.beat - b.beat || a.pitch - b.pitch);
-    const fifths = keySignatureAt(score, writtenBarStart(score, group[0].bar)).fifths;
+    const fifths = keySignatureAt(score, writtenBarStart(score, group[0].bar), group[0].staff === 'treble' ? 1 : 2).fifths;
     barAccidentals(group.map((p) => p.spelled), fifths).forEach((accidental, i) => (group[i]!.accidental = accidental));
   }
 

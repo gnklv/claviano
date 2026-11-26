@@ -353,7 +353,7 @@ export class TapeStaff implements StaffView {
     const clefs: [ClefSign, ClefSign] = [clefSignAt(score, 1, this.currentBeat), clefSignAt(score, 2, this.currentBeat)];
     // (Nothing written, no bar: no signatures. A bar with nothing in it yet, as a take before it is played, has them.)
     if (score.notation.bars.length === 0) return { clefs, signatures: null };
-    return { clefs, signatures: { key: keySignatureAt(score, this.currentBeat), time: timeSignatureAt(score, this.currentBeat) } };
+    return { clefs, signatures: { keys: [keySignatureAt(score, this.currentBeat, 1), keySignatureAt(score, this.currentBeat, 2)], time: timeSignatureAt(score, this.currentBeat) } };
   }
 
   /** The last change of clef, key or time at or before `beat` (as the domain finds what is in force there). */
